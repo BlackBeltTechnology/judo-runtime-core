@@ -1,0 +1,83 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>hu.blackbelt.judo.runtime</groupId>
+        <artifactId>judo-runtime-core-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>judo-runtime-core-persistence-postgresql</artifactId>
+    <packaging>bundle</packaging>
+
+    <name>JUDO Services Persistence Postgresql</name>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Import-Package>${osgi-default-import},liquibase,*</Import-Package>
+                        <Export-Package>hu.blackbelt.judo.services.persistence.postgresql;version:=${project.version}</Export-Package>
+                        <Provide-Capability>osgi.service;effective:=active;objectClass=hu.blackbelt.judo.services.persistence.PersistenceReady</Provide-Capability>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>hu.blackbelt.judo.framework</groupId>
+            <artifactId>hsqldb-server</artifactId>
+            <version>${judo-framework-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.osgi.liquibase</groupId>
+            <artifactId>osgi-liquibase</artifactId>
+            <version>${osgi-liquibase-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.ops4j.pax.jdbc</groupId>
+            <artifactId>pax-jdbc-pool-common</artifactId>
+            <version>1.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-persistence</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-transaction</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.osgi.utils</groupId>
+            <artifactId>osgi-api</artifactId>
+        </dependency>
+
+    </dependencies>
+</project>

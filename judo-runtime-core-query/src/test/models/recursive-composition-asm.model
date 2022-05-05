@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" xmi:id="_6EWCgNonEemC6Ik_FlK6Hw" name="Test" nsURI="http://blackbelt.hu/judo/recursive-composition/Test" nsPrefix="runtimerecursive-compositionTest">
+  <eClassifiers xsi:type="ecore:EClass" xmi:id="_6ETmQNonEemC6Ik_FlK6Hw" name="X">
+    <eAnnotations xmi:id="_6ES_MNonEemC6Ik_FlK6Hw" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/entity">
+      <details xmi:id="_6EX3sNonEemC6Ik_FlK6Hw" key="value" value="true"/>
+    </eAnnotations>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_6EU0YNonEemC6Ik_FlK6Hw" name="y" eType="_6EUNUNonEemC6Ik_FlK6Hw" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_6EU0YdonEemC6Ik_FlK6Hw" name="ys" upperBound="-1" eType="_6EUNUNonEemC6Ik_FlK6Hw" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_6EU0YtonEemC6Ik_FlK6Hw" name="x" eType="_6ETmQNonEemC6Ik_FlK6Hw" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_6EU0Y9onEemC6Ik_FlK6Hw" name="xs" upperBound="-1" eType="_6ETmQNonEemC6Ik_FlK6Hw" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" xmi:id="_6EUNUNonEemC6Ik_FlK6Hw" name="Y">
+    <eAnnotations xmi:id="_6ES_MdonEemC6Ik_FlK6Hw" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/entity">
+      <details xmi:id="_6EfMcNonEemC6Ik_FlK6Hw" key="value" value="true"/>
+    </eAnnotations>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_6EU0ZNonEemC6Ik_FlK6Hw" name="x" eType="_6ETmQNonEemC6Ik_FlK6Hw" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_6EU0ZdonEemC6Ik_FlK6Hw" name="xs" upperBound="-1" eType="_6ETmQNonEemC6Ik_FlK6Hw" containment="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" xmi:id="_WmLD0ORmEemuZNeTONnm3g" name="P">
+    <eAnnotations xmi:id="_WmLD0-RmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/mappedEntityType">
+      <details xmi:id="_WmLD1ORmEemuZNeTONnm3g" key="value" value="Test.X"/>
+      <details xmi:id="_WmLD1eRmEemuZNeTONnm3g" key="entityIdPresence" value="OPTIONAL"/>
+    </eAnnotations>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_WmLD1uRmEemuZNeTONnm3g" name="q" eType="_WmLD5uRmEemuZNeTONnm3g" containment="true">
+      <eAnnotations xmi:id="_WmLD1-RmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/binding">
+        <details xmi:id="_WmLD2ORmEemuZNeTONnm3g" key="value" value="y"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_WmLD2uRmEemuZNeTONnm3g" name="qs" upperBound="-1" eType="_WmLD5uRmEemuZNeTONnm3g" containment="true">
+      <eAnnotations xmi:id="_WmLD2-RmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/binding">
+        <details xmi:id="_WmLD3ORmEemuZNeTONnm3g" key="value" value="ys"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_WmLD3uRmEemuZNeTONnm3g" name="p" eType="_WmLD0ORmEemuZNeTONnm3g" containment="true">
+      <eAnnotations xmi:id="_WmLD3-RmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/binding">
+        <details xmi:id="_WmLD4ORmEemuZNeTONnm3g" key="value" value="x"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_WmLD4uRmEemuZNeTONnm3g" name="ps" upperBound="-1" eType="_WmLD0ORmEemuZNeTONnm3g" containment="true">
+      <eAnnotations xmi:id="_WmLD4-RmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/binding">
+        <details xmi:id="_WmLD5ORmEemuZNeTONnm3g" key="value" value="xs"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" xmi:id="_WmLD5uRmEemuZNeTONnm3g" name="Q">
+    <eAnnotations xmi:id="_WmLD6eRmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/mappedEntityType">
+      <details xmi:id="_WmLD6uRmEemuZNeTONnm3g" key="value" value="Test.Y"/>
+      <details xmi:id="_WmLD6-RmEemuZNeTONnm3g" key="entityIdPresence" value="OPTIONAL"/>
+    </eAnnotations>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_WmLD7ORmEemuZNeTONnm3g" name="p" eType="_WmLD0ORmEemuZNeTONnm3g" containment="true">
+      <eAnnotations xmi:id="_WmLD7eRmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/binding">
+        <details xmi:id="_WmLD7uRmEemuZNeTONnm3g" key="value" value="x"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+    <eStructuralFeatures xsi:type="ecore:EReference" xmi:id="_WmLD8ORmEemuZNeTONnm3g" name="ps" upperBound="-1" eType="_WmLD0ORmEemuZNeTONnm3g" containment="true">
+      <eAnnotations xmi:id="_WmLD8eRmEemuZNeTONnm3g" source="http://blackbelt.hu/judo/meta/ExtendedMetadata/binding">
+        <details xmi:id="_WmLD8uRmEemuZNeTONnm3g" key="value" value="xs"/>
+      </eAnnotations>
+    </eStructuralFeatures>
+  </eClassifiers>
+</ecore:EPackage>

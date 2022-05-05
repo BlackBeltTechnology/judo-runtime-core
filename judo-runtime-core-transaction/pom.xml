@@ -1,0 +1,44 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>hu.blackbelt.judo.runtime</groupId>
+        <artifactId>judo-runtime-core-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>judo-runtime-core-transaction</artifactId>
+    <packaging>bundle</packaging>
+
+    <name>JUDO Services Transaction</name>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>hu.blackbelt.judo.services.transaction;version:=${project.version}</Export-Package>
+                        <Import-Package>
+                            ${osgi-default-import},
+                            ${osgi-transaction-import},
+                            *
+                        </Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.ops4j.pax.transx</groupId>
+            <artifactId>pax-transx-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.osgi.utils</groupId>
+            <artifactId>osgi-api</artifactId>
+        </dependency>
+    </dependencies>
+</project>
