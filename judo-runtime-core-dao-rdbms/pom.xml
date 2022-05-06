@@ -20,7 +20,7 @@
                 <configuration>
                     <instructions>
                         <Export-Package>
-                            hu.blackbelt.judo.services.dao.rdbms.*;version:=${project.version}
+                            hu.blackbelt.judo.runtime.core.dao.rdbms.rdbms.*;version:=${project.version}
                         </Export-Package>
                         <Private-Package>
                             org.jgrapht*,

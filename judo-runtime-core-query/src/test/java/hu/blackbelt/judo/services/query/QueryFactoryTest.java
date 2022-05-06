@@ -9,6 +9,7 @@ import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.query.Select;
 import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.meta.query.Target;
+import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.workflow.work.WorkReport;
 import hu.blackbelt.judo.tatami.core.workflow.work.WorkStatus;
 import hu.blackbelt.judo.tatami.workflow.DefaultWorkflowSetupParameters;

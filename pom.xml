@@ -44,7 +44,6 @@
         <cxf-jaxrs-application-manager-version>0.7.1.20220301_152701_1df46756_develop
         </cxf-jaxrs-application-manager-version>
         <keycloak-version>10.0.2</keycloak-version>
-        <osgi-utils-version>1.0.12.20220316_214508_c75030f0_develop</osgi-utils-version>
         <jooq-version>3.13.1</jooq-version>
         <epsilon-runtime-version>1.4.0.20220316_214617_dcae201c_develop</epsilon-runtime-version>
         <google-karaf-features-version>1.0.7</google-karaf-features-version>
