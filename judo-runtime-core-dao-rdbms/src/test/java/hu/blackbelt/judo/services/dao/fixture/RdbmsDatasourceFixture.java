@@ -3,7 +3,7 @@ package hu.blackbelt.judo.services.dao.fixture;
 
 import com.atomikos.icatch.jta.UserTransactionManager;
 import com.atomikos.jdbc.AtomikosNonXADataSourceBean;
-import hu.blackbelt.judo.services.persistence.postgresql.ModelDataSourcePostgresqlInitTracker;
+import hu.blackbelt.judo.runtime.core.persitence.postgresql.Marker;
 import liquibase.Liquibase;
 import liquibase.database.Database;
 import liquibase.database.core.HsqlDatabase;
@@ -135,7 +135,7 @@ public class RdbmsDatasourceFixture {
 
         // Execute dialect based datatsource preprations
         if (dialect.equals(DIALECT_POSTGRESQL)) {
-            executeInitiLiquibase(ModelDataSourcePostgresqlInitTracker.class.getClassLoader(), "liquibase/postgresql-init-changelog.xml", ds);
+            executeInitiLiquibase(Marker.class.getClassLoader(), "liquibase/postgresql-init-changelog.xml", ds);
         }
 
         jooqDataSource = ProxyDataSourceBuilder

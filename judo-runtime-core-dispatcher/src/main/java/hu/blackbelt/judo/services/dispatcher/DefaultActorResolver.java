@@ -18,10 +18,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EEnum;
-import org.osgi.service.component.annotations.*;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
-import org.osgi.service.metatype.annotations.Designate;
-import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -31,29 +27,17 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Component(immediate = true, configurationPolicy = ConfigurationPolicy.REQUIRE)
-@Designate(ocd = DefaultActorResolver.Config.class)
 @NoArgsConstructor
 @RequiredArgsConstructor
 @Slf4j
 public class DefaultActorResolver<ID> implements ActorResolver {
 
-    @ObjectClassDefinition
-    public @interface Config {
-
-        @AttributeDefinition(name = "Check/load mapped actors (by default, without needed principal/actor instance for operation)")
-        boolean checkMappedActors() default true;
-    }
-
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
     @NonNull
     DataTypeManager dataTypeManager;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
     @NonNull
     DAO<ID> dao;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
     @NonNull
     AsmModel asmModel;
 
@@ -62,15 +46,6 @@ public class DefaultActorResolver<ID> implements ActorResolver {
 
     private AsmUtils asmUtils;
 
-    @Activate
-    void start(Config config) {
-        checkMappedActors = config.checkMappedActors();
-    }
-
-    @Deactivate
-    void stop() {
-        asmUtils = null;
-    }
 
     private AsmUtils getAsmUtils() {
         if (asmUtils == null) {

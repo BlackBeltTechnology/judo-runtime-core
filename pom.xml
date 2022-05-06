@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>hu.blackbelt.judo.runtime</groupId>
     <artifactId>judo-runtime-core-parent</artifactId>
@@ -40,7 +41,8 @@
 
         <karaf-version>4.3.4</karaf-version>
         <cxf-version>3.4.4</cxf-version>
-        <cxf-jaxrs-application-manager-version>0.7.1.20220301_152701_1df46756_develop</cxf-jaxrs-application-manager-version>
+        <cxf-jaxrs-application-manager-version>0.7.1.20220301_152701_1df46756_develop
+        </cxf-jaxrs-application-manager-version>
         <keycloak-version>10.0.2</keycloak-version>
         <osgi-utils-version>1.0.12.20220316_214508_c75030f0_develop</osgi-utils-version>
         <jooq-version>3.13.1</jooq-version>
@@ -109,7 +111,9 @@
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.language>java</sonar.language>
         <sonar.java.source>${maven.compiler.source}</sonar.java.source>
-        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../judo-runtime-core-tests-aggregator/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.jacoco.xmlReportPaths>
+            ${project.basedir}/../judo-runtime-core-tests-aggregator/target/site/jacoco-aggregate/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <url>http://github.com/${project-repositoryId}</url>
@@ -215,7 +219,7 @@
                     <extensions>true</extensions>
                     <configuration>
                         <instructions>
-                            <Export-Package />
+                            <Export-Package/>
                             <Import-Package>
                                 ${osgi-default-import},
                                 *
@@ -257,7 +261,7 @@
                 </executions>
             </plugin>
 
-			<plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
                 <version>1.1.0</version>
@@ -295,12 +299,6 @@
         <dependency>
             <groupId>hu.blackbelt.epsilon</groupId>
             <artifactId>epsilon-runtime-execution</artifactId>
-            <version>${epsilon-runtime-version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-osgi</artifactId>
             <version>${epsilon-runtime-version}</version>
         </dependency>
 
@@ -363,27 +361,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <version>6.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>osgi.cmpn</artifactId>
-            <version>6.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.annotation</artifactId>
-            <version>6.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
@@ -434,12 +411,6 @@
                 <artifactId>judo-tatami-northwind-esm</artifactId>
                 <version>${judo-tatami-version}</version>
                 <classifier>sdk</classifier>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.osgi.utils</groupId>
-                <artifactId>osgi-api</artifactId>
-                <version>${osgi-utils-version}</version>
             </dependency>
 
             <dependency>
@@ -727,9 +698,9 @@
                 <module>judo-runtime-core-query</module>
                 <module>judo-runtime-core-dispatcher</module>
                 <module>judo-runtime-core-persistence</module>
-                <module>judo-runtime-core-transaction</module>
                 <module>judo-runtime-core-persistence-hsqldb</module>
                 <module>judo-runtime-core-persistence-postgresql</module>
+                <module>judo-runtime-core-transaction</module>
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
@@ -767,18 +738,18 @@
         </profile>
 
         <profile>
-			<id>release-dummy</id>
-			<distributionManagement>
-				<snapshotRepository>
-					<id>dummy-distribution</id>
-					<url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-snapshot/</url>
-				</snapshotRepository>
-				<repository>
-					<id>dummy-distribution</id>
-					<url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-release/</url>
-				</repository>
-			</distributionManagement>
-		</profile>
+            <id>release-dummy</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>dummy-distribution</id>
+                    <url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-snapshot/</url>
+                </snapshotRepository>
+                <repository>
+                    <id>dummy-distribution</id>
+                    <url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-release/</url>
+                </repository>
+            </distributionManagement>
+        </profile>
 
         <profile>
             <id>release-judong</id>

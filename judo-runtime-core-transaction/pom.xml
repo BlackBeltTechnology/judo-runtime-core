@@ -30,15 +30,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.ops4j.pax.transx</groupId>
-            <artifactId>pax-transx-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.osgi.utils</groupId>
-            <artifactId>osgi-api</artifactId>
-        </dependency>
-    </dependencies>
 </project>
