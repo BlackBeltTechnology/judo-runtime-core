@@ -11,9 +11,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.QueryCustomizerParam
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -28,21 +26,26 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @NoArgsConstructor
-@RequiredArgsConstructor
+@AllArgsConstructor
+@Builder
 @Slf4j
 public class DefaultActorResolver<ID> implements ActorResolver {
 
     @NonNull
+    @Setter
     DataTypeManager dataTypeManager;
 
     @NonNull
+    @Setter
     DAO<ID> dao;
 
     @NonNull
+    @Setter
     AsmModel asmModel;
 
-    @NonNull
-    private boolean checkMappedActors;
+    @Builder.Default
+    @Setter
+    private Boolean checkMappedActors = false;
 
     private AsmUtils asmUtils;
 

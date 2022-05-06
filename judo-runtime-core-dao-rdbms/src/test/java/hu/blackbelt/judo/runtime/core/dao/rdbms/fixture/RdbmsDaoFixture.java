@@ -461,7 +461,20 @@ public class RdbmsDaoFixture {
 
     public DAO<UUID> getDao() {
         if (cachedDao == null) {
-            cachedDao = new RdbmsDAOImpl(DATA_TYPE_MANAGER, asmModel, rdbmsModel, rdbmsDatasourceFixture.getJooqDataSource(), transformationTraceService, new UUIDIdentifierProvider(), rdbmsDatasourceFixture.getDialect(),  rdbmsDatasourceFixture.isJooqEnabled(), true, CHUNK_SIZE, false, variableResolver, context);
+            cachedDao = RdbmsDAOImpl.<UUID>builder()
+                    .dataTypeManager(DATA_TYPE_MANAGER)
+                    .asmModel(asmModel)
+                    .rdbmsModel(rdbmsModel)
+                    .dataSource(rdbmsDatasourceFixture.getJooqDataSource())
+                    .transformationTraceService(transformationTraceService)
+                    .identifierProvider(new UUIDIdentifierProvider())
+                    .sqlDialect(rdbmsDatasourceFixture.getDialect())
+                    .jooqEnabled(rdbmsDatasourceFixture.isJooqEnabled())
+                    .variableResolver(variableResolver)
+                    .context(context)
+                    .optimisticLockEnabled(true)
+                    .markSelectedRangeItems(false)
+                    .build();
             JqlExpressionBuilderConfig expressionBuilderConfig = new JqlExpressionBuilderConfig();
             expressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
             cachedDao.setExpressionBuilderConfig(expressionBuilderConfig);
@@ -471,7 +484,14 @@ public class RdbmsDaoFixture {
             variableResolver.registerSupplier("SYSTEM", "current_date", new CurrentDateProvider(), false);
             variableResolver.registerSupplier("SYSTEM", "current_time", new CurrentTimeProvider(), false);
             variableResolver.registerFunction("ENVIRONMENT", new EnvironmentVariableProvider(), true);
-            variableResolver.registerFunction("SEQUENCE", new SequenceProvider(new RdbmsSequence(rdbmsDatasourceFixture.getJooqDataSource(), SEQUENCE_START, SEQUENCE_INCREMENT, true, Dialect.parse(rdbmsDatasourceFixture.getDialect(), rdbmsDatasourceFixture.isJooqEnabled()))), false);
+            variableResolver.registerFunction("SEQUENCE",
+                    new SequenceProvider(RdbmsSequence.builder()
+                            .dataSource(rdbmsDatasourceFixture.getJooqDataSource())
+                            .start(SEQUENCE_START)
+                            .increment(SEQUENCE_INCREMENT)
+                            .createIfNotExists(true)
+                            .dialect(Dialect.parse(rdbmsDatasourceFixture.getDialect(), rdbmsDatasourceFixture.isJooqEnabled()))
+                            .build()), false);
         }
         return cachedDao;
     }

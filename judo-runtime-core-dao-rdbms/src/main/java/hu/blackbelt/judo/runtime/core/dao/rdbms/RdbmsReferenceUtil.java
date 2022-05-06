@@ -6,6 +6,8 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbmsRules.Rule;
 import hu.blackbelt.judo.meta.rdbmsRules.Rules;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
+import lombok.Builder;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EReference;
 
 import java.util.Optional;
@@ -15,15 +17,20 @@ import static hu.blackbelt.judo.runtime.core.dao.core.processors.PayloadDaoProce
 
 public class RdbmsReferenceUtil<ID> {
 
+    @NonNull
     private final AsmModel asmModel;
 
-    private final AsmUtils asmUtils;
-
+    @NonNull
     private final TransformationTraceService transformationTraceService;
 
     private final Rules rules;
 
-    public RdbmsReferenceUtil(AsmModel asmModel, RdbmsModel rdbmsModel, TransformationTraceService transformationTraceService) {
+    private final AsmUtils asmUtils;
+
+    @Builder
+    public RdbmsReferenceUtil(@NonNull AsmModel asmModel,
+                              @NonNull RdbmsModel rdbmsModel,
+                              @NonNull TransformationTraceService transformationTraceService) {
         this.asmModel = asmModel;
         this.transformationTraceService = transformationTraceService;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());

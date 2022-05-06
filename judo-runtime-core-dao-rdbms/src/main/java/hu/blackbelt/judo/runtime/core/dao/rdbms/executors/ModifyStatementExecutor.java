@@ -7,6 +7,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 @Slf4j(topic = "dao-rdbms")
 public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
 
+    @Builder
     public ModifyStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel, TransformationTraceService transformationTraceService, Coercer coercer,
                                    IdentifierProvider<ID> identifierProvider, Dialect dialect) {
         super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);

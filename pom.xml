@@ -320,7 +320,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.22</version>
+            <version>1.18.24</version>
         </dependency>
 
         <dependency>
@@ -630,6 +630,11 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-bootstap</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>hu.blackbelt.mapper</groupId>
                 <artifactId>mapper-api</artifactId>
                 <version>${mapper-version}</version>
@@ -703,6 +708,7 @@
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
+                <module>judo-runtime-core-bootstrap</module>
             </modules>
         </profile>
         <profile>

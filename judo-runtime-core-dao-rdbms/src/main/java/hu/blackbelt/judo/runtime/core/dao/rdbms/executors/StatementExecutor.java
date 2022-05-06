@@ -4,12 +4,14 @@ import com.google.common.collect.Maps;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.ReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.tatami.core.EMapWrapper;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -63,8 +65,8 @@ public abstract class StatementExecutor<ID> {
     @NonNull
     Coercer coercer;
 
-    @NonNull
-    IdentifierProvider<ID> identifierProvider;
+    @Builder.Default
+    IdentifierProvider<ID> identifierProvider = (IdentifierProvider<ID>) new UUIDIdentifierProvider();
 
     @NonNull
     Dialect dialect;
@@ -74,8 +76,13 @@ public abstract class StatementExecutor<ID> {
     @Getter
     private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
 
-    public StatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel, TransformationTraceService transformationTraceService,
-                             Coercer coercer, IdentifierProvider<ID> identifierProvider, Dialect dialect) {
+//    @Builder
+    public StatementExecutor(@NonNull AsmModel asmModel,
+                             @NonNull RdbmsModel rdbmsModel,
+                             @NonNull TransformationTraceService transformationTraceService,
+                             Coercer coercer,
+                             IdentifierProvider<ID> identifierProvider,
+                             Dialect dialect) {
         this.asmModel = asmModel;
         this.rdbmsModel = rdbmsModel;
         this.coercer = coercer;

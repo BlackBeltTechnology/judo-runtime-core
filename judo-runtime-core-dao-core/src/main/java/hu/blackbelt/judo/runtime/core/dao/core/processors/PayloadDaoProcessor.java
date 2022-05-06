@@ -9,8 +9,7 @@ import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
 import hu.blackbelt.judo.meta.measure.Unit;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
-import lombok.Getter;
-import lombok.NonNull;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -33,6 +32,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 @Slf4j(topic = "dao-core")
+@NoArgsConstructor
 public class PayloadDaoProcessor<ID> {
 
     public static final int MEASURE_CONVERTING_SCALE = 20;
@@ -45,18 +45,21 @@ public class PayloadDaoProcessor<ID> {
 
     @NonNull
     @Getter
+    @Setter
     private IdentifierProvider<ID> identifierProvider;
 
     @NonNull
     @Getter
+    @Setter
     private QueryFactory queryFactory;
 
     @NonNull
     @Getter
+    @Setter
     private InstanceCollector<ID> instanceCollector;
 
     @Getter
-    private final AsmUtils asmUtils;
+    private AsmUtils asmUtils;
 
     public static Predicate<EStructuralFeature> isSingle = (r) -> !r.isMany();
     public static Predicate<EStructuralFeature> isCollection = (r) -> r.isMany();
@@ -66,12 +69,18 @@ public class PayloadDaoProcessor<ID> {
     public static Predicate<EStructuralFeature> isChangeable = (r) -> r.isChangeable();
     public static Predicate<EStructuralFeature> notChangeable = (r) -> !r.isChangeable();
 
+    @Builder
     public PayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider, QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
         this.resourceSet = resourceSet;
         this.identifierProvider = identifierProvider;
         this.queryFactory = queryFactory;
         this.instanceCollector = instanceCollector;
         this.asmUtils = new AsmUtils(resourceSet);
+    }
+
+    public void setResourceSet(ResourceSet resourceSet) {
+        this.resourceSet = resourceSet;
+        asmUtils = new AsmUtils(resourceSet);
     }
 
     public static Predicate<EStructuralFeature> hasNotPayload(Payload payload) {

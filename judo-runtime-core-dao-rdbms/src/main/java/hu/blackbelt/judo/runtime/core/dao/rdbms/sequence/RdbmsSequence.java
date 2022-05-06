@@ -2,10 +2,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.sequence;
 
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
@@ -15,8 +12,8 @@ import java.util.Collections;
 import static com.google.common.base.Preconditions.checkState;
 
 @NoArgsConstructor
-@RequiredArgsConstructor
 @AllArgsConstructor
+@Builder
 public class RdbmsSequence implements Sequence<Long> {
 
     static final String TYPE = "rdbms";
@@ -34,15 +31,39 @@ public class RdbmsSequence implements Sequence<Long> {
     }
 
     @NonNull
+    @Setter
     DataSource dataSource;
 
+    @Setter
+    @Builder.Default
     private Long start = DEFAULT_START;
 
+    @Setter
+    @Builder.Default
     private Long increment = DEFAULT_INCREMENT;
 
-    private boolean createIfNotExists = true;
+    @Setter
+    @Builder.Default
+    private Boolean createIfNotExists = true;
 
     private Dialect dialect;
+
+    /*
+    public RdbmsSequence(@NonNull DataSource dataSource,
+                         Long start,
+                         Long increment,
+                         Boolean createIfNotExists,
+                         String dialect,
+                         Boolean jooqEnabled) {
+        this.start = start ==  null ? DEFAULT_START : start;
+        this.increment = increment ==  null ? DEFAULT_INCREMENT : increment;
+        this.createIfNotExists = createIfNotExists  ==  null ? true : createIfNotExists;
+        setDialect(dialect, jooqEnabled);
+    } */
+
+    public void setDialect(String dialect, boolean jooqEnabled) {
+        this.dialect = Dialect.parse(dialect, jooqEnabled);;
+    }
 
     private Long execute(String sequenceName, final Operation operation) {
         sequenceName = sequenceName.replaceAll("[^a-zA-Z0-9_]", "_");

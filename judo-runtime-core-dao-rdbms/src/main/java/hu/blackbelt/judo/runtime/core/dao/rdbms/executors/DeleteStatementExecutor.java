@@ -15,6 +15,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReferenceUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.jgrapht.Graph;
@@ -50,6 +51,7 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
 
     private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
 
+    @Builder
     public DeleteStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
                                    TransformationTraceService transformationTraceService, Coercer coercer,
                                    IdentifierProvider<ID> identifierProvider, Dialect dialect) {

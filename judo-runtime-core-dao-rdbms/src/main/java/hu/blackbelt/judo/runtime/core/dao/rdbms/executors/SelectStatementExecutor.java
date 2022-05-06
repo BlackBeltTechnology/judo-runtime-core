@@ -40,9 +40,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
-import lombok.Builder;
-import lombok.NonNull;
-import lombok.ToString;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.*;
@@ -83,6 +81,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     private final int chunkSize;
 
+    @Builder
     public SelectStatementExecutor(final AsmModel asmModel,
                                    final RdbmsModel rdbmsModel,
                                    final MeasureModel measureModel,
@@ -90,7 +89,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                    final QueryFactory queryFactory,
                                    final DataTypeManager dataTypeManager,
                                    final IdentifierProvider<ID> identifierProvider,
-                                   final String sqlDialect,
                                    final VariableResolver variableResolver,
                                    final MetricsCollector metricsCollector,
                                    final int chunkSize,

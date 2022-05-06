@@ -61,7 +61,8 @@ import static java.util.function.Function.identity;
  * manage the lifecycle, or constructor based creation is supported.
  */
 @NoArgsConstructor
-@RequiredArgsConstructor
+@AllArgsConstructor
+@Builder
 @Slf4j
 public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
@@ -69,42 +70,54 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private static final String ROLLBACK = "ROLLBACK";
 
     @NonNull
+    @Setter
     DataTypeManager dataTypeManager;
 
     @NonNull
+    @Setter
     AsmModel asmModel;
 
     @NonNull
+    @Setter
     RdbmsModel rdbmsModel;
 
     @Setter
     MeasureModel measureModel;
 
     @NonNull
+    @Setter
     DataSource dataSource;
 
     @NonNull
+    @Setter
     TransformationTraceService transformationTraceService;
 
     @NonNull
+    @Setter
     IdentifierProvider<ID> identifierProvider;
 
     @NonNull
+    @Setter
     private String sqlDialect;
 
-    @NonNull
-    private boolean jooqEnabled;
+    @Setter
+    @Builder.Default
+    private boolean jooqEnabled = true;
+
+    @Setter
+    @Builder.Default
+    private boolean optimisticLockEnabled = true;
+
+    @Setter
+    @Builder.Default
+    private int chunkSize = 10;
+
+    @Setter
+    @Builder.Default
+    private boolean markSelectedRangeItems = false;
 
     @NonNull
-    private boolean optimisticLockEnabled;
-
-    @NonNull
-    private int chunkSize;
-
-    @NonNull
-    private boolean markSelectedRangeItems;
-
-    @NonNull
+    @Setter
     VariableResolver variableResolver;
 
     @NonNull
@@ -121,10 +134,57 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private JqlExpressionBuilderConfig expressionBuilderConfig = new JqlExpressionBuilderConfig();
 
+    /*
+    @Builder
+    public RdbmsDAOImpl(
+            @NonNull DataTypeManager dataTypeManager,
+            @NonNull AsmModel asmModel,
+            @NonNull RdbmsModel rdbmsModel,
+            MeasureModel measureModel,
+            @NonNull DataSource dataSource,
+            @NonNull TransformationTraceService transformationTraceService,
+            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull String sqlDialect,
+            boolean jooqEnabled,
+            boolean optimisticLockEnabled,
+            int chunkSize,
+            boolean markSelectedRangeItems,
+            @NonNull VariableResolver variableResolver,
+            @NonNull Context context,
+            MetricsCollector metricsCollector
+    ) {
+        this.dataTypeManager = dataTypeManager;
+        this.asmModel = asmModel;
+        this.rdbmsModel = rdbmsModel;
+        this.measureModel = measureModel;
+        this.dataSource = dataSource;
+        this.transformationTraceService = transformationTraceService;
+        this.identifierProvider = identifierProvider;
+        this.sqlDialect = sqlDialect;
+        this.jooqEnabled = jooqEnabled;
+        this.optimisticLockEnabled = optimisticLockEnabled;
+        this.chunkSize = chunkSize;
+        this.markSelectedRangeItems = markSelectedRangeItems;
+        this.variableResolver = variableResolver;
+        this.context = context;
+        this.metricsCollector = metricsCollector;
+    } */
+
+
     private SelectStatementExecutor<ID> getSelectStatementExecutor() {
         if (selectStatementExecutor == null) {
-            selectStatementExecutor = new SelectStatementExecutor<>(
-                    asmModel, rdbmsModel, measureModel, transformationTraceService, getQueryFactory(), dataTypeManager, identifierProvider, sqlDialect, variableResolver, metricsCollector, chunkSize, Dialect.parse(sqlDialect, jooqEnabled));
+            selectStatementExecutor = SelectStatementExecutor.<ID>builder()
+                    .asmModel(asmModel)
+                    .rdbmsModel(rdbmsModel)
+                    .measureModel(measureModel)
+                    .queryFactory(getQueryFactory())
+                    .dataTypeManager(dataTypeManager)
+                    .identifierProvider(identifierProvider)
+                    .variableResolver(variableResolver)
+                    .metricsCollector(metricsCollector)
+                    .chunkSize(chunkSize)
+                    .transformationTraceService(transformationTraceService)
+                    .dialect(Dialect.parse(sqlDialect, jooqEnabled)).build();
         }
         return selectStatementExecutor;
     }
@@ -154,6 +214,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return identifierProvider;
     }
 
+    @Builder.Default
     private EMap<EClass, Boolean> hasDefaultsMap = ECollections.asEMap(new ConcurrentHashMap<>());
 
     private Function<EClass, Payload> getDefaultValuesProvider() {

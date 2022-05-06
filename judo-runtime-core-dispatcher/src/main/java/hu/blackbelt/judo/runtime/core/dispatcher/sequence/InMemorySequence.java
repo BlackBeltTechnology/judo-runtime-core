@@ -10,9 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @NoArgsConstructor
 @AllArgsConstructor
-public class TransientSequence implements Sequence<Long> {
-
-    static final String TYPE = "transient";
+public class InMemorySequence implements Sequence<Long> {
 
     private static final Map<String, AtomicLong> sequences = new ConcurrentHashMap<>();
 

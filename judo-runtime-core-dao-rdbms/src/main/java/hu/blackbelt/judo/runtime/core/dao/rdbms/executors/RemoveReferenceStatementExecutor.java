@@ -15,6 +15,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -44,6 +45,7 @@ import static java.util.stream.Stream.concat;
 @Slf4j(topic = "dao-rdbms")
 class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
 
+    @Builder
     public RemoveReferenceStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
                                             TransformationTraceService transformationTraceService, Coercer coercer,
                                             IdentifierProvider<ID> identifierProvider, Dialect dialect) {

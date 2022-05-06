@@ -9,6 +9,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStateme
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -28,6 +29,7 @@ import static com.google.common.base.Preconditions.checkState;
 @Slf4j(topic = "dao-rdbms")
 class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementExecutor<ID> {
 
+    @Builder
     public AddRemoveReferenceStatementConsistencyCheckExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
                                                                TransformationTraceService transformationTraceService,
                                                                Coercer coercer, IdentifierProvider<ID> identifierProvider,

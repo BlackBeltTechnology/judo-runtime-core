@@ -1,0 +1,89 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>hu.blackbelt.judo.runtime</groupId>
+        <artifactId>judo-runtime-core-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>judo-runtime-core-bootstrap</artifactId>
+    <packaging>bundle</packaging>
+
+    <name>JUDO Services Bootstrap</name>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <configuration>
+                    <instructions>
+                        <Export-Package>hu.blackbelt.judo.services.core.*;version:=${project.version}</Export-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo</groupId>
+            <artifactId>judo-dao-api</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>hu.blackbelt.mapper</groupId>
+            <artifactId>mapper-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo</groupId>
+            <artifactId>judo-dao-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dispatcher</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-accessmanager-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-accessmanager</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>4.2.3</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+    </dependencies>
+</project>

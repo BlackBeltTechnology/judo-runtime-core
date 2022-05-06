@@ -12,6 +12,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.InstanceExistsValidati
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.lambda.Unchecked;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -32,6 +33,7 @@ import static com.google.common.base.Preconditions.checkState;
 @Slf4j(topic = "dao-rdbms")
 class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> {
 
+    @Builder
     public EntityExistsValidationStatementExecutor(
             AsmModel asmModel,
             RdbmsModel rdbmsModel,

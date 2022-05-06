@@ -5,8 +5,7 @@ import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.mapper.api.Converter;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.api.Formatter;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EDataType;
@@ -23,6 +22,7 @@ import java.util.function.Function;
  * It is aggregate {@link Coercer} and converters for custom types.
  */
 @RequiredArgsConstructor
+@NoArgsConstructor
 public class DataTypeManager {
 
     private final EMap<EDataType, String> customTypes = ECollections.asEMap(new ConcurrentHashMap<>());
@@ -63,7 +63,9 @@ public class DataTypeManager {
     );
 
     @NonNull
-    private final ExtendableCoercer coercer;
+    @Getter
+    @Setter
+    private ExtendableCoercer coercer;
 
     private final EMap<EDataType, Collection<Converter>> converterMap = ECollections.asEMap(new ConcurrentHashMap<>());
 
@@ -102,7 +104,4 @@ public class DataTypeManager {
         return Optional.ofNullable(customTypes.get(customDataType));
     }
 
-    public Coercer getCoercer() {
-        return coercer;
-    }
 }
