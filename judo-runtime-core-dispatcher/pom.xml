@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-dispatcher</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Dispatcher</name>
+    <name>JUDO Runtime Core :: Dispatcher</name>
 
     <properties>
         <antlr4-version>4.5.1-1</antlr4-version>

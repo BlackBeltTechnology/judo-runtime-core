@@ -6,8 +6,8 @@
     <packaging>pom</packaging>
     <version>${revision}</version>
 
-    <name>judo-runtime-core-parent</name>
-    <description>JUDO runtime core services</description>
+    <name>JUDO Runtime Core :: Parent</name>
+    <description>JUDO runtime core reactor module</description>
 
     <properties>
         <revision>1.1.0-SNAPSHOT</revision>

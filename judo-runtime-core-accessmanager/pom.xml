@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-accessmanager</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Default Access Manager</name>
+    <name>JUDO Runtime Core :: Default Access Manager</name>
 
     <build>
         <plugins>

@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-accessmanager-api</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Access Manager API</name>
+    <name>JUDO Runtime Core :: Access Manager API</name>
 
     <build>
         <plugins>

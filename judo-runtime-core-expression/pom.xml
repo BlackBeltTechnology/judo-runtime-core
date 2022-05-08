@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-expression</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Expression</name>
+    <name>JUDO Runtime Core :: Expression</name>
 
     <build>
         <plugins>

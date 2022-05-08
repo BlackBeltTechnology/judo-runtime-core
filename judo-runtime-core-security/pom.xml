@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-security</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Security</name>
+    <name>JUDO Runtime Core :: Security</name>
 
     <build>
         <plugins>

@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-transaction</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Transaction</name>
+    <name>JUDO Runtime Core :: Transaction</name>
 
     <build>
         <plugins>

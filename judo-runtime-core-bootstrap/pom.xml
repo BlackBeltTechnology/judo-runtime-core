@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-bootstrap</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Bootstrap</name>
+    <name>JUDO Runtime Core :: Bootstrap</name>
 
     <build>
         <plugins>

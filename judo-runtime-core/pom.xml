@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Core</name>
+    <name>JUDO Runtime Core :: Core</name>
 
     <build>
         <plugins>

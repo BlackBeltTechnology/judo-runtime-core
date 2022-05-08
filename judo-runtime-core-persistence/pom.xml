@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-persistence</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Persistence</name>
+    <name>JUDO Runtime Core :: Persistence</name>
 
     <build>
         <plugins>

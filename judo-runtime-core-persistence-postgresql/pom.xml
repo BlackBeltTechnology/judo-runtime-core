@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-persistence-postgresql</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Persistence Postgresql</name>
+    <name>JUDO Runtime Core :: Persistence Postgresql</name>
 
     <build>
         <plugins>

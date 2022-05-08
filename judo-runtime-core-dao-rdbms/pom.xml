@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-dao-rdbms</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services RDBMS Data Access Objects</name>
+    <name>JUDO Runtime Core :: RDBMS Data Access Objects</name>
 
     <build>
         <plugins>
