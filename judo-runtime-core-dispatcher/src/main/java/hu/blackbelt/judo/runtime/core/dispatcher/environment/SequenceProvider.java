@@ -4,6 +4,7 @@ import hu.blackbelt.judo.dispatcher.api.Sequence;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.function.Function;
@@ -14,6 +15,7 @@ import java.util.function.Function;
 public class SequenceProvider<T> implements Function<String, T> {
 
     @NonNull
+    @Setter
     Sequence<T> sequence;
 
     @Override

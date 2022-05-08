@@ -38,10 +38,14 @@
             <artifactId>judo-dao-api</artifactId>
         </dependency>
 
-
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.mapper</groupId>
+            <artifactId>mapper-impl</artifactId>
         </dependency>
 
         <dependency>
@@ -83,6 +87,29 @@
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
             <version>4.2.3</version><!--$NO-MVN-MAN-VER$-->
+        </dependency>
+
+        <dependency>
+            <groupId>net.jmob</groupId>
+            <artifactId>guice.conf</artifactId>
+            <version>v1.5.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
+            <version>2.6.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.atomikos</groupId>
+            <artifactId>transactions-jdbc</artifactId>
+            <version>5.0.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2rdbms</artifactId>
         </dependency>
 
     </dependencies>

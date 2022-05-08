@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class AddReferenceCall<ID> extends TransactionalBehaviourCall {
+public class        AddReferenceCall<ID> extends TransactionalBehaviourCall {
 
     final DAO dao;
     final AsmUtils asmUtils;

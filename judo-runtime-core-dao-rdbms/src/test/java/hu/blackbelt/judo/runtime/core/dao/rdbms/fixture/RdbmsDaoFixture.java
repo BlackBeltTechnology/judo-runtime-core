@@ -203,12 +203,12 @@ public class RdbmsDaoFixture {
 
     private MetricsCollector metricsCollector;
 
-    public RdbmsDaoFixture(String modelName, MetricsCollector metricsCollector) {
+    public RdbmsDaoFixture(String modelName) {
         this.modelName = modelName;
-        this.metricsCollector = metricsCollector;
-        if (metricsCollector instanceof DefaultMetricsCollector) {
-            ((DefaultMetricsCollector) metricsCollector).setContext(context);
-        }
+        this.metricsCollector = DefaultMetricsCollector.builder()
+                .enabled(Boolean.parseBoolean(System.getProperty("enabledMetrics", "false")))
+                .context(context)
+                .build();
     }
 
     public void init(hu.blackbelt.judo.meta.esm.namespace.Model model, RdbmsDatasourceFixture datasourceFixture) {
@@ -319,8 +319,28 @@ public class RdbmsDaoFixture {
                 }
             };
             IdentifierSigner identifierSigner = new DefaultIdentifierSigner<>(asmModel, uuid, DATA_TYPE_MANAGER);
-            ActorResolver actorResolver = new DefaultActorResolver<>(DATA_TYPE_MANAGER, getDao(), asmModel, false);
-            dispatcher = new DefaultDispatcher<>(asmModel, expressionModel, getDao(), getIdProvider(), dispatcherFunctionProvider, DATA_TYPE_MANAGER, identifierSigner, actorResolver, rdbmsDatasourceFixture.getTransactionManager(), context, metricsCollector, FILESTORE_TOKEN_ISSUER, FILESTORE_TOKEN_VALIDATOR);
+            ActorResolver actorResolver = DefaultActorResolver.<UUID>builder()
+                    .dataTypeManager(DATA_TYPE_MANAGER)
+                    .dao(getDao())
+                    .asmModel(asmModel)
+                    .checkMappedActors(false)
+                    .build();
+
+            dispatcher = DefaultDispatcher.<UUID>builder()
+                    .asmModel(asmModel)
+                    .expressionModel(expressionModel)
+                    .dao(getDao())
+                    .identifierProvider(getIdProvider())
+                    .dispatcherFunctionProvider(dispatcherFunctionProvider)
+                    .dataTypeManager(DATA_TYPE_MANAGER)
+                    .identifierSigner(identifierSigner)
+                    .actorResolver(actorResolver)
+                    .transactionManager(rdbmsDatasourceFixture.getTransactionManager())
+                    .context(context)
+                    .metricsCollector(metricsCollector)
+                    .filestoreTokenIssuer(FILESTORE_TOKEN_ISSUER)
+                    .filestoreTokenValidator(FILESTORE_TOKEN_VALIDATOR)
+                    .build();
 
             Map<String, String> sourceCodesByFqName = Maps.newHashMap();
             ScriptModelResourceSupport scriptModelResourceSupport =
@@ -419,7 +439,7 @@ public class RdbmsDaoFixture {
 
     public void createDatabase() {
         try {
-            rdbmsDatasourceFixture.setLiquibaseDbDialect(rdbmsDatasourceFixture.getDataSource().getConnection());
+            rdbmsDatasourceFixture.setLiquibaseDbDialect(rdbmsDatasourceFixture.getOriginalDataSource().getConnection());
             final Liquibase liquibase = new Liquibase(getLiquibaseName(),
                     new StreamResourceAccessor(Collections.singletonMap(getLiquibaseName(), new ByteArrayInputStream(liquibaseStream.toByteArray()))),
                     rdbmsDatasourceFixture.getLiquibaseDb());
@@ -434,7 +454,7 @@ public class RdbmsDaoFixture {
     public void dropDatabase() {
         if (rdbmsDatasourceFixture != null && liquibaseStream != null) {
             try {
-                rdbmsDatasourceFixture.setLiquibaseDbDialect(rdbmsDatasourceFixture.getDataSource().getConnection());
+                rdbmsDatasourceFixture.setLiquibaseDbDialect(rdbmsDatasourceFixture.getOriginalDataSource().getConnection());
                 final Liquibase liquibase = new Liquibase(getLiquibaseName(),
                         new StreamResourceAccessor(Collections.singletonMap(getLiquibaseName(), new ByteArrayInputStream(liquibaseStream.toByteArray()))),
                         rdbmsDatasourceFixture.getLiquibaseDb());
@@ -461,32 +481,33 @@ public class RdbmsDaoFixture {
 
     public DAO<UUID> getDao() {
         if (cachedDao == null) {
+            JqlExpressionBuilderConfig expressionBuilderConfig = new JqlExpressionBuilderConfig();
+            expressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
+
             cachedDao = RdbmsDAOImpl.<UUID>builder()
                     .dataTypeManager(DATA_TYPE_MANAGER)
                     .asmModel(asmModel)
+                    .measureModel(measureModel)
                     .rdbmsModel(rdbmsModel)
-                    .dataSource(rdbmsDatasourceFixture.getJooqDataSource())
+                    .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
                     .transformationTraceService(transformationTraceService)
                     .identifierProvider(new UUIDIdentifierProvider())
-                    .sqlDialect(rdbmsDatasourceFixture.getDialect())
-                    .jooqEnabled(rdbmsDatasourceFixture.isJooqEnabled())
+                    .dialect(Dialect.parse(rdbmsDatasourceFixture.getDialect(), rdbmsDatasourceFixture.jooqEnabled))
                     .variableResolver(variableResolver)
                     .context(context)
                     .optimisticLockEnabled(true)
                     .markSelectedRangeItems(false)
+                    .metricsCollector(metricsCollector)
+                    .jqlExpressionBuilderConfig(expressionBuilderConfig)
                     .build();
-            JqlExpressionBuilderConfig expressionBuilderConfig = new JqlExpressionBuilderConfig();
-            expressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
-            cachedDao.setExpressionBuilderConfig(expressionBuilderConfig);
-            cachedDao.setMetricsCollector(metricsCollector);
-            cachedDao.setMeasureModel(measureModel);
+
             variableResolver.registerSupplier("SYSTEM", "current_timestamp", new CurrentTimestampProvider(), false);
             variableResolver.registerSupplier("SYSTEM", "current_date", new CurrentDateProvider(), false);
             variableResolver.registerSupplier("SYSTEM", "current_time", new CurrentTimeProvider(), false);
             variableResolver.registerFunction("ENVIRONMENT", new EnvironmentVariableProvider(), true);
             variableResolver.registerFunction("SEQUENCE",
                     new SequenceProvider(RdbmsSequence.builder()
-                            .dataSource(rdbmsDatasourceFixture.getJooqDataSource())
+                            .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
                             .start(SEQUENCE_START)
                             .increment(SEQUENCE_INCREMENT)
                             .createIfNotExists(true)

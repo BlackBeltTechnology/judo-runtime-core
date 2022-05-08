@@ -9,9 +9,7 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.jose4j.jwa.AlgorithmConstraints;
@@ -35,9 +33,11 @@ import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+@Slf4j
 @NoArgsConstructor
 @RequiredArgsConstructor
-@Slf4j
+@AllArgsConstructor
+@Builder
 public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
 
     private static final String ENTITY_CLAIM = "entity";
@@ -50,43 +50,51 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
     private static final String VERSION_KEY = "__version";
 
     @NonNull
+    @Setter
     AsmModel asmModel;
 
     @NonNull
+    @Setter
     IdentifierProvider<ID> identifierProvider;
 
     @NonNull
+    @Setter
     DataTypeManager dataTypeManager;
 
     private AsmUtils asmUtils;
 
     private Key privateKey;
     private Key publicKey;
-    private String algorithm;
 
-    /*
-    @Activate
-    protected void activate(DefaultIdentifierSigner.Config config) {
+    @Builder.Default
+    String algorithm = AlgorithmIdentifiers.HMAC_SHA512;
+
+    @Setter
+    String secret;
+
+    @Setter
+    String keys;
+
+    protected void configureKeys() {
         asmUtils = new AsmUtils(asmModel.getResourceSet());
-        algorithm = config.algorithm();
-        if (config.algorithm().startsWith("HS")) {
-            loadHMACKey(config);
-        } else if (config.algorithm().startsWith("RS")) {
-            loadRSAKey(config);
-        } else if (config.algorithm().startsWith("ES")) {
-            loadECKey(config);
-        } else if (config.algorithm().startsWith("PS")) {
-            loadRSAKey(config);
-        } else if (!AlgorithmIdentifiers.NONE.equals(config.algorithm())) {
-            throw new UnsupportedOperationException("Unsupported JWT algorithm: " + config.algorithm());
+        if (algorithm.startsWith("HS")) {
+            loadHMACKey();
+        } else if (algorithm.startsWith("RS")) {
+            loadRSAKey();
+        } else if (algorithm.startsWith("ES")) {
+            loadECKey();
+        } else if (algorithm.startsWith("PS")) {
+            loadRSAKey();
+        } else if (!AlgorithmIdentifiers.NONE.equals(algorithm)) {
+            throw new UnsupportedOperationException("Unsupported JWT algorithm: " + algorithm);
         }
     }
 
-    private void loadRSAKey(DefaultIdentifierSigner.Config config) {
+    private void loadRSAKey() {
         try {
-            if (config.keys() != null && !"".equals(config.keys())) {
+            if (keys != null && !"".equals(keys)) {
                 log.info("Loading RSA key pair...");
-                final PublicJsonWebKey jsonWebKey = PublicJsonWebKey.Factory.newPublicJwk(new String(Base64.getDecoder().decode(config.keys())));
+                final PublicJsonWebKey jsonWebKey = PublicJsonWebKey.Factory.newPublicJwk(new String(Base64.getDecoder().decode(keys)));
                 privateKey = jsonWebKey.getPrivateKey();
                 publicKey = jsonWebKey.getPublicKey();
             } else {
@@ -103,11 +111,11 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
         }
     }
 
-    private void loadECKey(DefaultIdentifierSigner.Config config) {
+    private void loadECKey() {
         try {
-            if (config.keys() != null && !"".equals(config.keys())) {
+            if (keys != null && !"".equals(keys)) {
                 log.info("Loading EC key pair...");
-                final PublicJsonWebKey jsonWebKey = PublicJsonWebKey.Factory.newPublicJwk(new String(Base64.getDecoder().decode(config.keys())));
+                final PublicJsonWebKey jsonWebKey = PublicJsonWebKey.Factory.newPublicJwk(new String(Base64.getDecoder().decode(keys)));
                 privateKey = jsonWebKey.getPrivateKey();
                 publicKey = jsonWebKey.getPublicKey();
             } else {
@@ -124,10 +132,10 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
         }
     }
 
-    private void loadHMACKey(DefaultIdentifierSigner.Config config) {
-        if (config.secret() != null && !"".equals(config.secret())) {
+    private void loadHMACKey() {
+        if (secret != null && !"".equals(secret)) {
             log.info("Loading HMAC secret...");
-            privateKey = new HmacKey(Base64.getDecoder().decode(config.secret()));
+            privateKey = new HmacKey(Base64.getDecoder().decode(secret));
             publicKey = privateKey;
         } else {
             try {
@@ -146,16 +154,12 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
         }
     }
 
-    @Deactivate
-    protected void deactivate() {
-        asmUtils = null;
-        privateKey = null;
-        publicKey = null;
-    }
-    */
 
     @Override
     public void signIdentifiers(final ETypedElement typedElement, final Map<String, Object> payload, final boolean immutable) {
+        if (privateKey == null) {
+            configureKeys();
+        }
         if (typedElement.getEType() instanceof EClass) {
             final ID id = (ID) payload.get(identifierProvider.getName());
             final String entityType = (String) payload.get(Dispatcher.ENTITY_TYPE_MAP_KEY);
@@ -197,6 +201,10 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
 
     @Override
     public Optional<SignedIdentifier> extractSignedIdentifier(final EClass clazz, final Map<String, Object> payload) {
+        if (privateKey == null) {
+            configureKeys();
+        }
+
         final String signedIdentifierAsString = (String) payload.get(SIGNED_IDENTIFIER_KEY);
 
         if (asmUtils.isMappedTransferObjectType(clazz) && signedIdentifierAsString != null) {

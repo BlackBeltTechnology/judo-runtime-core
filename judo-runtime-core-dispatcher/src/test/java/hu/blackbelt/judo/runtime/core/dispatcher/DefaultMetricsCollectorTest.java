@@ -37,9 +37,10 @@ class DefaultMetricsCollectorTest {
     void setUp() {
         context = mock(Context.class);
 //        eventAdmin = mock(EventAdmin.class);
-        metricsCollector = new DefaultMetricsCollector();
-        metricsCollector.setEnabled(true);
-        metricsCollector.setContext(context);
+        metricsCollector = DefaultMetricsCollector.builder()
+                .enabled(true)
+                .context(context)
+                .build();
 //        metricsCollector.setEventAdmin(eventAdmin);
         stack = new Stack<>();
         measurements = new TreeMap<>();
@@ -112,7 +113,7 @@ class DefaultMetricsCollectorTest {
 
     @Test
     void autoCloseSubmits() throws InterruptedException {
-        metricsCollector.setVerbose(true);
+        //metricsCollector.setVerbose(true);
         try (MetricsCancelToken ct = metricsCollector.start(outerKey)) {
             Thread.sleep(1L);
         }

@@ -13,8 +13,9 @@ public class RdbmsDaoExtension implements ParameterResolver, BeforeEachCallback,
 
     private Map<String, RdbmsDaoFixture> fixtureMap = new ConcurrentHashMap<>();
 
-    private DefaultMetricsCollector metricsCollector = new DefaultMetricsCollector();
-    private boolean enabledMetrics = Boolean.parseBoolean(System.getProperty("enabledMetrics", "false"));
+//    private DefaultMetricsCollector metricsCollector = DefaultMetricsCollector.builder()
+//            .enabled(Boolean.parseBoolean(System.getProperty("enabledMetrics", "false")))
+//            .build();
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
@@ -23,7 +24,6 @@ public class RdbmsDaoExtension implements ParameterResolver, BeforeEachCallback,
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        metricsCollector.setEnabled(enabledMetrics);
         Optional<ExtensionContext> ctx = Optional.of(extensionContext);
         RdbmsDaoFixture fixture = null;
         String name = "";
@@ -35,7 +35,7 @@ public class RdbmsDaoExtension implements ParameterResolver, BeforeEachCallback,
             ctx = ctx.get().getParent();
         }
         if (fixture == null) {
-            fixture = new RdbmsDaoFixture(sanitizeFileName(name), metricsCollector);
+            fixture = new RdbmsDaoFixture(sanitizeFileName(name));
             fixtureMap.put(extensionContext.getDisplayName(), fixture);
         }
         return fixture;

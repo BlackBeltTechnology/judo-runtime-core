@@ -12,6 +12,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceGraph;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceReference;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +38,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,7 +46,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getClassifierFQName;
 import static hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport.rdbmsModelResourceSupportBuilder;
 
+
 @RequiredArgsConstructor
+@Builder
 @Slf4j
 public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
@@ -69,7 +73,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     @NonNull
     private Dialect dialect;
 
-    private RdbmsModelResourceSupport rdbmsSupport;
+    private final AtomicReference<RdbmsModelResourceSupport> rdbmsSupport = new AtomicReference<>(null);
 
     private static final String IDS = "ids";
 
@@ -77,13 +81,13 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     private final AtomicInteger nextAliasIndex = new AtomicInteger(0);
 
     private final AtomicBoolean selectsCreated = new AtomicBoolean(false);
-    private EMap<EClass, RdbmsSelect> selectsByEntityType = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final EMap<EClass, RdbmsSelect> selectsByEntityType = ECollections.asEMap(new ConcurrentHashMap<>());
 
     public RdbmsModelResourceSupport getRdbmsSupport() {
-        if (rdbmsSupport == null) {
-            rdbmsSupport = rdbmsModelResourceSupportBuilder().resourceSet(rdbmsModel.getResourceSet()).build();
+        if (rdbmsSupport.get() == null) {
+            rdbmsSupport.set(rdbmsModelResourceSupportBuilder().resourceSet(rdbmsModel.getResourceSet()).build());
         }
-        return rdbmsSupport;
+        return rdbmsSupport.get();
     }
 
     public void createSelects() {

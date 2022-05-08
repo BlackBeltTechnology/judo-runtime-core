@@ -1178,7 +1178,7 @@ public class RelationsTest extends AbstractRelationsTest {
     void testInstanceCollector(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
         final long startTs = System.currentTimeMillis();
         final RdbmsInstanceCollector<UUID> instanceCollector = new RdbmsInstanceCollector<>(
-                new NamedParameterJdbcTemplate(datasourceFixture.getJooqDataSource()),
+                new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource()),
                 daoFixture.getAsmUtils(), daoFixture.getRdbmsResolver(),
                 daoFixture.getRdbmsModel(), RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer(), uuid,
                 Dialect.parse(datasourceFixture.getDialect(), datasourceFixture.isJooqEnabled()));

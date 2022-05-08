@@ -1,11 +1,13 @@
 package hu.blackbelt.judo.runtime.core.dispatcher.environment;
 
+import com.google.inject.Inject;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 
@@ -16,12 +18,21 @@ import java.util.function.Function;
 import static com.google.common.base.Preconditions.checkState;
 
 @Slf4j
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PrincipalVariableProvider implements Function<String, Object> {
 
+    @NonNull
+    @Setter
     Context context;
 
+    @NonNull
+    @Setter
     AsmModel asmModel;
 
+    @NonNull
+    @Setter
     Dispatcher dispatcher;
 
     private AsmUtils asmUtils;

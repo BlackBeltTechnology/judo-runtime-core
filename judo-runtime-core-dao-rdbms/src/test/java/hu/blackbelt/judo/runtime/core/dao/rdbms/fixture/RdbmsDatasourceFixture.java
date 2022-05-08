@@ -55,10 +55,10 @@ public class RdbmsDatasourceFixture {
     protected String container = System.getProperty("container", CONTAINER_NONE);
 
     @Getter
-    protected DataSource dataSource;
+    protected DataSource originalDataSource;
 
     @Getter
-    protected DataSource jooqDataSource;
+    protected DataSource wrappedDataSource;
 
     @Getter
     protected DSLContext jooqContext;
@@ -131,14 +131,14 @@ public class RdbmsDatasourceFixture {
 //                .listener(loggingListener)
 //                .build();
 
-        dataSource = ds;
+        originalDataSource = ds;
 
         // Execute dialect based datatsource preprations
         if (dialect.equals(DIALECT_POSTGRESQL)) {
             executeInitiLiquibase(Marker.class.getClassLoader(), "liquibase/postgresql-init-changelog.xml", ds);
         }
 
-        jooqDataSource = ProxyDataSourceBuilder
+        wrappedDataSource = ProxyDataSourceBuilder
                 .create(jooqEnabled ? getJooqContext(ds).parsingDataSource() : ds)
                 .name("JOOQ_DATA_SOURCE_PROXY")
                 .listener(loggingListener)

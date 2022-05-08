@@ -3,48 +3,37 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DefaultMetricsCollector implements MetricsCollector {
 
 
     private static final Logger metricsLogger = LoggerFactory.getLogger("metrics");
     private static final String FRAMEWORK_METRICS_STACK = FRAMEWORK_METRICS + "_stack";
 
-//    @Setter
-//    public EventAdmin eventAdmin;
-
-    @Setter
+    @NonNull
     Context context;
 
-    @Setter
-    private boolean enabled;
+    @Builder.Default
+    private Boolean enabled = false;
 
-    @Setter
-    private boolean verbose;
+    @Builder.Default
+    private Boolean verbose = false;
 
-    private String modelName;
-
-    /*
-    @Activate
-    void activate(final Config config) {
-        enabled = config.enabled();
-        verbose = config.verbose();
-        modelName = config.judo_model_name();
-    }
-    */
+    @Builder.Default
+    Consumer<Map<String, AtomicLong>> metricsConsumer = null;
 
     @Override
     public MetricsCancelToken start(final String key) {
@@ -112,27 +101,9 @@ public class DefaultMetricsCollector implements MetricsCollector {
     public void submit() {
         if (enabled) {
             final Map<String, AtomicLong> metrics = Optional.ofNullable(context.getAs(Map.class, FRAMEWORK_METRICS)).orElse(Collections.emptyMap());
-            /*
-            if (eventAdmin != null) {
-                metrics.entrySet().stream()
-                        .filter(e -> verbose || !e.getKey().startsWith("_"))
-                        .forEach(entry -> {
-                            final Map<String, Object> data = new HashMap<>();
-                            data.put("type", "judo");
-                            data.put("model", modelName);
-                            try {
-                                data.put("hostAddress", InetAddress.getLocalHost().getHostAddress());
-                                data.put("hostName", InetAddress.getLocalHost().getHostName());
-                            } catch (Exception e) {
-                                // nothing to do
-                            }
-                            data.put("metric", entry.getKey());
-                            data.put("count", entry.getValue().longValue());
-
-                            //final Event event = new Event("decanter/collect/judo", data);
-                            //eventAdmin.postEvent(event);
-                        });
-            } */
+            if (metricsConsumer != null) {
+                metricsConsumer.accept(metrics);
+            }
             if (metricsLogger.isDebugEnabled()) {
                 metricsLogger.debug(metrics.entrySet().stream()
                         .filter(e -> verbose || !e.getKey().startsWith("_"))

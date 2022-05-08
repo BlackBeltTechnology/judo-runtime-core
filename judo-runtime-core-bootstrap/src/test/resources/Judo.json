@@ -1,0 +1,7 @@
+{
+  "rdbmsSequence" : {
+    "start" : 1,
+    "increment" : 1,
+    "createIfNotExists" : false
+  }
+}

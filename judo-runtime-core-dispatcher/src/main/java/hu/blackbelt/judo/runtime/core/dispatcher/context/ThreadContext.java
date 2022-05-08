@@ -2,9 +2,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.context;
 
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
@@ -12,8 +10,7 @@ import java.util.TreeMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-@NoArgsConstructor
-@RequiredArgsConstructor
+@Builder
 @Slf4j
 public class ThreadContext implements Context {
 
@@ -21,18 +18,42 @@ public class ThreadContext implements Context {
     public static final String INHERITABLE_CONTEXT = "inheritableContext";
 
     private static ThreadLocal<Map<String, Object>> THREADLOCAL = new InheritableThreadLocal<>();
-    private boolean debugThreadFork = false;
-    private boolean inheritableContext = true;
 
-    /*
-    @Activate
-    public void activate(ComponentContext context) {
-        if (context.getProperties().get(DEBUG_THREAD_FORK) != null) {
-            debugThreadFork = Boolean.parseBoolean(context.getProperties().get(DEBUG_THREAD_FORK).toString());
-        }
-        if (context.getProperties().get(INHERITABLE_CONTEXT) != null) {
-            inheritableContext = Boolean.parseBoolean(context.getProperties().get(INHERITABLE_CONTEXT).toString());
-        }
+    @Builder.Default
+    @NonNull
+    @Setter
+    private Boolean debugThreadFork = false;
+
+    @Builder.Default
+    @NonNull
+    @Setter
+    private Boolean inheritableContext = true;
+
+    @NonNull
+    @Setter
+    DataTypeManager dataTypeManager;
+
+    public ThreadContext(Boolean debugThreadFork, Boolean inheritableContext, DataTypeManager dataTypeManager) {
+        this.dataTypeManager = dataTypeManager;
+        this.debugThreadFork = debugThreadFork;
+        this.inheritableContext = inheritableContext;
+        setupThreadLocal();
+    }
+
+    public ThreadContext(DataTypeManager dataTypeManager) {
+        this.dataTypeManager = dataTypeManager;
+        this.debugThreadFork = false;
+        this.inheritableContext = true;
+        setupThreadLocal();
+    }
+
+    public ThreadContext() {
+        this.debugThreadFork = false;
+        this.inheritableContext = true;
+        setupThreadLocal();
+    }
+
+    private void setupThreadLocal() {
         THREADLOCAL.remove();
         if (inheritableContext) {
             THREADLOCAL = new InheritableThreadLocal<>() {
@@ -52,10 +73,6 @@ public class ThreadContext implements Context {
             THREADLOCAL = new ThreadLocal<>();
         }
     }
-     */
-
-    @NonNull
-    DataTypeManager dataTypeManager;
 
     @Override
     public Object get(final String key) {

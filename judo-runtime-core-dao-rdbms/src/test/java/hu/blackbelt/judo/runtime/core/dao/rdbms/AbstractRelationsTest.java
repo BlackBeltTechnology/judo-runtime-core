@@ -1231,7 +1231,7 @@ public abstract class AbstractRelationsTest {
     }
 
     public UUID getUuidByName(String name, EClass clazz) {
-        final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getJooqDataSource());
+        final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource());
         String tableName;
         if (daoFixture.getAsmUtils().isMappedTransferObjectType(clazz)) {
             tableName = daoFixture.getRdbmsResolver().rdbmsTable(daoFixture.getAsmUtils().getMappedEntityType(clazz).get()).getSqlName();
@@ -1246,7 +1246,7 @@ public abstract class AbstractRelationsTest {
     public boolean checkExists(EClass clazz, UUID id) {
         //return testFixture.getDao().getByIdentifier(clazz, id).isPresent();
 
-        final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getDataSource());
+        final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource());
         String tableName;
         if (daoFixture.getAsmUtils().isMappedTransferObjectType(clazz)) {
             tableName = daoFixture.getRdbmsResolver().rdbmsTable(daoFixture.getAsmUtils().getMappedEntityType(clazz).get()).getSqlName();

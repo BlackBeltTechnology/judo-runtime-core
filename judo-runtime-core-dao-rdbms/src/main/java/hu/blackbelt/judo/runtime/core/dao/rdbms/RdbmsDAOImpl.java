@@ -42,6 +42,7 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -70,69 +71,61 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private static final String ROLLBACK = "ROLLBACK";
 
     @NonNull
-    @Setter
     DataTypeManager dataTypeManager;
 
     @NonNull
-    @Setter
     AsmModel asmModel;
 
     @NonNull
-    @Setter
     RdbmsModel rdbmsModel;
 
-    @Setter
-    MeasureModel measureModel;
+    @Builder.Default
+    MeasureModel measureModel = null;
 
     @NonNull
-    @Setter
     DataSource dataSource;
 
     @NonNull
-    @Setter
     TransformationTraceService transformationTraceService;
 
     @NonNull
-    @Setter
     IdentifierProvider<ID> identifierProvider;
 
     @NonNull
-    @Setter
-    private String sqlDialect;
+    private Dialect dialect;
 
-    @Setter
-    @Builder.Default
-    private boolean jooqEnabled = true;
-
-    @Setter
     @Builder.Default
     private boolean optimisticLockEnabled = true;
 
-    @Setter
     @Builder.Default
     private int chunkSize = 10;
 
-    @Setter
     @Builder.Default
     private boolean markSelectedRangeItems = false;
 
     @NonNull
-    @Setter
-    VariableResolver variableResolver;
+    private VariableResolver variableResolver;
 
     @NonNull
-    Context context;
+    private Context context;
 
-    @Setter
-    @Getter
-    MetricsCollector metricsCollector;
+    @NonNull
+    private MetricsCollector metricsCollector;
 
-    private SelectStatementExecutor<ID> selectStatementExecutor;
+    @Builder.Default
+    private JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
+
+    private final AtomicReference<SelectStatementExecutor<ID>> selectStatementExecutor = new AtomicReference<>(null);
+
+    private final AtomicReference<ResourceSet> measureModelResourceSet = new AtomicReference<>(null);
 
     @Getter
     private final EMap<EReference, CustomJoinDefinition> customJoinDefinitions = ECollections.asEMap(new ConcurrentHashMap<>());
 
-    private JqlExpressionBuilderConfig expressionBuilderConfig = new JqlExpressionBuilderConfig();
+    private final AtomicReference<AsmUtils> asmUtils = new AtomicReference<>(null);
+
+    private final AtomicReference<RdbmsResolver> rdbmsResolver = new AtomicReference<>(null);
+
 
     /*
     @Builder
@@ -172,8 +165,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
 
     private SelectStatementExecutor<ID> getSelectStatementExecutor() {
-        if (selectStatementExecutor == null) {
-            selectStatementExecutor = SelectStatementExecutor.<ID>builder()
+        if (selectStatementExecutor.get() == null) {
+            selectStatementExecutor.set(SelectStatementExecutor.<ID>builder()
                     .asmModel(asmModel)
                     .rdbmsModel(rdbmsModel)
                     .measureModel(measureModel)
@@ -184,29 +177,38 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     .metricsCollector(metricsCollector)
                     .chunkSize(chunkSize)
                     .transformationTraceService(transformationTraceService)
-                    .dialect(Dialect.parse(sqlDialect, jooqEnabled)).build();
+                    .dialect(dialect).build());
         }
-        return selectStatementExecutor;
+        return selectStatementExecutor.get();
     }
 
     private ResourceSet getMeasureResourceSet() {
-        ResourceSet measureResourceSet = null;
-        if (measureModel == null) {
-            measureResourceSet = new ResourceSetImpl();
-        } else {
-            measureResourceSet = measureModel.getResourceSet();
+        if (measureModelResourceSet.get() == null) {
+            ResourceSet measureResourceSet = null;
+            if (measureModel == null) {
+                measureResourceSet = new ResourceSetImpl();
+            } else {
+                measureResourceSet = measureModel.getResourceSet();
+            }
+            measureModelResourceSet.set(measureResourceSet);
         }
-        return measureResourceSet;
+        return measureModelResourceSet.get();
     }
 
     @Override
     protected AsmUtils getAsmUtils() {
-        return new AsmUtils(asmModel.getResourceSet());
+        if (asmUtils.get() == null) {
+            asmUtils.set(new AsmUtils(asmModel.getResourceSet()));
+        }
+        return asmUtils.get();
     }
 
     @Override
     protected RdbmsResolver getRdbmsResolver() {
-        return new RdbmsResolver(asmModel, transformationTraceService);
+        if (rdbmsResolver.get() == null) {
+            rdbmsResolver.set(new RdbmsResolver(asmModel, transformationTraceService));
+        }
+        return rdbmsResolver.get();
     }
 
     @Override
@@ -254,7 +256,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (cachedInstanceCollector == null) {
             cachedInstanceCollector = new RdbmsInstanceCollector(new NamedParameterJdbcTemplate(dataSource),
                     getAsmUtils(), getRdbmsResolver(), rdbmsModel, dataTypeManager.getCoercer(), identifierProvider,
-                    Dialect.parse(sqlDialect, jooqEnabled));
+                    dialect);
         }
         return cachedInstanceCollector;
     }
@@ -263,7 +265,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     protected QueryFactory getQueryFactory() {
         if (cachedQueryFactory == null) {
             final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(asmModel.getResourceSet(),
-                    getMeasureResourceSet(), URI.createURI("expr:" + asmModel.getName()), expressionBuilderConfig);
+                    getMeasureResourceSet(), URI.createURI("expr:" + asmModel.getName()), jqlExpressionBuilderConfig);
             cachedQueryFactory = new QueryFactory(asmModel.getResourceSet(),
                     getMeasureResourceSet(),
                     asmJqlExtractor.extractExpressions(),
@@ -407,7 +409,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         Collection<Statement<ID>> statements = getInsertPayloadProcessor(metadata)
                 .insert(clazz, payload, checkMandatoryFeatures);
 
-        ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), Dialect.parse(sqlDialect, jooqEnabled));
+        ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
 
@@ -544,7 +546,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .delete(clazz, ids);
 
         ModifyStatementExecutor<ID> modifyStatementExecutor =
-                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), Dialect.parse(sqlDialect, jooqEnabled));
+                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
     }
@@ -564,7 +566,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .update(clazz, original, updated, checkMandatoryFeatures);
 
         ModifyStatementExecutor<ID> modifyStatementExecutor =
-                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), Dialect.parse(sqlDialect, jooqEnabled));
+                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
 
@@ -701,7 +703,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (!identifiersAdd.isEmpty() || !identifiersRemove.isEmpty()) {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, identifiersAdd, identifiersRemove);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), Dialect.parse(sqlDialect, jooqEnabled));
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
         }
     }
@@ -717,7 +719,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (!identifiersExists.isEmpty()) {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(), identifiersExists);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), Dialect.parse(sqlDialect, jooqEnabled));
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
         }
     }
@@ -739,7 +741,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id,
                     identifiersToAddExistingRemoved, ImmutableSet.of());
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), Dialect.parse(sqlDialect, jooqEnabled));
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
         }
     }
@@ -759,7 +761,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(),
                     identifiersToRemoveChecked);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), Dialect.parse(sqlDialect, jooqEnabled));
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
         }
     }
@@ -884,6 +886,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
     }
 
+    @Override
+    protected MetricsCollector getMetricsCollector() {
+        return metricsCollector;
+    }
+
     private Collection<Statement<ID>> createAddReferencesForPayload(EReference mappedReference, ID id, Collection<ID> collection) {
         // Check the reference is mapped
         checkArgument(getAsmUtils().getMappedReference(mappedReference).isPresent(),
@@ -936,10 +943,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 context.getPayload().put("__$created", true);
             }
         };
-    }
-
-    public void setExpressionBuilderConfig(JqlExpressionBuilderConfig expressionBuilderConfig) {
-        this.expressionBuilderConfig = expressionBuilderConfig;
     }
 
 }

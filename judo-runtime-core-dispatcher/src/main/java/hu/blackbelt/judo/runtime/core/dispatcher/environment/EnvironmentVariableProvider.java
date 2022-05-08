@@ -1,7 +1,10 @@
 package hu.blackbelt.judo.runtime.core.dispatcher.environment;
 
+import lombok.NoArgsConstructor;
+
 import java.util.function.Function;
 
+@NoArgsConstructor
 public class EnvironmentVariableProvider implements Function<String, Object> {
 
     @Override

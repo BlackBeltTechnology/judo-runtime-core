@@ -13,6 +13,7 @@ import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import lombok.Builder;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
