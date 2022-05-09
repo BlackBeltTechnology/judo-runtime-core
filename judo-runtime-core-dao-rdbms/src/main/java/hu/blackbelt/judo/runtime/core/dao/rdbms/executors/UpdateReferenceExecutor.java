@@ -8,6 +8,7 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
@@ -37,9 +38,10 @@ import static org.jooq.lambda.Unchecked.consumer;
 class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
 
     public UpdateReferenceExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                   TransformationTraceService transformationTraceService, Coercer coercer,
+                                   TransformationTraceService transformationTraceService,
+                                   RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
                                    IdentifierProvider<ID> identifierProvider, Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
     }
 
     /**
@@ -74,7 +76,7 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
                             .forEach(entityForCurrentStatement -> {
 
                                 MapSqlParameterSource updateStatementNamedParameters = new MapSqlParameterSource()
-                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, parameterMapper.getIdClassName()), parameterMapper.getIdSqlType());
+                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
 
                                 Map<EReference, Object> updateReferenceMapForCurrentStatement = updateReferenceMap.entrySet().stream()
                                         .filter(e -> (e.getKey().getReference().eContainer().equals(entityForCurrentStatement)) ||
@@ -82,7 +84,7 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
                                         .collect(toMap(e -> e.getKey().getReference(), Map.Entry::getValue));
 
                                 rdbms.logReferenceParameters(updateReferenceMapForCurrentStatement);
-                                parameterMapper.mapReferenceParameters(updateStatementNamedParameters, updateReferenceMapForCurrentStatement);
+                                rdbmsParameterMapper.mapReferenceParameters(updateStatementNamedParameters, updateReferenceMapForCurrentStatement);
 
                                 Map<String, String> fields =
                                                 updateReferenceMapForCurrentStatement.keySet().stream()

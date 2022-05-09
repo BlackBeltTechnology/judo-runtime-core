@@ -9,10 +9,7 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.InsertStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReferenceUtil;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
@@ -55,10 +52,11 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
     public InsertStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                   TransformationTraceService transformationTraceService, Coercer coercer,
+                                   TransformationTraceService transformationTraceService,
+                                   RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
                                    IdentifierProvider<ID> identifierProvider,
                                    Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
     }
 
@@ -114,7 +112,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                             .forEach(entityForCurrentStatement -> {
                                 // Phase 1: Insert all type with mandatory reference fields
                                 MapSqlParameterSource insertStatementNamedParameters = new MapSqlParameterSource()
-                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, parameterMapper.getIdClassName()), parameterMapper.getIdSqlType())
+                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType())
                                         .addValue(ENTITY_TYPE_MAP_KEY, AsmUtils.getClassifierFQName(entity), Types.VARCHAR);
 
                                 Map<String, String> metaMapping = new TreeMap<>();
@@ -130,7 +128,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                     metaMapping.put(ENTITY_CREATE_TIMESTAMP_MAP_KEY, ENTITY_CREATE_TIMESTAMP_COLUMN_NAME);
                                 }
                                 if (insertStatement.getUserId() != null) {
-                                    insertStatementNamedParameters.addValue(ENTITY_CREATE_USER_ID_MAP_KEY, coercer.coerce(insertStatement.getUserId(), identifierProvider.getType()), parameterMapper.getSqlType(identifierProvider.getType().getName()));
+                                    insertStatementNamedParameters.addValue(ENTITY_CREATE_USER_ID_MAP_KEY, coercer.coerce(insertStatement.getUserId(), identifierProvider.getType()), rdbmsParameterMapper.getSqlType(identifierProvider.getType().getName()));
                                     metaMapping.put(ENTITY_CREATE_USER_ID_MAP_KEY, ENTITY_CREATE_USER_ID_COLUMN_NAME);
                                 }
                                 if (insertStatement.getUserName() != null) {
@@ -148,9 +146,9 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                         .collect(toMap(e -> e.getKey().getReference(), Map.Entry::getValue));
 
                                 rdbms.logAttributeParameters(attributeMapforCurrentStatement);
-                                parameterMapper.mapAttributeParameters(insertStatementNamedParameters, attributeMapforCurrentStatement);
+                                rdbmsParameterMapper.mapAttributeParameters(insertStatementNamedParameters, attributeMapforCurrentStatement);
                                 rdbms.logReferenceParameters(mandatoryReferenceMapForCurrentStatement);
-                                parameterMapper.mapReferenceParameters(insertStatementNamedParameters, mandatoryReferenceMapForCurrentStatement);
+                                rdbmsParameterMapper.mapReferenceParameters(insertStatementNamedParameters, mandatoryReferenceMapForCurrentStatement);
 
                                 String tableName = rdbms.rdbmsTable(entityForCurrentStatement).getSqlName();
 

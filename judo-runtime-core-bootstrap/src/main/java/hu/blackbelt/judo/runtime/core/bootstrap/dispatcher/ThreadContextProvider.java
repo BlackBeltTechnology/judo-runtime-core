@@ -10,18 +10,17 @@ import hu.blackbelt.judo.runtime.core.dispatcher.context.ThreadContext;
 public class ThreadContextProvider implements Provider<Context> {
     public static final String THREAD_CONTEXT_DEBUG_THREAD_FORK = "threadContextDebugThreadFork";
     public static final String THREAD_CONTEXT_INHERITABLE_CONTEXT = "threadContextInheritableContext";
-    DataTypeManager dataTypeManager;
-    Boolean debugThreadFork;
-    Boolean inheritableContext;
 
     @Inject
-    public ThreadContextProvider(DataTypeManager dataTypeManager,
-                                 @Named(THREAD_CONTEXT_DEBUG_THREAD_FORK) Boolean debugThreadFork,
-                                 @Named(THREAD_CONTEXT_INHERITABLE_CONTEXT) Boolean inheritableContext) {
-        this.dataTypeManager = dataTypeManager;
-        this.debugThreadFork = debugThreadFork;
-        this.inheritableContext = inheritableContext;
-    }
+    DataTypeManager dataTypeManager;
+
+    @Inject(optional = true)
+    @Named(THREAD_CONTEXT_DEBUG_THREAD_FORK)
+    Boolean debugThreadFork = false;
+
+    @Inject(optional = true)
+    @Named(THREAD_CONTEXT_INHERITABLE_CONTEXT)
+    Boolean inheritableContext = true;
 
     @Override
     public Context get() {

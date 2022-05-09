@@ -30,6 +30,7 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
@@ -40,6 +41,8 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
+import hu.blackbelt.mapper.api.Coercer;
+import hu.blackbelt.mapper.api.ExtendableCoercer;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.*;
@@ -81,19 +84,23 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     private final int chunkSize;
 
+    private final Coercer coercer;
+
     @Builder
     public SelectStatementExecutor(final AsmModel asmModel,
                                    final RdbmsModel rdbmsModel,
                                    final MeasureModel measureModel,
                                    final TransformationTraceService transformationTraceService,
                                    final QueryFactory queryFactory,
+                                   final RdbmsParameterMapper rdbmsParameterMapper,
                                    final DataTypeManager dataTypeManager,
                                    final IdentifierProvider<ID> identifierProvider,
                                    final VariableResolver variableResolver,
                                    final MetricsCollector metricsCollector,
                                    final int chunkSize,
                                    final Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(),
+                identifierProvider, dialect);
         this.rdbmsModel = rdbmsModel;
         this.measureModel = measureModel;
         this.queryFactory = queryFactory;
@@ -101,16 +108,19 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         this.metricsCollector = metricsCollector;
         this.chunkSize = chunkSize;
 
+        this.coercer = dataTypeManager.getCoercer();
+
         asm = new AsmUtils(asmModel.getResourceSet());
 
         rdbmsBuilder = RdbmsBuilder.builder()
                 .rdbmsModel(rdbmsModel)
                 .ancestorNameFactory(new AncestorNameFactory(asm.all(EClass.class)))
                 .rdbmsResolver(new RdbmsResolver(asmModel, transformationTraceService))
-                .parameterMapper(parameterMapper)
+                .parameterMapper(rdbmsParameterMapper)
                 .dialect(dialect)
                 .asmUtils(asm)
-                .coercer(coercer)
+                .identifierProvider(identifierProvider)
+                .coercer(dataTypeManager.getCoercer())
                 .variableResolver(variableResolver)
                 .build();
 
@@ -525,10 +535,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             log.debug("Running chunk: {}", chunk);
             final MapSqlParameterSource sqlParameters = new MapSqlParameterSource();
             if (chunk.parentIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> coercer.coerce(id, parameterMapper.getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> coercer.coerce(id, rdbmsParameterMapper.getIdClassName())).collect(Collectors.toList()));
             }
             if (chunk.instanceIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()), chunk.instanceIds.stream().map(id -> coercer.coerce(id, parameterMapper.getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()), chunk.instanceIds.stream().map(id -> coercer.coerce(id, rdbmsParameterMapper.getIdClassName())).collect(Collectors.toList()));
             }
 
             // key used to identify parent instance in subselects
@@ -734,7 +744,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
                                     }
                                 } else if (idsByTarget.isEmpty() && AsmUtils.equals(query.getSelect().getMainTarget(), target)) {
-                                    final ID tmpId = coercer.coerce(UUID.randomUUID(), parameterMapper.getIdClassName());
+                                    final ID tmpId = coercer.coerce(UUID.randomUUID(), rdbmsParameterMapper.getIdClassName());
                                     results.get(target).put(tmpId, recordsByTarget.get(target));
                                 }
                             });

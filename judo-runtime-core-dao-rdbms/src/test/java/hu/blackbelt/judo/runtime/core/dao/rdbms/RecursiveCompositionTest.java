@@ -342,14 +342,17 @@ public class RecursiveCompositionTest {
         final EReference xsOfY = y.getEAllReferences().stream().filter(r -> XS.equals(r.getName())).findAny().get();
 
         final long startTs = System.currentTimeMillis();
-        final RdbmsInstanceCollector instanceCollector = new RdbmsInstanceCollector(jdbcTemplate, 
-                daoFixture.getAsmUtils(),
-                daoFixture.getRdbmsResolver(),
-                daoFixture.getRdbmsModel(),
-                RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer(),
-                daoFixture.getIdProvider(),
-                Dialect.parse(datasourceFixture.getDialect(), datasourceFixture.isJooqEnabled()));
-        
+        final RdbmsInstanceCollector instanceCollector = RdbmsInstanceCollector.<UUID>builder()
+                .asmUtils(daoFixture.getAsmUtils())
+                .jdbcTemplate(jdbcTemplate)
+                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
+                .rdbmsResolver(daoFixture.getRdbmsResolver())
+                .coercer(RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer())
+                .identifierProvider(daoFixture.getIdProvider())
+                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
+                .dialect(Dialect.parse(datasourceFixture.getDialect(), datasourceFixture.isJooqEnabled()))
+                .build();
+
         instanceCollector.createSelects();
         final long modelCreated = System.currentTimeMillis();
         log.debug("Instance collector created in {} ms:", (modelCreated - startTs));

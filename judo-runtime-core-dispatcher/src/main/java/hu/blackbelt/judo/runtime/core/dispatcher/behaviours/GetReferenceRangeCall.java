@@ -10,7 +10,6 @@ import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
@@ -18,8 +17,6 @@ import javax.transaction.TransactionManager;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport.LoadArguments.expressionLoadArgumentsBuilder;
-import static hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport.loadExpression;
 
 @Slf4j
 public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
@@ -46,10 +43,9 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
         this.markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
         this.collectedIdRemover = new CollectedIdRemover<>(identifierProvider.getName());
 
-        this.expressionModelResourceSupport = loadExpression(expressionLoadArgumentsBuilder()
+        this.expressionModelResourceSupport = ExpressionModelResourceSupport.expressionModelResourceSupportBuilder()
                 .resourceSet(expressionModel.getResourceSet())
-                .uri(URI.createURI("expression:internal-range-" + expressionModel.getName()))
-                .build());
+                .uri(expressionModel.getUri()).build();
 
         this.queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }

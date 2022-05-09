@@ -5,6 +5,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
@@ -23,9 +24,9 @@ import java.util.stream.Collectors;
 public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
-    public ModifyStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel, TransformationTraceService transformationTraceService, Coercer coercer,
-                                   IdentifierProvider<ID> identifierProvider, Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+    public ModifyStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel, TransformationTraceService transformationTraceService, RdbmsParameterMapper rdbmsParameterMapper,
+                                   Coercer coercer, IdentifierProvider<ID> identifierProvider, Dialect dialect) {
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
     }
 
     /**
@@ -36,32 +37,31 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
      * @throws SQLException
      */
     public void executeStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                  Collection<Statement<ID>> statements,
-                                  Coercer coercer) throws SQLException {
+                                  Collection<Statement<ID>> statements) throws SQLException {
 
         EntityExistsValidationStatementExecutor entityExistsValidationStatementExecutor =
-                new EntityExistsValidationStatementExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new EntityExistsValidationStatementExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         InsertStatementExecutor insertStatementExecutor =
-                new InsertStatementExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new InsertStatementExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         UpdateStatementExecutor updateStatementExecutor =
-                new UpdateStatementExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new UpdateStatementExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         UpdateReferenceExecutor updateReferenceExecutor =
-                new UpdateReferenceExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new UpdateReferenceExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         DeleteStatementExecutor deleteStatementExecutor =
-                new DeleteStatementExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new DeleteStatementExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         AddReferenceStatementExecutor addReferenceStatementExecutor =
-                new AddReferenceStatementExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new AddReferenceStatementExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         RemoveReferenceStatementExecutor removeReferenceStatementExecutor =
-                new RemoveReferenceStatementExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new RemoveReferenceStatementExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         AddRemoveReferenceStatementConsistencyCheckExecutor addRemoveReferenceStatementConsistencyCheckExecutor =
-                new AddRemoveReferenceStatementConsistencyCheckExecutor(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+                new AddRemoveReferenceStatementConsistencyCheckExecutor(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
 
         // Check existence
         entityExistsValidationStatementExecutor.executeEntityExistsValidationStatements(

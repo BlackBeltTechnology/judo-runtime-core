@@ -6,33 +6,39 @@ import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
+import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultIdentifierSigner;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 
+@SuppressWarnings("rawtypes")
 public class DefaultIdentifierSignerProvider implements Provider<IdentifierSigner> {
 
     public static final String IDENTIFIER_SIGNER_SECRET = "identifierSignerSecret";
-    AsmModel asmModel;
-    IdentifierProvider identifierProvider;
-    DataTypeManager dataTypeManager;
-    String secret;
 
     @Inject
-    public DefaultIdentifierSignerProvider(AsmModel asmModel,
-                                            IdentifierProvider identifierProvider,
-                                            DataTypeManager dataTypeManager,
-                                            @Named(IDENTIFIER_SIGNER_SECRET) String secret) {
-        this.asmModel = asmModel;
-        this.identifierProvider = identifierProvider;
-        this.dataTypeManager = dataTypeManager;
-        this.secret = secret;
-    }
+    AsmModel asmModel;
+
+    @Inject
+    DataTypeManager dataTypeManager;
+
+    @Inject(optional = true)
+    String secret;
+
+    @Inject(optional = true)
+    @Named(IDENTIFIER_SIGNER_SECRET)
+    IdentifierProvider identifierProvider;
 
     @Override
+    @SuppressWarnings("unchecked")
     public IdentifierSigner get() {
+        IdentifierProvider idprov = identifierProvider;
+        if (idprov == null) {
+            idprov = new UUIDIdentifierProvider();
+        }
+
         return DefaultIdentifierSigner.builder()
                 .asmModel(asmModel)
-                .identifierProvider(identifierProvider)
+                .identifierProvider(idprov)
                 .dataTypeManager(dataTypeManager)
                 .secret(secret)
                 .build();

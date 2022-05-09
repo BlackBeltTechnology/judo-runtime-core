@@ -16,21 +16,21 @@ public class DefaultMetricsCollectorProvider implements Provider<MetricsCollecto
     public static final String METRICS_COLLECTOR_CONSUMER = "metricsCollectorConsumer";
     public static final String METRICS_COLLECTOR_ENABLED = "metricsCollectorEnabled";
     public static final String METRICS_COLLECTOR_VERBOSE = "metricsCollectorVerbose";
-    Context context;
-    Consumer metricsConsumer;
-    Boolean enabled;
-    Boolean verbose;
 
     @Inject
-    public DefaultMetricsCollectorProvider(Context context,
-                                           @Named(METRICS_COLLECTOR_CONSUMER) Consumer metricsConsumer,
-                                           @Named(METRICS_COLLECTOR_ENABLED) Boolean enabled,
-                                           @Named(METRICS_COLLECTOR_VERBOSE) Boolean verbose) {
-        this.context = context;
-        this.metricsConsumer = metricsConsumer;
-        this.enabled = enabled;
-        this.verbose = verbose;
-    }
+    Context context;
+
+    @Inject(optional = true)
+    @Named(METRICS_COLLECTOR_CONSUMER)
+    Consumer metricsConsumer = (m) -> {};
+
+    @Inject(optional = true)
+    @Named(METRICS_COLLECTOR_ENABLED)
+    Boolean enabled = false;
+
+    @Inject(optional = true)
+    @Named(METRICS_COLLECTOR_VERBOSE)
+    Boolean verbose = false;
 
     @Override
     public MetricsCollector get() {

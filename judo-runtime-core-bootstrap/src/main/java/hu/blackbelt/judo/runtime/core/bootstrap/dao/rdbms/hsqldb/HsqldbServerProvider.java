@@ -6,51 +6,66 @@ import com.google.inject.name.Named;
 import org.hsqldb.server.Server;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.nio.file.Files;
 
 public class HsqldbServerProvider implements Provider<Server> {
-
-    static class HsqldbServerOptional {
-        @Inject(optional=true) public Server value = null;
-    }
 
     public static final String HSQLDB_SERVER_DATABASE_NAME = "hsqldbServerDatabaseName";
     public static final String HSQLDB_SERVER_DATABASE_PATH = "hsqldbServerDatabasePath";
     public static final String HSQLDB_SERVER_PORT = "hsqldbServerPort";
-    private final String databaseName;
 
-    private final File databasePath;
 
-    private final Integer port;
+    @Inject(optional = true)
+    @Named(HSQLDB_SERVER_DATABASE_NAME)
+    private String databaseName;
 
-    @Inject
-    public HsqldbServerProvider(
-            @Named(HSQLDB_SERVER_DATABASE_NAME) String databaseName,
-            @Named(HSQLDB_SERVER_DATABASE_PATH) File databasePath,
-            @Named(HSQLDB_SERVER_PORT) Integer port) {
-        this.port = port;
-        this.databaseName = databaseName;
-        this.databasePath = databasePath;
+    @Inject(optional = true)
+    @Named(HSQLDB_SERVER_DATABASE_PATH)
+    private File databasePath;
 
-    }
+    @Inject(optional = true)
+    @Named(HSQLDB_SERVER_PORT)
+    private Integer port;
 
     @Override
     public Server get() {
 
-        /*
-        int port = 0;
-        try (ServerSocket serverSocket = new ServerSocket(0)) {
-            port = serverSocket.getLocalPort();
-        } catch (IOException e) {
-            throw new RuntimeException("Port is not available");
-        } */
+        String dbName = databaseName;
+        if (dbName == null) {
+            dbName = Long.toString(System.currentTimeMillis());
+        }
+
+        File dbPath = databasePath;
+        if (dbPath == null) {
+            File f = null;
+            try {
+                f = Files.createTempFile("hsqlDb-" + dbName, ".out").toFile();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            f.deleteOnExit();
+            dbPath = f;
+        }
+
+        Integer dbPort = port;
+        if (port == null || port <= 0) {
+            try (ServerSocket serverSocket = new ServerSocket(0)) {
+                dbPort = serverSocket.getLocalPort();
+            } catch (IOException e) {
+                throw new RuntimeException("Port is not available");
+            }
+        }
+
         Server server = new Server();
         //server.setLogWriter(new PrintWriter(new LogStream(log, LogStream.Level.INFO)));
         //server.setErrWriter(new PrintWriter(new LogStream(log, LogStream.Level.ERROR)));
         server.setTrace(false);
         server.setSilent(true);
-        server.setDatabaseName(0, databaseName);
-        server.setDatabasePath(0, databasePath.getAbsolutePath());
-        server.setPort(port);
+        server.setDatabaseName(0, dbName);
+        server.setDatabasePath(0, dbPath.getAbsolutePath());
+        server.setPort(dbPort);
         server.setNoSystemExit(true);
         server.start();
         return server;

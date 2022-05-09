@@ -1177,11 +1177,17 @@ public class RelationsTest extends AbstractRelationsTest {
     @Test
     void testInstanceCollector(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
         final long startTs = System.currentTimeMillis();
-        final RdbmsInstanceCollector<UUID> instanceCollector = new RdbmsInstanceCollector<>(
-                new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource()),
-                daoFixture.getAsmUtils(), daoFixture.getRdbmsResolver(),
-                daoFixture.getRdbmsModel(), RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer(), uuid,
-                Dialect.parse(datasourceFixture.getDialect(), datasourceFixture.isJooqEnabled()));
+        final RdbmsInstanceCollector instanceCollector = RdbmsInstanceCollector.<UUID>builder()
+                .asmUtils(daoFixture.getAsmUtils())
+                .jdbcTemplate(new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource()))
+                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
+                .rdbmsResolver(daoFixture.getRdbmsResolver())
+                .coercer(RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer())
+                .identifierProvider(daoFixture.getIdProvider())
+                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
+                .dialect(Dialect.parse(datasourceFixture.getDialect(), datasourceFixture.isJooqEnabled()))
+                .build();
+
         instanceCollector.createSelects();
         final long modelCreated = System.currentTimeMillis();
         log.debug("Instance collector created in {} ms:", (modelCreated - startTs));

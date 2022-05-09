@@ -25,6 +25,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <surefire-version>3.0.0-M5</surefire-version>
+        <slf4j-version>1.7.21</slf4j-version>
 
         <osgi-default-import>
             org.osgi.framework;version="[1.8,2.0)",
@@ -292,7 +293,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.6.0</version>
+            <version>${slf4j-version}</version>
         </dependency>
 
         <dependency>
@@ -346,12 +347,14 @@
             <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.21</version>
+            <version>${slf4j-version}</version>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.jcabi</groupId>
             <artifactId>jcabi-log</artifactId>
@@ -535,7 +538,6 @@
                 <artifactId>hu.blackbelt.judo.meta.script.model</artifactId>
                 <version>${judo-meta-script-version}</version>
             </dependency>
-
 
             <dependency>
                 <groupId>hu.blackbelt.judo.script</groupId>

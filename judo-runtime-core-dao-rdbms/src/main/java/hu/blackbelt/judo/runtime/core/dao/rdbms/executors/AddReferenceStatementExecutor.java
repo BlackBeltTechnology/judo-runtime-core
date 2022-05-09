@@ -11,6 +11,7 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.ReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
@@ -47,10 +48,11 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
     public AddReferenceStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                         TransformationTraceService transformationTraceService, Coercer coercer,
+                                         TransformationTraceService transformationTraceService,
+                                         RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
                                          IdentifierProvider<ID> identifierProvider,
                                          Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
     }
 
     /**
@@ -125,13 +127,13 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                                 MapSqlParameterSource updateStatementNamedParameters =
                                         new MapSqlParameterSource().addValue(
                                                 identifierProvider.getName(),
-                                                coercer.coerce(identifier.get(), parameterMapper.getIdClassName()),
-                                                parameterMapper.getIdSqlType());
+                                                coercer.coerce(identifier.get(), rdbmsParameterMapper.getIdClassName()),
+                                                rdbmsParameterMapper.getIdSqlType());
 
                                 updateStatementNamedParameters.addValue(
                                         getReferenceFQName(reference),
-                                        coercer.coerce(referenceIdentifier.get(), parameterMapper.getIdClassName()),
-                                        parameterMapper.getIdSqlType());
+                                        coercer.coerce(referenceIdentifier.get(), rdbmsParameterMapper.getIdClassName()),
+                                        rdbmsParameterMapper.getIdSqlType());
 
                                 String tableName = rdbms.rdbmsTable(entity.get()).getSqlName();
 
@@ -170,9 +172,9 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                     ID bId = r.getOppositeIdentifier();
 
                     SqlParameterSource jointPairNamedParameters = new MapSqlParameterSource()
-                            .addValue("id", coercer.coerce(UUID.randomUUID(), parameterMapper.getIdClassName()), parameterMapper.getIdSqlType())
-                            .addValue("aId", coercer.coerce(aId, parameterMapper.getIdClassName()), parameterMapper.getIdSqlType())
-                            .addValue("bId", coercer.coerce(bId, parameterMapper.getIdClassName()), parameterMapper.getIdSqlType());
+                            .addValue("id", coercer.coerce(UUID.randomUUID(), rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType())
+                            .addValue("aId", coercer.coerce(aId, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType())
+                            .addValue("bId", coercer.coerce(bId, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
 
                     // Check existence of the given ID pair.
                     String exitenceCheckSql = "SELECT count(1) FROM " + joinTable.getSqlName() + " WHERE " +

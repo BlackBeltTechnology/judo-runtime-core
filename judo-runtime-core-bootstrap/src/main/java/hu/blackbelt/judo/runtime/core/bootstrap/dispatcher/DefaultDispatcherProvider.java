@@ -12,6 +12,7 @@ import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
@@ -24,6 +25,7 @@ import lombok.NonNull;
 
 import javax.transaction.TransactionManager;
 
+@SuppressWarnings("rawtypes")
 public class DefaultDispatcherProvider implements Provider<Dispatcher> {
 
     public static final String DISPATCHER_METRICS_RETURNED = "dispatcherMetricsReturned";
@@ -31,79 +33,75 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     public static final String DISPATCHER_TRIM_STRING = "dispatcherTrimString";
     public static final String DISPATCHER_CASE_INSENSITIVE_LIKE = "dispatcherCaseInsensitiveLike";
     public static final String DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION = "dispatcherRequiredStringValidatorOption";
-    AsmModel asmModel;
-    ExpressionModel expressionModel;
-    DAO dao;
-    IdentifierProvider identifierProvider;
-    DispatcherFunctionProvider dispatcherFunctionProvider;
-    TransactionManager transactionManager;
-    DataTypeManager dataTypeManager;
-    IdentifierSigner identifierSigner;
-    AccessManager accessManager;
-    ActorResolver actorResolver;
-    OpenIdConfigurationProvider openIdConfigurationProvider;
-    Context context;
-    MetricsCollector metricsCollector;
-    TokenIssuer filestoreTokenIssuer;
-    TokenValidator filestoreTokenValidator;
-    Validator rangeValidator;
-    Boolean metricsReturned;
-    Boolean enableDefaultValidation;
-    Boolean trimString;
-    Boolean caseInsensitiveLike;
-    String requiredStringValidatorOption;
 
     @Inject
-    public DefaultDispatcherProvider(AsmModel asmModel,
-                                     ExpressionModel expressionModel,
-                                     DAO dao,
-                                     IdentifierProvider identifierProvider,
-                                     DispatcherFunctionProvider dispatcherFunctionProvider,
-                                     TransactionManager transactionManager,
-                                     DataTypeManager dataTypeManager,
-                                     IdentifierSigner identifierSigner,
-                                     AccessManager accessManager,
-                                     ActorResolver actorResolver,
-                                     OpenIdConfigurationProvider openIdConfigurationProvider,
-                                     Context context,
-                                     MetricsCollector metricsCollector,
-                                     TokenIssuer filestoreTokenIssuer,
-                                     TokenValidator filestoreTokenValidator,
-                                     Validator rangeValidator,
-                                     @Named(DISPATCHER_METRICS_RETURNED) Boolean metricsReturned,
-                                     @Named(DISPATCHER_ENABLE_DEFAULT_VALIDATION) Boolean enableDefaultValidation,
-                                     @Named(DISPATCHER_TRIM_STRING) Boolean trimString,
-                                     @Named(DISPATCHER_CASE_INSENSITIVE_LIKE) Boolean caseInsensitiveLike,
-                                     @Named(DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION) String requiredStringValidatorOption) {
-        this.asmModel = asmModel;
-        this.expressionModel = expressionModel;
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.dispatcherFunctionProvider = dispatcherFunctionProvider;
-        this.transactionManager = transactionManager;
-        this.dataTypeManager = dataTypeManager;
-        this.identifierSigner = identifierSigner;
-        this.accessManager = accessManager;
-        this.actorResolver = actorResolver;
-        this.openIdConfigurationProvider = openIdConfigurationProvider;
-        this.context = context;
-        this.metricsCollector = metricsCollector;
-        this.filestoreTokenIssuer = filestoreTokenIssuer;
-        this.filestoreTokenValidator = filestoreTokenValidator;
-        this.rangeValidator = rangeValidator;
-        this.metricsReturned = metricsReturned;
-        this.enableDefaultValidation = enableDefaultValidation;
-        this.trimString = trimString;
-        this.caseInsensitiveLike = caseInsensitiveLike;
-        this.requiredStringValidatorOption = requiredStringValidatorOption;
-    }
+    JudoModelSpecification models;
 
+    @Inject
+    DAO dao;
+
+    @Inject
+    IdentifierProvider identifierProvider;
+
+    @Inject
+    DispatcherFunctionProvider dispatcherFunctionProvider;
+
+    @Inject(optional = true)
+    TransactionManager transactionManager;
+
+    @Inject
+    DataTypeManager dataTypeManager;
+
+    @Inject
+    IdentifierSigner identifierSigner;
+
+    @Inject
+    AccessManager accessManager;
+
+    @Inject
+    ActorResolver actorResolver;
+
+    @Inject
+    Context context;
+
+    @Inject
+    MetricsCollector metricsCollector;
+
+    @Inject(optional = true)
+    OpenIdConfigurationProvider openIdConfigurationProvider;
+
+    @Inject(optional = true)
+    TokenIssuer filestoreTokenIssuer;
+
+    @Inject(optional = true)
+    TokenValidator filestoreTokenValidator;
+
+    @Inject(optional = true)
+    @Named(DISPATCHER_METRICS_RETURNED)
+    Boolean metricsReturned;
+
+    @Inject(optional = true)
+    @Named(DISPATCHER_ENABLE_DEFAULT_VALIDATION)
+    Boolean enableDefaultValidation;
+
+    @Inject(optional = true)
+    @Named(DISPATCHER_TRIM_STRING)
+    Boolean trimString;
+
+    @Inject(optional = true)
+    @Named(DISPATCHER_CASE_INSENSITIVE_LIKE)
+    Boolean caseInsensitiveLike;
+
+    @Inject(optional = true)
+    @Named(DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION)
+    String requiredStringValidatorOption;
 
     @Override
+    @SuppressWarnings("unchecked")
     public Dispatcher get() {
         return DefaultDispatcher.builder()
-                .asmModel(asmModel)
-                .expressionModel(expressionModel)
+                .asmModel(models.getAsmModel())
+                .expressionModel(models.getExpressionModel())
                 .dao(dao)
                 .identifierProvider(identifierProvider)
                 .dispatcherFunctionProvider(dispatcherFunctionProvider)
@@ -112,12 +110,11 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
                 .identifierSigner(identifierSigner)
                 .accessManager(accessManager)
                 .actorResolver(actorResolver)
-                .openIdConfigurationProvider(openIdConfigurationProvider)
                 .context(context)
                 .metricsCollector(metricsCollector)
+                .openIdConfigurationProvider(openIdConfigurationProvider)
                 .filestoreTokenValidator(filestoreTokenValidator)
                 .filestoreTokenIssuer(filestoreTokenIssuer)
-                .rangeValidator(rangeValidator)
                 .metricsReturned(metricsReturned)
                 .enableDefaultValidation(enableDefaultValidation)
                 .trimString(trimString)

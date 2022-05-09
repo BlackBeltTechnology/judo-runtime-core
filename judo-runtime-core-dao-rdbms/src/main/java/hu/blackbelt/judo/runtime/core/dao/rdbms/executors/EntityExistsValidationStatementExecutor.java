@@ -5,6 +5,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
@@ -37,11 +38,13 @@ class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> 
     public EntityExistsValidationStatementExecutor(
             AsmModel asmModel,
             RdbmsModel rdbmsModel,
-            TransformationTraceService transformationTraceService, Coercer coercer,
+            TransformationTraceService transformationTraceService,
+            RdbmsParameterMapper rdbmsParameterMapper,
+            Coercer coercer,
             IdentifierProvider<ID> identifierProvider,
             Dialect dialect) {
 
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
     }
 
     public void executeEntityExistsValidationStatements(
@@ -64,7 +67,7 @@ class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> 
                 " " + tableName + " ID: " + identifier + " SQL: " + sql);
 
         SqlParameterSource namedParameters = new MapSqlParameterSource()
-                .addValue(identifierProvider.getName(), coercer.coerce(statement.getInstance().getIdentifier(), parameterMapper.getIdClassName()), parameterMapper.getIdSqlType());
+                .addValue(identifierProvider.getName(), coercer.coerce(statement.getInstance().getIdentifier(), rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
 
         int count = jdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
 

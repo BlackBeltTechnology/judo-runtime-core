@@ -61,59 +61,44 @@ import static java.util.function.Function.identity;
  * It is not created automatically, other DataSource and Model dependent mechanism have to
  * manage the lifecycle, or constructor based creation is supported.
  */
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Slf4j
 public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private static final String STATEFUL = "STATEFUL";
     private static final String ROLLBACK = "ROLLBACK";
+    public static final String CREATED = "__$created";
 
-    @NonNull
-    DataTypeManager dataTypeManager;
+    private final DataTypeManager dataTypeManager;
 
-    @NonNull
-    AsmModel asmModel;
+    private final AsmModel asmModel;
 
-    @NonNull
-    RdbmsModel rdbmsModel;
+    private final RdbmsModel rdbmsModel;
 
-    @Builder.Default
-    MeasureModel measureModel = null;
+    private final MeasureModel measureModel;
 
-    @NonNull
-    DataSource dataSource;
+    private final DataSource dataSource;
 
-    @NonNull
-    TransformationTraceService transformationTraceService;
+    private final TransformationTraceService transformationTraceService;
 
-    @NonNull
-    IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider<ID> identifierProvider;
 
-    @NonNull
-    private Dialect dialect;
+    private final InstanceCollector<ID> instanceCollector;
 
-    @Builder.Default
-    private boolean optimisticLockEnabled = true;
+    private final Dialect dialect;
 
-    @Builder.Default
-    private int chunkSize = 10;
+    private final boolean optimisticLockEnabled;
 
-    @Builder.Default
-    private boolean markSelectedRangeItems = false;
+    private final int chunkSize;
 
-    @NonNull
-    private VariableResolver variableResolver;
+    private final boolean markSelectedRangeItems;
 
-    @NonNull
-    private Context context;
+    private final VariableResolver variableResolver;
 
-    @NonNull
-    private MetricsCollector metricsCollector;
+    private final Context context;
 
-    @Builder.Default
-    private JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
+    private final MetricsCollector metricsCollector;
+
+    private final JqlExpressionBuilderConfig jqlExpressionBuilderConfig;
 
     private final AtomicReference<SelectStatementExecutor<ID>> selectStatementExecutor = new AtomicReference<>(null);
 
@@ -126,26 +111,27 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private final AtomicReference<RdbmsResolver> rdbmsResolver = new AtomicReference<>(null);
 
+    private final RdbmsParameterMapper rdbmsParameterMapper;
 
-    /*
     @Builder
-    public RdbmsDAOImpl(
+    private RdbmsDAOImpl(
+            @NonNull Dialect dialect,
             @NonNull DataTypeManager dataTypeManager,
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
-            MeasureModel measureModel,
             @NonNull DataSource dataSource,
             @NonNull TransformationTraceService transformationTraceService,
             @NonNull IdentifierProvider<ID> identifierProvider,
-            @NonNull String sqlDialect,
-            boolean jooqEnabled,
-            boolean optimisticLockEnabled,
-            int chunkSize,
-            boolean markSelectedRangeItems,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull VariableResolver variableResolver,
             @NonNull Context context,
-            MetricsCollector metricsCollector
-    ) {
+            @NonNull MetricsCollector metricsCollector,
+            @NonNull InstanceCollector<ID> instanceCollector,
+            JqlExpressionBuilderConfig jqlExpressionBuilderConfig,
+            MeasureModel measureModel,
+            Boolean optimisticLockEnabled,
+            Integer chunkSize,
+            Boolean markSelectedRangeItems) {
         this.dataTypeManager = dataTypeManager;
         this.asmModel = asmModel;
         this.rdbmsModel = rdbmsModel;
@@ -153,15 +139,38 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         this.dataSource = dataSource;
         this.transformationTraceService = transformationTraceService;
         this.identifierProvider = identifierProvider;
-        this.sqlDialect = sqlDialect;
-        this.jooqEnabled = jooqEnabled;
-        this.optimisticLockEnabled = optimisticLockEnabled;
-        this.chunkSize = chunkSize;
-        this.markSelectedRangeItems = markSelectedRangeItems;
+        this.instanceCollector = instanceCollector;
+        this.rdbmsParameterMapper = rdbmsParameterMapper;
+
+        if (optimisticLockEnabled == null) {
+            this.optimisticLockEnabled = true;
+        } else {
+            this.optimisticLockEnabled = optimisticLockEnabled;
+        }
+
+        if (chunkSize == null) {
+            this.chunkSize = 1000;
+        } else {
+            this.chunkSize = chunkSize;
+        }
+
+        if (markSelectedRangeItems == null) {
+            this.markSelectedRangeItems = false;
+        } else {
+            this.markSelectedRangeItems = markSelectedRangeItems;
+        }
+
         this.variableResolver = variableResolver;
         this.context = context;
         this.metricsCollector = metricsCollector;
-    } */
+        this.dialect = dialect;
+        if (jqlExpressionBuilderConfig == null) {
+            this.jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
+        } else {
+            this.jqlExpressionBuilderConfig = jqlExpressionBuilderConfig;
+        }
+
+    }
 
 
     private SelectStatementExecutor<ID> getSelectStatementExecutor() {
@@ -177,6 +186,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     .metricsCollector(metricsCollector)
                     .chunkSize(chunkSize)
                     .transformationTraceService(transformationTraceService)
+                    .rdbmsParameterMapper(rdbmsParameterMapper)
                     .dialect(dialect).build());
         }
         return selectStatementExecutor.get();
@@ -250,6 +260,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     private QueryFactory cachedQueryFactory = null;
+
+    /*
     private InstanceCollector cachedInstanceCollector = null;
 
     private InstanceCollector getInstanceCollector() {
@@ -260,6 +272,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
         return cachedInstanceCollector;
     }
+    */
 
     @Override
     protected QueryFactory getQueryFactory() {
@@ -279,7 +292,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return new InsertPayloadDaoProcessor<ID>(asmModel.getResourceSet(),
                 getIdentifierProvider(),
                 getQueryFactory(),
-                getInstanceCollector(),
+                instanceCollector,
                 getDefaultValuesProvider(),
                 metadata);
     }
@@ -288,14 +301,14 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return new DeletePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
                 getQueryFactory(),
-                getInstanceCollector());
+                instanceCollector);
     }
 
     protected UpdatePayloadDaoProcessor getUpdatePayloadProcessor(Metadata metadata) {
         return new UpdatePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
                 getQueryFactory(),
-                getInstanceCollector(),
+                instanceCollector,
                 getDefaultValuesProvider(),
                 metadata,
                 optimisticLockEnabled);
@@ -305,14 +318,14 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return new AddReferencePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
                 getQueryFactory(),
-                getInstanceCollector());
+                instanceCollector);
     }
 
     protected RemoveReferencePayloadDaoProcessor getRemoveReferencePayloadProcessor() {
         return new RemoveReferencePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
                 getQueryFactory(),
-                getInstanceCollector());
+                instanceCollector);
     }
 
     @Override
@@ -409,9 +422,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         Collection<Statement<ID>> statements = getInsertPayloadProcessor(metadata)
                 .insert(clazz, payload, checkMandatoryFeatures);
 
-        ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
+        ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
-        modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
+        modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
 
         // Get the root entity's
         ID identifier = (ID) statements.stream()
@@ -546,9 +559,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .delete(clazz, ids);
 
         ModifyStatementExecutor<ID> modifyStatementExecutor =
-                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
+                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
-        modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
+        modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
     }
 
     @Override
@@ -566,9 +579,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .update(clazz, original, updated, checkMandatoryFeatures);
 
         ModifyStatementExecutor<ID> modifyStatementExecutor =
-                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
+                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
-        modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
+        modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
 
         final Optional<Payload> result = readByIdentifier(clazz, original.getAs(identifierProvider.getType(), identifierProvider.getName()), queryCustomizer);
         checkArgument(result.isPresent(), "Updating " + AsmUtils.getClassifierFQName(clazz) + " failed");
@@ -703,8 +716,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (!identifiersAdd.isEmpty() || !identifiersRemove.isEmpty()) {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, identifiersAdd, identifiersRemove);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
-            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
+            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
@@ -719,8 +732,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (!identifiersExists.isEmpty()) {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(), identifiersExists);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
-            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
+            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
@@ -741,8 +754,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id,
                     identifiersToAddExistingRemoved, ImmutableSet.of());
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
-            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
+            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
@@ -761,8 +774,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(),
                     identifiersToRemoveChecked);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
-            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements, dataTypeManager.getCoercer());
+            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
+            modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
@@ -940,7 +953,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private Consumer<PayloadTraverser> getMarkInsertedPayloadsConsumer(final Set<ID> insertedIds) {
         return context -> {
             if (insertedIds.contains(context.getPayload().get(identifierProvider.getName()))) {
-                context.getPayload().put("__$created", true);
+                context.getPayload().put(CREATED, true);
             }
         };
     }

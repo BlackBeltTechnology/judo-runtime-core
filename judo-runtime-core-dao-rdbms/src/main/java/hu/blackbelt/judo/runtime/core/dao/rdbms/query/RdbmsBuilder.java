@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.query;
 
+import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
@@ -42,6 +43,9 @@ public class RdbmsBuilder {
 
     @Getter
     private RdbmsParameterMapper parameterMapper;
+
+    @Getter
+    private IdentifierProvider identifierProvider;
 
     @Getter
     private Coercer coercer;

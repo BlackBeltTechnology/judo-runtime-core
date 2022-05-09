@@ -24,14 +24,11 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsUtils;
 import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
 import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.script.codegen.generator.Script2JavaGenerator;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsDAOImpl;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.sequence.RdbmsSequence;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
@@ -73,6 +70,7 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -165,6 +163,9 @@ public class RdbmsDaoFixture {
     RdbmsParameterMapper rdbmsParameterMapper;
 
     @Getter
+    RdbmsInstanceCollector<UUID> rdbmsInstanceCollector;
+
+    @Getter
     protected TransformationTraceService transformationTraceService;
 
     @Getter
@@ -197,6 +198,8 @@ public class RdbmsDaoFixture {
     private Map<String, Function<Payload, Payload>> operationImplementations = new ConcurrentHashMap<>();
 
     private boolean initialized;
+
+    private Dialect dialect;
 
     @Getter
     private RdbmsDatasourceFixture rdbmsDatasourceFixture;
@@ -282,6 +285,8 @@ public class RdbmsDaoFixture {
                     new File("target/test-classes/"),
                     Collections.singletonList(rdbmsDatasourceFixture.getDialect()));
 
+            dialect = Dialect.parse(rdbmsDatasourceFixture.getDialect(), rdbmsDatasourceFixture.jooqEnabled);
+
             asmModel = defaultWorkflow.getTransformationContext().getByClass(AsmModel.class).get();
 
             measureModel = defaultWorkflow.getTransformationContext().getByClass(MeasureModel.class).get();
@@ -298,7 +303,29 @@ public class RdbmsDaoFixture {
             transformationTraceService.add(asm2RdbmsTransformationTrace);
             rdbmsResolver = new RdbmsResolver(asmModel, transformationTraceService);
             rdbmsUtils = new RdbmsUtils(rdbmsModel.getResourceSet());
-            rdbmsParameterMapper = new RdbmsParameterMapper(DATA_TYPE_MANAGER.getCoercer(), rdbmsModel, getIdProvider(), Dialect.parse(datasourceFixture.getDialect(), datasourceFixture.isJooqEnabled()));
+
+            if (dialect == Dialect.HSQLDB) {
+                rdbmsParameterMapper = HsqldbRdbmsParameterMapper.builder()
+                        .coercer(DATA_TYPE_MANAGER.getCoercer())
+                        .rdbmsModel(rdbmsModel)
+                        .identifierProvider(getIdProvider())
+                        .dialect(dialect)
+                        .build();
+            } else {
+                throw new RuntimeException("Bofffffff");
+            }
+
+            rdbmsInstanceCollector = RdbmsInstanceCollector.<UUID>builder()
+                    .jdbcTemplate(new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource()))
+                    .asmUtils(asmUtils)
+                    .rdbmsResolver(rdbmsResolver)
+                    .rdbmsModel(rdbmsModel)
+                    .coercer(DATA_TYPE_MANAGER.getCoercer())
+                    .identifierProvider(getIdProvider())
+                    .rdbmsParameterMapper(rdbmsParameterMapper)
+                    .dialect(dialect)
+                    .build();
+
 
             liquibaseStream = new ByteArrayOutputStream();
             liquibaseModel.saveLiquibaseModel(liquibaseSaveArgumentsBuilder()
@@ -484,6 +511,19 @@ public class RdbmsDaoFixture {
             JqlExpressionBuilderConfig expressionBuilderConfig = new JqlExpressionBuilderConfig();
             expressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
 
+            /*
+                        @NonNull Dialect dialect,
+            @NonNull DataTypeManager dataTypeManager,
+            @NonNull AsmModel asmModel,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull DataSource dataSource,
+            @NonNull TransformationTraceService transformationTraceService,
+            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull VariableResolver variableResolver,
+            @NonNull Context context,
+            @NonNull MetricsCollector metricsCollector,
+
+             */
             cachedDao = RdbmsDAOImpl.<UUID>builder()
                     .dataTypeManager(DATA_TYPE_MANAGER)
                     .asmModel(asmModel)
@@ -492,12 +532,14 @@ public class RdbmsDaoFixture {
                     .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
                     .transformationTraceService(transformationTraceService)
                     .identifierProvider(new UUIDIdentifierProvider())
-                    .dialect(Dialect.parse(rdbmsDatasourceFixture.getDialect(), rdbmsDatasourceFixture.jooqEnabled))
+                    .dialect(dialect)
                     .variableResolver(variableResolver)
                     .context(context)
                     .optimisticLockEnabled(true)
                     .markSelectedRangeItems(false)
                     .metricsCollector(metricsCollector)
+                    .rdbmsParameterMapper(rdbmsParameterMapper)
+                    .instanceCollector(getRdbmsInstanceCollector())
                     .jqlExpressionBuilderConfig(expressionBuilderConfig)
                     .build();
 
@@ -511,7 +553,7 @@ public class RdbmsDaoFixture {
                             .start(SEQUENCE_START)
                             .increment(SEQUENCE_INCREMENT)
                             .createIfNotExists(true)
-                            .dialect(Dialect.parse(rdbmsDatasourceFixture.getDialect(), rdbmsDatasourceFixture.isJooqEnabled()))
+                            .dialect(dialect)
                             .build()), false);
         }
         return cachedDao;

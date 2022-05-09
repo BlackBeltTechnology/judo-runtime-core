@@ -73,6 +73,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     @NonNull
     private Dialect dialect;
 
+    @NonNull
+    private RdbmsParameterMapper rdbmsParameterMapper;
+
     private final AtomicReference<RdbmsModelResourceSupport> rdbmsSupport = new AtomicReference<>(null);
 
     private static final String IDS = "ids";
@@ -113,8 +116,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     public Map<ID, InstanceGraph<ID>> collectGraph(final EClass entityType, final Collection<ID> ids) {
         createSelects();
 
-        final RdbmsParameterMapper parameterMapper = new RdbmsParameterMapper(coercer, rdbmsModel, identifierProvider, dialect);
-        return collectInstances(selectsByEntityType.get(entityType), ids, parameterMapper);
+        return collectInstances(selectsByEntityType.get(entityType), ids, rdbmsParameterMapper);
     }
 
     @Override

@@ -62,34 +62,35 @@ public abstract class StatementExecutor<ID> {
     @NonNull
     TransformationTraceService transformationTraceService;
 
-    @NonNull
-    Coercer coercer;
-
     @Builder.Default
     IdentifierProvider<ID> identifierProvider = (IdentifierProvider<ID>) new UUIDIdentifierProvider();
 
     @NonNull
     Dialect dialect;
 
-    RdbmsParameterMapper parameterMapper;
+    @NonNull
+    Coercer coercer;
+
+    @NonNull
+    RdbmsParameterMapper rdbmsParameterMapper;
 
     @Getter
     private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
 
-//    @Builder
     public StatementExecutor(@NonNull AsmModel asmModel,
                              @NonNull RdbmsModel rdbmsModel,
                              @NonNull TransformationTraceService transformationTraceService,
-                             Coercer coercer,
+                             @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+                             @NonNull Coercer coercer,
                              IdentifierProvider<ID> identifierProvider,
                              Dialect dialect) {
         this.asmModel = asmModel;
         this.rdbmsModel = rdbmsModel;
-        this.coercer = coercer;
         this.transformationTraceService = transformationTraceService;
         this.dialect = dialect;
-        this.parameterMapper =  new RdbmsParameterMapper(coercer, rdbmsModel, identifierProvider, dialect);
+        this.rdbmsParameterMapper =  rdbmsParameterMapper;
         this.identifierProvider = identifierProvider;
+        this.coercer = coercer;
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
     }
 

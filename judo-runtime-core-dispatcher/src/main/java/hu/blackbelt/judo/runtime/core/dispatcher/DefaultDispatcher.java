@@ -22,8 +22,8 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.dispatcher.validators.*;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
-import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
-import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
+import hu.blackbelt.osgi.filestore.security.api.*;
+import hu.blackbelt.osgi.filestore.security.api.exceptions.InvalidTokenException;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
@@ -41,9 +41,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static java.util.Optional.ofNullable;
 
 @Slf4j
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 public class DefaultDispatcher<ID> implements Dispatcher {
 
     public static final String UPDATEABLE_KEY = "__updateable";
@@ -70,86 +67,48 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private static final Collection<Validator> DEFAULT_VALIDATORS = Arrays.asList(new MaxLengthValidator(), new MinLengthValidator(), new PrecisionValidator(), new PatternValidator());
 
-    @NonNull
-    @Setter
-    AsmModel asmModel;
+    private final AsmModel asmModel;
 
-    @NonNull
-    @Setter
-    ExpressionModel expressionModel;
+    private final ExpressionModel expressionModel;
 
-    @NonNull
-    @Setter
-    DAO<ID> dao;
+    private final DAO<ID> dao;
 
-    @NonNull
-    @Setter
-    IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider<ID> identifierProvider;
 
-    @NonNull
-    @Setter
-    DispatcherFunctionProvider dispatcherFunctionProvider;
+    private final DispatcherFunctionProvider dispatcherFunctionProvider;
 
-    @Setter
-    TransactionManager transactionManager;
+    private final DataTypeManager dataTypeManager;
 
-    @NonNull
-    @Setter
-    DataTypeManager dataTypeManager;
+    private final IdentifierSigner identifierSigner;
 
-    @NonNull
-    @Setter
-    IdentifierSigner identifierSigner;
+    private final ActorResolver actorResolver;
 
-    @Builder.Default
-    @NonNull
-    @Setter
-    private AccessManager accessManager = (operation, signedIdentifier, exchange) -> {};
+    private final TransactionManager transactionManager;
 
-    @NonNull
-    @Setter
-    private ActorResolver actorResolver;
+    private final AccessManager accessManager;
 
-    @Setter
-    volatile OpenIdConfigurationProvider openIdConfigurationProvider;
+    private final  OpenIdConfigurationProvider openIdConfigurationProvider;
 
-    @NonNull
-    @Setter
-    Context context;
+    private final Context context;
 
-    @Setter
-    MetricsCollector metricsCollector;
+    private final MetricsCollector metricsCollector;
 
-    @Setter
-    TokenIssuer filestoreTokenIssuer;
+    private final TokenIssuer filestoreTokenIssuer;
 
-    @Setter
-    TokenValidator filestoreTokenValidator;
+    private final TokenValidator filestoreTokenValidator;
 
-    @Setter
-    private Validator rangeValidator;
+    private final Validator rangeValidator;
 
-    @Builder.Default
-    @Setter
-    private Boolean metricsReturned = true;
+    private final Boolean metricsReturned;
 
-    @Builder.Default
-    @Setter
-    private Boolean enableDefaultValidation = true;
+    private final Boolean trimString;
 
-    @Builder.Default
-    @Setter
-    private Boolean trimString = false;
+    private final Boolean caseInsensitiveLike;
 
-    @Builder.Default
-    @Setter
-    private Boolean caseInsensitiveLike = false;
-
-    @Builder.Default
-    @Setter
-    private String requiredStringValidatorOption = "ACCEPT_NON_EMPTY";
+    private final String requiredStringValidatorOption;
 
     private final Collection<Validator> validators = new ArrayList<>();
+
     private Set<BehaviourCall> behaviourCalls;
 
     private void setupBehaviourCalls(DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
@@ -176,33 +135,118 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 .build();
     }
 
-/*
-    public DefaultDispatcher(AsmModel asmModel, ExpressionModel expressionModel, DAO<ID> dao, IdentifierProvider<ID> identifierProvider,
-                             DispatcherFunctionProvider dispatcherFunctionProvider, DataTypeManager dataTypeManager,
-                             IdentifierSigner identifierSigner, ActorResolver actorResolver, TransactionManager transactionManager,
-                             Context context, MetricsCollector metricsCollector, TokenIssuer filestoreTokenIssuer, TokenValidator filestoreTokenValidator) {
+    @Builder
+    public DefaultDispatcher(
+            @NonNull AsmModel asmModel,
+            @NonNull ExpressionModel expressionModel,
+            @NonNull DAO<ID> dao,
+            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull DispatcherFunctionProvider dispatcherFunctionProvider,
+            @NonNull DataTypeManager dataTypeManager,
+            @NonNull IdentifierSigner identifierSigner,
+            @NonNull ActorResolver actorResolver,
+            @NonNull Context context,
+            @NonNull MetricsCollector metricsCollector,
+            OpenIdConfigurationProvider openIdConfigurationProvider,
+            TokenIssuer filestoreTokenIssuer,
+            TokenValidator filestoreTokenValidator,
+            AccessManager accessManager,
+            TransactionManager transactionManager,
+            Boolean metricsReturned,
+            Boolean enableDefaultValidation,
+            Boolean trimString,
+            Boolean caseInsensitiveLike,
+            String requiredStringValidatorOption
+        ) {
         this.asmModel = asmModel;
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.dispatcherFunctionProvider = dispatcherFunctionProvider;
         this.dataTypeManager = dataTypeManager;
         this.identifierSigner = identifierSigner;
-        this.accessManager = (operation, signedIdentifier, exchange) -> {
-        };
+
+        if (accessManager != null) {
+            this.accessManager = (operation, signedIdentifier, exchange) -> {};
+        } else {
+            this.accessManager = accessManager;
+        }
+
         this.actorResolver = actorResolver;
         this.transactionManager = transactionManager;
         this.expressionModel = expressionModel;
         this.context = context;
         this.metricsCollector = metricsCollector;
-        this.filestoreTokenIssuer = filestoreTokenIssuer;
-        this.filestoreTokenValidator = filestoreTokenValidator;
+
+        if (enableDefaultValidation == null || enableDefaultValidation) {
+            validators.addAll(DEFAULT_VALIDATORS);
+            rangeValidator = new RangeValidator<>(dao, identifierProvider, context, transactionManager);
+            validators.add(rangeValidator);
+        } else {
+            rangeValidator = null;
+        }
+
+        if (metricsReturned != null) {
+            this.metricsReturned = metricsReturned;
+        } else {
+            this.metricsReturned = true;}
+
+        if (trimString != null) {
+            this.trimString = trimString;
+        } else {
+            this.trimString = false;
+        }
+
+        if (caseInsensitiveLike != null) {
+            this.caseInsensitiveLike = caseInsensitiveLike;
+        } else {
+            this.caseInsensitiveLike = false;
+        }
+
+        if (requiredStringValidatorOption != null) {
+            this.requiredStringValidatorOption = requiredStringValidatorOption;
+        } else {
+            this.requiredStringValidatorOption = "ACCEPT_NON_EMPTY";
+        }
+
+        this.openIdConfigurationProvider = openIdConfigurationProvider;
+
+        if (filestoreTokenIssuer == null) {
+            this.filestoreTokenIssuer = new TokenIssuer() {
+                @Override
+                public String createUploadToken(Token<UploadClaim> token) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public String createDownloadToken(Token<DownloadClaim> token) {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        } else {
+            this.filestoreTokenIssuer = filestoreTokenIssuer;
+        }
+
+        if (filestoreTokenValidator == null) {
+            this.filestoreTokenValidator =  new TokenValidator() {
+                @Override
+                public Token<UploadClaim> parseUploadToken(String tokenString) throws InvalidTokenException {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public Token<DownloadClaim> parseDownloadToken(String tokenString) throws InvalidTokenException {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        } else {
+            this.filestoreTokenValidator = filestoreTokenValidator;
+        }
+
         asmUtils = new AsmUtils(asmModel.getResourceSet());
         setupBehaviourCalls(dao, identifierProvider, asmUtils);
-        validators.addAll(DEFAULT_VALIDATORS);
-        validators.add(new RangeValidator<>(dao, identifierProvider, context, transactionManager));
         registerDataTypes();
     }
-    */
+
     private AsmUtils asmUtils;
 
     /*

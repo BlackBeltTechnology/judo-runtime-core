@@ -12,21 +12,19 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 public class DefaultActorResolverProvider implements Provider<ActorResolver> {
 
     public static final String ACTOR_RESOLVER_CHECK_MAPPED_ACTORS = "actorResolverCheckMappedActors";
-    AsmModel asmModel;
-    DAO dao;
-    DataTypeManager dataTypeManager;
-    Boolean checkMappedActors;
 
     @Inject
-    public DefaultActorResolverProvider(AsmModel asmModel,
-                                        DAO dao,
-                                        DataTypeManager dataTypeManager,
-                                        @Named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS) Boolean checkMappedActors) {
-        this.asmModel = asmModel;
-        this.dao = dao;
-        this.dataTypeManager = dataTypeManager;
-        this.checkMappedActors = checkMappedActors;
-    }
+    AsmModel asmModel;
+
+    @Inject
+    DAO dao;
+
+    @Inject
+    DataTypeManager dataTypeManager;
+
+    @Inject(optional = true)
+    @Named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS)
+    Boolean checkMappedActors = false;
 
     @Override
     public ActorResolver get() {

@@ -7,6 +7,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.UpdateStatement;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
@@ -35,9 +36,10 @@ import static org.jooq.lambda.Unchecked.consumer;
 class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
 
     public UpdateStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                   TransformationTraceService transformationTraceService, Coercer coercer,
+                                   TransformationTraceService transformationTraceService,
+                                   RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
                                    IdentifierProvider<ID> identifierProvider, Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
     }
 
     /**
@@ -75,7 +77,7 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                 // Phase 1: Insert all type with mandatory reference fields
                                 MapSqlParameterSource updateStatementNamedParameters = new MapSqlParameterSource()
-                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, parameterMapper.getIdClassName()), parameterMapper.getIdSqlType());
+                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
 
 
                                 Map<EAttribute, Object> attributeMapforCurrentStatement = attributeMap.entrySet().stream()
@@ -88,7 +90,7 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
                                 Integer version = coercer.coerce(updateStatement.getVersion(), Integer.class);
                                 if (version != null || updateStatement.getTimestamp() != null || updateStatement.getUserId() != null || updateStatement.getUserName() != null) {
                                     MapSqlParameterSource metaUpdateStatementNamedParameters = new MapSqlParameterSource()
-                                            .addValue(identifierProvider.getName(), coercer.coerce(identifier, parameterMapper.getIdClassName()), parameterMapper.getIdSqlType());
+                                            .addValue(identifierProvider.getName(), coercer.coerce(identifier, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
 
                                     if (version != null) {
                                         metaUpdateStatementNamedParameters.addValue(ENTITY_VERSION_MAP_KEY, version, Types.INTEGER);
@@ -102,7 +104,7 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
                                     }
                                     if (updateStatement.getUserId() != null) {
                                         fields.put(ENTITY_UPDATE_USER_ID_MAP_KEY, ENTITY_UPDATE_USER_ID_COLUMN_NAME);
-                                        metaUpdateStatementNamedParameters.addValue(ENTITY_UPDATE_USER_ID_MAP_KEY, coercer.coerce(updateStatement.getUserId(), identifierProvider.getType()), parameterMapper.getSqlType(identifierProvider.getType().getName()));
+                                        metaUpdateStatementNamedParameters.addValue(ENTITY_UPDATE_USER_ID_MAP_KEY, coercer.coerce(updateStatement.getUserId(), identifierProvider.getType()), rdbmsParameterMapper.getSqlType(identifierProvider.getType().getName()));
                                     }
                                     if (updateStatement.getUserName() != null) {
                                         fields.put(ENTITY_UPDATE_USERNAME_MAP_KEY, ENTITY_UPDATE_USERNAME_COLUMN_NAME);
@@ -128,7 +130,7 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                     rdbms.logAttributeParameters(attributeMapforCurrentStatement);
 
-                                    parameterMapper.mapAttributeParameters(updateStatementNamedParameters, attributeMapforCurrentStatement);
+                                    rdbmsParameterMapper.mapAttributeParameters(updateStatementNamedParameters, attributeMapforCurrentStatement);
 
                                     String tableName = rdbms.rdbmsTable(entityForCurrentStatement).getSqlName();
 

@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.accessmanager.behaviours;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
+import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import java.util.Collection;
 
 @Slf4j
 @RequiredArgsConstructor
+@Builder
 public class RefreshAuthorizer extends BehaviourAuthorizer {
 
     @NonNull

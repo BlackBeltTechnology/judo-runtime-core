@@ -12,12 +12,8 @@ import java.nio.file.Files;
 
 public class HsqldbAtomikosDataSourceProvider implements Provider<DataSource> {
 
-    private final Server server;
-
-    @Inject
-    public HsqldbAtomikosDataSourceProvider(HsqldbServerProvider.HsqldbServerOptional server) {
-        this.server = server.value;
-    }
+    @Inject(optional = true)
+    private Server server;
 
     @Override
     public DataSource get() {
@@ -32,12 +28,13 @@ public class HsqldbAtomikosDataSourceProvider implements Provider<DataSource> {
             databaseName = server.getDatabaseName(0, true);
             jdbcUrl = "jdbc:hsqldb:" + "hsql://" +
                     "localhost" + ":" + server.getPort() + "/" + databaseName;
-
         } else {
             databaseName = Long.toString(System.currentTimeMillis());
             try {
                 outDir = Files.createTempFile("atomikos-" + databaseName, ".out").toFile();
+                outDir.deleteOnExit();
                 logDir = Files.createTempFile("atomikos-" + databaseName, ".log").toFile();
+                logDir.deleteOnExit();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

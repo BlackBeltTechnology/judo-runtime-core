@@ -86,14 +86,16 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>4.2.3</version><!--$NO-MVN-MAN-VER$-->
+            <version>5.0.1</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
 
+        <!--
         <dependency>
             <groupId>net.jmob</groupId>
             <artifactId>guice.conf</artifactId>
             <version>v1.5.0</version>
         </dependency>
+        -->
 
         <dependency>
             <groupId>org.hsqldb</groupId>
@@ -110,6 +112,17 @@
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-asm2rdbms</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.script.model</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.osgi.liquibase</groupId>
+            <artifactId>osgi-liquibase</artifactId>
+            <version>${osgi-liquibase-version}</version>
         </dependency>
 
     </dependencies>

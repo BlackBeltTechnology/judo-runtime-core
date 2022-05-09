@@ -7,12 +7,8 @@ import hu.blackbelt.mapper.api.ExtendableCoercer;
 
 public class DataTypeManagerProvider implements Provider<DataTypeManager> {
 
-    private final ExtendableCoercer coercer;
-
     @Inject
-    public DataTypeManagerProvider(ExtendableCoercer coercer) {
-        this.coercer = coercer;
-    }
+    private ExtendableCoercer coercer;
 
     @Override
     public DataTypeManager get() {

@@ -9,10 +9,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.DeleteStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.InsertStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReferenceUtil;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
@@ -53,9 +50,10 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
     public DeleteStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                   TransformationTraceService transformationTraceService, Coercer coercer,
+                                   TransformationTraceService transformationTraceService,
+                                   RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
                                    IdentifierProvider<ID> identifierProvider, Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
     }
 
@@ -93,7 +91,7 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                             .forEach(entityForCurrentStatement -> {
 
                                 MapSqlParameterSource deleteStatementParameters = new MapSqlParameterSource()
-                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, parameterMapper.getIdClassName()), parameterMapper.getIdSqlType());
+                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
 
                                 String tableName = rdbms.rdbmsTable(entityForCurrentStatement).getSqlName();
                                 String sql = "DELETE FROM " + tableName + " WHERE " + ID_COLUMN_NAME + " = :" + identifierProvider.getName();

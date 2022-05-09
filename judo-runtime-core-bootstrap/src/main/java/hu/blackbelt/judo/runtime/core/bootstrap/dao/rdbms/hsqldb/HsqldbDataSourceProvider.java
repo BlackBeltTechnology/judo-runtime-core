@@ -9,12 +9,8 @@ import javax.sql.DataSource;
 
 public class HsqldbDataSourceProvider implements Provider<DataSource> {
 
-    private final Server server;
-
-    @Inject
-    public HsqldbDataSourceProvider(HsqldbServerProvider.HsqldbServerOptional server) {
-        this.server = server.value;
-    }
+    @Inject(optional = true)
+    private Server server;
 
     @Override
     public DataSource get() {

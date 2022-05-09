@@ -7,6 +7,7 @@ import hu.blackbelt.judo.meta.rdbms.RdbmsForeignKey;
 import hu.blackbelt.judo.meta.rdbms.RdbmsJunctionTable;
 import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
+import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getReferenceFQName;
 
 @Slf4j(topic = "dao-rdbms")
 @RequiredArgsConstructor
+@Builder
 public class RdbmsResolver {
 
     @NonNull

@@ -49,10 +49,9 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
         this.markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
         this.collectedIdRemover = new CollectedIdRemover<>(identifierProvider.getName());
 
-        this.expressionModelResourceSupport = loadExpression(expressionLoadArgumentsBuilder()
+        this.expressionModelResourceSupport = ExpressionModelResourceSupport.expressionModelResourceSupportBuilder()
                 .resourceSet(expressionModel.getResourceSet())
-                .uri(URI.createURI("expression:internal-range-" + expressionModel.getName()))
-                .build());
+                .uri(expressionModel.getUri()).build();
 
         this.queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }

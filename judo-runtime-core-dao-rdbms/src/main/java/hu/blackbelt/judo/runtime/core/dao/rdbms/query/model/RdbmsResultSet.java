@@ -47,7 +47,16 @@ public class RdbmsResultSet extends RdbmsField {
 
     private final Dialect dialect;
 
-    public RdbmsResultSet(@NonNull final SubSelect query, final boolean filterByInstances, final SubSelect parentIdFilterQuery, final RdbmsBuilder rdbmsBuilder, final DAO.Seek seek, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters, final boolean skipParents) {
+    public RdbmsResultSet(
+            @NonNull final SubSelect query,
+            final boolean filterByInstances,
+            final SubSelect parentIdFilterQuery,
+            final RdbmsBuilder rdbmsBuilder,
+            final DAO.Seek seek,
+            final boolean withoutFeatures,
+            final Map<String, Object> mask,
+            final Map<String, Object> queryParameters,
+            final boolean skipParents) {
         this.query = query;
         this.skipParents = skipParents;
         dialect = rdbmsBuilder.getDialect();
@@ -225,7 +234,7 @@ public class RdbmsResultSet extends RdbmsField {
         }
 
         if (limit != null && seek != null && seek.getLastItem() != null) {
-            final Object lastId = rdbmsBuilder.getCoercer().coerce(seek.getLastItem().get(rdbmsBuilder.getParameterMapper().getIdentifierProvider().getName()), rdbmsBuilder.getParameterMapper().getIdentifierProvider().getType());
+            final Object lastId = rdbmsBuilder.getCoercer().coerce(seek.getLastItem().get(rdbmsBuilder.getIdentifierProvider().getName()), rdbmsBuilder.getIdentifierProvider().getType());
             checkArgument(lastId != null, "Missing identifier from last item");
 
             final Collection<RdbmsField> conditionOrFragments = new ArrayList<>();

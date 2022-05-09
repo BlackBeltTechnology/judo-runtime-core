@@ -8,12 +8,8 @@ import hu.blackbelt.judo.tatami.core.TransformationTraceServiceImpl;
 
 public class TransformationTraceServiceProvider implements Provider<TransformationTraceService> {
 
-    JudoModelSpecification models;
-
     @Inject
-    public TransformationTraceServiceProvider(JudoModelSpecification models) {
-        this.models = models;
-    }
+    JudoModelSpecification models;
 
     @Override
     public TransformationTraceService get() {

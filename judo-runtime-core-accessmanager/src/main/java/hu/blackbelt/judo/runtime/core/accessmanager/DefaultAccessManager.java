@@ -22,14 +22,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-@NoArgsConstructor
 public class DefaultAccessManager implements AccessManager {
 
     @NonNull
     AsmModel asmModel;
 
-    private AsmUtils asmUtils;
     private final Collection<String> publicActors = new HashSet<>();
+    private final AsmUtils asmUtils;
 
     private Collection<BehaviourAuthorizer> authorizers;
 
@@ -52,10 +51,6 @@ public class DefaultAccessManager implements AccessManager {
 
     @Builder
     public DefaultAccessManager(@NonNull AsmModel asmModel) {
-        setAsmModel(asmModel);
-    }
-
-    public void setAsmModel(AsmModel asmModel) {
         this.asmModel = asmModel;
         asmUtils = new AsmUtils(asmModel.getResourceSet());
         setupAuthorizers(asmUtils);

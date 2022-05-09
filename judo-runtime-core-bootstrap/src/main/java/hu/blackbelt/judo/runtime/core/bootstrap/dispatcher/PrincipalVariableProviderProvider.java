@@ -12,19 +12,14 @@ import java.util.function.Function;
 
 public class PrincipalVariableProviderProvider implements Provider<Function<String, Object>> {
 
+    @Inject
     Context context;
-    AsmModel asmModel;
-    Dispatcher dispatcher;
 
     @Inject
-    public PrincipalVariableProviderProvider(Context context,
-                                             AsmModel asmModel,
-                                             Dispatcher dispatcher
-    ) {
-        this.context = context;
-        this.asmModel = asmModel;
-        this.dispatcher = dispatcher;
-    }
+    AsmModel asmModel;
+
+    @Inject
+    Dispatcher dispatcher;
 
     @Override
     public Function<String, Object> get() {

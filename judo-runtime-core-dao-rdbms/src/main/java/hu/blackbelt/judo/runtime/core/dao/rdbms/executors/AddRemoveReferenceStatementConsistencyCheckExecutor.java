@@ -7,6 +7,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.ReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
@@ -32,9 +33,10 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementE
     @Builder
     public AddRemoveReferenceStatementConsistencyCheckExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
                                                                TransformationTraceService transformationTraceService,
+                                                               RdbmsParameterMapper rdbmsParameterMapper,
                                                                Coercer coercer, IdentifierProvider<ID> identifierProvider,
                                                                Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
     }
 
     /**
