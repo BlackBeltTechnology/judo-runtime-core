@@ -305,7 +305,7 @@ public class RdbmsDaoFixture {
             rdbmsUtils = new RdbmsUtils(rdbmsModel.getResourceSet());
 
             if (dialect == Dialect.HSQLDB) {
-                rdbmsParameterMapper = HsqldbRdbmsParameterMapper.builder()
+                rdbmsParameterMapper = HsqldbRdbmsParameterMapper.hsqldbBuilder()
                         .coercer(DATA_TYPE_MANAGER.getCoercer())
                         .rdbmsModel(rdbmsModel)
                         .identifierProvider(getIdProvider())

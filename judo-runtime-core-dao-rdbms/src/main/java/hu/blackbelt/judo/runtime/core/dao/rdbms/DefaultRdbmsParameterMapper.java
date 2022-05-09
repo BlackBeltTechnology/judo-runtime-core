@@ -49,7 +49,7 @@ public class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
     @Getter
     private Map<Class<?>, Function<ValueAndDataType, String>> sqlTypes = new LinkedHashMap<>();
 
-    @Builder
+    //@Builder
     public DefaultRdbmsParameterMapper(
             @NonNull Coercer coercer,
             @NonNull RdbmsModel rdbmsModel,
