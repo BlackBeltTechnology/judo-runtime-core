@@ -76,9 +76,8 @@ public class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
         typePredicates.put(Boolean.class, vd -> vd.value instanceof Boolean);
         sqlTypes.put(Boolean.class, vd -> "BOOLEAN");
 
-        typePredicates.put(Timestamp.class, vd ->
-                (vd.value instanceof Timestamp
-                        || vd.value instanceof OffsetDateTime
+        typePredicates.put(Timestamp.class, vd -> (vd.value instanceof Timestamp
+                    || vd.value instanceof OffsetDateTime
                     || vd.value instanceof ZonedDateTime)
                     || (vd.dataType != null && AsmUtils.isTimestamp(vd.dataType)));
         sqlTypes.put(Timestamp.class, vd -> "TIMESTAMP");

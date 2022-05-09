@@ -350,6 +350,7 @@ public class RecursiveCompositionTest {
                 .coercer(RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer())
                 .identifierProvider(daoFixture.getIdProvider())
                 .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
+                .rdbmsModel(daoFixture.getRdbmsModel())
                 .dialect(Dialect.parse(datasourceFixture.getDialect(), datasourceFixture.isJooqEnabled()))
                 .build();
 
