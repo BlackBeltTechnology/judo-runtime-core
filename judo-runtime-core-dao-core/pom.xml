@@ -62,12 +62,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.1</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jool-java-8</artifactId>
             <version>0.9.13</version>

@@ -32,6 +32,7 @@ import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.EStructuralFeature;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -42,7 +43,6 @@ import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -54,6 +54,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getClassifierFQName;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getReferenceFQName;
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.PayloadTraverser.traversePayload;
+import static java.util.Objects.requireNonNullElse;
 import static java.util.function.Function.identity;
 
 /**
@@ -62,6 +63,7 @@ import static java.util.function.Function.identity;
  * manage the lifecycle, or constructor based creation is supported.
  */
 @Slf4j
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private static final String STATEFUL = "STATEFUL";
@@ -80,6 +82,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private final TransformationTraceService transformationTraceService;
 
+    @Getter
     private final IdentifierProvider<ID> identifierProvider;
 
     private final InstanceCollector<ID> instanceCollector;
@@ -100,18 +103,23 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private final JqlExpressionBuilderConfig jqlExpressionBuilderConfig;
 
-    private final AtomicReference<SelectStatementExecutor<ID>> selectStatementExecutor = new AtomicReference<>(null);
+    private SelectStatementExecutor<ID> selectStatementExecutor;
 
-    private final AtomicReference<ResourceSet> measureModelResourceSet = new AtomicReference<>(null);
+    private ResourceSet measureModelResourceSet;
 
     @Getter
     private final EMap<EReference, CustomJoinDefinition> customJoinDefinitions = ECollections.asEMap(new ConcurrentHashMap<>());
 
-    private final AtomicReference<AsmUtils> asmUtils = new AtomicReference<>(null);
+    @Getter
+    private AsmUtils asmUtils;
 
-    private final AtomicReference<RdbmsResolver> rdbmsResolver = new AtomicReference<>(null);
+    @Getter
+    private RdbmsResolver rdbmsResolver;
 
     private final RdbmsParameterMapper rdbmsParameterMapper;
+
+    private final ModifyStatementExecutor modifyStatementExecutor;
+
 
     @Builder
     private RdbmsDAOImpl(
@@ -142,92 +150,46 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         this.instanceCollector = instanceCollector;
         this.rdbmsParameterMapper = rdbmsParameterMapper;
 
-        if (optimisticLockEnabled == null) {
-            this.optimisticLockEnabled = true;
-        } else {
-            this.optimisticLockEnabled = optimisticLockEnabled;
-        }
-
-        if (chunkSize == null) {
-            this.chunkSize = 1000;
-        } else {
-            this.chunkSize = chunkSize;
-        }
-
-        if (markSelectedRangeItems == null) {
-            this.markSelectedRangeItems = false;
-        } else {
-            this.markSelectedRangeItems = markSelectedRangeItems;
-        }
+        this.optimisticLockEnabled = requireNonNullElse(optimisticLockEnabled, true);
+        this.chunkSize = requireNonNullElse(chunkSize, 1000);
+        this.markSelectedRangeItems = requireNonNullElse(markSelectedRangeItems, false);
+        this.jqlExpressionBuilderConfig = requireNonNullElse(jqlExpressionBuilderConfig, new JqlExpressionBuilderConfig());
 
         this.variableResolver = variableResolver;
         this.context = context;
         this.metricsCollector = metricsCollector;
         this.dialect = dialect;
-        if (jqlExpressionBuilderConfig == null) {
-            this.jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
-        } else {
-            this.jqlExpressionBuilderConfig = jqlExpressionBuilderConfig;
-        }
+        this.measureModelResourceSet = requireNonNullElse(measureModel.getResourceSet(), new ResourceSetImpl());
 
-    }
+        modifyStatementExecutor = ModifyStatementExecutor.<ID>builder()
+                .asmModel(this.asmModel)
+                .rdbmsModel(this.rdbmsModel)
+                .transformationTraceService(this.transformationTraceService)
+                .rdbmsParameterMapper(this.rdbmsParameterMapper)
+                .coercer(this.dataTypeManager.getCoercer())
+                .identifierProvider(this.getIdentifierProvider())
+                .dialect(this.dialect)
+                .build();
 
+        selectStatementExecutor = SelectStatementExecutor.<ID>builder()
+                .asmModel(this.asmModel)
+                .rdbmsModel(this.rdbmsModel)
+                .measureModel(this.measureModel)
+                .queryFactory(this.getQueryFactory())
+                .dataTypeManager(this.dataTypeManager)
+                .identifierProvider(this.identifierProvider)
+                .variableResolver(this.variableResolver)
+                .metricsCollector(this.metricsCollector)
+                .chunkSize(this.chunkSize)
+                .transformationTraceService(this.transformationTraceService)
+                .rdbmsParameterMapper(this.rdbmsParameterMapper)
+                .dialect(dialect).build();
 
-    private SelectStatementExecutor<ID> getSelectStatementExecutor() {
-        if (selectStatementExecutor.get() == null) {
-            selectStatementExecutor.set(SelectStatementExecutor.<ID>builder()
-                    .asmModel(asmModel)
-                    .rdbmsModel(rdbmsModel)
-                    .measureModel(measureModel)
-                    .queryFactory(getQueryFactory())
-                    .dataTypeManager(dataTypeManager)
-                    .identifierProvider(identifierProvider)
-                    .variableResolver(variableResolver)
-                    .metricsCollector(metricsCollector)
-                    .chunkSize(chunkSize)
-                    .transformationTraceService(transformationTraceService)
-                    .rdbmsParameterMapper(rdbmsParameterMapper)
-                    .dialect(dialect).build());
-        }
-        return selectStatementExecutor.get();
-    }
-
-    private ResourceSet getMeasureResourceSet() {
-        if (measureModelResourceSet.get() == null) {
-            ResourceSet measureResourceSet = null;
-            if (measureModel == null) {
-                measureResourceSet = new ResourceSetImpl();
-            } else {
-                measureResourceSet = measureModel.getResourceSet();
-            }
-            measureModelResourceSet.set(measureResourceSet);
-        }
-        return measureModelResourceSet.get();
-    }
-
-    @Override
-    protected AsmUtils getAsmUtils() {
-        if (asmUtils.get() == null) {
-            asmUtils.set(new AsmUtils(asmModel.getResourceSet()));
-        }
-        return asmUtils.get();
-    }
-
-    @Override
-    protected RdbmsResolver getRdbmsResolver() {
-        if (rdbmsResolver.get() == null) {
-            rdbmsResolver.set(new RdbmsResolver(asmModel, transformationTraceService));
-        }
-        return rdbmsResolver.get();
-    }
-
-    @Override
-    protected IdentifierProvider getIdentifierProvider() {
-        return identifierProvider;
+        asmUtils = new AsmUtils(this.asmModel.getResourceSet());
     }
 
     @Builder.Default
-    private EMap<EClass, Boolean> hasDefaultsMap = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final EMap<EClass, Boolean> hasDefaultsMap = ECollections.asEMap(new ConcurrentHashMap<>());
 
     private Function<EClass, Payload> getDefaultValuesProvider() {
         return (clazz) -> hasDefaults(clazz) ? getDefaultsOf(clazz) : Payload.empty();
@@ -255,32 +217,19 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return haveDefaultsAnyOf(classes.stream()
                 .flatMap(c -> c.getEAllReferences().stream()
                         .filter(r -> AsmUtils.isEmbedded(r) && !checked.contains(r.getEReferenceType()))
-                        .map(r -> r.getEReferenceType()))
+                        .map(EReference::getEReferenceType))
                 .collect(Collectors.toList()), checked);
     }
 
     private QueryFactory cachedQueryFactory = null;
 
-    /*
-    private InstanceCollector cachedInstanceCollector = null;
-
-    private InstanceCollector getInstanceCollector() {
-        if (cachedInstanceCollector == null) {
-            cachedInstanceCollector = new RdbmsInstanceCollector(new NamedParameterJdbcTemplate(dataSource),
-                    getAsmUtils(), getRdbmsResolver(), rdbmsModel, dataTypeManager.getCoercer(), identifierProvider,
-                    dialect);
-        }
-        return cachedInstanceCollector;
-    }
-    */
-
     @Override
     protected QueryFactory getQueryFactory() {
         if (cachedQueryFactory == null) {
             final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(asmModel.getResourceSet(),
-                    getMeasureResourceSet(), URI.createURI("expr:" + asmModel.getName()), jqlExpressionBuilderConfig);
+                    measureModelResourceSet, URI.createURI("expr:" + asmModel.getName()), jqlExpressionBuilderConfig);
             cachedQueryFactory = new QueryFactory(asmModel.getResourceSet(),
-                    getMeasureResourceSet(),
+                    measureModelResourceSet,
                     asmJqlExtractor.extractExpressions(),
                     dataTypeManager.getCoercer(),
                     customJoinDefinitions);
@@ -334,7 +283,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
         checkArgument(!getAsmUtils().isMappedTransferObjectType(clazz) && AsmUtils.annotatedAsTrue(clazz, "transferObjectType"), "Clazz must be an unmapped transfer object type");
 
-        clazz.getEAllAttributes().stream().filter(a -> a.isDerived()).forEach(attribute -> {
+        clazz.getEAllAttributes().stream().filter(EStructuralFeature::isDerived).forEach(attribute -> {
             if (log.isDebugEnabled()) {
                 log.debug("Loading attribute: {}", AsmUtils.getAttributeFQName(attribute));
             }
@@ -361,51 +310,51 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     protected Payload readStaticData(EAttribute attribute, Map<String, Object> parameters) {
-        return getSelectStatementExecutor().executeSelect(
+        return selectStatementExecutor.executeSelect(
                 new NamedParameterJdbcTemplate(dataSource), attribute, parameters);
     }
 
     @Override
     protected List<Payload> readAll(EClass clazz) {
-        return getSelectStatementExecutor().executeSelect(
+        return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), clazz, null, null)
-                .stream().map(p -> Payload.asPayload(p)).collect(Collectors.toList());
+                .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
     protected List<Payload> searchByFilter(EClass clazz, QueryCustomizer<ID> queryCustomizer) {
-        return getSelectStatementExecutor().executeSelect(
+        return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), clazz, null, queryCustomizer)
-                .stream().map(p -> Payload.asPayload(p)).collect(Collectors.toList());
+                .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
     protected List<Payload> readAllReferences(EReference reference, Collection<ID> navigationSourceIdentifiers) {
-        return getSelectStatementExecutor().executeSelect(
+        return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, null)
-                .stream().map(p -> Payload.asPayload(p)).collect(Collectors.toList());
+                .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
     protected List<Payload> readByIdentifiers(EClass clazz, Collection<ID> identifiers, QueryCustomizer<ID> queryCustomizer) {
-        return getSelectStatementExecutor().executeSelect(
-                        new NamedParameterJdbcTemplate(dataSource), clazz, identifiers.stream().collect(Collectors.toSet()), queryCustomizer)
-                .stream().map(p -> Payload.asPayload(p)).collect(Collectors.toList());
+        return selectStatementExecutor.executeSelect(
+                        new NamedParameterJdbcTemplate(dataSource), clazz, new HashSet<>(identifiers), queryCustomizer)
+                .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
     protected Optional<Payload> readByIdentifier(EClass clazz, ID identifier, QueryCustomizer<ID> queryCustomizer) {
         return readByIdentifiers(clazz, ImmutableSet.of(identifier), queryCustomizer).stream()
-                .map(p -> Payload.asPayload(p))
+                .map(Payload::asPayload)
                 .filter(p -> identifier.equals(p.get(identifierProvider.getName())))
                 .findFirst();
     }
 
     @Override
     protected List<Payload> searchReferences(EReference reference, Collection<ID> navigationSourceIdentifiers, QueryCustomizer<ID> queryCustomizer) {
-        return getSelectStatementExecutor().executeSelect(
+        return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, queryCustomizer)
-                .stream().map(p -> Payload.asPayload(p)).collect(Collectors.toList());
+                .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
@@ -422,7 +371,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         Collection<Statement<ID>> statements = getInsertPayloadProcessor(metadata)
                 .insert(clazz, payload, checkMandatoryFeatures);
 
-        ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
 
@@ -430,8 +378,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         ID identifier = (ID) statements.stream()
                 .filter(InsertStatement.class::isInstance)
                 .map(InsertStatement.class::cast)
-                .filter(i -> !i.getContainer().isPresent())
-                .findFirst().get().getInstance().getIdentifier();
+                .filter(i -> i.getContainer().isEmpty())
+                .findFirst().orElseThrow(() -> new IllegalStateException("Insert statement could not found")).getInstance().getIdentifier();
 
         final Optional<Payload> result = readByIdentifier(clazz, identifier, queryCustomizer);
         checkArgument(result.isPresent(), "Creation of " + AsmUtils.getClassifierFQName(clazz) + " failed");
@@ -470,11 +418,13 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "INSERT is not supported in stateless operation");
 
         EClass typeOfNewInstance = reference.getEReferenceType();
-        EReference mappedReference = getAsmUtils().getMappedReference(reference).orElseThrow(() -> new IllegalArgumentException("Mapping of transfer object relation not found"));
+        EReference mappedReference = getAsmUtils().getMappedReference(reference)
+                .orElseThrow(() -> new IllegalArgumentException("Mapping of transfer object relation not found: " + reference));
         Payload result;
 
         if (mappedReference.isContainment()) {
-            Payload container = getByIdentifier(reference.getEContainingClass(), identifier).orElseThrow(() -> new IllegalArgumentException("Container not found"));
+            Payload container = getByIdentifier(reference.getEContainingClass(), identifier)
+                    .orElseThrow(() -> new IllegalArgumentException("Container not found: " + reference));
             if (reference.isMany()) {
                 Collection<Payload> containments = container.getAsCollectionPayload(reference.getName());
                 if (reference.getUpperBound() == -1 || containments == null || containments.size() < reference.getUpperBound()) {
@@ -558,9 +508,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         Collection<Statement<ID>> statements = getDeletePayloadProcessor()
                 .delete(clazz, ids);
 
-        ModifyStatementExecutor<ID> modifyStatementExecutor =
-                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
-
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
     }
 
@@ -577,9 +524,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .build();
         Collection<Statement<ID>> statements = getUpdatePayloadProcessor(metadata)
                 .update(clazz, original, updated, checkMandatoryFeatures);
-
-        ModifyStatementExecutor<ID> modifyStatementExecutor =
-                new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
 
@@ -656,7 +600,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         // Collect which already added and it contained in the given collection.
         Collection<ID> identifiersAlreadyExistsInAdded = identifiersExists
                 .stream()
-                .filter(i -> identifiersToAdd.contains(i)).collect(Collectors.toSet());
+                .filter(identifiersToAdd::contains).collect(Collectors.toSet());
 
 
         // Collect which already added and it contained in the given collection.
@@ -670,7 +614,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         identifiersExists.removeAll(identifiersNotExistsInRemoved);
 
         // Check for containment entity could not add reference
-        EReference entityReference = getAsmUtils().getMappedReference(mappedReference).get();
+        EReference entityReference = getAsmUtils()
+                .getMappedReference(mappedReference)
+                .orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + mappedReference));
 
         Collection<Statement<ID>> removeReferenceStatements;
 
@@ -716,7 +662,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (!identifiersAdd.isEmpty() || !identifiersRemove.isEmpty()) {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, identifiersAdd, identifiersRemove);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
@@ -732,7 +677,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (!identifiersExists.isEmpty()) {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(), identifiersExists);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
@@ -754,7 +698,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id,
                     identifiersToAddExistingRemoved, ImmutableSet.of());
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
@@ -774,14 +717,13 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(),
                     identifiersToRemoveChecked);
 
-            ModifyStatementExecutor<ID> modifyStatementExecutor = new ModifyStatementExecutor<>(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(), getIdentifierProvider(), dialect);
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
     @Override
     protected Optional<Payload> readMetadataByIdentifier(EClass clazz, ID identifier) {
-        return getSelectStatementExecutor().selectMetadata(new NamedParameterJdbcTemplate(dataSource), clazz, identifier);
+        return selectStatementExecutor.selectMetadata(new NamedParameterJdbcTemplate(dataSource), clazz, identifier);
     }
 
     @Override
@@ -789,7 +731,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         final Payload template = Payload.empty();
 
         clazz.getEAllAttributes().stream()
-                .filter(a -> a.isChangeable())
+                .filter(EStructuralFeature::isChangeable)
                 .forEach(a -> AsmUtils.getExtensionAnnotationValue(a, "default", false).ifPresent(defaultFeatureName -> {
                     final EAttribute defaultAttribute = clazz.getEAllAttributes().stream()
                             .filter(df -> Objects.equals(df.getName(), defaultFeatureName))
@@ -801,7 +743,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 }));
 
         clazz.getEAllReferences().stream()
-                .filter(r -> r.isChangeable())
+                .filter(EStructuralFeature::isChangeable)
                 .forEach(r -> AsmUtils.getExtensionAnnotationValue(r, "default", false).ifPresent(defaultReferenceName -> {
                     final EReference defaultReference = clazz.getEAllReferences().stream()
                             .filter(df -> Objects.equals(df.getName(), defaultReferenceName))
@@ -818,7 +760,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 }));
 
         final Optional<EClass> mappedEntityType = getAsmUtils().getMappedEntityType(clazz);
-        final Optional<EClass> defaultTransferObjectType = mappedEntityType.map(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false).map(dr -> getAsmUtils().resolve(dr).orElse(null)).orElse(null))
+        final Optional<EClass> defaultTransferObjectType = mappedEntityType
+                .map(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
+                        .map(dr -> getAsmUtils().resolve(dr).orElse(null)).orElse(null))
                 .filter(t -> t instanceof EClass).map(t -> (EClass) t);
         if (defaultTransferObjectType.isPresent() && !AsmUtils.equals(defaultTransferObjectType.get(), clazz)) {
             final Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
@@ -826,7 +770,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     .filter(a -> template.get(a.getName()) == null && getAsmUtils().getMappedAttribute(a).isPresent())
                     .collect(Collectors.toMap(
                             identity(),
-                            a -> getAsmUtils().getMappedAttribute(a).get()))
+                            a -> getAsmUtils().getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped entity not found: " + a))))
                     .entrySet().stream()
                     .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                     .collect(Collectors.toMap(
@@ -836,7 +780,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     .filter(r -> template.get(r.getName()) == null && getAsmUtils().getMappedReference(r).isPresent())
                     .collect(Collectors.toMap(
                             identity(),
-                            r -> getAsmUtils().getMappedReference(r).get()))
+                            r -> getAsmUtils().getMappedReference(r).orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + r))))
                     .entrySet().stream()
                     .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                     .collect(Collectors.toMap(
@@ -881,7 +825,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
                         .mask(Collections.emptyMap())
                         .build(), false);
-            } else if (payload != null && instanceId == null) {
+            } else if (payload != null) {
                 temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
                         .mask(Collections.emptyMap())
                         .build(), false);
@@ -928,7 +872,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                         .filter(InsertStatement.class::isInstance)
                         .map(InsertStatement.class::cast)
                         .filter(s -> s.getClientReferenceIdentifier() != null)
-                        .collect(Collectors.toMap(i -> (ID) i.getInstance().getIdentifier(), i -> i.getClientReferenceIdentifier())));
+                        .collect(Collectors.toMap(i -> (ID) i.getInstance().getIdentifier(), InsertStatement::getClientReferenceIdentifier)));
     }
 
     private Consumer<PayloadTraverser> getCollectPayloadClientReferenceConsumer(final Map<ID, Object> clientReferenceMap) {
