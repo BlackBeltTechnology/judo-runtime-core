@@ -35,7 +35,7 @@ public class FunctionMapper extends RdbmsMapper<Function> {
 
     @AllArgsConstructor
     @Builder
-    static class FunctionContext {
+    public static class FunctionContext {
         EMap<ParameterName, RdbmsField> parameters;
         RdbmsFunction.RdbmsFunctionBuilder builder;
         Function function;
