@@ -2,29 +2,664 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsConstant;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsEntityTypeName;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsConstant;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsEntityTypeName;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsFunction;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.*;
+import org.eclipse.emf.common.util.ECollections;
+import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-@RequiredArgsConstructor
 public class FunctionMapper extends RdbmsMapper<Function> {
 
     @NonNull
     private RdbmsBuilder rdbmsBuilder;
+
+    private final Map<FunctionSignature, java.util.function.Function<FunctionContext, RdbmsFunction>> functionMap = new LinkedHashMap<>();
+
+    @AllArgsConstructor
+    @Builder
+    static class FunctionContext {
+        EMap<ParameterName, RdbmsField> parameters;
+        RdbmsFunction.RdbmsFunctionBuilder builder;
+        Function function;
+    }
+
+    public FunctionMapper(@NonNull RdbmsBuilder rdbmsBuilder) {
+        this.rdbmsBuilder = rdbmsBuilder;
+
+        functionMap.put(FunctionSignature.NOT, c ->
+                c.builder.pattern("(NOT {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.BOOLEAN)))
+                        .build());
+
+        functionMap.put(FunctionSignature.AND, c ->
+                c.builder.pattern("({0} AND {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.OR, c ->
+                c.builder.pattern("({0} OR {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.XOR, c ->
+                c.builder.pattern("(({0} AND NOT {1}) OR (NOT {0} AND {1}))")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.IMPLIES, c ->
+                c.builder.pattern("(NOT {0} OR {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.GREATER_THAN, c ->
+                c.builder.pattern("({0} > {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.GREATER_OR_EQUAL, c ->
+                c.builder.pattern("({0} >= {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.EQUALS, c ->
+                c.builder.pattern("({0} = {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.NOT_EQUALS, c ->
+                c.builder.pattern("({0} <> {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.LESS_OR_EQUAL, c ->
+                c.builder.pattern("({0} <= {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.LESS_THAN, c ->
+                c.builder.pattern("({0} < {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.ADD_DECIMAL, c ->
+                c.builder.pattern("({0} + {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+        functionMap.put(FunctionSignature.ADD_INTEGER, functionMap.get(FunctionSignature.ADD_DECIMAL));
+
+        functionMap.put(FunctionSignature.SUBTRACT_DECIMAL, c ->
+                c.builder.pattern("({0} - {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+        functionMap.put(FunctionSignature.SUBTRACT_INTEGER, functionMap.get(FunctionSignature.SUBTRACT_DECIMAL));
+
+        functionMap.put(FunctionSignature.MULTIPLE_DECIMAL, c ->
+                c.builder.pattern(getDecimalType(c.function).map(type -> "CAST({0} * {1} AS " + type + ")").orElse("({0} * {1})"))
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+        functionMap.put(FunctionSignature.MULTIPLE_INTEGER, functionMap.get(FunctionSignature.MULTIPLE_DECIMAL));
+
+        functionMap.put(FunctionSignature.DIVIDE_INTEGER, c ->
+                c.builder.pattern("FLOOR({0} / {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.DIVIDE_DECIMAL, c ->
+                c.builder.pattern(getDecimalType(c.function).map(type -> "(CAST({0} as " + type + ") / {1})").orElse("(CAST({0} as DECIMAL(35,20)) / {1})"))
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.OPPOSITE_INTEGER, c ->
+                c.builder.pattern("(0 - {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.NUMBER)))
+                        .build());
+        functionMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionMap.get(FunctionSignature.OPPOSITE_INTEGER));
+
+        functionMap.put(FunctionSignature.ROUND_DECIMAL, c ->
+                c.builder.pattern("ROUND({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.NUMBER)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("({0} % {1})");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("MOD({0}, {1})");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("({0} % {1})");
+                    } else {
+                        throw new UnsupportedOperationException("MATCHES_STRING function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.MODULO_INTEGER, c ->
+                c.builder.pattern("MOD({0}, {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.LENGTH_STRING, c ->
+                c.builder.pattern("LENGTH({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING)))
+                        .build());
+
+        functionMap.put(FunctionSignature.LOWER_STRING, c ->
+                c.builder.pattern("LOWER({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING)))
+                        .build());
+
+        functionMap.put(FunctionSignature.TRIM_STRING, c ->
+                c.builder.pattern("TRIM({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING)))
+                        .build());
+
+
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("CAST({0} AS TEXT)");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("CAST({0} AS LONGVARCHAR)");
+                    } else {
+                        builder.pattern("CAST({0} AS VARCHAR(2000))");
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.PRIMITIVE)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.INTEGER_TO_STRING, c ->
+                c.builder.pattern("CAST({0} AS LONGVARCHAR)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.PRIMITIVE)))
+                        .build());
+        functionMap.put(FunctionSignature.DECIMAL_TO_STRING, functionMap.get(FunctionSignature.INTEGER_TO_STRING));
+        functionMap.put(FunctionSignature.DATE_TO_STRING, functionMap.get(FunctionSignature.INTEGER_TO_STRING));
+        functionMap.put(FunctionSignature.TIME_TO_STRING, functionMap.get(FunctionSignature.INTEGER_TO_STRING));
+        functionMap.put(FunctionSignature.LOGICAL_TO_STRING, functionMap.get(FunctionSignature.INTEGER_TO_STRING));
+        functionMap.put(FunctionSignature.ENUM_TO_STRING, functionMap.get(FunctionSignature.INTEGER_TO_STRING));
+        functionMap.put(FunctionSignature.CUSTOM_TO_STRING, functionMap.get(FunctionSignature.INTEGER_TO_STRING));
+
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("REPLACE(CAST({0} AS TEXT), '' '', ''T'')");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("REPLACE(CAST({0} AS LONGVARCHAR), '' '', ''T'')");
+                    } else {
+                        builder.pattern("REPLACE(CAST({0} AS VARCHAR(2000)), '' '', ''T'')");
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.PRIMITIVE)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.TIMESTAMP_TO_STRING, c ->
+                c.builder.pattern("REPLACE(CAST({0} AS LONGVARCHAR), '' '', ''T'')")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.PRIMITIVE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.UPPER_STRING, c ->
+                c.builder.pattern("UPPER({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING)))
+                        .build());
+
+        functionMap.put(FunctionSignature.CONCATENATE_STRING, c ->
+                c.builder.pattern("({0} || {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.LIKE, c ->
+                c.builder.pattern("({0} LIKE {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN)))
+                        .build());
+
+        functionMap.put(FunctionSignature.LIKE, c ->
+                c.builder.pattern("({0} LIKE {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN)))
+                        .build());
+
+        functionMap.put(FunctionSignature.ILIKE, c ->
+                c.builder.pattern("({0} ILIKE {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("({0} ~ {1})");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("REGEXP_MATCHES({0}, {1})");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("({0} RLIKE {1})");
+                    } else {
+                        throw new UnsupportedOperationException("MATCHES_STRING function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING), parameters.get(ParameterName.PATTERN)))
+                            .build();
+
+         */
+
+        functionMap.put(FunctionSignature.MATCHES_STRING, c ->
+                c.builder.pattern("REGEXP_MATCHES({0}, {1})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN)))
+                        .build());
+
+        functionMap.put(FunctionSignature.POSITION_STRING, c ->
+                c.builder.pattern("POSITION({1} IN {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.CONTAINMENT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.REPLACE_STRING, c ->
+                c.builder.pattern("REPLACE({0}, {1}, {2})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN), c.parameters.get(ParameterName.REPLACEMENT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.SUBSTRING_STRING, c ->
+                c.builder.pattern("SUBSTRING({0}, CAST ({1} AS INTEGER), CAST({2} AS INTEGER))")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.POSITION), c.parameters.get(ParameterName.LENGTH)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("({0} + CAST({1} || '' days'' AS INTERVAL))");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("TIMESTAMPADD(SQL_TSI_DAY, {1}, {0})");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("DATEADD(DAY, {1}, {0})::DATE");
+                    } else {
+                        throw new UnsupportedOperationException("ADD_DATE function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE), parameters.get(ParameterName.ADDITION)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.ADD_DATE, c ->
+                c.builder.pattern("TIMESTAMPADD(SQL_TSI_DAY, {1}, {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.DATE), c.parameters.get(ParameterName.ADDITION)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("(CAST({0} AS DATE) - CAST({1} AS DATE))");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("TIMESTAMPDIFF(SQL_TSI_DAY, {1}, {0})");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("DATEDIFF({0}, {1})");
+                    } else {
+                        throw new UnsupportedOperationException("DIFFERENCE_TIMESTAMP function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.END), parameters.get(ParameterName.START)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.DIFFERENCE_DATE, c ->
+                c.builder.pattern("TIMESTAMPDIFF(SQL_TSI_DAY, {1}, {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("({0} + CAST({1} / 1000 || '' seconds'' AS INTERVAL))");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, {0}))");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("DATEADD(SECOND, {1} / 1000, {0})");
+                    } else {
+                        throw new UnsupportedOperationException("ADD_TIMESTAMP function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP), parameters.get(ParameterName.ADDITION)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.ADD_TIMESTAMP, c ->
+                c.builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, {0}))")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP), c.parameters.get(ParameterName.ADDITION)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("({0} + CAST({1} / 1000 || '' seconds'' AS INTERVAL))");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, CAST({0} AS TIMESTAMP)))");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("DATEADD(SECOND, {1} / 1000, {0})");
+                    } else {
+                        throw new UnsupportedOperationException("ADD_TIME function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME), parameters.get(ParameterName.ADDITION)))
+                            .build();
+         */
+        functionMap.put(FunctionSignature.ADD_TIME, c ->
+                c.builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, CAST({0} AS TIMESTAMP)))")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME), c.parameters.get(ParameterName.ADDITION)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("(EXTRACT(EPOCH FROM {0} - {1}) * 1000)");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, {1}, {0})");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("TIMESTAMPDIFF({0}, {1})");
+                    } else {
+                        throw new UnsupportedOperationException("DIFFERENCE_TIMESTAMP function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.END), parameters.get(ParameterName.START)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.DIFFERENCE_TIMESTAMP, c ->
+                c.builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, {1}, {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START)))
+                        .build());
+
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("(EXTRACT(EPOCH FROM {0} - {1}) * 1000)");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, CAST({1} AS TIMESTAMP), CAST({0} AS TIMESTAMP))");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("TIMESTAMPDIFF({0}, {1})");
+                    } else {
+                        throw new UnsupportedOperationException("DIFFERENCE_TIME function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.END), parameters.get(ParameterName.START)))
+                            .build();
+         */
+        functionMap.put(FunctionSignature.DIFFERENCE_TIME, c ->
+                c.builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, CAST({1} AS TIMESTAMP), CAST({0} AS TIMESTAMP))")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START)))
+                        .build());
+
+        /*
+
+         */
+        functionMap.put(FunctionSignature.IS_UNDEFINED_ATTRIBUTE, c ->
+                c.builder.pattern("({0} IS NULL)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.ATTRIBUTE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.IS_UNDEFINED_OBJECT, c ->
+                c.builder.pattern("({0} IS NULL)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.RELATION)))
+                        .build());
+
+        functionMap.put(FunctionSignature.INSTANCE_OF, c ->
+                c.builder.pattern("EXISTS (SELECT 1 FROM {1} WHERE " + StatementExecutor.ID_COLUMN_NAME + " = {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.INSTANCE), c.parameters.get(ParameterName.TYPE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.TYPE_OF, c ->
+                c.builder.pattern("EXISTS (SELECT 1 FROM {1} WHERE " + StatementExecutor.ID_COLUMN_NAME + " = {0} AND " + StatementExecutor.ENTITY_TYPE_COLUMN_NAME + " = {2})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.INSTANCE), c.parameters.get(ParameterName.TYPE), RdbmsConstant.builder()
+                                .parameter(rdbmsBuilder.getParameterMapper().createParameter(AsmUtils.getClassifierFQName(((RdbmsEntityTypeName) c.parameters.get(ParameterName.TYPE)).getType()), null))
+                                .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                .build()))
+                        .build());
+
+        functionMap.put(FunctionSignature.MEMBER_OF, c ->
+                c.builder.pattern("({0} IN ({1}))")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.INSTANCE), c.parameters.get(ParameterName.COLLECTION)))
+                        .build());
+
+        functionMap.put(FunctionSignature.EXISTS, c ->
+                c.builder.pattern("EXISTS ({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.COLLECTION)))
+                        .build());
+
+        functionMap.put(FunctionSignature.NOT_EXISTS, c ->
+                c.builder.pattern("(NOT EXISTS ({0}))")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.COLLECTION)))
+                        .build());
+
+        functionMap.put(FunctionSignature.COUNT, c ->
+                c.builder.pattern("COUNT(DISTINCT {0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.ITEM)))
+                        .build());
+
+        functionMap.put(FunctionSignature.SUM_INTEGER, c ->
+                c.builder.pattern("SUM({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.NUMBER)))
+                        .build());
+        functionMap.put(FunctionSignature.SUM_DECIMAL, functionMap.get(FunctionSignature.SUM_INTEGER));
+
+        functionMap.put(FunctionSignature.MIN_INTEGER, c ->
+                c.builder.pattern("MIN({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.NUMBER)))
+                        .build());
+        functionMap.put(FunctionSignature.MIN_DECIMAL, functionMap.get(FunctionSignature.MIN_INTEGER));
+
+        functionMap.put(FunctionSignature.MIN_STRING, c ->
+                c.builder.pattern("MIN({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MIN_DATE, c ->
+                c.builder.pattern("MIN({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.DATE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MIN_TIMESTAMP, c ->
+                c.builder.pattern("MIN({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MIN_TIME, c ->
+                c.builder.pattern("MIN({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MAX_INTEGER, c ->
+                c.builder.pattern("MAX({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.NUMBER)))
+                        .build());
+        functionMap.put(FunctionSignature.MAX_DECIMAL, functionMap.get(FunctionSignature.MAX_INTEGER));
+
+        functionMap.put(FunctionSignature.MAX_STRING, c ->
+                c.builder.pattern("MAX({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.STRING)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MAX_DATE, c ->
+                c.builder.pattern("MAX({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.DATE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MAX_TIMESTAMP, c ->
+                c.builder.pattern("MAX({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MAX_TIME, c ->
+                c.builder.pattern("MAX({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME)))
+                        .build());
+
+        functionMap.put(FunctionSignature.AVG_DECIMAL, c ->
+                c.builder.pattern("AVG({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.NUMBER)))
+                        .build());
+
+        functionMap.put(FunctionSignature.AVG_DATE, c ->
+                c.builder.pattern("AVG({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.DATE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.AVG_TIMESTAMP, c ->
+                c.builder.pattern("AVG({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.AVG_TIME, c ->
+                c.builder.pattern("AVG({0})")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME)))
+                        .build());
+
+        functionMap.put(FunctionSignature.CASE_WHEN, c ->
+                c.builder.pattern("CASE WHEN {0} THEN {1} ELSE {2} END")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.CONDITION), c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)))
+                        .build());
+
+        functionMap.put(FunctionSignature.UNDEFINED, c ->
+                c.builder.pattern("NULL").build());
+
+        functionMap.put(FunctionSignature.YEARS_OF_DATE, c ->
+                c.builder.pattern("CAST(EXTRACT(YEAR from CAST({0} AS DATE)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.DATE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MONTHS_OF_DATE, c ->
+                c.builder.pattern("CAST(EXTRACT(MONTH from CAST({0} AS DATE)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.DATE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.DAYS_OF_DATE, c ->
+                c.builder.pattern("CAST(EXTRACT(DAY from CAST({0} AS DATE)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.DATE)))
+                        .build());
+
+        functionMap.put(FunctionSignature.YEARS_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(EXTRACT(YEAR from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MONTHS_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(EXTRACT(MONTH from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.DAYS_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(EXTRACT(DAY from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.HOURS_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(EXTRACT(HOUR from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MINUTES_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(EXTRACT(MINUTE from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.SECONDS_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER) % 1000)");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER), 1000)");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER) % 1000)");
+                    } else {
+                        throw new UnsupportedOperationException("EXTRACT_TIMESTAMP function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
+                            .build();
+
+         */
+
+        functionMap.put(FunctionSignature.MILLISECONDS_OF_TIMESTAMP, c ->
+                c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER), 1000)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIMESTAMP)))
+                        .build());
+
+        functionMap.put(FunctionSignature.HOURS_OF_TIME, c ->
+                c.builder.pattern("CAST(EXTRACT(HOUR from CAST({0} AS TIME)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME)))
+                        .build());
+
+        functionMap.put(FunctionSignature.MINUTES_OF_TIME, c ->
+                c.builder.pattern("CAST(EXTRACT(MINUTE from CAST({0} AS TIME)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME)))
+                        .build());
+
+        functionMap.put(FunctionSignature.SECONDS_OF_TIME, c ->
+                c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME)))
+                        .build());
+
+        /*
+                    if (Dialect.POSTGRESQL.equals(dialect)) {
+                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER) % 1000)");
+                    } else if (Dialect.HSQLDB.equals(dialect)) {
+                        builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER), 1000)");
+                    } else if (Dialect.JOOQ.equals(dialect)) {
+                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER) % 1000)");
+                    } else {
+                        throw new UnsupportedOperationException("EXTRACT_TIME function is not supported in dialect: " + dialect);
+                    }
+                    return builder
+                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
+                            .build();
+
+         */
+        functionMap.put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
+                c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER), 1000)")
+                        .parameters(Arrays.asList(c.parameters.get(ParameterName.TIME)))
+                        .build());
+
+        functionMap.put(FunctionSignature.TO_DATE, c ->
+                c.builder.pattern("CAST(TO_DATE(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS  INTEGER) || ''-'' || CAST({2} AS INTEGER), ''YYYY-MM-DD'') AS DATE)")
+                        .parameters(Arrays.asList(
+                                c.parameters.get(ParameterName.YEAR),
+                                c.parameters.get(ParameterName.MONTH),
+                                c.parameters.get(ParameterName.DAY)
+                        )).build());
+
+        functionMap.put(FunctionSignature.TO_TIMESTAMP, c ->
+                c.builder.pattern("CAST(TO_TIMESTAMP(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL), ''YYYY-MM-DD HH24:MI:SS'') AS TIMESTAMP)")
+                        .parameters(Arrays.asList(
+                                c.parameters.get(ParameterName.YEAR),
+                                c.parameters.get(ParameterName.MONTH),
+                                c.parameters.get(ParameterName.DAY),
+                                c.parameters.get(ParameterName.HOUR),
+                                c.parameters.get(ParameterName.MINUTE),
+                                c.parameters.get(ParameterName.SECOND)
+                        )).build());
+
+
+        functionMap.put(FunctionSignature.TO_TIME, c ->
+                c.builder.pattern("CAST(CAST({0} AS INTEGER) || '':'' || CAST({1} AS INTEGER) || '':'' || CAST({2} AS INTEGER) AS TIME)")
+                        .parameters(Arrays.asList(
+                                c.parameters.get(ParameterName.HOUR),
+                                c.parameters.get(ParameterName.MINUTE),
+                                c.parameters.get(ParameterName.SECOND)
+                        )).build());
+
+    }
 
     @Override
     public Stream<? extends RdbmsField> map(final Function function, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
@@ -41,542 +676,18 @@ public class FunctionMapper extends RdbmsMapper<Function> {
                     .targetAttribute(t.getTargetAttribute())
                     .alias(t.getAlias());
 
-            switch (function.getSignature()) {
-                case NOT: {
-                    return builder.pattern("(NOT {0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.BOOLEAN)))
-                            .build();
-                }
-                case AND: {
-                    return builder.pattern("({0} AND {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case OR: {
-                    return builder.pattern("({0} OR {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case XOR: {
-                    return builder.pattern("(({0} AND NOT {1}) OR (NOT {0} AND {1}))")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case IMPLIES: {
-                    return builder.pattern("(NOT {0} OR {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case GREATER_THAN: {
-                    return builder.pattern("({0} > {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case GREATER_OR_EQUAL: {
-                    return builder.pattern("({0} >= {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case EQUALS: {
-                    return builder.pattern("({0} = {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case NOT_EQUALS: {
-                    return builder.pattern("({0} <> {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case LESS_OR_EQUAL: {
-                    return builder.pattern("({0} <= {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case LESS_THAN: {
-                    return builder.pattern("({0} < {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case ADD_DECIMAL:
-                case ADD_INTEGER: {
-                    return builder.pattern("({0} + {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case SUBTRACT_DECIMAL:
-                case SUBTRACT_INTEGER: {
-                    return builder.pattern("({0} - {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case MULTIPLE_DECIMAL:
-                case MULTIPLE_INTEGER: {
-                    return builder.pattern(getDecimalType(function).map(type -> "CAST({0} * {1} AS " + type + ")").orElse("({0} * {1})"))
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case DIVIDE_INTEGER: {
-                    return builder.pattern("FLOOR({0} / {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case DIVIDE_DECIMAL: {
-                    return builder.pattern(getDecimalType(function).map(type -> "(CAST({0} as " + type + ") / {1})").orElse("(CAST({0} as DECIMAL(35,20)) / {1})"))
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case OPPOSITE_INTEGER:
-                case OPPOSITE_DECIMAL: {
-                    return builder.pattern("(0 - {0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.NUMBER)))
-                            .build();
-                }
-                case ROUND_DECIMAL: {
-                    return builder.pattern("ROUND({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.NUMBER)))
-                            .build();
-                }
-                case MODULO_INTEGER: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("({0} % {1})");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("MOD({0}, {1})");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("({0} % {1})");
-                    } else {
-                        throw new UnsupportedOperationException("MATCHES_STRING function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case LENGTH_STRING: {
-                    return builder.pattern("LENGTH({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING)))
-                            .build();
-                }
-                case LOWER_STRING: {
-                    return builder.pattern("LOWER({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING)))
-                            .build();
-                }
-                case TRIM_STRING: {
-                    return builder.pattern("TRIM({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING)))
-                            .build();
-                }
-                case INTEGER_TO_STRING:
-                case DECIMAL_TO_STRING:
-                case DATE_TO_STRING:
-                case TIME_TO_STRING:
-                case LOGICAL_TO_STRING:
-                case ENUM_TO_STRING:
-                case CUSTOM_TO_STRING: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("CAST({0} AS TEXT)");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("CAST({0} AS LONGVARCHAR)");
-                    } else {
-                        builder.pattern("CAST({0} AS VARCHAR(2000))");
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.PRIMITIVE)))
-                            .build();
-                }
-                case TIMESTAMP_TO_STRING: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("REPLACE(CAST({0} AS TEXT), '' '', ''T'')");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("REPLACE(CAST({0} AS LONGVARCHAR), '' '', ''T'')");
-                    } else {
-                        builder.pattern("REPLACE(CAST({0} AS VARCHAR(2000)), '' '', ''T'')");
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.PRIMITIVE)))
-                            .build();
-                }
-                case UPPER_STRING: {
-                    return builder.pattern("UPPER({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING)))
-                            .build();
-                }
-                case CONCATENATE_STRING: {
-                    return builder.pattern("({0} || {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case LIKE: {
-                    return builder.pattern("({0} LIKE {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING), parameters.get(ParameterName.PATTERN)))
-                            .build();
-                }
-                case ILIKE: {
-                    return builder.pattern("({0} ILIKE {1})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING), parameters.get(ParameterName.PATTERN)))
-                            .build();
-                }
-                case MATCHES_STRING: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("({0} ~ {1})");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("REGEXP_MATCHES({0}, {1})");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("({0} RLIKE {1})");
-                    } else {
-                        throw new UnsupportedOperationException("MATCHES_STRING function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING), parameters.get(ParameterName.PATTERN)))
-                            .build();
-                }
-                case POSITION_STRING: {
-                    return builder.pattern("POSITION({1} IN {0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING), parameters.get(ParameterName.CONTAINMENT)))
-                            .build();
-                }
-                case REPLACE_STRING: {
-                    return builder.pattern("REPLACE({0}, {1}, {2})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING), parameters.get(ParameterName.PATTERN), parameters.get(ParameterName.REPLACEMENT)))
-                            .build();
-                }
-                case SUBSTRING_STRING: {
-                    return builder.pattern("SUBSTRING({0}, CAST ({1} AS INTEGER), CAST({2} AS INTEGER))")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING), parameters.get(ParameterName.POSITION), parameters.get(ParameterName.LENGTH)))
-                            .build();
-                }
-                case ADD_DATE: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("({0} + CAST({1} || '' days'' AS INTERVAL))");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("TIMESTAMPADD(SQL_TSI_DAY, {1}, {0})");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("DATEADD(DAY, {1}, {0})::DATE");
-                    } else {
-                        throw new UnsupportedOperationException("ADD_DATE function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE), parameters.get(ParameterName.ADDITION)))
-                            .build();
-                }
-                case DIFFERENCE_DATE: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("(CAST({0} AS DATE) - CAST({1} AS DATE))");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("TIMESTAMPDIFF(SQL_TSI_DAY, {1}, {0})");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("DATEDIFF({0}, {1})");
-                    } else {
-                        throw new UnsupportedOperationException("DIFFERENCE_TIMESTAMP function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.END), parameters.get(ParameterName.START)))
-                            .build();
-                }
-                case ADD_TIMESTAMP: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("({0} + CAST({1} / 1000 || '' seconds'' AS INTERVAL))");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, {0}))");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("DATEADD(SECOND, {1} / 1000, {0})");
-                    } else {
-                        throw new UnsupportedOperationException("ADD_TIMESTAMP function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP), parameters.get(ParameterName.ADDITION)))
-                            .build();
-                }
-                case ADD_TIME: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("({0} + CAST({1} / 1000 || '' seconds'' AS INTERVAL))");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, CAST({0} AS TIMESTAMP)))");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("DATEADD(SECOND, {1} / 1000, {0})");
-                    } else {
-                        throw new UnsupportedOperationException("ADD_TIME function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME), parameters.get(ParameterName.ADDITION)))
-                            .build();
-                }
-                case DIFFERENCE_TIMESTAMP: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("(EXTRACT(EPOCH FROM {0} - {1}) * 1000)");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, {1}, {0})");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("TIMESTAMPDIFF({0}, {1})");
-                    } else {
-                        throw new UnsupportedOperationException("DIFFERENCE_TIMESTAMP function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.END), parameters.get(ParameterName.START)))
-                            .build();
-                }
-                case DIFFERENCE_TIME: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("(EXTRACT(EPOCH FROM {0} - {1}) * 1000)");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, CAST({1} AS TIMESTAMP), CAST({0} AS TIMESTAMP))");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("TIMESTAMPDIFF({0}, {1})");
-                    } else {
-                        throw new UnsupportedOperationException("DIFFERENCE_TIME function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.END), parameters.get(ParameterName.START)))
-                            .build();
-                }
-
-                case IS_UNDEFINED_ATTRIBUTE: {
-                    return builder.pattern("({0} IS NULL)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.ATTRIBUTE)))
-                            .build();
-                }
-                case IS_UNDEFINED_OBJECT: {
-                    return builder.pattern("({0} IS NULL)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.RELATION)))
-                            .build();
-                }
-                case INSTANCE_OF: {
-                    return builder.pattern("EXISTS (SELECT 1 FROM {1} WHERE " + StatementExecutor.ID_COLUMN_NAME + " = {0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.INSTANCE), parameters.get(ParameterName.TYPE)))
-                            .build();
-                }
-                case TYPE_OF: {
-                    return builder.pattern("EXISTS (SELECT 1 FROM {1} WHERE " + StatementExecutor.ID_COLUMN_NAME + " = {0} AND " + StatementExecutor.ENTITY_TYPE_COLUMN_NAME + " = {2})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.INSTANCE), parameters.get(ParameterName.TYPE), RdbmsConstant.builder()
-                                    .parameter(rdbmsBuilder.getParameterMapper().createParameter(AsmUtils.getClassifierFQName(((RdbmsEntityTypeName) parameters.get(ParameterName.TYPE)).getType()), null))
-                                    .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
-                                    .build()))
-                            .build();
-                }
-                case MEMBER_OF: {
-                    return builder.pattern("({0} IN ({1}))")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.INSTANCE), parameters.get(ParameterName.COLLECTION)))
-                            .build();
-                }
-                case EXISTS: {
-                    return builder.pattern("EXISTS ({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.COLLECTION)))
-                            .build();
-                }
-                case NOT_EXISTS: {
-                    return builder.pattern("(NOT EXISTS ({0}))")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.COLLECTION)))
-                            .build();
-                }
-                case COUNT: {
-                    return builder.pattern("COUNT(DISTINCT {0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.ITEM)))
-                            .build();
-                }
-                case SUM_INTEGER:
-                case SUM_DECIMAL: {
-                    return builder.pattern("SUM({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.NUMBER)))
-                            .build();
-                }
-                case MIN_INTEGER:
-                case MIN_DECIMAL: {
-                    return builder.pattern("MIN({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.NUMBER)))
-                            .build();
-                }
-                case MIN_STRING: {
-                    return builder.pattern("MIN({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING)))
-                            .build();
-                }
-                case MIN_DATE: {
-                    return builder.pattern("MIN({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE)))
-                            .build();
-                }
-                case MIN_TIMESTAMP: {
-                    return builder.pattern("MIN({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case MIN_TIME: {
-                    return builder.pattern("MIN({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
-                            .build();
-                }
-                case MAX_INTEGER:
-                case MAX_DECIMAL: {
-                    return builder.pattern("MAX({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.NUMBER)))
-                            .build();
-                }
-                case MAX_STRING: {
-                    return builder.pattern("MAX({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.STRING)))
-                            .build();
-                }
-                case MAX_DATE: {
-                    return builder.pattern("MAX({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE)))
-                            .build();
-                }
-                case MAX_TIMESTAMP: {
-                    return builder.pattern("MAX({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case MAX_TIME: {
-                    return builder.pattern("MAX({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
-                            .build();
-                }
-                case AVG_DECIMAL: {
-                    return builder.pattern("AVG({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.NUMBER)))
-                            .build();
-                }
-                case AVG_DATE: {
-                    return builder.pattern("AVG({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE)))
-                            .build();
-                }
-                case AVG_TIMESTAMP: {
-                    return builder.pattern("AVG({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case AVG_TIME: {
-                    return builder.pattern("AVG({0})")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
-                            .build();
-                }
-                case CASE_WHEN: {
-                    return builder.pattern("CASE WHEN {0} THEN {1} ELSE {2} END")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.CONDITION), parameters.get(ParameterName.LEFT), parameters.get(ParameterName.RIGHT)))
-                            .build();
-                }
-                case UNDEFINED: {
-                    return builder.pattern("NULL")
-                            .build();
-                }
-                case YEARS_OF_DATE: {
-                    return builder.pattern("CAST(EXTRACT(YEAR from CAST({0} AS DATE)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE)))
-                            .build();
-                }
-                case MONTHS_OF_DATE: {
-                    return builder.pattern("CAST(EXTRACT(MONTH from CAST({0} AS DATE)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE)))
-                            .build();
-                }
-                case DAYS_OF_DATE: {
-                    return builder.pattern("CAST(EXTRACT(DAY from CAST({0} AS DATE)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.DATE)))
-                            .build();
-                }
-                case YEARS_OF_TIMESTAMP: {
-                    return builder.pattern("CAST(EXTRACT(YEAR from CAST({0} AS TIMESTAMP)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case MONTHS_OF_TIMESTAMP: {
-                    return builder.pattern("CAST(EXTRACT(MONTH from CAST({0} AS TIMESTAMP)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case DAYS_OF_TIMESTAMP: {
-                    return builder.pattern("CAST(EXTRACT(DAY from CAST({0} AS TIMESTAMP)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case HOURS_OF_TIMESTAMP: {
-                    return builder.pattern("CAST(EXTRACT(HOUR from CAST({0} AS TIMESTAMP)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case MINUTES_OF_TIMESTAMP: {
-                    return builder.pattern("CAST(EXTRACT(MINUTE from CAST({0} AS TIMESTAMP)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case SECONDS_OF_TIMESTAMP: {
-                    return builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case MILLISECONDS_OF_TIMESTAMP: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER) % 1000)");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER), 1000)");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER) % 1000)");
-                    } else {
-                        throw new UnsupportedOperationException("EXTRACT_TIMESTAMP function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIMESTAMP)))
-                            .build();
-                }
-                case HOURS_OF_TIME: {
-                    return builder.pattern("CAST(EXTRACT(HOUR from CAST({0} AS TIME)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
-                            .build();
-                }
-                case MINUTES_OF_TIME: {
-                    return builder.pattern("CAST(EXTRACT(MINUTE from CAST({0} AS TIME)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
-                            .build();
-                }
-                case SECONDS_OF_TIME: {
-                    return builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)")
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
-                            .build();
-                }
-                case MILLISECONDS_OF_TIME: {
-                    if (Dialect.POSTGRESQL.equals(dialect)) {
-                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER) % 1000)");
-                    } else if (Dialect.HSQLDB.equals(dialect)) {
-                        builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER), 1000)");
-                    } else if (Dialect.JOOQ.equals(dialect)) {
-                        builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER) % 1000)");
-                    } else {
-                        throw new UnsupportedOperationException("EXTRACT_TIME function is not supported in dialect: " + dialect);
-                    }
-                    return builder
-                            .parameters(Arrays.asList(parameters.get(ParameterName.TIME)))
-                            .build();
-                }
-                case TO_DATE: {
-                    return builder.pattern("CAST(TO_DATE(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS  INTEGER) || ''-'' || CAST({2} AS INTEGER), ''YYYY-MM-DD'') AS DATE)")
-                            .parameters(Arrays.asList(
-                                    parameters.get(ParameterName.YEAR),
-                                    parameters.get(ParameterName.MONTH),
-                                    parameters.get(ParameterName.DAY)
-                            )).build();
-                }
-                case TO_TIMESTAMP: {
-                    return builder.pattern("CAST(TO_TIMESTAMP(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL), ''YYYY-MM-DD HH24:MI:SS'') AS TIMESTAMP)")
-                            .parameters(Arrays.asList(
-                                    parameters.get(ParameterName.YEAR),
-                                    parameters.get(ParameterName.MONTH),
-                                    parameters.get(ParameterName.DAY),
-                                    parameters.get(ParameterName.HOUR),
-                                    parameters.get(ParameterName.MINUTE),
-                                    parameters.get(ParameterName.SECOND)
-                            )).build();
-                }
-                case TO_TIME: {
-                    return builder.pattern("CAST(CAST({0} AS INTEGER) || '':'' || CAST({1} AS INTEGER) || '':'' || CAST({2} AS INTEGER) AS TIME)")
-                            .parameters(Arrays.asList(
-                                    parameters.get(ParameterName.HOUR),
-                                    parameters.get(ParameterName.MINUTE),
-                                    parameters.get(ParameterName.SECOND)
-                            )).build();
-                }
-                default:
-                    throw new UnsupportedOperationException("Unsupported function: " + function.getSignature());
+            java.util.function.Function<FunctionContext, RdbmsFunction> func = functionMap.get(function.getSignature());
+            if (func == null) {
+                throw new UnsupportedOperationException("Unsupported function: " + function.getSignature());
             }
+
+            return func.apply(FunctionContext.builder()
+                    .function(function)
+                    .parameters(parameters)
+                    .builder(builder)
+                    .build());
+
+
         });
     }
 
