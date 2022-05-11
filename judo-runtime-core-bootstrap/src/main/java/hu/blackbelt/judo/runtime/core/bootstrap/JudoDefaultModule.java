@@ -91,16 +91,20 @@ public class JudoDefaultModule extends AbstractModule {
         bind(JudoModelSpecification.class).toInstance(models);
 
         // HSQLDB
+        bind(Dialect.class).toInstance(new HsqldbDialect());
         bind(Server.class).toProvider(HsqldbServerProvider.class).in(Singleton.class);
         bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance("judo");
         bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(new File(".", "judo.db"));
         bind(Integer.class).annotatedWith(Names.named(HSQLDB_SERVER_PORT)).toInstance(31001);
 
-        // Datasource
-        bind(DataSource.class).toProvider(HsqldbAtomikosDataSourceProvider.class).in(Singleton.class);
-        bind(Dialect.class).toInstance(new HsqldbDialect());
-        bind(TransactionManager.class).toProvider(AtomikosUserTransactionManagerProvider.class).in(Singleton.class);
+        bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);
         bind(RdbmsParameterMapper.class).toProvider(HsqldbRdbmsParameterMapperProvider.class).in(Singleton.class);
+
+        // Datasource        
+        bind(DataSource.class).toProvider(HsqldbAtomikosDataSourceProvider.class).in(Singleton.class);
+
+        
+        bind(TransactionManager.class).toProvider(AtomikosUserTransactionManagerProvider.class).in(Singleton.class);
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
         bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
         bind(RdbmsBuilder.class).toProvider(RdbmsBuilderProvider.class).in(Singleton.class);
@@ -111,7 +115,6 @@ public class JudoDefaultModule extends AbstractModule {
         bind(ExtendableCoercer.class).toInstance(new DefaultCoercer());
         bind(DataTypeManager.class).toProvider(DataTypeManagerProvider.class).in(Singleton.class);
         bind(IdentifierProvider.class).toProvider(UUIDIdentifierProviderProvider.class).in(Singleton.class);
-        bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);
         
         bind(IdentifierSigner.class).toProvider(DefaultIdentifierSignerProvider.class).in(Singleton.class);
         bind(String.class).annotatedWith(Names.named(IDENTIFIER_SIGNER_SECRET)).toInstance(generateNewSecret());
@@ -135,9 +138,7 @@ public class JudoDefaultModule extends AbstractModule {
         bind(Boolean.class).annotatedWith(Names.named(METRICS_COLLECTOR_ENABLED)).toInstance(Boolean.FALSE);
         bind(Boolean.class).annotatedWith(Names.named(METRICS_COLLECTOR_VERBOSE)).toInstance(Boolean.FALSE);
 
-
         bind(TransformationTraceService.class).toProvider(TransformationTraceServiceProvider.class).in(Singleton.class);
-
 
         bind(InstanceCollector.class).toProvider(RdbmsInstanceCollectorProvider.class).in(Singleton.class);
         bind(DAO.class).toProvider(RdbmsDAOProvider.class).in(Singleton.class);
