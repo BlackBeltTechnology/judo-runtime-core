@@ -25,9 +25,13 @@ import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
+import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
@@ -94,6 +98,11 @@ public class JudoDefaultModule extends AbstractModule {
         bind(TransactionManager.class).toProvider(AtomikosUserTransactionManagerProvider.class).in(Singleton.class);
         bind(RdbmsParameterMapper.class).toProvider(HsqldbRdbmsParameterMapperProvider.class).in(Singleton.class);
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
+        bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
+        bind(RdbmsBuilder.class).toProvider(RdbmsBuilderProvider.class).in(Singleton.class);
+        bind(QueryFactory.class).toProvider(QueryFactoryProvider.class).in(Singleton.class);
+        bind(SelectStatementExecutor.class).toProvider(SelectStatementExecutorProvider.class).in(Singleton.class);
+        bind(ModifyStatementExecutor.class).toProvider(ModifyStatementExecutorProvider.class).in(Singleton.class);
 
         bind(ExtendableCoercer.class).toInstance(new DefaultCoercer());
         bind(DataTypeManager.class).toProvider(DataTypeManagerProvider.class).in(Singleton.class);
@@ -121,7 +130,6 @@ public class JudoDefaultModule extends AbstractModule {
         bind(Boolean.class).annotatedWith(Names.named(METRICS_COLLECTOR_ENABLED)).toInstance(Boolean.FALSE);
         bind(Boolean.class).annotatedWith(Names.named(METRICS_COLLECTOR_VERBOSE)).toInstance(Boolean.FALSE);
 
-        bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
 
         bind(TransformationTraceService.class).toProvider(TransformationTraceServiceProvider.class).in(Singleton.class);
 

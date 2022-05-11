@@ -53,26 +53,26 @@ public abstract class StatementExecutor<ID> {
 
     public static final String SELECTED_ITEM_KEY = "__selected";
 
-    @NonNull
-    AsmModel asmModel;
+    @Getter
+    private final AsmModel asmModel;
 
-    @NonNull
-    RdbmsModel rdbmsModel;
+    @Getter
+    private final RdbmsModel rdbmsModel;
 
-    @NonNull
-    TransformationTraceService transformationTraceService;
+    @Getter
+    private final TransformationTraceService transformationTraceService;
 
-    @Builder.Default
-    IdentifierProvider<ID> identifierProvider = (IdentifierProvider<ID>) new UUIDIdentifierProvider();
+    @Getter
+    private final IdentifierProvider<ID> identifierProvider;
 
-    @NonNull
-    Dialect dialect;
+    @Getter
+    private final Coercer coercer;
 
-    @NonNull
-    Coercer coercer;
+    @Getter
+    private final RdbmsParameterMapper rdbmsParameterMapper;
 
-    @NonNull
-    RdbmsParameterMapper rdbmsParameterMapper;
+    @Getter
+    private final RdbmsResolver rdbmsResolver;
 
     @Getter
     private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
@@ -81,16 +81,16 @@ public abstract class StatementExecutor<ID> {
                              @NonNull RdbmsModel rdbmsModel,
                              @NonNull TransformationTraceService transformationTraceService,
                              @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+                             @NonNull RdbmsResolver rdbmsResolver,
                              @NonNull Coercer coercer,
-                             IdentifierProvider<ID> identifierProvider,
-                             Dialect dialect) {
+                             IdentifierProvider<ID> identifierProvider) {
         this.asmModel = asmModel;
         this.rdbmsModel = rdbmsModel;
         this.transformationTraceService = transformationTraceService;
-        this.dialect = dialect;
         this.rdbmsParameterMapper =  rdbmsParameterMapper;
-        this.identifierProvider = identifierProvider;
+        this.identifierProvider = identifierProvider == null ? (IdentifierProvider<ID>) new UUIDIdentifierProvider() : identifierProvider;
         this.coercer = coercer;
+        this.rdbmsResolver = rdbmsResolver;
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
     }
 
@@ -143,13 +143,12 @@ public abstract class StatementExecutor<ID> {
             boolean mandatory,
             boolean optional) {
 
-        RdbmsResolver rdbms = new RdbmsResolver(asmModel, transformationTraceService);
         Map<RdbmsReference<ID>, ID> referenceMap = new EMapWrapper(ECollections.asEMap(Maps.newHashMap()));
 
         collectRdbmsReferencesReferenceStatements(referenceStatements)
                 .filter(rdbmsReference -> rdbmsReference.getRule().isForeignKey() || rdbmsReference.getRule().isInverseForeignKey())
                 .forEach(rdbmsReference -> {
-                    boolean referenceIsMandatory = rdbms.rdbmsField(rdbmsReference.getReference()).isMandatory();
+                    boolean referenceIsMandatory = getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory();
                     if ((referenceIsMandatory && mandatory) || (!referenceIsMandatory && optional)) {
                         if (rdbmsReference.getRule().isForeignKey()
                                 && rdbmsReference.getIdentifier().equals(identifier)) {

@@ -17,6 +17,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -47,10 +48,15 @@ import static java.util.stream.Stream.concat;
 class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
-    public RemoveReferenceStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                            TransformationTraceService transformationTraceService, RdbmsParameterMapper rdbmsParameterMapper,
-                                            Coercer coercer, IdentifierProvider<ID> identifierProvider, Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
+    public RemoveReferenceStatementExecutor(
+            @NonNull AsmModel asmModel,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull TransformationTraceService transformationTraceService,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsResolver rdbmsResolver,
+            @NonNull Coercer coercer,
+            @NonNull IdentifierProvider<ID> identifierProvider) {
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
     /**
@@ -61,8 +67,6 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
      */
     public void executeRemoveReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
                                                  Collection<ReferenceStatement<ID>> statements) throws SQLException {
-
-        RdbmsResolver rdbms = new RdbmsResolver(asmModel, transformationTraceService);
 
         Map<ID, EClass> statementBased = statements.stream()
                 .collect(Collectors.toMap(
@@ -124,14 +128,14 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                                 }
 
                                 MapSqlParameterSource updateStatementNamedParameters =
-                                        new MapSqlParameterSource().addValue(identifierProvider.getName(), coercer.coerce(identifier.get(), rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
-                                updateStatementNamedParameters.addValue(getReferenceFQName(reference), coercer.coerce(referenceIdentifier.get(), rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
+                                        new MapSqlParameterSource().addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier.get(), getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
+                                updateStatementNamedParameters.addValue(getReferenceFQName(reference), getCoercer().coerce(referenceIdentifier.get(), getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
-                                String tableName = rdbms.rdbmsTable(entity.get()).getSqlName();
+                                String tableName = getRdbmsResolver().rdbmsTable(entity.get()).getSqlName();
 
                                 String sql =
-                                        "UPDATE " + tableName + " SET " + rdbms.rdbmsField(reference).getSqlName() + " = NULL"
-                                                + " WHERE " + ID_COLUMN_NAME + " = :" + identifierProvider.getName();
+                                        "UPDATE " + tableName + " SET " + getRdbmsResolver().rdbmsField(reference).getSqlName() + " = NULL"
+                                                + " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName();
 
                                 log.debug("Remove references: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
                                         " ID: " + identifier.get() +
@@ -155,16 +159,16 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                 )
                 .forEach(r -> {
 
-                    RdbmsTable joinTable = rdbms.rdbmsJunctionTable(r.getReference());
-                    RdbmsField aFk = rdbms.rdbmsJunctionOppositeField(r.getReference());
-                    RdbmsField bFk = rdbms.rdbmsJunctionField(r.getReference());
+                    RdbmsTable joinTable = getRdbmsResolver().rdbmsJunctionTable(r.getReference());
+                    RdbmsField aFk = getRdbmsResolver().rdbmsJunctionOppositeField(r.getReference());
+                    RdbmsField bFk = getRdbmsResolver().rdbmsJunctionField(r.getReference());
                     ID aId = r.getIdentifier();
                     ID bId = r.getOppositeIdentifier();
 
                     SqlParameterSource jointPairNamedParameters = new MapSqlParameterSource()
-                            .addValue("id", coercer.coerce(UUID.randomUUID(), rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType())
-                            .addValue("aId", coercer.coerce(aId, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType())
-                            .addValue("bId", coercer.coerce(bId, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
+                            .addValue("id", getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType())
+                            .addValue("aId", getCoercer().coerce(aId, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType())
+                            .addValue("bId", getCoercer().coerce(bId, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
                     // Check existence of the given ID pair.
                     String exitenceCheckSql = "SELECT count(1) FROM " + joinTable.getSqlName() + " WHERE " +

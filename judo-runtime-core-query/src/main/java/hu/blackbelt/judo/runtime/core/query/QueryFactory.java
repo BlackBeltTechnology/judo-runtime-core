@@ -16,7 +16,9 @@ import hu.blackbelt.judo.runtime.core.expression.MappedTransferObjectTypeBinding
 import hu.blackbelt.judo.runtime.core.expression.TransferObjectTypeBindingsCollector;
 import hu.blackbelt.judo.runtime.core.expression.UnmappedTransferObjectTypeBindings;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.emf.common.notify.Notifier;
@@ -69,6 +71,7 @@ public class QueryFactory {
     private FeatureFactory featureFactory;
     private JoinFactory joinFactory;
 
+    @Getter
     private final EMap<EReference, CustomJoinDefinition> customJoinDefinitions;
 
     private final EList<EReference> orderedTransferRelations = new UniqueEList<>();
@@ -83,9 +86,16 @@ public class QueryFactory {
         this(asmResourceSet, MeasureModelResourceSupport.createMeasureResourceSet(), expressionResourceSet, coercer, ECollections.emptyEMap());
     }
 
-    public QueryFactory(final ResourceSet asmResourceSet, final ResourceSet measureResourceSet, final ResourceSet expressionResourceSet, final Coercer coercer, final EMap<EReference, CustomJoinDefinition> customJoinDefinitions) {
+    @Builder
+    public QueryFactory(
+            @NonNull final ResourceSet asmResourceSet,
+            @NonNull final ResourceSet measureResourceSet,
+            @NonNull final ResourceSet expressionResourceSet,
+            @NonNull final Coercer coercer,
+            final EMap<EReference, CustomJoinDefinition> customJoinDefinitions) {
+
         this.asmResourceSet = asmResourceSet;
-        this.customJoinDefinitions = customJoinDefinitions;
+        this.customJoinDefinitions = customJoinDefinitions == null ?  ECollections.asEMap(new ConcurrentHashMap<>()) : customJoinDefinitions;
         queryModelResourceSupport = QueryModelResourceSupport.queryModelResourceSupportBuilder()
                 .uri(URI.createURI("query:in-memory"))
                 .build();

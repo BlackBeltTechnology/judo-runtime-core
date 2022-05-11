@@ -13,6 +13,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.jgrapht.Graph;
@@ -49,11 +50,15 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
     private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
 
     @Builder
-    public DeleteStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                   TransformationTraceService transformationTraceService,
-                                   RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
-                                   IdentifierProvider<ID> identifierProvider, Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
+    public DeleteStatementExecutor(
+            @NonNull AsmModel asmModel,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull TransformationTraceService transformationTraceService,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsResolver rdbmsResolver,
+            @NonNull Coercer coercer,
+            @NonNull IdentifierProvider<ID> identifierProvider) {
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
     }
 
@@ -73,8 +78,6 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                                         Collection<DeleteStatement<ID>> deleteStatements,
                                         Collection<RemoveReferenceStatement<ID>> removeReferenceStatements) {
 
-        RdbmsResolver rdbms = new RdbmsResolver(asmModel, transformationTraceService);
-
         // Collect all information required to build dependencies between nodes.
         Set<RdbmsReference<ID>> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
 
@@ -91,10 +94,10 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                             .forEach(entityForCurrentStatement -> {
 
                                 MapSqlParameterSource deleteStatementParameters = new MapSqlParameterSource()
-                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
+                                        .addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
-                                String tableName = rdbms.rdbmsTable(entityForCurrentStatement).getSqlName();
-                                String sql = "DELETE FROM " + tableName + " WHERE " + ID_COLUMN_NAME + " = :" + identifierProvider.getName();
+                                String tableName = getRdbmsResolver().rdbmsTable(entityForCurrentStatement).getSqlName();
+                                String sql = "DELETE FROM " + tableName + " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName();
 
                                 log.debug("Delete: " + getClassifierFQName(
                                         entityForCurrentStatement) + " " + tableName +
@@ -118,13 +121,12 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
     private Stream<DeleteStatement<ID>> toDependencySortedDeleteStatementStream(
                             Collection<DeleteStatement<ID>> deleteStatements,
                             Collection<RdbmsReference<ID>> insertRdbmsReference) {
-          RdbmsResolver rdbms = new RdbmsResolver(asmModel, transformationTraceService);
 
           // Topoligical Sorting over foreign key dependencies
           Graph<Statement, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
           deleteStatements.stream().forEach(s -> graph.addVertex(s));
           insertRdbmsReference.stream()
-                  .filter(rdbmsReference -> rdbms.rdbmsField(rdbmsReference.getReference()).isMandatory())
+                  .filter(rdbmsReference -> getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory())
                   .forEach(rdbmsReference -> {
 
                       Statement oppositeStatement = deleteStatements.stream()

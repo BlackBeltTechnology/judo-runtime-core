@@ -8,10 +8,12 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.QueryCustomizerParameterProcessor;
+import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
-import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
-import lombok.*;
+import lombok.Builder;
+import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -25,36 +27,31 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 @Slf4j
 public class DefaultActorResolver<ID> implements ActorResolver {
 
-    @NonNull
-    @Setter
     DataTypeManager dataTypeManager;
 
-    @NonNull
-    @Setter
     DAO<ID> dao;
 
-    @NonNull
-    @Setter
     AsmModel asmModel;
 
-    @Builder.Default
-    @Setter
-    private Boolean checkMappedActors = false;
+    private Boolean checkMappedActors;
 
     private AsmUtils asmUtils;
 
 
-    private AsmUtils getAsmUtils() {
-        if (asmUtils == null) {
-            asmUtils = new AsmUtils(asmModel.getResourceSet());
-        }
-        return asmUtils;
+    @Builder
+    public DefaultActorResolver(
+            @NonNull DataTypeManager dataTypeManager,
+            @NonNull DAO<ID> dao,
+            @NonNull AsmModel asmModel,
+            Boolean checkMappedActors) {
+        this.dataTypeManager = dataTypeManager;
+        this.dao = dao;
+        this.asmModel = asmModel;
+        this.checkMappedActors = checkMappedActors == null ? false : checkMappedActors;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
     @Override
@@ -69,11 +66,11 @@ public class DefaultActorResolver<ID> implements ActorResolver {
 
     @Override
     public Optional<Payload> authenticateByPrincipal(JudoPrincipal principal) {
-        final EClass actorType = getAsmUtils().resolve(principal.getClient())
+        final EClass actorType = asmUtils.resolve(principal.getClient())
                 .filter(a -> a instanceof EClass).map(a -> (EClass) a)
                 .orElseThrow(() -> new IllegalStateException("Unsupported client"));
 
-        if (getAsmUtils().isMappedTransferObjectType(actorType)) {
+        if (asmUtils.isMappedTransferObjectType(actorType)) {
             final Map<String, Object> claims = principal.getAttributes().entrySet().stream()
                     .filter(e -> e.getValue() instanceof String)
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
@@ -100,7 +97,7 @@ public class DefaultActorResolver<ID> implements ActorResolver {
             filterAttribute = emailClaim.get();
         } else {
             filterAttribute = actorType.getEAllAttributes().stream()
-                    .filter(actorAttribute -> claims.containsKey(actorAttribute.getName()) && getAsmUtils().getMappedAttribute(actorAttribute).filter(a -> getAsmUtils().isIdentifier(a)).isPresent())
+                    .filter(actorAttribute -> claims.containsKey(actorAttribute.getName()) && asmUtils.getMappedAttribute(actorAttribute).filter(a -> asmUtils.isIdentifier(a)).isPresent())
                     .sorted((a1, a2) -> AsmUtils.equals(a1, a2) ? 0 : a1.getName().compareTo(a2.getName()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("ID attribute in Entity type matching any access token claim not found"));

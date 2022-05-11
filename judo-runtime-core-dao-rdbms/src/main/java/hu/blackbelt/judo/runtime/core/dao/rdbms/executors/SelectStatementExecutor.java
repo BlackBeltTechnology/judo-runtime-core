@@ -63,20 +63,16 @@ import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 @Slf4j
 public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
-    @NonNull
-    MeasureModel measureModel;
+    private final MeasureModel measureModel;
 
-    final AsmUtils asm;
+    private final Translator translator = new Translator();
+    private final MetricsCollector metricsCollector;
+
+    private final RdbmsBuilder rdbmsBuilder;
 
     private final QueryFactory queryFactory;
 
     private final DataTypeManager dataTypeManager;
-
-    private final RdbmsBuilder rdbmsBuilder;
-
-    private final Translator translator = new Translator();
-
-    private final MetricsCollector metricsCollector;
 
     private static final String METRICS_SELECT_PREPARE = "select-prepare";
     private static final String METRICS_SELECT_PROCESSING = "select-processing";
@@ -84,48 +80,34 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     private final int chunkSize;
 
-    private final Coercer coercer;
+    private final AsmUtils asmUtils;
 
     @Builder
-    public SelectStatementExecutor(final AsmModel asmModel,
-                                   final RdbmsModel rdbmsModel,
-                                   final MeasureModel measureModel,
-                                   final TransformationTraceService transformationTraceService,
-                                   final QueryFactory queryFactory,
-                                   final RdbmsParameterMapper rdbmsParameterMapper,
-                                   final DataTypeManager dataTypeManager,
-                                   final IdentifierProvider<ID> identifierProvider,
-                                   final VariableResolver variableResolver,
-                                   final MetricsCollector metricsCollector,
-                                   final int chunkSize,
-                                   final Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, dataTypeManager.getCoercer(),
-                identifierProvider, dialect);
-        this.rdbmsModel = rdbmsModel;
+    public SelectStatementExecutor(@NonNull final AsmModel asmModel,
+                                   @NonNull final RdbmsModel rdbmsModel,
+                                   @NonNull final MeasureModel measureModel,
+                                   @NonNull final TransformationTraceService transformationTraceService,
+                                   @NonNull final QueryFactory queryFactory,
+                                   @NonNull final RdbmsParameterMapper rdbmsParameterMapper,
+                                   @NonNull final RdbmsResolver rdbmsResolver,
+                                   @NonNull final DataTypeManager dataTypeManager,
+                                   @NonNull final IdentifierProvider<ID> identifierProvider,
+                                   @NonNull final RdbmsBuilder rdbmsBuilder,
+                                   @NonNull final MetricsCollector metricsCollector,
+                                   @NonNull final int chunkSize) {
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, dataTypeManager.getCoercer(),
+                identifierProvider);
         this.measureModel = measureModel;
         this.queryFactory = queryFactory;
         this.dataTypeManager = dataTypeManager;
         this.metricsCollector = metricsCollector;
         this.chunkSize = chunkSize;
 
-        this.coercer = dataTypeManager.getCoercer();
+        asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-        asm = new AsmUtils(asmModel.getResourceSet());
-
-        rdbmsBuilder = RdbmsBuilder.builder()
-                .rdbmsModel(rdbmsModel)
-                .ancestorNameFactory(new AncestorNameFactory(asm.all(EClass.class)))
-                .rdbmsResolver(new RdbmsResolver(asmModel, transformationTraceService))
-                .parameterMapper(rdbmsParameterMapper)
-                .dialect(dialect)
-                .asmUtils(asm)
-                .identifierProvider(identifierProvider)
-                .coercer(dataTypeManager.getCoercer())
-                .variableResolver(variableResolver)
-                .build();
-
+        this.rdbmsBuilder = rdbmsBuilder;
         translator.getTranslators().put(MeasuredDecimal.class, MeasuredDecimalConstantTranslator.builder().build());
-        translator.getTranslators().put(AttributeSelector.class, AttributeSelectorTranslator.builder().translator(translator).asmUtils(asm).asmModelAdapter(queryFactory.getModelAdapter()).queryFactory(queryFactory).build());
+        translator.getTranslators().put(AttributeSelector.class, AttributeSelectorTranslator.builder().translator(translator).asmUtils(asmUtils).asmModelAdapter(queryFactory.getModelAdapter()).queryFactory(queryFactory).build());
         translator.getTranslators().put(BooleanConstant.class, BooleanConstantTranslator.builder().build());
         translator.getTranslators().put(CustomData.class, CustomDataTranslator.builder().build());
         translator.getTranslators().put(DateComparison.class, DateComparisonTranslator.builder().translator(translator).build());
@@ -133,7 +115,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         translator.getTranslators().put(DecimalComparison.class, DecimalComparisonTranslator.builder().translator(translator).build());
         translator.getTranslators().put(DecimalConstant.class, DecimalConstantTranslator.builder().build());
         translator.getTranslators().put(EnumerationComparison.class, EnumerationComparisonTranslator.builder().translator(translator).build());
-        translator.getTranslators().put(Instance.class, InstanceTranslator.builder().asmUtils(asm).build());
+        translator.getTranslators().put(Instance.class, InstanceTranslator.builder().asmUtils(asmUtils).build());
         translator.getTranslators().put(IntegerComparison.class, IntegerComparisonTranslator.builder().translator(translator).build());
         translator.getTranslators().put(IntegerConstant.class, IntegerConstantTranslator.builder().build());
         translator.getTranslators().put(KleeneExpression.class, KleeneTranslator.builder().translator(translator).build());
@@ -148,7 +130,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         translator.getTranslators().put(TimestampConstant.class, TimestampConstantTranslator.builder().build());
         translator.getTranslators().put(TimeComparison.class, TimeComparisonTranslator.builder().translator(translator).build());
         translator.getTranslators().put(TimeConstant.class, TimeConstantTranslator.builder().build());
-
     }
 
     public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
@@ -158,10 +139,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         final MapSqlParameterSource parameters = new MapSqlParameterSource();
 
         try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
-            entityType = asm.getMappedEntityType(mappedTransferObjectType)
+            entityType = asmUtils.getMappedEntityType(mappedTransferObjectType)
                     .orElseThrow(() -> new IllegalStateException("Invalid mapped transfer object type"));
 
-            parameters.addValue("id", coercer.coerce(id, rdbmsBuilder.getParameterMapper().getIdClassName()), rdbmsBuilder.getParameterMapper().getIdSqlType());
+            parameters.addValue("id", getCoercer().coerce(id, rdbmsBuilder.getParameterMapper().getIdClassName()), rdbmsBuilder.getParameterMapper().getIdSqlType());
         }
 
         final Collection<Map<String, Object>> results;
@@ -200,15 +181,15 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 final Object entityUpdateTimestampInRecord = extract.apply(StatementExecutor.ENTITY_UPDATE_TIMESTAMP_COLUMN_NAME);
 
                 return Optional.of(Payload.map(
-                        identifierProvider.getName(), coercer.coerce(idInRecord, identifierProvider.getType()),
-                        StatementExecutor.ENTITY_TYPE_MAP_KEY, coercer.coerce(entityTypeInRecord, String.class),
-                        StatementExecutor.ENTITY_VERSION_MAP_KEY, coercer.coerce(entityVersionInRecord, Integer.class),
-                        StatementExecutor.ENTITY_CREATE_USERNAME_MAP_KEY, coercer.coerce(entityCreateUsernameInRecord, String.class),
-                        StatementExecutor.ENTITY_CREATE_USER_ID_MAP_KEY, coercer.coerce(entityCreateUserIdInRecord, identifierProvider.getType()),
-                        StatementExecutor.ENTITY_CREATE_TIMESTAMP_MAP_KEY, coercer.coerce(entityCreateTimestampInRecord, OffsetDateTime.class),
-                        StatementExecutor.ENTITY_UPDATE_USERNAME_MAP_KEY, coercer.coerce(entityUpdateUsernameInRecord, String.class),
-                        StatementExecutor.ENTITY_UPDATE_USER_ID_MAP_KEY, coercer.coerce(entityUpdateUserIdInRecord, identifierProvider.getType()),
-                        StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY, coercer.coerce(entityUpdateTimestampInRecord, OffsetDateTime.class)
+                        getIdentifierProvider().getName(), getCoercer().coerce(idInRecord, getIdentifierProvider().getType()),
+                        StatementExecutor.ENTITY_TYPE_MAP_KEY, getCoercer().coerce(entityTypeInRecord, String.class),
+                        StatementExecutor.ENTITY_VERSION_MAP_KEY, getCoercer().coerce(entityVersionInRecord, Integer.class),
+                        StatementExecutor.ENTITY_CREATE_USERNAME_MAP_KEY, getCoercer().coerce(entityCreateUsernameInRecord, String.class),
+                        StatementExecutor.ENTITY_CREATE_USER_ID_MAP_KEY, getCoercer().coerce(entityCreateUserIdInRecord, getIdentifierProvider().getType()),
+                        StatementExecutor.ENTITY_CREATE_TIMESTAMP_MAP_KEY, getCoercer().coerce(entityCreateTimestampInRecord, OffsetDateTime.class),
+                        StatementExecutor.ENTITY_UPDATE_USERNAME_MAP_KEY, getCoercer().coerce(entityUpdateUsernameInRecord, String.class),
+                        StatementExecutor.ENTITY_UPDATE_USER_ID_MAP_KEY, getCoercer().coerce(entityUpdateUserIdInRecord, getIdentifierProvider().getType()),
+                        StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY, getCoercer().coerce(entityUpdateTimestampInRecord, OffsetDateTime.class)
                 ));
             } finally {
                 rdbmsBuilder.getConstantFields().remove();
@@ -301,7 +282,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final EClass referenceHolder = reference.getEContainingClass();
 
             final SubSelect _query;
-            if (!AsmUtils.isEntityType(referenceHolder) && !asm.isMappedTransferObjectType(referenceHolder)) {
+            if (!AsmUtils.isEntityType(referenceHolder) && !asmUtils.isMappedTransferObjectType(referenceHolder)) {
                 _query = queryFactory.getNavigation(reference).get();
             } else {
                 final Select base = queryFactory.getQuery(reference.getEContainingClass()).get();
@@ -535,16 +516,16 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             log.debug("Running chunk: {}", chunk);
             final MapSqlParameterSource sqlParameters = new MapSqlParameterSource();
             if (chunk.parentIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> coercer.coerce(id, rdbmsParameterMapper.getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
             }
             if (chunk.instanceIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()), chunk.instanceIds.stream().map(id -> coercer.coerce(id, rdbmsParameterMapper.getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()), chunk.instanceIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
             }
 
             // key used to identify parent instance in subselects
             final String parentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
 
-            final String sql = resultSetHandler.toSql("", false, coercer, sqlParameters, ECollections.emptyEMap());
+            final String sql = resultSetHandler.toSql("", false, getCoercer(), sqlParameters, ECollections.emptyEMap());
             log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
             log.debug("Parameters: {}", sqlParameters.getValues());
 
@@ -606,8 +587,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             if (!foundTargets.isEmpty()) {
                                 foundTargets.forEach(target -> {
                                     log.trace("    - id target: {}", target);
-                                    final ID id = coercer.coerce(field.getValue(), identifierProvider.getType());
-                                    recordsByTarget.get(target).put(identifierProvider.getName(), id);
+                                    final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
+                                    recordsByTarget.get(target).put(getIdentifierProvider().getName(), id);
 
                                     idsByTarget.put(target, id);
                                     if (id == null) {
@@ -633,9 +614,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                                 final Object value;
                                                 if (ENTITY_CREATE_TIMESTAMP_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_TIMESTAMP_MAP_KEY.equals(e.getKey())) {
-                                                    value = coercer.coerce(field.getValue(), OffsetDateTime.class);
+                                                    value = getCoercer().coerce(field.getValue(), OffsetDateTime.class);
                                                 } else if (ENTITY_CREATE_USER_ID_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_USER_ID_MAP_KEY.equals(e.getKey())) {
-                                                    value = coercer.coerce(field.getValue(), identifierProvider.getType());
+                                                    value = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                                                 } else {
                                                     value = field.getValue();
                                                 }
@@ -647,7 +628,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         }
                                     });
                         } else if (chunk.parentIds != null && parentKey != null && parentKey.equalsIgnoreCase(field.getKey())) {
-                            final ID id = coercer.coerce(field.getValue(), identifierProvider.getType());
+                            final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                             log.trace("    - parent key: {}", parentKey);
                             recordsByTarget.get(query.getSelect().getMainTarget()).getAs(Collection.class, parentKey).add(id);
                         } else {
@@ -672,7 +653,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         Object value = field.getValue();
                                         if (customTypeName.isPresent()) {
                                             log.debug("Using custom type: {}", customTypeName.get());
-                                            final Optional<EDataType> dataType = asm.resolve(customTypeName.get()).filter(type -> type instanceof EDataType).map(type -> (EDataType) type);
+                                            final Optional<EDataType> dataType = asmUtils.resolve(customTypeName.get()).filter(type -> type instanceof EDataType).map(type -> (EDataType) type);
                                             checkArgument(dataType.isPresent(), "Unknown data type: " + customTypeName.get());
                                             className = dataTypeManager.getCustomTypeName(dataType.get()).orElse(null);
                                             checkArgument(className != null, "Unregistered custom type: " + dataType.get().getInstanceClassName());
@@ -683,7 +664,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         } else {
                                             className = attribute.getEAttributeType().getInstanceClassName();
                                         }
-                                        convertedValue = coercer.coerce(value, className);
+                                        convertedValue = getCoercer().coerce(value, className);
                                     } else {
                                         convertedValue = null;
                                     }
@@ -744,7 +725,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
                                     }
                                 } else if (idsByTarget.isEmpty() && AsmUtils.equals(query.getSelect().getMainTarget(), target)) {
-                                    final ID tmpId = coercer.coerce(UUID.randomUUID(), rdbmsParameterMapper.getIdClassName());
+                                    final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
                                     results.get(target).put(tmpId, recordsByTarget.get(target));
                                 }
                             });
@@ -868,8 +849,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     container.put(subSelect.getTransferRelation().getName(), subQueryRecord);
                 } else if (!many && initialized) {
                     log.info("Single containment is already set: {}", AsmUtils.getReferenceFQName(subSelect.getTransferRelation()));
-                    final Object containmentId = ((Payload) containment).get(identifierProvider.getName());
-                    final Object subQueryRecordId = subQueryRecord.get(identifierProvider.getName());
+                    final Object containmentId = ((Payload) containment).get(getIdentifierProvider().getName());
+                    final Object subQueryRecordId = subQueryRecord.get(getIdentifierProvider().getName());
                     if (!Objects.equals(containmentId, subQueryRecordId)) {
                         log.warn("Single containment is already set with different ID: {} != {}", containmentId, subQueryRecordId);
                     }

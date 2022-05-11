@@ -14,6 +14,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.lambda.Unchecked;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -36,44 +37,44 @@ class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> 
 
     @Builder
     public EntityExistsValidationStatementExecutor(
-            AsmModel asmModel,
-            RdbmsModel rdbmsModel,
-            TransformationTraceService transformationTraceService,
-            RdbmsParameterMapper rdbmsParameterMapper,
-            Coercer coercer,
-            IdentifierProvider<ID> identifierProvider,
-            Dialect dialect) {
+            @NonNull AsmModel asmModel,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull TransformationTraceService transformationTraceService,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsResolver rdbmsResolver,
+            @NonNull Coercer coercer,
+            @NonNull IdentifierProvider<ID> identifierProvider) {
 
-        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
     public void executeEntityExistsValidationStatements(
             NamedParameterJdbcTemplate jdbcTemplate,
             List<Statement<ID>> statements) {
 
-        RdbmsResolver rdbms = new RdbmsResolver(asmModel, transformationTraceService);
-
         statements.stream()
                 .filter(InstanceExistsValidationStatement.class :: isInstance)
                 .map(o -> (InstanceExistsValidationStatement<ID>) o)
                 .forEach(Unchecked.consumer(statement -> {
 
-        String tableName = rdbms.rdbmsTable(statement.getInstance().getType()).getSqlName();
+        String tableName = getRdbmsResolver().rdbmsTable(statement.getInstance().getType()).getSqlName();
         ID identifier = statement.getInstance().getIdentifier();
 
-        String sql = "SELECT count(1) FROM " + tableName + " WHERE ID = :" + identifierProvider.getName();
+        String sql = "SELECT count(1) FROM " + tableName + " WHERE ID = :" + getIdentifierProvider().getName();
 
         log.debug("EntityExistsCheck: " + AsmUtils.getClassifierFQName(statement.getInstance().getType()) +
                 " " + tableName + " ID: " + identifier + " SQL: " + sql);
 
         SqlParameterSource namedParameters = new MapSqlParameterSource()
-                .addValue(identifierProvider.getName(), coercer.coerce(statement.getInstance().getIdentifier(), rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
+                .addValue(getIdentifierProvider().getName(),
+                        getCoercer().coerce(statement.getInstance().getIdentifier(),
+                                getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
         int count = jdbcTemplate.queryForObject(sql, namedParameters, Integer.class);
 
         if (count == 0) {
             final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(identifierProvider.getName(), identifier);
+            details.put(getIdentifierProvider().getName(), identifier);
             details.put(ENTITY_TYPE_MAP_KEY, AsmUtils.getClassifierFQName(statement.getInstance().getType()));
             throw new ValidationException("Instance not found", Collections.singleton(FeedbackItem.builder()
                     .code("ENTITY_NOT_FOUND")

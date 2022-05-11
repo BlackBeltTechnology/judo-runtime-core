@@ -6,13 +6,8 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
-import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuilderConfig;
-import hu.blackbelt.judo.meta.expression.builder.jql.asm.AsmJqlExtractor;
-import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
-import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
@@ -23,9 +18,7 @@ import hu.blackbelt.judo.runtime.core.dao.core.values.Metadata;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
-import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
-import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.*;
@@ -33,8 +26,6 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
-import org.eclipse.emf.ecore.resource.ResourceSet;
-import org.eclipse.emf.ecore.resource.impl.ResourceSetImpl;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
@@ -74,118 +65,61 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private final AsmModel asmModel;
 
-    private final RdbmsModel rdbmsModel;
-
-    private final MeasureModel measureModel;
-
     private final DataSource dataSource;
-
-    private final TransformationTraceService transformationTraceService;
 
     @Getter
     private final IdentifierProvider<ID> identifierProvider;
 
     private final InstanceCollector<ID> instanceCollector;
 
-    private final Dialect dialect;
+    private final QueryFactory queryFactory;
 
     private final boolean optimisticLockEnabled;
 
-    private final int chunkSize;
-
     private final boolean markSelectedRangeItems;
-
-    private final VariableResolver variableResolver;
 
     private final Context context;
 
     private final MetricsCollector metricsCollector;
 
-    private final JqlExpressionBuilderConfig jqlExpressionBuilderConfig;
-
-    private SelectStatementExecutor<ID> selectStatementExecutor;
-
-    private ResourceSet measureModelResourceSet;
+    private final SelectStatementExecutor<ID> selectStatementExecutor;
 
     @Getter
-    private final EMap<EReference, CustomJoinDefinition> customJoinDefinitions = ECollections.asEMap(new ConcurrentHashMap<>());
-
-    @Getter
-    private AsmUtils asmUtils;
-
-    @Getter
-    private RdbmsResolver rdbmsResolver;
-
-    private final RdbmsParameterMapper rdbmsParameterMapper;
+    private final AsmUtils asmUtils;
 
     private final ModifyStatementExecutor modifyStatementExecutor;
 
 
     @Builder
     private RdbmsDAOImpl(
-            @NonNull Dialect dialect,
             @NonNull DataTypeManager dataTypeManager,
             @NonNull AsmModel asmModel,
-            @NonNull RdbmsModel rdbmsModel,
             @NonNull DataSource dataSource,
-            @NonNull TransformationTraceService transformationTraceService,
             @NonNull IdentifierProvider<ID> identifierProvider,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
-            @NonNull VariableResolver variableResolver,
             @NonNull Context context,
             @NonNull MetricsCollector metricsCollector,
             @NonNull InstanceCollector<ID> instanceCollector,
-            JqlExpressionBuilderConfig jqlExpressionBuilderConfig,
-            MeasureModel measureModel,
+            @NonNull ModifyStatementExecutor modifyStatementExecutor,
+            @NonNull SelectStatementExecutor selectStatementExecutor,
+            @NonNull QueryFactory queryFactory,
             Boolean optimisticLockEnabled,
-            Integer chunkSize,
             Boolean markSelectedRangeItems) {
         this.dataTypeManager = dataTypeManager;
         this.asmModel = asmModel;
-        this.rdbmsModel = rdbmsModel;
-        this.measureModel = measureModel;
         this.dataSource = dataSource;
-        this.transformationTraceService = transformationTraceService;
         this.identifierProvider = identifierProvider;
         this.instanceCollector = instanceCollector;
-        this.rdbmsParameterMapper = rdbmsParameterMapper;
+        this.queryFactory = queryFactory;
 
         this.optimisticLockEnabled = requireNonNullElse(optimisticLockEnabled, true);
-        this.chunkSize = requireNonNullElse(chunkSize, 1000);
         this.markSelectedRangeItems = requireNonNullElse(markSelectedRangeItems, false);
-        this.jqlExpressionBuilderConfig = requireNonNullElse(jqlExpressionBuilderConfig, new JqlExpressionBuilderConfig());
 
-        this.variableResolver = variableResolver;
         this.context = context;
         this.metricsCollector = metricsCollector;
-        this.dialect = dialect;
-        this.measureModelResourceSet = requireNonNullElse(measureModel.getResourceSet(), new ResourceSetImpl());
 
-        modifyStatementExecutor = ModifyStatementExecutor.<ID>builder()
-                .asmModel(this.asmModel)
-                .rdbmsModel(this.rdbmsModel)
-                .transformationTraceService(this.transformationTraceService)
-                .rdbmsParameterMapper(this.rdbmsParameterMapper)
-                .coercer(this.dataTypeManager.getCoercer())
-                .identifierProvider(this.getIdentifierProvider())
-                .dialect(this.dialect)
-                .build();
-
-        selectStatementExecutor = SelectStatementExecutor.<ID>builder()
-                .asmModel(this.asmModel)
-                .rdbmsModel(this.rdbmsModel)
-                .measureModel(this.measureModel)
-                .queryFactory(this.getQueryFactory())
-                .dataTypeManager(this.dataTypeManager)
-                .identifierProvider(this.identifierProvider)
-                .variableResolver(this.variableResolver)
-                .metricsCollector(this.metricsCollector)
-                .chunkSize(this.chunkSize)
-                .transformationTraceService(this.transformationTraceService)
-                .rdbmsParameterMapper(this.rdbmsParameterMapper)
-                .dialect(dialect).build();
-
-        asmUtils = new AsmUtils(this.asmModel.getResourceSet());
+        this.selectStatementExecutor = selectStatementExecutor;
+        this.modifyStatementExecutor = modifyStatementExecutor;
+        this.asmUtils = new AsmUtils(this.asmModel.getResourceSet());
     }
 
     @Builder.Default
@@ -221,26 +155,10 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .collect(Collectors.toList()), checked);
     }
 
-    private QueryFactory cachedQueryFactory = null;
-
-    @Override
-    protected QueryFactory getQueryFactory() {
-        if (cachedQueryFactory == null) {
-            final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(asmModel.getResourceSet(),
-                    measureModelResourceSet, URI.createURI("expr:" + asmModel.getName()), jqlExpressionBuilderConfig);
-            cachedQueryFactory = new QueryFactory(asmModel.getResourceSet(),
-                    measureModelResourceSet,
-                    asmJqlExtractor.extractExpressions(),
-                    dataTypeManager.getCoercer(),
-                    customJoinDefinitions);
-        }
-        return cachedQueryFactory;
-    }
-
     protected InsertPayloadDaoProcessor getInsertPayloadProcessor(Metadata metadata) {
         return new InsertPayloadDaoProcessor<ID>(asmModel.getResourceSet(),
                 getIdentifierProvider(),
-                getQueryFactory(),
+                queryFactory,
                 instanceCollector,
                 getDefaultValuesProvider(),
                 metadata);
@@ -249,14 +167,14 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     protected DeletePayloadDaoProcessor getDeletePayloadProcessor() {
         return new DeletePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
-                getQueryFactory(),
+                queryFactory,
                 instanceCollector);
     }
 
     protected UpdatePayloadDaoProcessor getUpdatePayloadProcessor(Metadata metadata) {
         return new UpdatePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
-                getQueryFactory(),
+                queryFactory,
                 instanceCollector,
                 getDefaultValuesProvider(),
                 metadata,
@@ -266,14 +184,14 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     protected AddReferencePayloadDaoProcessor getAddReferencePayloadProcessor() {
         return new AddReferencePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
-                getQueryFactory(),
+                queryFactory,
                 instanceCollector);
     }
 
     protected RemoveReferencePayloadDaoProcessor getRemoveReferencePayloadProcessor() {
         return new RemoveReferencePayloadDaoProcessor(asmModel.getResourceSet(),
                 getIdentifierProvider(),
-                getQueryFactory(),
+                queryFactory,
                 instanceCollector);
     }
 
@@ -815,7 +733,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             currentReferences = Collections.emptySet();
         }
 
-        if (getQueryFactory().isStaticReference(rangeTransferRelation)) {
+        if (queryFactory.isStaticReference(rangeTransferRelation)) {
             return searchReferencedInstancesOf(rangeTransferRelation, rangeTransferRelation.getEReferenceType(), queryCustomizer).stream()
                     .map(p -> markSelected.apply(p, currentReferences))
                     .collect(Collectors.toList());

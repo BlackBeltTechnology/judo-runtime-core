@@ -17,6 +17,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -47,12 +48,15 @@ import static java.util.stream.Stream.*;
 class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
-    public AddReferenceStatementExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                         TransformationTraceService transformationTraceService,
-                                         RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
-                                         IdentifierProvider<ID> identifierProvider,
-                                         Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
+    public AddReferenceStatementExecutor(
+            @NonNull AsmModel asmModel,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull TransformationTraceService transformationTraceService,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsResolver rdbmsResolver,
+            @NonNull Coercer coercer,
+            @NonNull IdentifierProvider<ID> identifierProvider) {
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
     /**
@@ -63,8 +67,6 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
      */
     public void executeAddReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
                                               Collection<ReferenceStatement<ID>> statements) {
-
-        RdbmsResolver rdbms = new RdbmsResolver(asmModel, transformationTraceService);
 
         Map<ID, EClass> statementBased = statements.stream()
                 .collect(Collectors.toMap(
@@ -126,21 +128,21 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                 MapSqlParameterSource updateStatementNamedParameters =
                                         new MapSqlParameterSource().addValue(
-                                                identifierProvider.getName(),
-                                                coercer.coerce(identifier.get(), rdbmsParameterMapper.getIdClassName()),
-                                                rdbmsParameterMapper.getIdSqlType());
+                                                getIdentifierProvider().getName(),
+                                                getCoercer().coerce(identifier.get(), getRdbmsParameterMapper().getIdClassName()),
+                                                getRdbmsParameterMapper().getIdSqlType());
 
                                 updateStatementNamedParameters.addValue(
                                         getReferenceFQName(reference),
-                                        coercer.coerce(referenceIdentifier.get(), rdbmsParameterMapper.getIdClassName()),
-                                        rdbmsParameterMapper.getIdSqlType());
+                                        getCoercer().coerce(referenceIdentifier.get(), getRdbmsParameterMapper().getIdClassName()),
+                                        getRdbmsParameterMapper().getIdSqlType());
 
-                                String tableName = rdbms.rdbmsTable(entity.get()).getSqlName();
+                                String tableName = getRdbmsResolver().rdbmsTable(entity.get()).getSqlName();
 
                                 String sql =
-                                        "UPDATE " + tableName + " SET " + rdbms.rdbmsField(reference).getSqlName() +
+                                        "UPDATE " + tableName + " SET " + getRdbmsResolver().rdbmsField(reference).getSqlName() +
                                                 " = :" + getReferenceFQName(reference)
-                                                + " WHERE " + ID_COLUMN_NAME + " = :" + identifierProvider.getName();
+                                                + " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName();
 
                                 log.debug("Add reference: " + getClassifierFQName(
                                         entityForCurrentStatement) + " " + tableName +
@@ -165,16 +167,16 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                 )
                 .forEach(r -> {
 
-                    RdbmsTable joinTable = rdbms.rdbmsJunctionTable(r.getReference());
-                    RdbmsField aFk = rdbms.rdbmsJunctionOppositeField(r.getReference());
-                    RdbmsField bFk = rdbms.rdbmsJunctionField(r.getReference());
+                    RdbmsTable joinTable = getRdbmsResolver().rdbmsJunctionTable(r.getReference());
+                    RdbmsField aFk = getRdbmsResolver().rdbmsJunctionOppositeField(r.getReference());
+                    RdbmsField bFk = getRdbmsResolver().rdbmsJunctionField(r.getReference());
                     ID aId = r.getIdentifier();
                     ID bId = r.getOppositeIdentifier();
 
                     SqlParameterSource jointPairNamedParameters = new MapSqlParameterSource()
-                            .addValue("id", coercer.coerce(UUID.randomUUID(), rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType())
-                            .addValue("aId", coercer.coerce(aId, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType())
-                            .addValue("bId", coercer.coerce(bId, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
+                            .addValue("id", getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType())
+                            .addValue("aId", getCoercer().coerce(aId, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType())
+                            .addValue("bId", getCoercer().coerce(bId, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
                     // Check existence of the given ID pair.
                     String exitenceCheckSql = "SELECT count(1) FROM " + joinTable.getSqlName() + " WHERE " +

@@ -13,7 +13,6 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.esm.runtime.EsmEpsilonValidator;
 import hu.blackbelt.judo.meta.esm.runtime.EsmModel;
-import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuilderConfig;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
@@ -25,6 +24,11 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsUtils;
 import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
 import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.script.codegen.generator.Script2JavaGenerator;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
@@ -106,6 +110,8 @@ public class RdbmsDaoFixture {
     public static final long SEQUENCE_INCREMENT = 2L;
     public final Context context = new ThreadContext(DATA_TYPE_MANAGER);
     public DefaultVariableResolver variableResolver = new DefaultVariableResolver(DATA_TYPE_MANAGER, context);
+
+    public QueryFactory queryFactory;
 
     public static final TokenIssuer FILESTORE_TOKEN_ISSUER = new TokenIssuer() {
         @Override
@@ -508,39 +514,64 @@ public class RdbmsDaoFixture {
 
     public DAO<UUID> getDao() {
         if (cachedDao == null) {
-            JqlExpressionBuilderConfig expressionBuilderConfig = new JqlExpressionBuilderConfig();
-            expressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
 
-            /*
-                        @NonNull Dialect dialect,
-            @NonNull DataTypeManager dataTypeManager,
-            @NonNull AsmModel asmModel,
-            @NonNull RdbmsModel rdbmsModel,
-            @NonNull DataSource dataSource,
-            @NonNull TransformationTraceService transformationTraceService,
-            @NonNull IdentifierProvider<ID> identifierProvider,
-            @NonNull VariableResolver variableResolver,
-            @NonNull Context context,
-            @NonNull MetricsCollector metricsCollector,
+            queryFactory = QueryFactory.builder()
+                    .asmResourceSet(asmModel.getResourceSet())
+                    .coercer(DATA_TYPE_MANAGER.getCoercer())
+                    .expressionResourceSet(expressionModel.getResourceSet())
+                    .measureResourceSet(measureModel.getResourceSet())
+                    .build();
 
-             */
+            RdbmsBuilder rdbmsBuilder = RdbmsBuilder.builder()
+                    .ancestorNameFactory(new AncestorNameFactory(asmUtils.all(EClass.class)))
+                    .asmUtils(asmUtils)
+                    .coercer(DATA_TYPE_MANAGER.getCoercer())
+                    .dialect(dialect)
+                    .rdbmsResolver(rdbmsResolver)
+                    .identifierProvider(getIdProvider())
+                    .parameterMapper(rdbmsParameterMapper)
+                    .rdbmsModel(rdbmsModel)
+                    .variableResolver(variableResolver)
+                    .build();
+
+            ModifyStatementExecutor modifyStatementExecutor = ModifyStatementExecutor.<UUID>builder()
+                    .coercer(DATA_TYPE_MANAGER.getCoercer())
+                    .rdbmsModel(rdbmsModel)
+                    .rdbmsParameterMapper(rdbmsParameterMapper)
+                    .identifierProvider(getIdProvider())
+                    .transformationTraceService(transformationTraceService)
+                    .asmModel(asmModel)
+                    .rdbmsResolver(rdbmsResolver)
+                    .build();
+
+            SelectStatementExecutor selectStatementExecutor = SelectStatementExecutor.<UUID>builder()
+                    .queryFactory(queryFactory)
+                    .asmModel(asmModel)
+                    .chunkSize(CHUNK_SIZE)
+                    .dataTypeManager(DATA_TYPE_MANAGER)
+                    .identifierProvider(getIdProvider())
+                    .measureModel(measureModel)
+                    .rdbmsBuilder(rdbmsBuilder)
+                    .metricsCollector(metricsCollector)
+                    .rdbmsParameterMapper(rdbmsParameterMapper)
+                    .rdbmsModel(rdbmsModel)
+                    .transformationTraceService(transformationTraceService)
+                    .rdbmsResolver(rdbmsResolver)
+                    .build();
+
             cachedDao = RdbmsDAOImpl.<UUID>builder()
                     .dataTypeManager(DATA_TYPE_MANAGER)
                     .asmModel(asmModel)
-                    .measureModel(measureModel)
-                    .rdbmsModel(rdbmsModel)
                     .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
-                    .transformationTraceService(transformationTraceService)
                     .identifierProvider(new UUIDIdentifierProvider())
-                    .dialect(dialect)
-                    .variableResolver(variableResolver)
                     .context(context)
                     .optimisticLockEnabled(true)
                     .markSelectedRangeItems(false)
                     .metricsCollector(metricsCollector)
-                    .rdbmsParameterMapper(rdbmsParameterMapper)
                     .instanceCollector(getRdbmsInstanceCollector())
-                    .jqlExpressionBuilderConfig(expressionBuilderConfig)
+                    .modifyStatementExecutor(modifyStatementExecutor)
+                    .selectStatementExecutor(selectStatementExecutor)
+                    .queryFactory(queryFactory)
                     .build();
 
             variableResolver.registerSupplier("SYSTEM", "current_timestamp", new CurrentTimestampProvider(), false);
@@ -560,7 +591,7 @@ public class RdbmsDaoFixture {
     }
 
     public void addCustomJoinDefinition(final EReference reference, final CustomJoinDefinition customJoinDefinition) {
-        cachedDao.getCustomJoinDefinitions().put(reference, customJoinDefinition);
+        queryFactory.getCustomJoinDefinitions().put(reference, customJoinDefinition);
     }
 
     public IdentifierProvider<UUID> getIdProvider() {

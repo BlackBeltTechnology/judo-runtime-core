@@ -450,9 +450,9 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected abstract AsmUtils getAsmUtils();
 
-    protected abstract RdbmsResolver getRdbmsResolver();
+//    protected abstract RdbmsResolver getRdbmsResolver();
 
-    protected abstract QueryFactory getQueryFactory();
+//    protected abstract QueryFactory getQueryFactory();
 
     protected abstract IdentifierProvider<ID> getIdentifierProvider();
 

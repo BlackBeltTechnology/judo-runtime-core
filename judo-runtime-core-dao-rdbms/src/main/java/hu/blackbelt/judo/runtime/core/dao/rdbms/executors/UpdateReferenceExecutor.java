@@ -13,6 +13,8 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -37,11 +39,16 @@ import static org.jooq.lambda.Unchecked.consumer;
 @Slf4j(topic = "dao-rdbms")
 class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
 
-    public UpdateReferenceExecutor(AsmModel asmModel, RdbmsModel rdbmsModel,
-                                   TransformationTraceService transformationTraceService,
-                                   RdbmsParameterMapper rdbmsParameterMapper, Coercer coercer,
-                                   IdentifierProvider<ID> identifierProvider, Dialect dialect) {
-        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, coercer, identifierProvider, dialect);
+    @Builder
+    public UpdateReferenceExecutor(
+            @NonNull AsmModel asmModel,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull TransformationTraceService transformationTraceService,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsResolver rdbmsResolver,
+            @NonNull Coercer coercer,
+            IdentifierProvider<ID> identifierProvider) {
+        super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
     /**
@@ -55,7 +62,6 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
                                         Collection<AddReferenceStatement<ID>> updateReferenceStatements
                                         ) {
 
-        RdbmsResolver rdbms = new RdbmsResolver(asmModel, transformationTraceService);
 
         updateReferenceStatements.forEach(consumer(updateStatement -> {
 
@@ -76,30 +82,30 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
                             .forEach(entityForCurrentStatement -> {
 
                                 MapSqlParameterSource updateStatementNamedParameters = new MapSqlParameterSource()
-                                        .addValue(identifierProvider.getName(), coercer.coerce(identifier, rdbmsParameterMapper.getIdClassName()), rdbmsParameterMapper.getIdSqlType());
+                                        .addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
                                 Map<EReference, Object> updateReferenceMapForCurrentStatement = updateReferenceMap.entrySet().stream()
                                         .filter(e -> (e.getKey().getReference().eContainer().equals(entityForCurrentStatement)) ||
                                                 (e.getKey().getReference().getEReferenceType().equals(entityForCurrentStatement)))
                                         .collect(toMap(e -> e.getKey().getReference(), Map.Entry::getValue));
 
-                                rdbms.logReferenceParameters(updateReferenceMapForCurrentStatement);
-                                rdbmsParameterMapper.mapReferenceParameters(updateStatementNamedParameters, updateReferenceMapForCurrentStatement);
+                                getRdbmsResolver().logReferenceParameters(updateReferenceMapForCurrentStatement);
+                                getRdbmsParameterMapper().mapReferenceParameters(updateStatementNamedParameters, updateReferenceMapForCurrentStatement);
 
                                 Map<String, String> fields =
                                                 updateReferenceMapForCurrentStatement.keySet().stream()
                                                         .collect(toMap(
                                                                 e -> e.getName(),
-                                                                e -> rdbms.rdbmsField(e).getSqlName()))
+                                                                e -> getRdbmsResolver().rdbmsField(e).getSqlName()))
                                                         .entrySet().stream().collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
                                 if (fields.size() > 0) {
 
-                                    String tableName = rdbms.rdbmsTable(entityForCurrentStatement).getSqlName();
+                                    String tableName = getRdbmsResolver().rdbmsTable(entityForCurrentStatement).getSqlName();
 
                                     String sql = "UPDATE  " + tableName + " SET " +
                                             fields.entrySet().stream().map(e -> e.getValue() + " = :" + e.getKey()).collect(Collectors.joining(", ")) +
-                                            " WHERE " + ID_COLUMN_NAME + " = :" + identifierProvider.getName();
+                                            " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName();
 
                                     log.debug("Update: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
                                             " ID: " + identifier +
