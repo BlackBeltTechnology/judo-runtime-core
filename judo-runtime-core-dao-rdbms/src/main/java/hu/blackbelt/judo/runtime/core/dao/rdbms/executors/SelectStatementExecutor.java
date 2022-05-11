@@ -32,7 +32,6 @@ import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
@@ -41,8 +40,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
-import hu.blackbelt.mapper.api.Coercer;
-import hu.blackbelt.mapper.api.ExtendableCoercer;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.*;
@@ -62,30 +59,21 @@ import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 
 @Slf4j
 public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
-
-    private final MeasureModel measureModel;
-
-    private final Translator translator = new Translator();
-    private final MetricsCollector metricsCollector;
-
-    private final RdbmsBuilder rdbmsBuilder;
-
-    private final QueryFactory queryFactory;
-
-    private final DataTypeManager dataTypeManager;
-
     private static final String METRICS_SELECT_PREPARE = "select-prepare";
     private static final String METRICS_SELECT_PROCESSING = "select-processing";
     private static final String METRICS_SELECT_QUERY = "select-query";
 
+    private final Translator translator = new Translator();
+    private final MetricsCollector metricsCollector;
+    private final RdbmsBuilder rdbmsBuilder;
+    private final QueryFactory queryFactory;
+    private final DataTypeManager dataTypeManager;
     private final int chunkSize;
-
     private final AsmUtils asmUtils;
 
     @Builder
     public SelectStatementExecutor(@NonNull final AsmModel asmModel,
                                    @NonNull final RdbmsModel rdbmsModel,
-                                   @NonNull final MeasureModel measureModel,
                                    @NonNull final TransformationTraceService transformationTraceService,
                                    @NonNull final QueryFactory queryFactory,
                                    @NonNull final RdbmsParameterMapper rdbmsParameterMapper,
@@ -94,10 +82,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                    @NonNull final IdentifierProvider<ID> identifierProvider,
                                    @NonNull final RdbmsBuilder rdbmsBuilder,
                                    @NonNull final MetricsCollector metricsCollector,
-                                   @NonNull final int chunkSize) {
+                                   @NonNull final Integer chunkSize) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, dataTypeManager.getCoercer(),
                 identifierProvider);
-        this.measureModel = measureModel;
         this.queryFactory = queryFactory;
         this.dataTypeManager = dataTypeManager;
         this.metricsCollector = metricsCollector;
@@ -491,7 +478,17 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         log.debug("Instance IDs: {}", instanceIds);
         log.debug("Parent IDs: {}", parentIds);
 
-        final RdbmsResultSet resultSetHandler = new RdbmsResultSet(query, instanceIds != null, parentIds != null ? query : null, rdbmsBuilder, seek, withoutFeatures, mask, queryParameters, skipParents);
+        final RdbmsResultSet resultSetHandler = RdbmsResultSet.builder()
+                .query(query)
+                .filterByInstances(instanceIds != null)
+                .parentIdFilterQuery(parentIds != null ? query : null)
+                .rdbmsBuilder(rdbmsBuilder)
+                .seek(seek)
+                .withoutFeatures(withoutFeatures)
+                .mask(mask)
+                .queryParameters(queryParameters)
+                .skipParents(skipParents)
+                .build();
 
         final List<Chunk<ID>> chunks = new ArrayList<>();
         if (parentIds != null) {

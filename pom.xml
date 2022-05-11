@@ -238,13 +238,45 @@
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>${jacoco.version}</version>
                 </plugin>
-            </plugins>
+
+        		<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+        		<plugin>
+        			<groupId>org.eclipse.m2e</groupId>
+        			<artifactId>lifecycle-mapping</artifactId>
+        			<version>1.0.0</version>
+        			<configuration>
+        				<lifecycleMappingMetadata>
+        					<pluginExecutions>
+        						<pluginExecution>
+        							<pluginExecutionFilter>
+        								<groupId>
+        									org.codehaus.mojo
+        								</groupId>
+        								<artifactId>
+        									flatten-maven-plugin
+        								</artifactId>
+        								<versionRange>
+        									[1.1.0,)
+        								</versionRange>
+        								<goals>
+        									<goal>flatten</goal>
+        								</goals>
+        							</pluginExecutionFilter>
+        							<action>
+        								<ignore></ignore>
+        							</action>
+        						</pluginExecution>
+        					</pluginExecutions>
+        				</lifecycleMappingMetadata>
+        			</configuration>
+        		</plugin>
+        	</plugins>
         </pluginManagement>
+
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <id>add-source</id>
@@ -401,6 +433,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.google.inject</groupId>
+                <artifactId>guice</artifactId>
+                <version>5.1.0</version><!--$NO-MVN-MAN-VER$-->
+            </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.tatami</groupId>
                 <artifactId>judo-tatami-northwind-psm</artifactId>
@@ -610,6 +647,21 @@
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-dao-rdbms-hsqldb</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-dao-rdbms-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-dao-rdbms-itest</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
                 <artifactId>judo-runtime-core-expression</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -707,6 +759,9 @@
                 <module>judo-runtime-core</module>
                 <module>judo-runtime-core-dao-core</module>
                 <module>judo-runtime-core-dao-rdbms</module>
+                <module>judo-runtime-core-dao-rdbms-hsqldb</module>
+                <module>judo-runtime-core-dao-rdbms-postgresql</module>
+                <module>judo-runtime-core-dao-rdbms-itest</module>
                 <module>judo-runtime-core-expression</module>
                 <module>judo-runtime-core-query</module>
                 <module>judo-runtime-core-dispatcher</module>

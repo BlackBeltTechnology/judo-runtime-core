@@ -7,7 +7,7 @@ import java.util.Collection;
 public class ValidationException extends ClientException {
 
     @Getter
-    private Collection<FeedbackItem> feedbackItems;
+    private final Collection<FeedbackItem> feedbackItems;
 
     public ValidationException(final Collection<FeedbackItem> feedbackItems) {
         super();

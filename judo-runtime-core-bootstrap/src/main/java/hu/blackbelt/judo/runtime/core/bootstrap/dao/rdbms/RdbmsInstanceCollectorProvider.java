@@ -37,9 +37,6 @@ public class RdbmsInstanceCollectorProvider implements Provider<InstanceCollecto
     @Inject
     RdbmsParameterMapper rdbmsParameterMapper;
 
-    @Inject
-    Dialect dialect;
-
     @Override
     public InstanceCollector get() {
         InstanceCollector instanceCollector = RdbmsInstanceCollector.builder()
@@ -50,7 +47,6 @@ public class RdbmsInstanceCollectorProvider implements Provider<InstanceCollecto
                 .coercer(dataTypeManager.getCoercer())
                 .rdbmsParameterMapper(rdbmsParameterMapper)
                 .identifierProvider(identifierProvider)
-                .dialect(dialect)
                 .build();
         return instanceCollector;
     }

@@ -1,14 +1,8 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+public interface Dialect {
 
-import java.util.Arrays;
-import java.util.Objects;
-
-@AllArgsConstructor
-public enum Dialect {
-
+    /*
     POSTGRESQL("postgresql") {
         @Override
         public String getDualTable() {
@@ -37,6 +31,8 @@ public enum Dialect {
                 .findFirst()
                 .orElse(null);
     }
+    */
 
-    public abstract String getDualTable();
+    String getDualTable();
+
 }

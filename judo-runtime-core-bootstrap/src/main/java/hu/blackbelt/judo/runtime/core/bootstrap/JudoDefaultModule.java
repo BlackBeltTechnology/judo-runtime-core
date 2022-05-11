@@ -18,8 +18,10 @@ import hu.blackbelt.judo.runtime.core.bootstrap.core.DataTypeManagerProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.core.UUIDIdentifierProviderProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.*;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbAtomikosDataSourceProvider;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbMapperFactoryProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbRdbmsParameterMapperProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbRdbmsSequenceProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.*;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
@@ -27,7 +29,9 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
@@ -47,7 +51,7 @@ import java.util.function.Consumer;
 
 import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED;
-import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsSequenceProvider.*;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbRdbmsSequenceProvider.*;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider.*;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultDispatcherProvider.*;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultIdentifierSignerProvider.IDENTIFIER_SIGNER_SECRET;
@@ -94,7 +98,7 @@ public class JudoDefaultModule extends AbstractModule {
 
         // Datasource
         bind(DataSource.class).toProvider(HsqldbAtomikosDataSourceProvider.class).in(Singleton.class);
-        bind(Dialect.class).toInstance(Dialect.HSQLDB);
+        bind(Dialect.class).toInstance(new HsqldbDialect());
         bind(TransactionManager.class).toProvider(AtomikosUserTransactionManagerProvider.class).in(Singleton.class);
         bind(RdbmsParameterMapper.class).toProvider(HsqldbRdbmsParameterMapperProvider.class).in(Singleton.class);
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
@@ -107,11 +111,12 @@ public class JudoDefaultModule extends AbstractModule {
         bind(ExtendableCoercer.class).toInstance(new DefaultCoercer());
         bind(DataTypeManager.class).toProvider(DataTypeManagerProvider.class).in(Singleton.class);
         bind(IdentifierProvider.class).toProvider(UUIDIdentifierProviderProvider.class).in(Singleton.class);
-
+        bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);
+        
         bind(IdentifierSigner.class).toProvider(DefaultIdentifierSignerProvider.class).in(Singleton.class);
         bind(String.class).annotatedWith(Names.named(IDENTIFIER_SIGNER_SECRET)).toInstance(generateNewSecret());
 
-        bind(Sequence.class).toProvider(RdbmsSequenceProvider.class).in(Singleton.class);
+        bind(Sequence.class).toProvider(HsqldbRdbmsSequenceProvider.class).in(Singleton.class);
         bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_START)).toInstance(1L);
         bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_INCREMENT)).toInstance(1L);
         bind(Boolean.class).annotatedWith(Names.named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)).toInstance(true);

@@ -6,15 +6,12 @@ import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsDAOImpl;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 
 import javax.sql.DataSource;
@@ -23,9 +20,6 @@ import javax.sql.DataSource;
 public class RdbmsDAOProvider implements Provider<DAO> {
     public static final String RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED = "rdbmsDaoOptimisticLockEnabled";
     public static final String RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS = "rdbmsDaoMarkSelectedRangeItems";
-
-    @Inject
-    private DataTypeManager dataTypeManager;
 
     @Inject
     private JudoModelSpecification models;
@@ -54,9 +48,6 @@ public class RdbmsDAOProvider implements Provider<DAO> {
     @Inject
     private QueryFactory queryFactory;
 
-    @Inject
-    private RdbmsResolver rdbmsResolver;
-
     @Inject(optional = true)
     @Named(RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED)
     private Boolean optimisticLockEnabled = true;
@@ -71,7 +62,6 @@ public class RdbmsDAOProvider implements Provider<DAO> {
         RdbmsDAOImpl.RdbmsDAOImplBuilder builder =  RdbmsDAOImpl.builder()
                 .dataSource(dataSource)
                 .context(context)
-                .dataTypeManager(dataTypeManager)
                 .asmModel(models.getAsmModel())
                 .identifierProvider(identifierProvider)
                 .instanceCollector(instanceCollector)

@@ -24,12 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.util.HashMap;
 
-import static hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel;
-import static hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel;
-import static hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel;
 import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -87,7 +83,9 @@ class JudoDefaultModuleTest {
                 .asm2rdbms(asm2rdbms)
                 .build()));
 
+        @SuppressWarnings("rawtypes")
         DAO dao = injector.getInstance(DAO.class);
+        @SuppressWarnings("rawtypes")
         Sequence sequence = injector.getInstance(Sequence.class);
         Dispatcher dispatcher = injector.getInstance(Dispatcher.class);
         log.info("DAO: " + dao);
@@ -98,6 +96,6 @@ class JudoDefaultModuleTest {
 
     @Test
     void test() {
-        assertEquals(true, true);
+        assertTrue(true);
     }
 }

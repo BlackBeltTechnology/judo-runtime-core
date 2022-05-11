@@ -4,7 +4,6 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
-import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +28,8 @@ public abstract class BehaviourAuthorizer {
             log.trace("Checking {} flag on {} ...", Arrays.asList(flag), element.getName());
         }
 
-        if (!permissions.isPresent() || !Arrays.asList(flag).stream()
-                .anyMatch(f -> Boolean.parseBoolean(permissions.get().getDetails().get(f.permissionName)))) {
+        if (permissions.isEmpty() || Arrays.stream(flag)
+                .noneMatch(f -> Boolean.parseBoolean(permissions.get().getDetails().get(f.permissionName)))) {
             final Optional<? extends ENamedElement> operationOwner = element instanceof EOperation ? asmUtils.getOwnerOfOperationWithDefaultBehaviour((EOperation) element) : Optional.empty();
             final Map<String, Object> details = new LinkedHashMap<>();
             details.put("MISSING_PRIVILEGES", Arrays.asList(flag));
@@ -38,7 +37,7 @@ public abstract class BehaviourAuthorizer {
                 final EAnnotation operationOwnerPermissions = AsmUtils.getExtensionAnnotationByName(operationOwner.get(), "permissions", false)
                         .orElseThrow(() -> new IllegalStateException("Permission denied, no permission annotation found on operation owner"));
 
-                if (!Arrays.asList(flag).stream().anyMatch(f -> Boolean.parseBoolean(operationOwnerPermissions.getDetails().get(f.permissionName)))) {
+                if (Arrays.stream(flag).noneMatch(f -> Boolean.parseBoolean(operationOwnerPermissions.getDetails().get(f.permissionName)))) {
                     log.info("Operation failed, permission denied (by CRUD operation)");
                     details.put("MODEL_ELEMENT", AsmUtils.getOperationFQName((EOperation) element));
                     throw new AccessDeniedException(FeedbackItem.builder()

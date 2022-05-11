@@ -8,7 +8,6 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.core.processors.*;
@@ -42,7 +41,6 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getClassifierFQName;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getReferenceFQName;
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.PayloadTraverser.traversePayload;
 import static java.util.Objects.requireNonNullElse;
@@ -61,38 +59,22 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private static final String ROLLBACK = "ROLLBACK";
     public static final String CREATED = "__$created";
 
-    private final DataTypeManager dataTypeManager;
-
     private final AsmModel asmModel;
-
     private final DataSource dataSource;
-
-    @Getter
-    private final IdentifierProvider<ID> identifierProvider;
-
+    @Getter private final IdentifierProvider<ID> identifierProvider;
     private final InstanceCollector<ID> instanceCollector;
-
     private final QueryFactory queryFactory;
-
     private final boolean optimisticLockEnabled;
-
     private final boolean markSelectedRangeItems;
-
     private final Context context;
-
     private final MetricsCollector metricsCollector;
-
     private final SelectStatementExecutor<ID> selectStatementExecutor;
-
-    @Getter
-    private final AsmUtils asmUtils;
-
+    @Getter private final AsmUtils asmUtils;
     private final ModifyStatementExecutor modifyStatementExecutor;
-
+    private final EMap<EClass, Boolean> hasDefaultsMap = ECollections.asEMap(new ConcurrentHashMap<>());
 
     @Builder
     private RdbmsDAOImpl(
-            @NonNull DataTypeManager dataTypeManager,
             @NonNull AsmModel asmModel,
             @NonNull DataSource dataSource,
             @NonNull IdentifierProvider<ID> identifierProvider,
@@ -104,7 +86,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             @NonNull QueryFactory queryFactory,
             Boolean optimisticLockEnabled,
             Boolean markSelectedRangeItems) {
-        this.dataTypeManager = dataTypeManager;
         this.asmModel = asmModel;
         this.dataSource = dataSource;
         this.identifierProvider = identifierProvider;
@@ -121,9 +102,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         this.modifyStatementExecutor = modifyStatementExecutor;
         this.asmUtils = new AsmUtils(this.asmModel.getResourceSet());
     }
-
-    @Builder.Default
-    private final EMap<EClass, Boolean> hasDefaultsMap = ECollections.asEMap(new ConcurrentHashMap<>());
 
     private Function<EClass, Payload> getDefaultValuesProvider() {
         return (clazz) -> hasDefaults(clazz) ? getDefaultsOf(clazz) : Payload.empty();
@@ -478,39 +456,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return ret;
     }
 
-    private Collection<ID> getExistingIdentifiersFromPayloadByReference(Payload payload, EReference mappedReference) {
-        // Remove all existence reference
-        Collection<ID> idsExists; // = new HashSet<>();
-        if (mappedReference.getUpperBound() == -1) {
-            idsExists = payload
-                    .getAsCollectionPayload(mappedReference.getName())
-                    .stream()
-                    .map(p -> (ID)
-                            p.get(identifierProvider.getName()))
-                    .collect(Collectors.toSet());
-        } else {
-            idsExists = ImmutableSet.of((ID) payload.getAsPayload(mappedReference.getName())
-                    .get(identifierProvider.getName()));
-        }
-        return idsExists;
-    }
-
-    private Payload getPayloadByReferenceAndId(EReference mappedReference, ID id) {
-        // Extract the container type of the reference
-        EClass transferObjectType = mappedReference.getEContainingClass();
-        checkArgument(transferObjectType != null, "Type is mandatory");
-        checkArgument(getAsmUtils().isMappedTransferObjectType(transferObjectType), "Type have to be mapped transfer object");
-
-        Optional<Payload> payload = readByIdentifier(transferObjectType, id, null);
-        checkState(payload.isPresent(), "Entity not found: " + getClassifierFQName(transferObjectType) + " ID: " + id);
-
-        checkState(payload.get().containsKey(mappedReference.getName()), "The given reference: " +
-                getReferenceFQName(mappedReference) + " on entity: " +
-                getClassifierFQName(transferObjectType) + " does not exists. ID: " + id);
-
-        return payload.get();
-    }
-
     private Collection<Statement<ID>> createAddAndRemoveReferenceForPayload(Collection<ID> identifiersExists, EReference mappedReference,
                                                                             ID id, Collection<ID> identifiersToAdd,
                                                                             Collection<ID> identifiersToRemove) {
@@ -678,10 +623,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 }));
 
         final Optional<EClass> mappedEntityType = getAsmUtils().getMappedEntityType(clazz);
+
         final Optional<EClass> defaultTransferObjectType = mappedEntityType
-                .map(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
-                        .map(dr -> getAsmUtils().resolve(dr).orElse(null)).orElse(null))
+                .flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
+                        .flatMap(dr -> getAsmUtils().resolve(dr)))
                 .filter(t -> t instanceof EClass).map(t -> (EClass) t);
+
         if (defaultTransferObjectType.isPresent() && !AsmUtils.equals(defaultTransferObjectType.get(), clazz)) {
             final Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
@@ -712,7 +659,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     @Override
     protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
-                .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny().get())
+                .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
+                        .orElseThrow(() -> new IllegalStateException("Refence not found on containing class: " + rangeTransferRelationName)))
                 .orElseThrow(() -> new IllegalStateException("No range defined"));
 
         ID instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
@@ -805,16 +753,16 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private Consumer<PayloadTraverser> getApplyClientReferenceIdConsumer(final Map<ID, Object> clientReferenceMap) {
         return context -> {
-            if (clientReferenceMap.containsKey(context.getPayload().get(identifierProvider.getName()))) {
+            if (clientReferenceMap.containsKey((ID) context.getPayload().get(identifierProvider.getName()))) {
                 context.getPayload().put(PayloadDaoProcessor.REFERENCE_ID,
-                        clientReferenceMap.get(context.getPayload().get(identifierProvider.getName())));
+                        clientReferenceMap.get((ID) context.getPayload().get(identifierProvider.getName())));
             }
         };
     }
 
     private Consumer<PayloadTraverser> getMarkInsertedPayloadsConsumer(final Set<ID> insertedIds) {
         return context -> {
-            if (insertedIds.contains(context.getPayload().get(identifierProvider.getName()))) {
+            if (insertedIds.contains((ID) context.getPayload().get(identifierProvider.getName()))) {
                 context.getPayload().put(CREATED, true);
             }
         };

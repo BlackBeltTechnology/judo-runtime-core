@@ -12,10 +12,8 @@ import org.eclipse.emf.ecore.EDataType;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -27,7 +25,8 @@ public class DataTypeManager {
 
     private final EMap<EDataType, String> customTypes = ECollections.asEMap(new ConcurrentHashMap<>());
 
-    private static Function<Formatter, Collection<Converter>> CONVERTER_FACTORY = f -> ImmutableSet.of(
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static final Function<Formatter<Object>, Collection<Converter<Object, Object>>> CONVERTER_FACTORY = f -> ImmutableSet.of(
             new Converter() {
                 @Override
                 public Class getSourceType() {
@@ -67,12 +66,15 @@ public class DataTypeManager {
     @Setter
     private ExtendableCoercer coercer;
 
+    @SuppressWarnings({"rawtypes"})
     private final EMap<EDataType, Collection<Converter>> converterMap = ECollections.asEMap(new ConcurrentHashMap<>());
 
+    @SuppressWarnings({"rawtypes"})
     public void registerCustomType(final EDataType customDataType, final String customClassName, final Collection<Converter> converters) {
         registerCustomType(customDataType, customClassName, converters, null);
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public synchronized void registerCustomType(final EDataType customDataType, final String customClassName, final Collection<Converter> converters, final Formatter formatter) {
         if (!customTypes.containsKey(customDataType)) {
             customTypes.put(customDataType, customClassName);
@@ -81,18 +83,14 @@ public class DataTypeManager {
             if (formatter != null) {
                 _converters.addAll(CONVERTER_FACTORY.apply(formatter));
             }
-
-            if (_converters != null) {
-                _converters.forEach(c -> coercer.getConverterFactory().registerConverter(c));
-                converterMap.put(customDataType, _converters);
-            } else {
-                converterMap.put(customDataType, Collections.emptyList());
-            }
+            _converters.forEach(c -> coercer.getConverterFactory().registerConverter(c));
+            converterMap.put(customDataType, _converters);
         } else {
             throw new IllegalStateException("Custom type already registered");
         }
     }
 
+    @SuppressWarnings({"unchecked"})
     public void unregisterCustomType(final EDataType customDataType) {
         if (customTypes.containsKey(customDataType)) {
             converterMap.get(customDataType).forEach(c -> coercer.getConverterFactory().unregisterConverter(c));

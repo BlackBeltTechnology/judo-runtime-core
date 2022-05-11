@@ -5,25 +5,27 @@ import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.Rule;
 import hu.blackbelt.judo.meta.rdbmsRules.Rules;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
-import org.eclipse.emf.ecore.*;
+import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EReference;
 
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
@@ -33,77 +35,74 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport.rdbmsModelResourceSupportBuilder;
 
-@Builder(builderClassName = "RdbmsInternalBuilder")
 @Slf4j
 public class RdbmsBuilder {
 
-    private RdbmsResolver rdbmsResolver;
+    @Getter
+    private final RdbmsResolver rdbmsResolver;
 
     @Getter
-    private RdbmsParameterMapper parameterMapper;
+    private final RdbmsParameterMapper parameterMapper;
 
     @Getter
-    private IdentifierProvider identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     @Getter
-    private Coercer coercer;
+    private final Coercer coercer;
 
     @Getter
     private final AtomicInteger constantCounter = new AtomicInteger(0);
 
     @Getter
-    private AncestorNameFactory ancestorNameFactory;
+    private final AncestorNameFactory ancestorNameFactory;
 
     @Getter
-    private Dialect dialect;
+    private final  VariableResolver variableResolver;
 
     @Getter
-    private VariableResolver variableResolver;
-
-    private RdbmsModel rdbmsModel;
+    private final  RdbmsModel rdbmsModel;
 
     @Getter
-    private AsmUtils asmUtils;
+    private final AsmUtils asmUtils;
 
-    private final Map<Class, RdbmsMapper> mappers = new HashMap<>();
+    private final Map<Class, RdbmsMapper> mappers; // = new HashMap<>();
 
-    private Rules rules;
+    private final Rules rules;
+
+    @Getter
+    private final Dialect dialect;
 
     private final ThreadLocal<Map<String, Collection<? extends RdbmsField>>> CONSTANT_FIELDS = new ThreadLocal<>();
 
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static class Builder extends RdbmsInternalBuilder {
-        @Override
-        public RdbmsBuilder build() {
-            final RdbmsBuilder rdbmsBuilder = super.build();
-            rdbmsBuilder.initMappers();
-            return rdbmsBuilder;
-        }
-    }
-
-    private void initMappers() {
-        mappers.put(Attribute.class, new AttributeMapper(this));
-        mappers.put(Constant.class, new ConstantMapper(this));
-        mappers.put(Variable.class, new VariableMapper(this));
-        mappers.put(Function.class, new FunctionMapper(this));
-        mappers.put(IdAttribute.class, new IdAttributeMapper());
-        mappers.put(TypeAttribute.class, new TypeAttributeMapper());
-        mappers.put(EntityTypeName.class, new EntityTypeNameMapper(this));
-        mappers.put(SubSelect.class, new SubSelectMapper(this));
-        mappers.put(SubSelectFeature.class, new SubSelectFeatureMapper());
-
-        final RdbmsModelResourceSupport rdbmsSupport = rdbmsModelResourceSupportBuilder().resourceSet(rdbmsModel.getResourceSet()).build();
-
-        rules = rdbmsModel.getResource().getContents().stream()
+    @Builder
+    public RdbmsBuilder(
+            @NonNull RdbmsResolver rdbmsResolver,
+            @NonNull RdbmsParameterMapper parameterMapper,
+            @NonNull IdentifierProvider identifierProvider,
+            @NonNull Coercer coercer,
+            @NonNull AncestorNameFactory ancestorNameFactory,
+            @NonNull VariableResolver variableResolver,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull AsmUtils asmUtils,
+            @NonNull MapperFactory mapperFactory,
+            @NonNull Dialect dialect) {
+        this.rdbmsResolver = rdbmsResolver;
+        this.parameterMapper = parameterMapper;
+        this.identifierProvider = identifierProvider;
+        this.coercer = coercer;
+        this.ancestorNameFactory = ancestorNameFactory;
+        this.variableResolver = variableResolver;
+        this.rdbmsModel = rdbmsModel;
+        this.asmUtils = asmUtils;
+        this.dialect = dialect;
+        this.mappers = mapperFactory.getMappers(this);
+        this.rules = rdbmsModel.getResource().getContents().stream()
                 .filter(Rules.class::isInstance)
                 .map(Rules.class::cast)
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Rules not found in RDBMS model"));
+
     }
 
     public Stream<RdbmsField> mapFeatureToRdbms(final ParameterType value, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
@@ -151,7 +150,13 @@ public class RdbmsBuilder {
                 builder.onConditions(join.getFilters().stream()
                         .map(f -> RdbmsFunction.builder()
                                 .pattern("EXISTS ({0})")
-                                .parameter(new RdbmsNavigationFilter(f, this, parentIdFilterQuery, queryParameters))
+                                .parameter(
+                                        RdbmsNavigationFilter.builder()
+                                                .filter(f)
+                                                .rdbmsBuilder(this)
+                                                .parentIdFilterQuery(parentIdFilterQuery)
+                                                .queryParameters(queryParameters)
+                                                .build())
                                 .build())
                         .collect(Collectors.toList()));
             }
@@ -163,7 +168,18 @@ public class RdbmsBuilder {
 
             final List<RdbmsJoin> result = new ArrayList<>();
             final Map<String, Object> _mask = mask != null && subSelect.getTransferRelation() != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null;
-            final RdbmsResultSet resultSetHandler = new RdbmsResultSet(subSelect, false, parentIdFilterQuery, rdbmsBuilder, null, withoutFeatures, _mask, queryParameters, false);
+            final RdbmsResultSet resultSetHandler =
+                    RdbmsResultSet.builder()
+                            .query(subSelect)
+                            .filterByInstances(false)
+                            .parentIdFilterQuery(parentIdFilterQuery)
+                            .rdbmsBuilder(rdbmsBuilder)
+                            .seek(null)
+                            .withoutFeatures(withoutFeatures)
+                            .mask(_mask)
+                            .queryParameters(queryParameters)
+                            .skipParents(false)
+                            .build();
 
             if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
                 result.add(RdbmsTableJoin.builder()
@@ -388,7 +404,13 @@ public class RdbmsBuilder {
             builder.onConditions(join.getFilters().stream()
                     .map(f -> RdbmsFunction.builder()
                             .pattern("EXISTS ({0})")
-                            .parameter(new RdbmsNavigationFilter(f, this, parentIdFilterQuery, queryParameters))
+                            .parameter(
+                                    RdbmsNavigationFilter.builder()
+                                            .filter(f)
+                                            .rdbmsBuilder(this)
+                                            .parentIdFilterQuery(parentIdFilterQuery)
+                                            .queryParameters(queryParameters)
+                                            .build())
                             .build())
                     .collect(Collectors.toList()));
         }

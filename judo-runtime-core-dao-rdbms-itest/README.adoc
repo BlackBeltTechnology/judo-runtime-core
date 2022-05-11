@@ -1,0 +1,172 @@
+# judo-runtime-core-dao-rdbms-itest
+
+## Running tests on PostgreSQL
+
+Tests can be run on PostgreSQL database using command line argument: `-Ddialect=postgresql`
+
+Tests running on databases other than HsqlDB are based on http://testcontainers.org that starts a Docker container
+before tests and stops it after them. Database contents and queries can be inspected using Java debugger:
+
+* get IP address of Docker
+```
+ifconfig docker0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+```
+* pause application at selected breakpoints using Java debugger
+* get port of PostgreSQL server that can be used to connect to
+```
+docker ps | grep "postgres\:.*->5432/tcp" | sed s/"^.*:\([0-9]*\)->5432\/tcp.*$"/"\\1"/
+```
+* connect to database using the following command (need to replace DOCKER_HOST and POSTGRESQL_PORT, password: `test`)
+```
+docker run -it --rm postgres psql -h DOCKER_HOST -p POSTGRESQL_PORT -U test test
+```
+
+There is distributed databases like Yugabytedb which supports postgresql JDBC wire protocol.
+Te tests container can handle this with the command line options: `-Dcontainer=yuhabytedb`.
+When this defined yugabytedb single server container is started.
+
+## jOOQ
+
+Enable jOOQ by command line argument: `-DjooqEnabled`
+
+## Validate models
+
+Add command line option `-DvalidateModels=true` to enable model validations in DAO tests.
+
+## Relations (sample)
+
+Test several combinations of relations: containments, one-way and two-way relations (including single and multiple cardinalities).
+
+.Sample class diagram for relations
+[plantuml, relations-class-diagram, alt="Relations class diagram"]
+----
+@startuml
+
+A *-- "0..1" B: b
+A *-- "*" C: cs
+B *-- "0..1" D: d
+B *-- "*" E: es
+C *-- "0..1" F: f
+C *-- "*" G: gs
+D *-- "0..1" H: h
+D *-- "*" I: is
+E *-- "0..1" J: j
+E *-- "*" K: ks
+F *-- "0..1" L: l
+F *-- "*" M: ms
+G *-- "0..1" N: n
+G *-- "*" O: os
+
+A --> "0..1" A1: a1
+A --> "*" A1: a1s
+A "0..1" <-- A2: a
+A "*" <-- A2: as
+A "0..1\naoo" <--> "0..1\na3oo" A3
+A "*\nasX" <--> "0..1\na3" A3
+A "0..1\naX" <--> "*\na3s" A3
+A "*\namm" <--> "*\na3mm" A3
+
+A --> "1..1" A4: a4
+A "1..1" <-- A5: a
+A "0..1\naoo1" <--> "1..1\na6oo" A6
+A "*\nasX1" <--> "1..1\na6" A6
+A "1..1\naoo2" <--> "0..1\na7oo" A7
+A "1..1\naX1" <--> "*\na7s" A7
+
+B --> "0..1" B1: b1
+B --> "*" B1: b1s
+B "0..1" <-- B2: b
+B "*" <-- B2: bs
+B "0..1\nboo" <--> "0..1\nb3oo" B3
+B "*\nbsX" <--> "0..1\nb3" B3
+B "0..1\nbX" <--> "*\nb3s" B3
+B "*\nbmm" <--> "*\nb3mm" B3
+
+A *-- "0..1" B: b2
+
+A -- "*" A: parts
+A -- "0..1" A: containment
+
+@enduml
+----
+
+## Recursive containments (sample)
+
+.Sample class diagram for recursive containments
+[plantuml, recursive-containments-class-diagram, alt="Recursive containments class diagram"]
+----
+@startuml
+
+X *-- "0..1" X: x
+X *-- "*" X: xs
+X *-- "0..1" Y: y
+X *-- "*" Y: ys
+Y *-- "0..1" X: x
+Y *-- "*" X: xs
+
+@enduml
+----
+
+.Sample model for recursive containments
+[plantuml, recursive-containments-diagram, alt="Recursive containments diagram"]
+----
+@startuml
+
+object x1
+object x2
+object x3
+object x4
+object x5
+object x6
+object x7
+object x8
+object x9
+object x10
+object x11
+object x12
+object x13
+
+object y1
+object y2
+object y3
+object y4
+object y5
+object y6
+object y7
+object y8
+object y9
+
+x1 *-- x2: x
+x1 *-- x6: xs
+x1 *-- y1: y
+x1 *-- y2: ys
+x1 *-- y3: ys
+
+x2 *-- x3: xs
+x2 *-- x4: xs
+x2 *-- x5: x
+
+x4 *-- y4: y
+
+x6 *-- x7: x
+
+x7 *-- x8: xs
+x7 *-- x9: xs
+
+x9 *-- y5: ys
+x9 *-- y6: ys
+
+y5 *-- x10: x
+
+x10 *-- y7: ys
+x10 *-- y8: ys
+
+y8 *-- x13: x
+
+y6 *-- x11: xs
+y6 *-- x12: xs
+
+x12 *-- y9: y
+
+@enduml
+----

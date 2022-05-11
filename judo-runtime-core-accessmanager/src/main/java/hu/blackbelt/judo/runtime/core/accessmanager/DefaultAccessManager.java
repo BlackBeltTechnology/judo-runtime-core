@@ -11,9 +11,7 @@ import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.exception.AuthenticationRequiredException;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import lombok.Builder;
-import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
@@ -28,7 +26,6 @@ public class DefaultAccessManager implements AccessManager {
     AsmModel asmModel;
 
     private final Collection<String> publicActors = new HashSet<>();
-    private final AsmUtils asmUtils;
 
     private Collection<BehaviourAuthorizer> authorizers;
 
@@ -52,7 +49,7 @@ public class DefaultAccessManager implements AccessManager {
     @Builder
     public DefaultAccessManager(@NonNull AsmModel asmModel) {
         this.asmModel = asmModel;
-        asmUtils = new AsmUtils(asmModel.getResourceSet());
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         setupAuthorizers(asmUtils);
 
         publicActors.addAll(asmUtils.all(EClass.class)
@@ -60,7 +57,7 @@ public class DefaultAccessManager implements AccessManager {
                         AsmUtils.getExtensionAnnotationByName(c, "realm", false)
                                 .map(a -> a.getDetails().get("value") == null || a.getDetails().get("value").isEmpty())
                                 .orElse(true))
-                .map(actor -> AsmUtils.getClassifierFQName(actor))
+                .map(AsmUtils::getClassifierFQName)
                 .collect(Collectors.toSet()));
     }
 
@@ -83,7 +80,7 @@ public class DefaultAccessManager implements AccessManager {
                     .code("ACCESS_DENIED")
                     .level(FeedbackItem.Level.ERROR)
                     .build());
-        } else if (!exposedForPublicOrTokenActor && !metadataOperation && actorFqName == null) {
+        } else if (!exposedForPublicOrTokenActor && !metadataOperation) {
             log.info("Operation failed, authentication token is required to call a non-public operation");
             throw new AuthenticationRequiredException(FeedbackItem.builder()
                     .code("AUTHENTICATION_REQUIRED")
@@ -91,8 +88,8 @@ public class DefaultAccessManager implements AccessManager {
                     .build());
         }
 
-        if (signedIdentifier != null && signedIdentifier.getProducedBy() != null && !AsmUtils.getExtensionAnnotationListByName(signedIdentifier.getProducedBy(), "exposedBy").stream()
-                .anyMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")))) {
+        if (signedIdentifier != null && signedIdentifier.getProducedBy() != null && AsmUtils.getExtensionAnnotationListByName(signedIdentifier.getProducedBy(), "exposedBy").stream()
+                .noneMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")))) {
             log.info("Operation failed, principal has no permission to access instance of bound operation");
             throw new AccessDeniedException(FeedbackItem.builder()
                     .code("ACCESS_DENIED_FOR_INSTANCE_OF_BOUND_OPERATION")

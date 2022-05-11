@@ -2,7 +2,7 @@ package hu.blackbelt.judo.runtime.core.exception;
 
 public class NotFoundException extends ClientException {
 
-    private FeedbackItem feedbackItem;
+    private final FeedbackItem feedbackItem;
 
     public NotFoundException(FeedbackItem feedbackItem) {
         super();

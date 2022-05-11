@@ -1,10 +1,12 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -28,7 +30,8 @@ public class RdbmsNavigationFilter extends RdbmsField {
     private final List<RdbmsJoin> joins = new ArrayList<>();
     private final List<RdbmsField> conditions = new ArrayList<>();
 
-    public RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder rdbmsBuilder, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    @Builder
+    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder rdbmsBuilder, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
         this.filter = filter;
 
         from = rdbmsBuilder.getTableName(filter.getType());
@@ -67,7 +70,19 @@ public class RdbmsNavigationFilter extends RdbmsField {
                     }
 
                     final RdbmsQueryJoin queryJoin = RdbmsQueryJoin.builder()
-                            .resultSet(new RdbmsResultSet(subSelect, false, parentIdFilterQuery, rdbmsBuilder, null, true, null, queryParameters, false))
+                            .resultSet(
+                                    RdbmsResultSet.builder()
+                                            .query(subSelect)
+                                            .filterByInstances(false)
+                                            .parentIdFilterQuery(parentIdFilterQuery)
+                                            .rdbmsBuilder(rdbmsBuilder)
+                                            .seek(null)
+                                            .withoutFeatures(true)
+                                            .mask(null)
+                                            .queryParameters(queryParameters)
+                                            .skipParents(false)
+                                            .build()
+                            )
                             .outer(true)
                             .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(filter))
                             .partnerTable(group ? subSelect.getBase() : null)

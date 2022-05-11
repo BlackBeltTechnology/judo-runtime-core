@@ -32,8 +32,8 @@ public class CreateInstanceAuthorizer extends BehaviourAuthorizer {
                 .orElseThrow(() -> new IllegalStateException("No owner of operation found"));
 
         checkCRUDFlag(asmUtils, owner, CRUDFlag.CREATE);
-        if (!AsmUtils.getExtensionAnnotationListByName(owner, "exposedBy").stream()
-                .anyMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")))) {
+        if (AsmUtils.getExtensionAnnotationListByName(owner, "exposedBy").stream()
+                .noneMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")))) {
             throw new SecurityException("Permission denied");
         }
         if (!AsmUtils.annotatedAsTrue(owner, "access")) {

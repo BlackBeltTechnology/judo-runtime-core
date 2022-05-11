@@ -31,8 +31,8 @@ public class GetInputRangeAuthorizer extends BehaviourAuthorizer {
             final ENamedElement owner = asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                     .orElseThrow(() -> new IllegalStateException("No owner of operation found"));
 
-            if (!AsmUtils.getExtensionAnnotationListByName(owner, "exposedBy").stream()
-                    .anyMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")))) {
+            if (AsmUtils.getExtensionAnnotationListByName(owner, "exposedBy").stream()
+                    .noneMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")))) {
                 throw new SecurityException("Permission denied");
             }
         }

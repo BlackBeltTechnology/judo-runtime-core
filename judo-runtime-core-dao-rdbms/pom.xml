@@ -59,25 +59,6 @@
             <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-query</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo</groupId>
-            <artifactId>judo-operation-utils</artifactId>
-            <version>${judo-operation-utils-version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-dispatcher</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-persistence-postgresql</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-core</artifactId>
@@ -118,7 +99,6 @@
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
         </dependency>
-
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-api</artifactId>
@@ -127,6 +107,7 @@
             <groupId>org.jooq</groupId>
             <artifactId>jooq</artifactId>
         </dependency>
+
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
@@ -146,131 +127,14 @@
         </dependency>
 
         <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.measure</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-northwind-psm</artifactId>
-            <scope>test</scope>
-            <classifier>sdk</classifier>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-northwind-psm</artifactId>
-            <scope>test</scope>
-            <classifier>sdk-internal</classifier>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-asm2rdbms</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-workflow</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.psm.model.test</artifactId>
-            <scope>test</scope>
-            <version>${judo-meta-psm-version}</version>
-        </dependency>        
-        <dependency>
-            <groupId>hu.blackbelt.mapper</groupId>
-            <artifactId>mapper-impl</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.jdt</groupId>
-            <artifactId>org.eclipse.jdt.core</artifactId>
-            <version>3.21.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.jdt</groupId>
-            <artifactId>ecj</artifactId>
-            <version>3.21.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.hsqldb</groupId>
-            <artifactId>hsqldb</artifactId>
-            <version>2.6.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.2.12</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.osgi.liquibase</groupId>
-            <artifactId>osgi-liquibase</artifactId>
-            <version>${osgi-liquibase-version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>net.ttddyy</groupId>
-            <artifactId>datasource-proxy</artifactId>
-            <version>1.5.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.atomikos</groupId>
-            <artifactId>transactions-jdbc</artifactId>
-            <version>5.0.6</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
             <version>4.3.12.RELEASE</version>
         </dependency>
 
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <version>1.15.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>1.15.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>1.15.2</version>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.script</groupId>
-            <artifactId>hu.blackbelt.judo.script.codegen.generator</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>5.1.0</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
     </dependencies>
 </project>

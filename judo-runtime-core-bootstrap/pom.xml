@@ -65,6 +65,16 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms-hsqldb</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms-postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dispatcher</artifactId>
         </dependency>
 
@@ -81,7 +91,6 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
-            <version>5.1.0</version><!--$NO-MVN-MAN-VER$-->
         </dependency>
 
         <!--

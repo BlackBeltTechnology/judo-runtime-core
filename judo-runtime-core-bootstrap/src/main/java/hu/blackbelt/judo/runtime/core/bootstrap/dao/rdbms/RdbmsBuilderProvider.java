@@ -12,6 +12,8 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
+
 import org.eclipse.emf.ecore.EClass;
 
 public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
@@ -32,6 +34,9 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
 
     @Inject
     VariableResolver variableResolver;
+    
+    @Inject
+    MapperFactory mapperFactory;
 
     @Inject
     Dialect dialect;
@@ -45,11 +50,12 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
                 .ancestorNameFactory(new AncestorNameFactory(asm.all(EClass.class)))
                 .rdbmsResolver(rdbmsResolver)
                 .parameterMapper(rdbmsParameterMapper)
-                .dialect(dialect)
                 .asmUtils(asm)
                 .identifierProvider(identifierProvider)
                 .coercer(dataTypeManager.getCoercer())
                 .variableResolver(variableResolver)
+                .mapperFactory(mapperFactory)
+                .dialect(dialect)
                 .build();
     }
 }

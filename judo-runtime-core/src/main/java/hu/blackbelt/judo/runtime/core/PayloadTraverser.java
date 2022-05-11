@@ -6,6 +6,7 @@ import lombok.*;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
+import org.eclipse.emf.ecore.ETypedElement;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -24,7 +25,7 @@ public class PayloadTraverser {
     @NonNull
     private Predicate<EReference> predicate;
 
-    private static final Predicate<EStructuralFeature> IS_COLLECTION = (r) -> r.isMany();
+    private static final Predicate<EStructuralFeature> IS_COLLECTION = ETypedElement::isMany;
 
     public Payload traverse(final Payload payload, final EClass transferObjectType) {
         return traverse(payload, PayloadTraverserContext
@@ -45,17 +46,16 @@ public class PayloadTraverser {
                 .filter(predicate)
                 .filter(r -> payload.containsKey(r.getName()) && payload.get(r.getName()) != null)
                 .collect(toReferencePayloadMapOfPayloadCollection(payload))
-                .entrySet().stream()
-                .forEach(e -> {
+                .forEach((key, value) -> {
                     int idx = 0;
-                    for (Iterator<Payload> it = e.getValue().iterator(); it.hasNext(); idx++) {
+                    for (Iterator<Payload> it = value.iterator(); it.hasNext(); idx++) {
                         final Payload p = it.next();
                         traverse(p, PayloadTraverserContext.builder()
-                                .type(e.getKey().getEReferenceType())
+                                .type(key.getEReferenceType())
                                 .path(ImmutableList.<PathEntry>builder()
                                         .addAll(ctx.getPath())
                                         .add(PathEntry.builder()
-                                                .reference(e.getKey())
+                                                .reference(key)
                                                 .index(idx)
                                                 .build())
                                         .build())

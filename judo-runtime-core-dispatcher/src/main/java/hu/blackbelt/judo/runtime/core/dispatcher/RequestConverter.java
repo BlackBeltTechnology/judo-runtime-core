@@ -51,11 +51,11 @@ public class RequestConverter {
 
     private final IdentifierSigner identifierSigner;
 
-    private final IdentifierProvider identifierProvider;
+    @SuppressWarnings("rawtypes")
+	private final IdentifierProvider identifierProvider;
 
     private final Collection<Validator> validators;
 
-    @Setter
     private final boolean throwValidationException;
 
     @NonNull
@@ -72,7 +72,6 @@ public class RequestConverter {
 
     private static final boolean VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT = false;
     private static final boolean NO_TRAVERSE_DEFAULT = false;
-    private static final boolean VALIDATE_FOR_UPDATE_DEFAULT = false;
     private static final boolean VALIDATE_MISSING_FEATURES_DEFAULT = true;
     private static final boolean IGNORE_INVALID_VALUES_DEFAULT = false;
 

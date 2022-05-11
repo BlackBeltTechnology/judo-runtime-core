@@ -57,7 +57,6 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
         return SelectStatementExecutor.builder()
                 .asmModel(models.getAsmModel())
                 .rdbmsModel(models.getRdbmsModel())
-                .measureModel(models.getMeasureModel())
                 .queryFactory(queryFactory)
                 .dataTypeManager(dataTypeManager)
                 .identifierProvider(identifierProvider)
@@ -68,6 +67,6 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
                 .rdbmsBuilder(rdbmsBuilder)
                 .queryFactory(queryFactory)
                 .rdbmsResolver(rdbmsResolver)
-                .build();
+               .build();
     }
 }

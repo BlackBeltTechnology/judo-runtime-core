@@ -2,11 +2,14 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -34,7 +37,12 @@ public class RdbmsNavigationJoin extends RdbmsJoin {
 
     private final SubSelect query;
 
-    public RdbmsNavigationJoin(final SubSelect query, final SubSelect parentIdFilterQuery, final RdbmsBuilder rdbmsBuilder, final boolean withoutFeatures, final Map<String, Object> queryParameters) {
+    @Builder
+    private RdbmsNavigationJoin(@NonNull final SubSelect query,
+                                final SubSelect parentIdFilterQuery,
+                                final RdbmsBuilder rdbmsBuilder,
+                                final boolean withoutFeatures,
+                                final Map<String, Object> queryParameters) {
         super();
         this.query = query;
 
@@ -120,7 +128,18 @@ public class RdbmsNavigationJoin extends RdbmsJoin {
 
         subJoins.addAll(aggregations.stream()
                 .map(subSelect -> RdbmsQueryJoin.builder()
-                        .resultSet(new RdbmsResultSet(subSelect, false, parentIdFilterQuery, rdbmsBuilder, null, withoutFeatures, null, queryParameters, false))
+                        .resultSet(
+                                RdbmsResultSet.builder()
+                                        .query(subSelect)
+                                        .filterByInstances(false)
+                                        .parentIdFilterQuery(parentIdFilterQuery)
+                                        .rdbmsBuilder(rdbmsBuilder)
+                                        .seek(null)
+                                        .withoutFeatures(withoutFeatures)
+                                        .mask(null)
+                                        .queryParameters(queryParameters)
+                                        .skipParents(false)
+                                        .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
                         .partnerTable(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), subSelect.getContainer()) ? subSelect.getBase() : null)
@@ -151,7 +170,12 @@ public class RdbmsNavigationJoin extends RdbmsJoin {
         subConditions.addAll(query.getNavigationJoins().stream()
                 .flatMap(join -> join.getFilters().stream().map(f -> RdbmsFunction.builder()
                         .pattern("EXISTS ({0})")
-                        .parameter(new RdbmsNavigationFilter(f, rdbmsBuilder, parentIdFilterQuery, queryParameters))
+                        .parameter(RdbmsNavigationFilter.builder()
+                                .filter(f)
+                                .rdbmsBuilder(rdbmsBuilder)
+                                .parentIdFilterQuery(parentIdFilterQuery)
+                                .queryParameters(queryParameters)
+                                .build())
                         .build()))
                 .collect(Collectors.toList()));
 

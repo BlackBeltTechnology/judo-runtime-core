@@ -28,7 +28,7 @@ import java.util.stream.StreamSupport;
 
 import static java.lang.Math.max;
 
-public class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
+public abstract class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
 
     @NonNull
     private final Coercer coercer;
@@ -40,25 +40,19 @@ public class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
     @Getter
     private IdentifierProvider identifierProvider;
 
-    @NonNull
-    private Dialect dialect;
-
     @Getter
     private Map<Class<?>, Predicate<ValueAndDataType>> typePredicates = new LinkedHashMap<>();
 
     @Getter
     private Map<Class<?>, Function<ValueAndDataType, String>> sqlTypes = new LinkedHashMap<>();
 
-    //@Builder
     public DefaultRdbmsParameterMapper(
             @NonNull Coercer coercer,
             @NonNull RdbmsModel rdbmsModel,
-            @NonNull IdentifierProvider identifierProvider,
-            @NonNull Dialect dialect) {
+            @NonNull IdentifierProvider identifierProvider) {
         this.coercer = coercer;
         this.rdbmsModel = rdbmsModel;
         this.identifierProvider = identifierProvider;
-        this.dialect = dialect;
 
         typePredicates.put(BigDecimal.class, vd -> vd.value instanceof BigDecimal);
         sqlTypes.put(BigDecimal.class, vd -> {
@@ -123,104 +117,6 @@ public class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
         typePredicates.put(Double.class, vd -> vd.value instanceof Double);
         sqlTypes.put(Double.class, vd -> "DOUBLE");
 
-
-
-        /*
-        typeResolverMap.put(BigDecimal.class, (value, dataType) -> {
-            if (value instanceof BigDecimal) {
-                final int precision = ((BigDecimal) value).precision();
-                final int scale = ((BigDecimal) value).scale();
-                return "DECIMAL(" + (precision > scale ? precision : scale + 1) + "," + max(scale, 0) + ")";
-            }
-            return null;
-        });
-
-        typeResolverMap.put(BigInteger.class, (value, dataType) -> {
-            if (value instanceof BigInteger) {
-                final int precision = ((BigInteger) value).toString(10).length();
-                return "NUMERIC(" + precision + ", 0)";
-            }
-            return null;
-        });
-
-        typeResolverMap.put(Boolean.class, (value, dataType) -> {
-            if (value instanceof Boolean) {
-                return "BOOLEAN";
-            }
-            return null;
-        });
-
-        typeResolverMap.put(Timestamp.class, (value, dataType) -> {
-            if ((value instanceof Timestamp
-                    || value instanceof OffsetDateTime
-                    || value instanceof ZonedDateTime)
-                    || (dataType != null && AsmUtils.isTimestamp(dataType))) {
-                return "TIMESTAMP";
-            }
-            return null;
-        });
-
-        typeResolverMap.put(LocalDateTime.class, (value, dataType) -> {
-            if ((value instanceof LocalDateTime
-                    || value instanceof Instant)
-                    || (dataType != null && AsmUtils.isTimestamp(dataType))) {
-                return "TIMESTAMP";
-            }
-            return null;
-        });
-
-        typeResolverMap.put(Time.class, (value, dataType) -> {
-            if ((value instanceof Time
-                    || value instanceof OffsetTime)
-                    || (dataType != null && AsmUtils.isTime(dataType))) {
-                return "TIME WITH TIME ZONE";
-            }
-            return null;
-        });
-
-        typeResolverMap.put(LocalTime.class, (value, dataType) -> {
-            if (value instanceof LocalTime && (dataType != null && AsmUtils.isTime(dataType))) {
-                return "TIME WITH TIME ZONE";
-            }
-            return null;
-        });
-
-         */
-
-        /*
-
-
-        } else if (value instanceof LocalTime && (dataType != null && AsmUtils.isTime(dataType))) {
-            typeName = "TIME";
-        } else if ((value instanceof java.sql.Date || value instanceof Date || value instanceof LocalDate) || (dataType != null && AsmUtils.isDate(dataType))) {
-            typeName = "DATE";
-        } else if (value instanceof String) {
-            if (Dialect.POSTGRESQL.equals(dialect)) {
-                typeName = "TEXT";
-            } else if (Dialect.HSQLDB.equals(dialect)) {
-                typeName = "LONGVARCHAR";
-            } else {
-                typeName = "VARCHAR(2000)";
-            }
-        } else if (value instanceof Short) {
-            typeName = "NUMERIC(5,0)";
-        } else if (value instanceof Integer) {
-            typeName = "NUMERIC(10,0)";
-        } else if (value instanceof Long) {
-            typeName = "NUMERIC(20,0)";
-        } else if (value instanceof Float) {
-            typeName = "FLOAT";
-        } else if (value instanceof Double) {
-            if (Dialect.POSTGRESQL.equals(dialect)) {
-                typeName = "DOUBLE PRECISION";
-            } else {
-                typeName = "DOUBLE";
-            }
-        } else {
-            typeName = null;
-        }
-
-         */
     }
 
     public String getIdClassName() {

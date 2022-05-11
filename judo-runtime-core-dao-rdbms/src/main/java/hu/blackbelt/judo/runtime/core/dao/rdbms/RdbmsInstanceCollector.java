@@ -14,27 +14,16 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.emf.common.util.BasicEList;
-import org.eclipse.emf.common.util.BasicEMap;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
+import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,33 +36,15 @@ import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getClassifierFQName;
 import static hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport.rdbmsModelResourceSupportBuilder;
 
 
-@RequiredArgsConstructor
-@Builder
 @Slf4j
 public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
-    @NonNull
     private final NamedParameterJdbcTemplate jdbcTemplate;
-
-    @NonNull
     private final AsmUtils asmUtils;
-
-    @NonNull
     private final RdbmsResolver rdbmsResolver;
-
-    @NonNull
     private final RdbmsModel rdbmsModel;
-
-    @NonNull
     private final Coercer coercer;
-
-    @NonNull
     private final IdentifierProvider<ID> identifierProvider;
-
-    @NonNull
-    private Dialect dialect;
-
-    @NonNull
     private RdbmsParameterMapper rdbmsParameterMapper;
 
     private final AtomicReference<RdbmsModelResourceSupport> rdbmsSupport = new AtomicReference<>(null);
@@ -85,6 +56,24 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
     private final AtomicBoolean selectsCreated = new AtomicBoolean(false);
     private final EMap<EClass, RdbmsSelect> selectsByEntityType = ECollections.asEMap(new ConcurrentHashMap<>());
+
+    @Builder
+    private RdbmsInstanceCollector(
+            @NonNull NamedParameterJdbcTemplate jdbcTemplate,
+            @NonNull AsmUtils asmUtils,
+            @NonNull RdbmsResolver rdbmsResolver,
+            @NonNull RdbmsModel rdbmsModel,
+            @NonNull Coercer coercer,
+            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.asmUtils = asmUtils;
+        this.rdbmsResolver = rdbmsResolver;
+        this.rdbmsModel = rdbmsModel;
+        this.coercer = coercer;
+        this.identifierProvider = identifierProvider;
+        this.rdbmsParameterMapper = rdbmsParameterMapper;
+    }
 
     public RdbmsModelResourceSupport getRdbmsSupport() {
         if (rdbmsSupport.get() == null) {

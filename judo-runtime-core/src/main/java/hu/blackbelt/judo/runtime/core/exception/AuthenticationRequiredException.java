@@ -2,7 +2,7 @@ package hu.blackbelt.judo.runtime.core.exception;
 
 public class AuthenticationRequiredException extends ClientException {
 
-    private FeedbackItem feedbackItem;
+    private final FeedbackItem feedbackItem;
 
     public AuthenticationRequiredException(FeedbackItem feedbackItem) {
         super();

@@ -2,7 +2,7 @@ package hu.blackbelt.judo.runtime.core.exception;
 
 public class AccessDeniedException extends ClientException {
 
-    private FeedbackItem feedbackItem;
+    private final FeedbackItem feedbackItem;
 
     public AccessDeniedException(FeedbackItem feedbackItem) {
         super();
