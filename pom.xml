@@ -25,7 +25,7 @@
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <surefire-version>3.0.0-M5</surefire-version>
-        <slf4j-version>1.7.21</slf4j-version>
+        <slf4j-version>1.7.36</slf4j-version>
 
         <osgi-default-import>
             org.osgi.framework;version="[1.8,2.0)",
@@ -263,7 +263,7 @@
         								</goals>
         							</pluginExecutionFilter>
         							<action>
-        								<ignore></ignore>
+                                        <ignore/>
         							</action>
         						</pluginExecution>
         					</pluginExecutions>
@@ -329,6 +329,13 @@
         </dependency>
 
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-reload4j</artifactId>
+            <version>${slf4j-version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
             <groupId>hu.blackbelt.epsilon</groupId>
             <artifactId>epsilon-runtime-execution</artifactId>
             <version>${epsilon-runtime-version}</version>
@@ -384,13 +391,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>5.8.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>${slf4j-version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -722,12 +722,6 @@
             <dependency>
                 <groupId>hu.blackbelt.judo</groupId>
                 <artifactId>judo-rdbms-schema-store</artifactId>
-                <version>${judo-rdbms-schema-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-rdbms-schema-incremental</artifactId>
                 <version>${judo-rdbms-schema-version}</version>
             </dependency>
 

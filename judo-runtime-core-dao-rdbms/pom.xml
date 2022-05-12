@@ -17,11 +17,10 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package>
-                            hu.blackbelt.judo.runtime.core.dao.rdbms.*;version:=${project.version}
-                        </Export-Package>
+                        <Export-Package>hu.blackbelt.judo.runtime.core.dao.rdbms.*;version=${project.version}</Export-Package>
                         <Private-Package>
                             org.jgrapht*,
                             org.jheaps*,

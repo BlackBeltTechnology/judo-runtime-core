@@ -19,7 +19,7 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>hu.blackbelt.judo.services.core.*;version:=${project.version}</Export-Package>
+                        <Export-Package>hu.blackbelt.judo.runtime.core.*;version=${project.version}</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -41,11 +41,6 @@
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-impl</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo</groupId>
-            <artifactId>judo-dao-api</artifactId>
         </dependency>
 
         <dependency>

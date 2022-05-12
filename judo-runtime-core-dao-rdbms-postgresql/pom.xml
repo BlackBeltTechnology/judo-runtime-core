@@ -20,7 +20,7 @@
                 <configuration>
                     <instructions>
                         <Export-Package>
-                            hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.*;version:=${project.version}
+                            hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.*;version=${project.version}
                         </Export-Package>
                         <Import-Package>
                             ${osgi-default-import},

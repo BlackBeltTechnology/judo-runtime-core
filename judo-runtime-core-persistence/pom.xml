@@ -19,10 +19,9 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>hu.blackbelt.judo.services.persistence;version:=${project.version}</Export-Package>
+                        <Export-Package>hu.blackbelt.judo.runtime.core.persistence;version=${project.version}</Export-Package>
                         <Import-Package>
                             ${osgi-default-import},
-                            org.springframework.jdbc*;version="[4,6)",
                             *
                         </Import-Package>
                     </instructions>
@@ -77,10 +76,6 @@
         <dependency>
             <groupId>hu.blackbelt.judo</groupId>
             <artifactId>judo-rdbms-schema-store</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo</groupId>
-            <artifactId>judo-rdbms-schema-incremental</artifactId>
         </dependency>
 
     </dependencies>

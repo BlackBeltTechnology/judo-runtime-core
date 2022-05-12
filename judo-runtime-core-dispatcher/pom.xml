@@ -23,7 +23,7 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>hu.blackbelt.judo.services.dispatcher.*;version:=${project.version}</Export-Package>
+                        <Export-Package>hu.blackbelt.judo.services.dispatcher.*;version=${project.version}</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
