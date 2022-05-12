@@ -35,9 +35,7 @@
         </osgi-default-import>
         <osgi-transaction-import>
             javax.transaction.xa;version=!,
-            javax.resource;version="[1.6,2)",
-            javax.resource.*;version="[1.6,2)",
-            javax.resource.spi.*;version="[1.6,2)"
+            javax.resource;version="[1.6,2)"
         </osgi-transaction-import>
 
         <karaf-version>4.3.4</karaf-version>
@@ -99,7 +97,6 @@
         <judo-meta-query-version>1.0.0.20220405_162251_04a7dce4_develop</judo-meta-query-version>
         <judo-tatami-version>1.1.0.20220405_164003_ca74107c_develop</judo-tatami-version>
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
-        <judo-rdbms-schema-version>1.0.0.20220405_164837_c6d8d988_develop</judo-rdbms-schema-version>
         <osgi-liquibase-version>1.2.1.20220223_094728_dbedc9cc_develop</osgi-liquibase-version>
 
         <pax-exam-version>4.13.4</pax-exam-version>

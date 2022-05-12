@@ -73,10 +73,6 @@
             <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo</groupId>
-            <artifactId>judo-rdbms-schema-store</artifactId>
-        </dependency>
 
     </dependencies>
 </project>

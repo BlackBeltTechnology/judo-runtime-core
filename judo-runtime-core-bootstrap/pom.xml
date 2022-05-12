@@ -8,23 +8,9 @@
     </parent>
 
     <artifactId>judo-runtime-core-bootstrap</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>jar</packaging>
 
     <name>JUDO Runtime Core :: Bootstrap</name>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <configuration>
-                    <instructions>
-                        <Export-Package>hu.blackbelt.judo.runtime.core.*;version=${project.version}</Export-Package>
-                    </instructions>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
 
     <dependencies>
 
