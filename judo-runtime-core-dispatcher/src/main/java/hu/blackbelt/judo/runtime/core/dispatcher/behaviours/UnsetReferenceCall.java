@@ -11,13 +11,13 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall {
+public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public UnsetReferenceCall(DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
+    public UnsetReferenceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -34,10 +34,11 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall {
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final boolean bound = asmUtils.isBound(operation);
+        final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        final ID instanceId = (ID) exchange.get(identifierProvider.getName());
+        @SuppressWarnings("unchecked")
+		final ID instanceId = (ID) exchange.get(identifierProvider.getName());
 
         dao.unsetReference(owner, instanceId);
         return null;

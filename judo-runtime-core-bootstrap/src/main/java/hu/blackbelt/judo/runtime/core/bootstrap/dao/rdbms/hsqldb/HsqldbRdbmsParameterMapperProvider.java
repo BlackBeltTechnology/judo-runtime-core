@@ -24,7 +24,8 @@ public class HsqldbRdbmsParameterMapperProvider implements Provider<RdbmsParamet
     @Inject
     IdentifierProvider identifierProvider;
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public RdbmsParameterMapper get() {
         return HsqldbRdbmsParameterMapper.builder()
                 .coercer(dataTypeManager.getCoercer())

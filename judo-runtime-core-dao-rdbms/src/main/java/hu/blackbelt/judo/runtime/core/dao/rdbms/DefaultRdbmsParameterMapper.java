@@ -5,7 +5,6 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.TypeMapping;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.emf.common.notify.Notifier;
@@ -28,7 +27,7 @@ import java.util.stream.StreamSupport;
 
 import static java.lang.Math.max;
 
-public abstract class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
+public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
 
     @NonNull
     private final Coercer coercer;
@@ -38,7 +37,7 @@ public abstract class DefaultRdbmsParameterMapper implements RdbmsParameterMappe
 
     @NonNull
     @Getter
-    private IdentifierProvider identifierProvider;
+    private IdentifierProvider<ID> identifierProvider;
 
     @Getter
     private Map<Class<?>, Predicate<ValueAndDataType>> typePredicates = new LinkedHashMap<>();
@@ -49,7 +48,7 @@ public abstract class DefaultRdbmsParameterMapper implements RdbmsParameterMappe
     public DefaultRdbmsParameterMapper(
             @NonNull Coercer coercer,
             @NonNull RdbmsModel rdbmsModel,
-            @NonNull IdentifierProvider identifierProvider) {
+            @NonNull IdentifierProvider<ID> identifierProvider) {
         this.coercer = coercer;
         this.rdbmsModel = rdbmsModel;
         this.identifierProvider = identifierProvider;
@@ -366,7 +365,7 @@ public abstract class DefaultRdbmsParameterMapper implements RdbmsParameterMappe
         });
     }
 
-    public <ID> void mapReferenceParameters(final MapSqlParameterSource namedParameters, final Map<EReference, ID> referenceMap) {
+    public void mapReferenceParameters(final MapSqlParameterSource namedParameters, final Map<EReference, ID> referenceMap) {
         final String targetType = getIdClassName();
         final int sqlType = getIdSqlType();
         referenceMap.entrySet().stream().forEach(e -> {
@@ -374,7 +373,8 @@ public abstract class DefaultRdbmsParameterMapper implements RdbmsParameterMappe
         });
     }
 
-    private <T> Stream<T> all(final Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+	private <T> Stream<T> all(final Class<T> clazz) {
         final Iterable<Notifier> asmContents = rdbmsModel.getResourceSet()::getAllContents;
         return StreamSupport.stream(asmContents.spliterator(), true)
                 .filter(e -> clazz.isAssignableFrom(e.getClass())).map(e -> (T) e);

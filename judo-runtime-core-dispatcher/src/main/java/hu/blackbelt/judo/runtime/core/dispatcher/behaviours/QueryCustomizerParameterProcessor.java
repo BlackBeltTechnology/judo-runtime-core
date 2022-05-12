@@ -36,7 +36,7 @@ public class QueryCustomizerParameterProcessor<ID> {
     private final AsmUtils asmUtils;
 
     @NonNull
-    private final boolean caseInsensitiveLike;
+    private final Boolean caseInsensitiveLike;
 
     @NonNull
     private final IdentifierProvider<ID> identifierProvider;
@@ -70,7 +70,8 @@ public class QueryCustomizerParameterProcessor<ID> {
             .put(1, "!=")
             .build();
 
-    public DAO.QueryCustomizer build(final Map<String, Object> queryCustomizerParameter, final EClass clazz) {
+    @SuppressWarnings("rawtypes")
+	public DAO.QueryCustomizer build(final Map<String, Object> queryCustomizerParameter, final EClass clazz) {
         return DAO.QueryCustomizer.<ID>builder()
                 .filter(extractFilteringParameter(clazz, queryCustomizerParameter))
                 .orderByList(extractOrderingParameter(clazz, queryCustomizerParameter))
@@ -80,7 +81,8 @@ public class QueryCustomizerParameterProcessor<ID> {
                 .build();
     }
 
-    private String extractFilteringParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
+    @SuppressWarnings("unchecked")
+	private String extractFilteringParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
         final EList<EAttribute> attributes = clazz.getEAllAttributes();
 
         if (queryCustomizerParameter != null) {
@@ -162,7 +164,8 @@ public class QueryCustomizerParameterProcessor<ID> {
 
     private List<DAO.OrderBy> extractOrderingParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
         if (queryCustomizerParameter != null) {
-            final List<Map<String, Object>> orderByParameter = (List<Map<String, Object>>) queryCustomizerParameter.get("_orderBy");
+            @SuppressWarnings("unchecked")
+			final List<Map<String, Object>> orderByParameter = (List<Map<String, Object>>) queryCustomizerParameter.get("_orderBy");
             if (orderByParameter != null) {
                 return orderByParameter.stream()
                         .map(p -> DAO.OrderBy.builder()
@@ -176,9 +179,10 @@ public class QueryCustomizerParameterProcessor<ID> {
         return Collections.emptyList();
     }
 
-    private DAO.Seek extractSeekParameter(final Map<String, Object> queryCustomizerParameter) {
+    @SuppressWarnings("unchecked")
+	private DAO.Seek extractSeekParameter(final Map<String, Object> queryCustomizerParameter) {
         if (queryCustomizerParameter != null && queryCustomizerParameter.get("_seek") != null) {
-            final Map<String, Object> _seek = (Map<String, Object>) queryCustomizerParameter.get("_seek");
+			final Map<String, Object> _seek = (Map<String, Object>) queryCustomizerParameter.get("_seek");
             return DAO.Seek.builder()
                     .limit((Integer) _seek.get("limit"))
                     .lastItem(_seek.get("lastItem") != null ? Payload.asPayload((Map<String, Object>) _seek.get("lastItem")) : null)

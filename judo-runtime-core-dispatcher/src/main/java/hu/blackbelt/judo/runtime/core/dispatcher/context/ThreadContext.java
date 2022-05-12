@@ -102,7 +102,8 @@ public class ThreadContext implements Context {
         }
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public <T> T putIfAbsent(String key, T value) {
         checkArgument(key != null, "Key must not be null");
 

@@ -14,15 +14,15 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
+public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateCreateCall(Context context, DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
+    public ValidateCreateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -35,7 +35,8 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
         return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.VALIDATE_CREATE).isPresent();
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
@@ -43,7 +44,7 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
         final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        final boolean bound = asmUtils.isBound(operation);
+        final boolean bound = AsmUtils.isBound(operation);
 
         final Payload payload = asPayload((Map<String, Object>) exchange.get(inputParameterName));
 
@@ -53,7 +54,7 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
             result = dao.create(owner.getEReferenceType(), payload, null);
         } else {
             checkArgument(bound, "Operation must be bound");
-            result = dao.createNavigationInstanceAt(exchange.get(identifierProvider.getName()), owner, payload, null);
+            result = dao.createNavigationInstanceAt((ID) exchange.get(identifierProvider.getName()), owner, payload, null);
         }
 
         markedIdRemover.process(result);

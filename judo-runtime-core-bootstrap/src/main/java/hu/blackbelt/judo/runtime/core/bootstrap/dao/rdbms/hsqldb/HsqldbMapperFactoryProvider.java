@@ -5,6 +5,7 @@ import com.google.inject.Provider;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.query.mappers.HsqldbMapperFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 
+@SuppressWarnings("rawtypes")
 public class HsqldbMapperFactoryProvider implements Provider<MapperFactory> {
 
 	@Override

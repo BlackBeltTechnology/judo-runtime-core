@@ -4,14 +4,12 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.SQLException;
@@ -22,7 +20,6 @@ import java.util.stream.Collectors;
  * Executes banch of statements and making proper execution order for the given statements.
  * @param <ID>
  */
-@Slf4j(topic = "dao-rdbms")
 public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
@@ -30,7 +27,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider) {
@@ -47,7 +44,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
     public void executeStatements(NamedParameterJdbcTemplate jdbcTemplate,
                                   Collection<Statement<ID>> statements) throws SQLException {
 
-        EntityExistsValidationStatementExecutor entityExistsValidationStatementExecutor =
+        EntityExistsValidationStatementExecutor<ID> entityExistsValidationStatementExecutor =
                 EntityExistsValidationStatementExecutor.<ID>builder()
                         .asmModel(getAsmModel())
                         .rdbmsModel(getRdbmsModel())
@@ -60,7 +57,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                         .build();
 
 
-        InsertStatementExecutor insertStatementExecutor = InsertStatementExecutor.<ID>builder()
+        InsertStatementExecutor<ID> insertStatementExecutor = InsertStatementExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -71,7 +68,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        UpdateStatementExecutor updateStatementExecutor = UpdateStatementExecutor.<ID>builder()
+        UpdateStatementExecutor<ID> updateStatementExecutor = UpdateStatementExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -82,7 +79,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        UpdateReferenceExecutor updateReferenceExecutor = UpdateReferenceExecutor.<ID>builder()
+        UpdateReferenceExecutor<ID> updateReferenceExecutor = UpdateReferenceExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -93,7 +90,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        DeleteStatementExecutor deleteStatementExecutor = DeleteStatementExecutor.<ID>builder()
+        DeleteStatementExecutor<ID> deleteStatementExecutor = DeleteStatementExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -104,7 +101,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        AddReferenceStatementExecutor addReferenceStatementExecutor = AddReferenceStatementExecutor.<ID>builder()
+        AddReferenceStatementExecutor<ID> addReferenceStatementExecutor = AddReferenceStatementExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -115,7 +112,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        RemoveReferenceStatementExecutor removeReferenceStatementExecutor = RemoveReferenceStatementExecutor.<ID>builder()
+        RemoveReferenceStatementExecutor<ID> removeReferenceStatementExecutor = RemoveReferenceStatementExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -126,7 +123,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        AddRemoveReferenceStatementConsistencyCheckExecutor addRemoveReferenceStatementConsistencyCheckExecutor = AddRemoveReferenceStatementConsistencyCheckExecutor.<ID>builder()
+        AddRemoveReferenceStatementConsistencyCheckExecutor<ID> addRemoveReferenceStatementConsistencyCheckExecutor = AddRemoveReferenceStatementConsistencyCheckExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())

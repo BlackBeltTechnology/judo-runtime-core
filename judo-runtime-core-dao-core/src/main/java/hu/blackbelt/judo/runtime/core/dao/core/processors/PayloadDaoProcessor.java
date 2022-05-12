@@ -10,7 +10,6 @@ import hu.blackbelt.judo.meta.measure.Unit;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import lombok.*;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -31,7 +30,6 @@ import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
-@Slf4j(topic = "dao-core")
 @NoArgsConstructor
 public class PayloadDaoProcessor<ID> {
 
@@ -99,12 +97,14 @@ public class PayloadDaoProcessor<ID> {
         return (r) -> payload.containsKey(r.getName()) && payload.get(r.getName()) != null;
     }
 
-    public static Predicate<EStructuralFeature> payloadTypeIsInstanceOf(Payload payload, Class type) {
+    @SuppressWarnings("unchecked")
+	public static Predicate<EStructuralFeature> payloadTypeIsInstanceOf(Payload payload, @SuppressWarnings("rawtypes") Class type) {
         return hasPayloadNotNull(payload)
                 .and(r -> type.isAssignableFrom(payload.get(r.getName()).getClass()));
     }
 
-    public static Predicate<EStructuralFeature> payloadTypeIsNotInstanceOf(Payload payload, Class type) {
+    @SuppressWarnings("unchecked")
+	public static Predicate<EStructuralFeature> payloadTypeIsNotInstanceOf(Payload payload, @SuppressWarnings("rawtypes") Class type) {
         return hasPayloadNotNull(payload)
                 .and(r -> !type.isAssignableFrom(payload.get(r.getName()).getClass()));
     }

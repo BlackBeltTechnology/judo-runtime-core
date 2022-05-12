@@ -54,7 +54,7 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider) {
@@ -123,13 +123,13 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                             Collection<RdbmsReference<ID>> insertRdbmsReference) {
 
           // Topoligical Sorting over foreign key dependencies
-          Graph<Statement, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+          Graph<Statement<ID>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
           deleteStatements.stream().forEach(s -> graph.addVertex(s));
           insertRdbmsReference.stream()
                   .filter(rdbmsReference -> getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory())
                   .forEach(rdbmsReference -> {
 
-                      Statement oppositeStatement = deleteStatements.stream()
+                      Statement<ID> oppositeStatement = deleteStatements.stream()
                               .filter(insertStatement ->
                                       insertStatement
                                               .getInstance()
@@ -146,6 +146,7 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                   });
 
           // Iterate the ordered statement
+          @SuppressWarnings({ "rawtypes", "unchecked" })
           Iterator<DeleteStatement<ID>> iterator = new TopologicalOrderIterator(graph);
           return stream(spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
     }
@@ -169,7 +170,7 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                         .map(addReferenceStatement ->
                                 {
                                     RdbmsReference<ID> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                            RdbmsReference.rdbmsReferenceBuilder()
+                                            RdbmsReference.<ID>rdbmsReferenceBuilder()
                                                     .statement(deleteStatement)
                                                     .identifier(deleteStatement.getInstance().getIdentifier())
                                                     .oppositeIdentifier(addReferenceStatement.getIdentifier())

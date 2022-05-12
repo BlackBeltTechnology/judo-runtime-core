@@ -13,7 +13,6 @@ import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
-import hu.blackbelt.judo.runtime.core.dispatcher.RequestConverter;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;

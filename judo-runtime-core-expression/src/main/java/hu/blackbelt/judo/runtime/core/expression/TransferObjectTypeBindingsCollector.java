@@ -3,8 +3,10 @@ package hu.blackbelt.judo.runtime.core.expression;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.*;
 import hu.blackbelt.judo.meta.expression.binding.AttributeBinding;
+import hu.blackbelt.judo.meta.expression.binding.AttributeBindingRole;
 import hu.blackbelt.judo.meta.expression.binding.FilterBinding;
 import hu.blackbelt.judo.meta.expression.binding.ReferenceBinding;
+import hu.blackbelt.judo.meta.expression.binding.ReferenceBindingRole;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionEvaluator;
 import hu.blackbelt.judo.meta.expression.variable.Variable;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +68,7 @@ public class TransferObjectTypeBindingsCollector {
         return ECollections.unmodifiableEMap(entityTypeExpressionsMap);
     }
 
-    public Optional<UnmappedTransferObjectTypeBindings> getTransferObjectBindings(final EClass unmappedTransferObjectType) {
+	public Optional<UnmappedTransferObjectTypeBindings> getTransferObjectBindings(final EClass unmappedTransferObjectType) {
         if (!AsmUtils.isEntityType(unmappedTransferObjectType) && !asmUtils.isMappedTransferObjectType(unmappedTransferObjectType)) {
             final UnmappedTransferObjectTypeBindings bindings = UnmappedTransferObjectTypeBindings.builder()
                     .unmappedTransferObjectType(unmappedTransferObjectType)
@@ -86,14 +88,12 @@ public class TransferObjectTypeBindingsCollector {
                                         log.trace("    - found static data: {}, role: {}", staticData.getExpression(), staticData.getRole());
                                     }
 
-                                    switch (staticData.getRole()) {
-                                        case GETTER:
-                                            if (staticData.getExpression() instanceof DataExpression) {
-                                                bindings.getDataExpressions().put(attribute, (DataExpression) staticData.getExpression());
-                                            } else {
-                                                throw new IllegalStateException("Getter binding is not a ReferenceExpression");
-                                            }
-                                            break;
+                                    if (staticData.getRole() == AttributeBindingRole.GETTER) {
+                                        if (staticData.getExpression() instanceof DataExpression) {
+                                            bindings.getDataExpressions().put(attribute, (DataExpression) staticData.getExpression());
+                                        } else {
+                                            throw new IllegalStateException("Getter binding is not a ReferenceExpression");
+                                        }
                                     }
                                 });
                     });
@@ -112,14 +112,12 @@ public class TransferObjectTypeBindingsCollector {
                                         log.trace("    - found static navigation: {}, role: {}", staticNavigation.getExpression(), staticNavigation.getRole());
                                     }
 
-                                    switch (staticNavigation.getRole()) {
-                                        case GETTER:
-                                            if (staticNavigation.getExpression() instanceof ReferenceExpression) {
-                                                bindings.getNavigationExpressions().put(navigation, (ReferenceExpression) staticNavigation.getExpression());
-                                            } else {
-                                                throw new IllegalStateException("Getter binding is not a ReferenceExpression");
-                                            }
-                                            break;
+                                    if (staticNavigation.getRole() == ReferenceBindingRole.GETTER) {
+                                        if (staticNavigation.getExpression() instanceof ReferenceExpression) {
+                                            bindings.getNavigationExpressions().put(navigation, (ReferenceExpression) staticNavigation.getExpression());
+                                        } else {
+                                            throw new IllegalStateException("Getter binding is not a ReferenceExpression");
+                                        }
                                     }
                                 });
                     });
@@ -169,7 +167,7 @@ public class TransferObjectTypeBindingsCollector {
             }
             mappedTransferObjectType.getEAllAttributes().stream()
                     .forEach(transferAttribute -> {
-                        final Optional<String> featureName = asmUtils.getExtensionAnnotationValue(transferAttribute, "binding", false);
+                        final Optional<String> featureName = AsmUtils.getExtensionAnnotationValue(transferAttribute, "binding", false);
                         if (featureName.isPresent() && typeName.isPresent()) {
                             if (log.isTraceEnabled()) {
                                 log.trace("  - transfer attribute: {}, bound to {}", AsmUtils.getAttributeFQName(transferAttribute), featureName.get());
@@ -223,7 +221,7 @@ public class TransferObjectTypeBindingsCollector {
                 log.trace("Collecting all references of mapped transfer object type: {}, mapped entity type: {}", AsmUtils.getClassifierFQName(mappedTransferObjectType), AsmUtils.getClassifierFQName(mappedEntityType.get()));
             }
             mappedTransferObjectType.getEAllReferences().forEach(transferRelation -> {
-                final Optional<String> featureName = asmUtils.getExtensionAnnotationValue(transferRelation, "binding", false);
+                final Optional<String> featureName = AsmUtils.getExtensionAnnotationValue(transferRelation, "binding", false);
                 if (featureName.isPresent() && typeName.isPresent()) {
                     if (log.isTraceEnabled()) {
                         log.trace("  - transfer relation: {}, bound to {}", AsmUtils.getReferenceFQName(transferRelation), featureName.get());
@@ -328,7 +326,8 @@ public class TransferObjectTypeBindingsCollector {
      * @param <T>   type of model element
      * @return stream of model elements
      */
-    public <T> Stream<T> getExpressionElement(final Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+	public <T> Stream<T> getExpressionElement(final Class<T> clazz) {
         final Iterable<Notifier> expressionContents = expressionResourceSet::getAllContents;
         return StreamSupport.stream(expressionContents.spliterator(), false)
                 .filter(e -> clazz.isAssignableFrom(e.getClass())).map(e -> (T) e);

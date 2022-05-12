@@ -634,7 +634,8 @@ public class QueryFactory {
      * @param <T>   element type
      * @return stream of elements
      */
-    <T> Stream<T> getAsmElement(final Class<T> clazz) {
+    @SuppressWarnings("unchecked")
+	<T> Stream<T> getAsmElement(final Class<T> clazz) {
         final Iterable<Notifier> asmContents = asmResourceSet::getAllContents;
         return StreamSupport.stream(asmContents.spliterator(), false)
                 .filter(e -> clazz.isAssignableFrom(e.getClass())).map(e -> (T) e);

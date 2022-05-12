@@ -6,14 +6,14 @@ import org.eclipse.emf.ecore.EClass;
 import java.util.Collection;
 import java.util.Map;
 
-public class EmptyMapIntstanceCollector implements InstanceCollector {
+public class EmptyMapIntstanceCollector<ID> implements InstanceCollector<ID> {
     @Override
-    public Map collectGraph(EClass entityType, Collection collection) {
+    public Map<ID, InstanceGraph<ID>> collectGraph(EClass entityType, Collection<ID> collection) {
         return ImmutableMap.of();
     }
 
     @Override
-    public InstanceGraph collectGraph(EClass entityType, Object id) {
+    public InstanceGraph<ID> collectGraph(EClass entityType, ID id) {
         return null;
     };
 

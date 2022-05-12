@@ -1,6 +1,5 @@
 package hu.blackbelt.judo.runtime.core.dispatcher.environment;
 
-import com.google.inject.Inject;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
@@ -44,7 +43,8 @@ public class PrincipalVariableProvider implements Function<String, Object> {
         return asmUtils;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Object apply(final String key) {
         final Principal principal = context.getAs(Principal.class, Dispatcher.PRINCIPAL_KEY);
 

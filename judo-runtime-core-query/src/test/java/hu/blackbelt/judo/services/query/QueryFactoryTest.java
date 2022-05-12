@@ -39,8 +39,6 @@ public class QueryFactoryTest {
     private QueryFactory queryFactory;
     private AsmUtils asmUtils;
 
-    private EClass orderDetailType;
-
     @BeforeEach
     public void setUp() throws Exception {
 
@@ -83,7 +81,7 @@ public class QueryFactoryTest {
                 .build());
 
         queryFactory = new QueryFactory(asmModel.getResourceSet(), measureModel.getResourceSet(), expressionModel.getResourceSet(), new DefaultCoercer(), ECollections.emptyEMap());
-        orderDetailType = asmUtils.getClassByFQName("demo.entities.OrderDetail").get();
+        asmUtils.getClassByFQName("demo.entities.OrderDetail").get();
     }
 
     @AfterEach
@@ -101,10 +99,6 @@ public class QueryFactoryTest {
         if (log.isDebugEnabled()) {
             log.debug("QUERY:\n{}", select);
         }
-
-        final SubSelect itemsSelect = select.getSubSelects().stream()
-                .filter(e -> AsmUtils.equals(orderDetailType, e.getSelect().getType()))
-                .findAny().get();
 
         final Target targetOfItems = select.getMainTarget().getReferencedTargets().stream().filter(rt -> AsmUtils.equals(rt.getReference(), itemsReference)).map(rt -> rt.getTarget()).findAny().get();
         final Target targetOfProduct = targetOfItems.getReferencedTargets().stream().filter(rt -> AsmUtils.equals(rt.getReference(), productReference)).map(rt -> rt.getTarget()).findAny().get();

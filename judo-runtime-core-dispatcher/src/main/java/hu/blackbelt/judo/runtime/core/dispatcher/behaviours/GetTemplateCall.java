@@ -7,12 +7,12 @@ import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Map;
 
-public class GetTemplateCall implements BehaviourCall {
+public class GetTemplateCall<ID> implements BehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final AsmUtils asmUtils;
 
-    public GetTemplateCall(DAO dao, AsmUtils asmUtils) {
+    public GetTemplateCall(DAO<ID> dao, AsmUtils asmUtils) {
         this.dao = dao;
         this.asmUtils = asmUtils;
     }

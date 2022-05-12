@@ -16,14 +16,14 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class GetPrincipalCall<ID> implements BehaviourCall {
+public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
 
     final AsmUtils asmUtils;
     final DAO<ID> dao;
     final ActorResolver actorResolver;
     final IdentifierProvider<ID> identifierProvider;
 
-    public GetPrincipalCall(DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ActorResolver actorResolver) {
+    public GetPrincipalCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ActorResolver actorResolver) {
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;

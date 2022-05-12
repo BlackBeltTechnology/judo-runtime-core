@@ -3,11 +3,9 @@ package hu.blackbelt.judo.runtime.core.dao.core.statements;
 import hu.blackbelt.judo.runtime.core.dao.core.values.InstanceValue;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.ToString;
 import org.eclipse.emf.ecore.EClass;
 
 @Getter
-@ToString
 public class ValidationStatement<ID> extends Statement<ID> {
 
     @Builder(builderMethodName = "buildValidationStatement")

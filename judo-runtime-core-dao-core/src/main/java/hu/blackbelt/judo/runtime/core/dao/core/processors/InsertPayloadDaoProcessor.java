@@ -10,7 +10,6 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.InsertStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
 import hu.blackbelt.judo.runtime.core.dao.core.values.Metadata;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -37,7 +36,6 @@ import static java.util.stream.Collectors.toList;
  *    - Any entities which have ID attached relations are ignored.
  *    - Any entities which hae no ID are inserted recursively - does not matter it is containment or association
  */
-@Slf4j(topic = "dao-core")
 public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
     private final AddReferencePayloadDaoProcessor<ID> addReferenceProcessor;
@@ -47,7 +45,7 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
     Metadata<ID> metadata;
 
     public InsertPayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
-                                     QueryFactory queryFactory, InstanceCollector instanceCollector,
+                                     QueryFactory queryFactory, InstanceCollector<ID> instanceCollector,
                                      Function<EClass, Payload> defaultValuesProvider,
                                      Metadata<ID> metadata) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
@@ -65,7 +63,8 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         return statements;
     }
 
-    Collection<Statement<ID>> collectStatements(EClass mappedTransferObjectType,
+    @SuppressWarnings("unchecked")
+	Collection<Statement<ID>> collectStatements(EClass mappedTransferObjectType,
                                             Payload payload,
                                             EReference container, Collection<Statement<ID>> statements,
                                             boolean checkMandatoryFeatures) {
@@ -177,9 +176,10 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
                                     // Collect created embedded InsertStatement to be able to create
                                     // AddReferenceStatement to the container
-                                    Set containmentReferences = embeddedStatements.stream()
+									@SuppressWarnings("rawtypes")
+									Set containmentReferences = embeddedStatements.stream()
                                             .filter(InsertStatement.class :: isInstance)
-                                            .map(o -> (InsertStatement) o)
+                                            .map(o -> (InsertStatement<ID>) o)
                                             .filter(i -> i.getContainer().isPresent()
                                                     && i.getContainer().get().equals(entry.getKey()))
                                             .flatMap(i -> addReferenceProcessor.addReference(
@@ -209,7 +209,7 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                         addReferenceProcessor.addReference(
                                             getAsmUtils().getMappedReference(entry.getKey())
                                                         .orElseGet(() -> entry.getKey()),
-                                            ImmutableSet.of((ID) payloadStm.get(getIdentifierProvider().getName())),
+                                            ImmutableSet.<ID>of((ID) payloadStm.get(getIdentifierProvider().getName())),
                                             currentStatement.getInstance().getIdentifier(),
                                             true
                                         )

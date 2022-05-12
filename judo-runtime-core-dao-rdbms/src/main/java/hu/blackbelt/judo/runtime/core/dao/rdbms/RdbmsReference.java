@@ -10,7 +10,7 @@ import org.eclipse.emf.ecore.EReference;
 @Getter
 public class RdbmsReference<ID> {
 
-    private Statement statement;
+    private Statement<ID> statement;
 
     private ID identifier;
 
@@ -24,7 +24,7 @@ public class RdbmsReference<ID> {
 
     private Rule oppositeRule;
 
-    RdbmsReference(Statement statement, ID identifier, ID oppositeIdentifier, EReference reference, Rule rule, EReference oppositeReference, Rule oppositeRule) {
+    RdbmsReference(Statement<ID> statement, ID identifier, ID oppositeIdentifier, EReference reference, Rule rule, EReference oppositeReference, Rule oppositeRule) {
         this.statement = statement;
         this.identifier = identifier;
         this.oppositeIdentifier = oppositeIdentifier;
@@ -46,7 +46,7 @@ public class RdbmsReference<ID> {
     }
 
     public static class RdbmsReferenceBuilder<ID> {
-        private Statement statement;
+        private Statement<ID> statement;
         private ID identifier;
         private ID oppositeIdentifier;
         private EReference reference;
@@ -57,7 +57,7 @@ public class RdbmsReference<ID> {
         RdbmsReferenceBuilder() {
         }
 
-        public RdbmsReferenceBuilder<ID> statement(Statement statement) {
+        public RdbmsReferenceBuilder<ID> statement(Statement<ID> statement) {
             this.statement = statement;
             return this;
         }

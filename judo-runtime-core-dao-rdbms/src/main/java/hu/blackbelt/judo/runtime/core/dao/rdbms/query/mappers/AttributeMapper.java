@@ -21,10 +21,10 @@ import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
-public class AttributeMapper extends RdbmsMapper<Attribute> {
+public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
 
     @NonNull
-    private final RdbmsBuilder rdbmsBuilder;
+    private final RdbmsBuilder<ID> rdbmsBuilder;
 
     @Override
     public Stream<RdbmsColumn> map(final Attribute attribute, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {

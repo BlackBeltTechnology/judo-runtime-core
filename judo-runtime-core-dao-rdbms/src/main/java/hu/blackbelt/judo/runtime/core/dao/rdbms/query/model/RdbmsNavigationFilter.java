@@ -1,7 +1,6 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
@@ -19,7 +18,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RdbmsNavigationFilter extends RdbmsField {
+public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
     private final Filter filter;
 
@@ -31,7 +30,7 @@ public class RdbmsNavigationFilter extends RdbmsField {
     private final List<RdbmsField> conditions = new ArrayList<>();
 
     @Builder
-    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder rdbmsBuilder, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder<ID> rdbmsBuilder, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
         this.filter = filter;
 
         from = rdbmsBuilder.getTableName(filter.getType());
@@ -69,9 +68,9 @@ public class RdbmsNavigationFilter extends RdbmsField {
                         group = false;
                     }
 
-                    final RdbmsQueryJoin queryJoin = RdbmsQueryJoin.builder()
+                    final RdbmsQueryJoin<ID> queryJoin = RdbmsQueryJoin.<ID>builder()
                             .resultSet(
-                                    RdbmsResultSet.builder()
+                                    RdbmsResultSet.<ID>builder()
                                             .query(subSelect)
                                             .filterByInstances(false)
                                             .parentIdFilterQuery(parentIdFilterQuery)

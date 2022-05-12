@@ -13,23 +13,12 @@ import java.util.Optional;
 @Getter
 public class InsertStatement<ID> extends Statement<ID> {
 
-    @Builder.Default
-    EReference container = null;
-
-    @Builder.Default
-    Object clientReferenceIdentifier = null;
-
-    @Builder.Default
-    Integer version = 1;
-
-    @Builder.Default
-    ID userId = null;
-
-    @Builder.Default
-    String userName = null;
-
-    @Builder.Default
-    OffsetDateTime timestamp = null;
+    private final EReference container;
+    private final Object clientReferenceIdentifier;
+    private final Integer version;
+    private final ID userId;
+    private final String userName;
+    private final OffsetDateTime timestamp;
 
     @Builder(builderMethodName = "buildInsertStatement")
     public InsertStatement(

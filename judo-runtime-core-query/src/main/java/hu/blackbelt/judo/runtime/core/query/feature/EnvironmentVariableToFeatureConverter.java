@@ -11,7 +11,6 @@ import hu.blackbelt.judo.meta.query.FeatureTargetMapping;
 import hu.blackbelt.judo.meta.query.Variable;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EDataType;
 
 import java.util.Optional;
@@ -19,7 +18,6 @@ import java.util.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newVariableBuilder;
 
-@Slf4j
 public class EnvironmentVariableToFeatureConverter extends ExpressionToFeatureConverter<EnvironmentVariable> {
 
     public EnvironmentVariableToFeatureConverter(final FeatureFactory factory, final AsmModelAdapter modelAdapter) {

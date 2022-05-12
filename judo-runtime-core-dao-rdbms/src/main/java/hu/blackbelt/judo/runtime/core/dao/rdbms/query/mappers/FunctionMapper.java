@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.EMap;
@@ -22,18 +21,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@Slf4j
 @SuppressWarnings({"rawtypes", "unchecked"})
-public abstract class FunctionMapper extends RdbmsMapper<Function> {
+public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
 
-    private final RdbmsBuilder rdbmsBuilder;
+    private final RdbmsBuilder<ID> rdbmsBuilder;
 
     @Getter
     private final Map<FunctionSignature, java.util.function.Function<FunctionContext, RdbmsFunction.RdbmsFunctionBuilder>> functionBuilderMap = new LinkedHashMap<>();
 
     @AllArgsConstructor
     @Builder
-    @SuppressWarnings({"rawtypes", "unchecked"})
     public static class FunctionContext {
         public EMap<ParameterName, RdbmsField> parameters;
         public RdbmsFunction.RdbmsFunctionBuilder builder;
@@ -399,7 +396,7 @@ public abstract class FunctionMapper extends RdbmsMapper<Function> {
     @Override
     public Stream<? extends RdbmsField> map(final Function function, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
         final EMap<ParameterName, RdbmsField> parameters = ECollections.asEMap(function.getParameters().stream()
-                .collect(Collectors.toMap(
+                .collect(Collectors.<FunctionParameter, ParameterName, RdbmsField>toMap(
                         FunctionParameter::getParameterName,
                         e -> rdbmsBuilder.mapFeatureToRdbms(e.getParameterValue(), ancestors, parentIdFilterQuery, queryParameters).findAny().
                                 orElseThrow(() -> new IllegalStateException("Rdbms field not found for parameter: " + e.getParameterName())))));

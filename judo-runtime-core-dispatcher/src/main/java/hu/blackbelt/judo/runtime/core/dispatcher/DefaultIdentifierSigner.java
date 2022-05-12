@@ -155,13 +155,14 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
     }
 
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public void signIdentifiers(final ETypedElement typedElement, final Map<String, Object> payload, final boolean immutable) {
         if (privateKey == null) {
             configureKeys();
         }
         if (typedElement.getEType() instanceof EClass) {
-            final ID id = (ID) payload.get(identifierProvider.getName());
+			final ID id = (ID) payload.get(identifierProvider.getName());
             final String entityType = (String) payload.get(Dispatcher.ENTITY_TYPE_MAP_KEY);
             final Integer version = (Integer) payload.get(VERSION_KEY);
             if (asmUtils.isMappedTransferObjectType((EClass) typedElement.getEType()) && id != null) {

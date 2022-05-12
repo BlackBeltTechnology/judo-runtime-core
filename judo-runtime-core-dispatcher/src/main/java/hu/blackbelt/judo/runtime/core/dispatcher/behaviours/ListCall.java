@@ -9,7 +9,6 @@ import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
@@ -20,10 +19,9 @@ import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-@Slf4j
-public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
+public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
     final Coercer coercer;
@@ -31,14 +29,14 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
 
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public ListCall(Context context, DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, final TransactionManager transactionManager, final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
+    public ListCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, final TransactionManager transactionManager, final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;
         this.coercer = coercer;
         this.actorResolver = actorResolver;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<ID>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }
 
     @Override
@@ -46,19 +44,21 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
         return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.LIST).isPresent();
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Object callInRollbackTransaction(final Map<String, Object> exchange, final EOperation operation) {
-        final boolean bound = asmUtils.isBound(operation);
+        final boolean bound = AsmUtils.isBound(operation);
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         Object result;
 
-        final Optional<Map<String, Object>> queryCustomizerParameter = operation.getEParameters().stream().map(p -> p.getName())
+		final Optional<Map<String, Object>> queryCustomizerParameter = operation.getEParameters().stream().map(p -> p.getName())
                 .findFirst()
                 .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
 
-        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
+        @SuppressWarnings("rawtypes")
+		final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
 
         if (AsmUtils.annotatedAsTrue(owner, "access") && owner.isDerived() && asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
             checkArgument(!bound, "Operation must be unbound");
@@ -94,7 +94,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
             if (resultInThis.isPresent()) {
                 result = resultInThis.get().orElse(null);
             } else {
-                result = extractResult(operation, dao.searchNavigationResultAt(exchange.get(identifierProvider.getName()), owner, queryCustomizer));
+                result = extractResult(operation, dao.searchNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer));
             }
         }
         return result;

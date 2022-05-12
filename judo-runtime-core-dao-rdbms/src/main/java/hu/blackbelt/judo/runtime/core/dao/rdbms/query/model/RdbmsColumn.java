@@ -23,7 +23,8 @@ public class RdbmsColumn extends RdbmsField {
 
     private boolean skipLastPrefix;
 
-    private DomainConstraints sourceDomainConstraints;
+    @SuppressWarnings("unused")
+	private DomainConstraints sourceDomainConstraints;
 
     private static final String DEFAULT_PATTERN = "{0}.{1}";
 

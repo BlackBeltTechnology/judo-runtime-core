@@ -4,7 +4,7 @@ import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Map;
 
-public interface BehaviourCall {
+public interface BehaviourCall<ID> {
     boolean isSuitableForOperation(EOperation operation);
 
     Object call(final Map<String, Object> exchange,

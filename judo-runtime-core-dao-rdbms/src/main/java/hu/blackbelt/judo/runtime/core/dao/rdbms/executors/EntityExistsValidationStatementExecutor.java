@@ -4,7 +4,6 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
@@ -40,7 +39,7 @@ class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> 
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider) {

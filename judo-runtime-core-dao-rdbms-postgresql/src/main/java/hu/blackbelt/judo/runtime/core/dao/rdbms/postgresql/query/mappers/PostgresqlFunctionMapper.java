@@ -3,21 +3,16 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.query.mappers;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.FunctionMapper;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsFunction;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
-@Slf4j
-public class PostgresqlFunctionMapper extends FunctionMapper {
+public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
 
-    @Builder
-    public PostgresqlFunctionMapper(@NonNull RdbmsBuilder rdbmsBuilder) {
+    @SuppressWarnings("unchecked")
+	@Builder
+    public PostgresqlFunctionMapper(@NonNull RdbmsBuilder<ID> rdbmsBuilder) {
         super(rdbmsBuilder);
 
         getFunctionBuilderMap().put(FunctionSignature.MODULO_INTEGER, c ->

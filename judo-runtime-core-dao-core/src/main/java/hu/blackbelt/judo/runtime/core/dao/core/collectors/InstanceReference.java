@@ -1,12 +1,10 @@
 package hu.blackbelt.judo.runtime.core.dao.core.collectors;
 
 import lombok.NonNull;
-import lombok.ToString;
 import org.eclipse.emf.ecore.EReference;
 
 @lombok.Getter
 @lombok.Builder
-@ToString
 public class InstanceReference<ID> {
 
     @NonNull

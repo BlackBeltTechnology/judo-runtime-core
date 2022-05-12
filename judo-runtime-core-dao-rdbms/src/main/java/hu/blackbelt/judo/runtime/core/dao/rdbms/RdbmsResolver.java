@@ -129,10 +129,9 @@ public class RdbmsResolver {
 
     public void logAttributeParameters(Map<EAttribute, Object> attributeMap) {
         if (log.isDebugEnabled()) {
-            AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
             attributeMap.entrySet().stream().forEach(e -> {
                 log.debug("    Attr: " +
-                        asmUtils.getAttributeFQName(e.getKey())
+                        AsmUtils.getAttributeFQName(e.getKey())
                         + " (" + rdbmsField(e.getKey()).getSqlName() + ")"
                         + " = " + e.getValue() + "(" + (e.getValue() != null ? e.getValue().getClass().getName() : "N/A") + ")"
                         + " ===== EAttribute: " + e.getKey());

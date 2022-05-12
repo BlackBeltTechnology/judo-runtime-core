@@ -3,11 +3,9 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms;
 import com.google.inject.Inject;
 import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
-import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
@@ -17,6 +15,7 @@ import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 
 import javax.inject.Provider;
 
+@SuppressWarnings("rawtypes")
 public class SelectStatementExecutorProvider implements Provider<SelectStatementExecutor> {
 
     public static final String SELECT_CHUNK_SIZE = "rdbmsDaoChunkSize";
@@ -52,7 +51,8 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
     @Named(SELECT_CHUNK_SIZE)
     private Integer chunkSize = 1000;
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public SelectStatementExecutor get() {
         return SelectStatementExecutor.builder()
                 .asmModel(models.getAsmModel())

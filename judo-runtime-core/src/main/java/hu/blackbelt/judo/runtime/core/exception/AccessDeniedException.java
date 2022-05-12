@@ -2,7 +2,8 @@ package hu.blackbelt.judo.runtime.core.exception;
 
 public class AccessDeniedException extends ClientException {
 
-    private final FeedbackItem feedbackItem;
+	private static final long serialVersionUID = -8619727759658375103L;
+	private final FeedbackItem feedbackItem;
 
     public AccessDeniedException(FeedbackItem feedbackItem) {
         super();

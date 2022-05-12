@@ -2,7 +2,8 @@ package hu.blackbelt.judo.runtime.core.exception;
 
 public class NotFoundException extends ClientException {
 
-    private final FeedbackItem feedbackItem;
+	private static final long serialVersionUID = -153898287660056859L;
+	private final FeedbackItem feedbackItem;
 
     public NotFoundException(FeedbackItem feedbackItem) {
         super();

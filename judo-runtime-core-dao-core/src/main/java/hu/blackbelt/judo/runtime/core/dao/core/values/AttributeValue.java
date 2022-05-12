@@ -1,6 +1,5 @@
 package hu.blackbelt.judo.runtime.core.dao.core.values;
 
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;

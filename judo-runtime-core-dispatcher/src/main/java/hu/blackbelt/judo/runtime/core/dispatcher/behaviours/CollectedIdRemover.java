@@ -26,7 +26,8 @@ public class CollectedIdRemover<ID> {
         payload.values().forEach(v -> processRemoval(v, ids));
     }
 
-    private void processRemoval(final Object o, final Collection<ID> ids) {
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	private void processRemoval(final Object o, final Collection<ID> ids) {
         if (o instanceof Payload) {
             removeIdentifiers((Payload) o, ids);
         } else if (o instanceof Map) {

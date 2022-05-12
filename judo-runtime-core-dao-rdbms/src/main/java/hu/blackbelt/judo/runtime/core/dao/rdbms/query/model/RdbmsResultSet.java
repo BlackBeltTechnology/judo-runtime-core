@@ -4,7 +4,6 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.mapper.api.Coercer;
@@ -23,7 +22,7 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RdbmsResultSet extends RdbmsField {
+public class RdbmsResultSet<ID> extends RdbmsField {
 
     private SubSelect query;
 
@@ -45,14 +44,14 @@ public class RdbmsResultSet extends RdbmsField {
 
     private final EList<Join> processedNodesForJoins = ECollections.newBasicEList();
 
-    private final RdbmsBuilder rdbmsBuilder;
+    private final RdbmsBuilder<ID> rdbmsBuilder;
 
     @Builder
     private RdbmsResultSet(
             @NonNull final SubSelect query,
             final boolean filterByInstances,
             final SubSelect parentIdFilterQuery,
-            final RdbmsBuilder rdbmsBuilder,
+            final RdbmsBuilder<ID> rdbmsBuilder,
             final DAO.Seek seek,
             final boolean withoutFeatures,
             final Map<String, Object> mask,
@@ -107,9 +106,9 @@ public class RdbmsResultSet extends RdbmsField {
                             query.getSelect().getFeatures().stream().anyMatch(f ->
                                     f.getNodes().stream().anyMatch(n ->
                                             AsmUtils.equals(n, s.getSelect()) || s.getSelect().getJoins().contains(n))))
-                    .map(s -> RdbmsQueryJoin.builder()
+                    .map(s -> RdbmsQueryJoin.<ID>builder()
                             .resultSet(
-                                    RdbmsResultSet.builder()
+                                    RdbmsResultSet.<ID>builder()
                                             .query(s)
                                             .filterByInstances(false)
                                             .parentIdFilterQuery(parentIdFilterQuery)
@@ -155,8 +154,8 @@ public class RdbmsResultSet extends RdbmsField {
                         .build());
             }
 
-            final RdbmsNavigationJoin customJoin =
-                    RdbmsNavigationJoin.builder()
+            final RdbmsNavigationJoin<ID> customJoin =
+                    RdbmsNavigationJoin.<ID>builder()
                             .query(query)
                             .parentIdFilterQuery(parentIdFilterQuery)
                             .rdbmsBuilder(rdbmsBuilder)
@@ -357,14 +356,15 @@ public class RdbmsResultSet extends RdbmsField {
                         .findAny().orElse(null))
                 .filter(rt -> rt != null && !result.containsKey(rt.getTarget()))
                 .forEach(rt -> {
-                    final Map<String, Object> _mask = (Map<String, Object>) mask.get(rt.getReference().getName());
+                    @SuppressWarnings("unchecked")
+					final Map<String, Object> _mask = (Map<String, Object>) mask.get(rt.getReference().getName());
                     result.putAll(getTargetMask(rt.getTarget(), _mask, result));
                 });
 
         return result;
     }
 
-    private Object getLastItemValue(final RdbmsBuilder rdbmsBuilder, final EClass type, final DAO.Seek seek, final OrderBy orderBy) {
+    private Object getLastItemValue(final RdbmsBuilder<ID> rdbmsBuilder, final EClass type, final DAO.Seek seek, final OrderBy orderBy) {
         if (!orderBy.getFeature().getTargetMappings().isEmpty()) {
             return seek.getLastItem().get(orderBy.getFeature().getTargetMappings().get(0).getTargetAttribute().getName());
         } else if (orderBy.getFeature().getTargetMappings().isEmpty() && orderBy.getFeature() instanceof Attribute) {
@@ -379,7 +379,7 @@ public class RdbmsResultSet extends RdbmsField {
         }
     }
 
-    private void addFilterJoinsAndConditions(final Filter filter, final RdbmsBuilder rdbmsBuilder, final SubSelect parentIdFilterQuery, final Node partnerTable, final String partnerTablePrefix, final boolean addJoinsOfFilterFeature, final Map<String, Object> queryParameters) {
+    private void addFilterJoinsAndConditions(final Filter filter, final RdbmsBuilder<ID> rdbmsBuilder, final SubSelect parentIdFilterQuery, final Node partnerTable, final String partnerTablePrefix, final boolean addJoinsOfFilterFeature, final Map<String, Object> queryParameters) {
         if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
             joins.add(RdbmsTableJoin.builder()
                     .tableName(rdbmsBuilder.getTableName(filter.getType()))
@@ -426,9 +426,9 @@ public class RdbmsResultSet extends RdbmsField {
         joins.addAll(filter.getFeatures().stream()
                 .filter(f -> f instanceof SubSelectFeature).map(f -> (SubSelectFeature) f)
                 .filter(f -> !joins.stream().anyMatch(j -> Objects.equals(f.getSubSelect().getAlias(), j.getAlias())))
-                .map(f -> RdbmsQueryJoin.builder()
+                .map(f -> RdbmsQueryJoin.<ID>builder()
                         .resultSet(
-                                RdbmsResultSet.builder()
+                                RdbmsResultSet.<ID>builder()
                                         .query(f.getSubSelect())
                                         .filterByInstances(false)
                                         .parentIdFilterQuery(parentIdFilterQuery)

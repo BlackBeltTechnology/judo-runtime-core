@@ -19,10 +19,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
-public class ConstantMapper extends RdbmsMapper<Constant> {
+public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
 
     @NonNull
-    private final RdbmsBuilder rdbmsBuilder;
+    private final RdbmsBuilder<ID> rdbmsBuilder;
 
     @Override
     public Stream<? extends RdbmsField> map(final Constant constant, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {

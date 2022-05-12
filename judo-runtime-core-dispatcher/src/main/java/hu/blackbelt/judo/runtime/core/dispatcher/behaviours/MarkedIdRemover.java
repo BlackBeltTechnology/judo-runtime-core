@@ -31,7 +31,8 @@ public class MarkedIdRemover<ID> {
             payload.remove("__$created");
 
             if (!markerOnly) {
-                ID removed = (ID) payload.remove(key);
+                @SuppressWarnings("unchecked")
+				ID removed = (ID) payload.remove(key);
                 payload.remove(DefaultDispatcher.UPDATEABLE_KEY);
                 payload.remove(DefaultDispatcher.DELETEABLE_KEY);
                 if (collected != null) {
@@ -43,7 +44,8 @@ public class MarkedIdRemover<ID> {
         payload.values().forEach(v -> processRemoval(v, collected));
     }
 
-    private void processRemoval(final Object o, Collection<ID> collected) {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private void processRemoval(final Object o, Collection<ID> collected) {
         if (o instanceof Payload) {
             processAndCollect((Payload) o, collected);
         } else if (o instanceof Map) {

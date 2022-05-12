@@ -8,7 +8,6 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
-import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.BasicEMap;
@@ -28,7 +27,6 @@ import static com.google.common.base.Preconditions.*;
 public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private static final String METRICS_DAO_QUERY = "dao-query";
-    private static final String METRICS_DAO_CHANGE = "dao-change";
 
     private final EMap<EClass, Boolean> hasStaticFeaturesMap = ECollections.asEMap(new ConcurrentHashMap<>());
 
@@ -248,7 +246,8 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         return update(eClass, payload, queryCustomizer);
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public void deleteReferencedInstancesOf(EClass eClass, EReference eReference, Payload payload) {
         List<Payload> referencedInstances = getAllReferencedInstancesOf(eReference, eClass);
         String identifierKey = getIdentifierProvider().getName();
@@ -344,7 +343,8 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         return update(eReference.getEReferenceType(), payload, queryCustomizer);
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public void deleteNavigationInstanceAt(ID id, EReference eReference, Payload payload) {
         List<Payload> referencedInstances = getNavigationResultAt(id, eReference);
         String identifierKey = getIdentifierProvider().getName();

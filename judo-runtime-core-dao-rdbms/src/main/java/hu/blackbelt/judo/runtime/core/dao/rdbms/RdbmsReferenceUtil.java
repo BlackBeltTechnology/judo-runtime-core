@@ -43,9 +43,9 @@ public class RdbmsReferenceUtil<ID> {
     }
 
     public RdbmsReference<ID> buildRdbmsReferenceForStatement(
-                                    RdbmsReference.RdbmsReferenceBuilder rdbmsReferenceBuilder) {
+                                    RdbmsReference.RdbmsReferenceBuilder<ID> rdbmsReferenceBuilder) {
 
-        RdbmsReference rdbmsReference = rdbmsReferenceBuilder.build();
+        RdbmsReference<ID> rdbmsReference = rdbmsReferenceBuilder.build();
         rdbmsReferenceBuilder.rule(rules.getRuleFromReference(rdbmsReference.getReference()));
 
 
@@ -64,11 +64,10 @@ public class RdbmsReferenceUtil<ID> {
         return rdbmsReferenceBuilder.build();
     }
 
-    public String toString(RdbmsReference rdbmsReference) {
+    public String toString(RdbmsReference<ID> rdbmsReference) {
         // InverseForeign:   table(reference.getEReferenceType()) + column(reference)
         // ForeignKey:       table(reference.getEReferenceType()) + column(reference)
 
-        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         RdbmsResolver rdbmsUtils = new RdbmsResolver(asmModel, transformationTraceService);
         return String.format("Entity: %s UUID: %s Swapped: %s" +
                         "\n     Reference: %s (%s) Type: %s UUID: %s OUUID: %s  Mandatory: %s Rule: %s Field mandatory: %s === ",

@@ -13,7 +13,6 @@ import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Singular;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EDataType;
@@ -22,7 +21,6 @@ import org.eclipse.emf.ecore.EEnum;
 import java.util.*;
 
 @Builder
-@Slf4j
 public class ResponseConverter {
 
     @NonNull
@@ -78,7 +76,8 @@ public class ResponseConverter {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid enumeration value '" + oldValue + "' of type: " + AsmUtils.getClassifierFQName(dataType)));
     }
 
-    private final Object convertNonEnumerationValue(final EAttribute attribute, final Object oldValue) {
+    @SuppressWarnings("unchecked")
+	private final Object convertNonEnumerationValue(final EAttribute attribute, final Object oldValue) {
         if (AsmUtils.isByteArray(attribute.getEAttributeType()) && oldValue != null) {
             final Map<String, Object> context = new TreeMap<>();
             context.put(GetUploadTokenCall.ATTRIBUTE_KEY, AsmUtils.getAttributeFQName(attribute));

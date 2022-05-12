@@ -3,9 +3,6 @@ package hu.blackbelt.judo.runtime.core.expression;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
 import hu.blackbelt.judo.meta.expression.builder.jql.asm.AsmJqlExtractor;
-import hu.blackbelt.judo.runtime.core.expression.MappedTransferObjectTypeBindings;
-import hu.blackbelt.judo.runtime.core.expression.TransferObjectTypeBindingsCollector;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.*;
 import org.eclipse.emf.ecore.resource.Resource;
@@ -22,7 +19,6 @@ import static org.eclipse.emf.ecore.util.builder.EcoreBuilders.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.*;
 
-@Slf4j
 @DisplayName("Relation related tests")
 public class RelationTest {
 
@@ -74,14 +70,14 @@ public class RelationTest {
 
         resource.getContents().add(root);
 
-        asmUtils.addExtensionAnnotation(a, "entity", Boolean.TRUE.toString());
-        asmUtils.addExtensionAnnotation(b, "entity", Boolean.TRUE.toString());
-        asmUtils.addExtensionAnnotation(aDTO, "mappedEntityType", AsmUtils.getClassifierFQName(a));
-        asmUtils.addExtensionAnnotation(bDTO, "mappedEntityType", AsmUtils.getClassifierFQName(b));
-        asmUtils.addExtensionAnnotation(nameOfADto, "binding", "name");
-        asmUtils.addExtensionAnnotation(nameOfBDto, "binding", "name");
-        asmUtils.addExtensionAnnotation(aOfBDto, "binding", "a");
-        asmUtils.addExtensionAnnotation(asOfBDto, "binding", "as");
+        AsmUtils.addExtensionAnnotation(a, "entity", Boolean.TRUE.toString());
+        AsmUtils.addExtensionAnnotation(b, "entity", Boolean.TRUE.toString());
+        AsmUtils.addExtensionAnnotation(aDTO, "mappedEntityType", AsmUtils.getClassifierFQName(a));
+        AsmUtils.addExtensionAnnotation(bDTO, "mappedEntityType", AsmUtils.getClassifierFQName(b));
+        AsmUtils.addExtensionAnnotation(nameOfADto, "binding", "name");
+        AsmUtils.addExtensionAnnotation(nameOfBDto, "binding", "name");
+        AsmUtils.addExtensionAnnotation(aOfBDto, "binding", "a");
+        AsmUtils.addExtensionAnnotation(asOfBDto, "binding", "as");
 
         final AsmJqlExtractor extractor = new AsmJqlExtractor(resourceSet, null, URI.createURI("expression:test"));
         transferObjectTypeBindingsCollector = new TransferObjectTypeBindingsCollector(resourceSet, extractor.extractExpressions());

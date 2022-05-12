@@ -10,7 +10,6 @@ import hu.blackbelt.judo.meta.rdbms.RdbmsTable;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.ReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
@@ -52,7 +51,7 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider) {
@@ -155,7 +154,7 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                 .filter(r ->
                         r.getRule().isJoinTable() &&
                                 // Just one side required
-                                r.getReference().equals(((ReferenceStatement) r.getStatement()).getReference())
+                                r.getReference().equals(((ReferenceStatement<ID>) r.getStatement()).getReference())
                 )
                 .forEach(r -> {
 

@@ -7,7 +7,6 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.InstanceExistsValidati
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
@@ -20,11 +19,10 @@ import static com.google.common.collect.Sets.newHashSet;
 /**
  * Creating statement for unsetting a references. It will remove and detach all the required data.
  */
-@Slf4j(topic = "dao-core")
 public class RemoveReferencePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
     public RemoveReferencePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> idIdentifierProvider,
-                                              QueryFactory queryFactory, InstanceCollector instanceCollector) {
+                                              QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
         super(resourceSet, idIdentifierProvider, queryFactory, instanceCollector);
     }
 

@@ -18,7 +18,8 @@ public class ActorVariableProvider implements Function<String, Object> {
 
     @Override
     public Object apply(final String key) {
-        final Map<String, Object> actor = context.getAs(Map.class, Dispatcher.ACTOR_KEY);
+        @SuppressWarnings("unchecked")
+		final Map<String, Object> actor = context.getAs(Map.class, Dispatcher.ACTOR_KEY);
         return actor != null ? actor.get(key) : null;
     }
 }

@@ -4,12 +4,11 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsSequence;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.sequence.PostgresqlRdbmsSequence;
 
 import javax.sql.DataSource;
 
+@SuppressWarnings("rawtypes")
 public class HsqldbRdbmsSequenceProvider implements Provider<Sequence> {
 
     public static final String RDBMS_SEQUENCE_START = "rdbmsSequenceStart";

@@ -9,7 +9,6 @@ import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
@@ -18,10 +17,9 @@ import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-@Slf4j
-public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
+public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final AsmUtils asmUtils;
     final ExpressionModelResourceSupport expressionModelResourceSupport;
     final IdentifierProvider<ID> identifierProvider;
@@ -35,7 +33,7 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetReferenceRangeCall(Context context, DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, TransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
+    public GetReferenceRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, TransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -47,7 +45,7 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
                 .resourceSet(expressionModel.getResourceSet())
                 .uri(expressionModel.getUri()).build();
 
-        this.queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
+        this.queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<ID>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }
 
     @Override
@@ -61,15 +59,18 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final Optional<String> inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst();
-        final Map<String, Object> inputData = (Map<String, Object>) exchange.get(inputParameterName.get());
+        @SuppressWarnings("unchecked")
+		final Map<String, Object> inputData = (Map<String, Object>) exchange.get(inputParameterName.get());
 
-        final boolean bound = asmUtils.isBound(operation);
+        final boolean bound = AsmUtils.isBound(operation);
         checkArgument(!bound, "Operation must be unbound");
 
-        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null, owner.getEReferenceType());
+        @SuppressWarnings({ "unchecked", "rawtypes" })
+		final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null, owner.getEReferenceType());
 
         final Collection<ID> idsToRemove = new HashSet<>();
-        final Collection<Payload> result = dao.getRangeOf(owner, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer);
+        @SuppressWarnings("unchecked")
+		final Collection<Payload> result = dao.getRangeOf(owner, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer);
 
         // collect IDs that are created (temporary)
         result.forEach(p -> markedIdRemover.processAndCollect(p, idsToRemove));

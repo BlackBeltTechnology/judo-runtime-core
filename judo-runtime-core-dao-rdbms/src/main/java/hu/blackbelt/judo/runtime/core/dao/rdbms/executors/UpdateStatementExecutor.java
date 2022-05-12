@@ -6,7 +6,6 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.UpdateStatement;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
@@ -42,7 +41,7 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             IdentifierProvider<ID> identifierProvider) {

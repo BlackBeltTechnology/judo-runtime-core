@@ -18,7 +18,6 @@ import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
 import hu.blackbelt.osgi.filestore.security.api.exceptions.InvalidTokenException;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
@@ -280,7 +279,8 @@ public class RequestConverter {
 
         if (reference.isMany()) {
             if (!ignoreInvalidValues && value instanceof Collection) {
-                final int size = ((Collection) value).size();
+                @SuppressWarnings("rawtypes")
+				final int size = ((Collection) value).size();
                 if (size < reference.getLowerBound()) {
                     final Map<String, Object> details = new LinkedHashMap<>();
                     details.put(Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference));
@@ -309,7 +309,8 @@ public class RequestConverter {
                             .build());
                 }
                 int idx = 0;
-                for (Iterator it = ((Collection) value).iterator(); it.hasNext(); idx++) {
+                for (@SuppressWarnings("rawtypes")
+				Iterator it = ((Collection) value).iterator(); it.hasNext(); idx++) {
                     final Map<String, Object> currentItemContext = new TreeMap<>(currentContext);
                     currentItemContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY) + "[" + idx + "]");
 
@@ -456,9 +457,10 @@ public class RequestConverter {
             final Token<DownloadClaim> token = filestoreTokenValidator.parseDownloadToken((String) oldValue);
             final String contextString = (String) token.get(DownloadClaim.CONTEXT);
             if (contextString != null) {
-                final Map<String, Object> context = new Gson().fromJson(contextString, Map.class);
+                @SuppressWarnings("unchecked")
+				final Map<String, Object> context = new Gson().fromJson(contextString, Map.class);
                 final String attributeName = (String) context.get(GetUploadTokenCall.ATTRIBUTE_KEY);
-                if (attributeName != null && !asmUtils.equals(dataType, asmUtils.resolveAttribute(attributeName).map(a -> a.getEAttributeType()).orElse(null))) {
+                if (attributeName != null && !AsmUtils.equals(dataType, asmUtils.resolveAttribute(attributeName).map(a -> a.getEAttributeType()).orElse(null))) {
                     throw new InvalidTokenException(null);
                 }
             } else {

@@ -9,7 +9,6 @@ import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.InstanceExistsValidationStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
@@ -25,12 +24,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Creating statement for updating a single reference.
  */
-@Slf4j(topic = "dao-core")
 public class AddReferencePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
     public AddReferencePayloadDaoProcessor(
             ResourceSet resourceSet,
-            IdentifierProvider<ID> idIdentifierProvider, QueryFactory queryFactory, InstanceCollector instanceCollector) {
+            IdentifierProvider<ID> idIdentifierProvider, QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
 
         super(resourceSet, idIdentifierProvider, queryFactory, instanceCollector);
     }

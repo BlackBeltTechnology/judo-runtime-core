@@ -45,7 +45,7 @@ import static java.util.stream.Collectors.toSet;
 public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
     public DeletePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
-                                     QueryFactory queryFactory, InstanceCollector instanceCollector) {
+                                     QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
     }
 
@@ -90,7 +90,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                          InstanceGraph<ID> containerInstanceGraph,
                          EReference container) {
         // Add current instance graph element as DeleteStatement
-        InstanceValue<ID> instanceValue = (InstanceValue<ID>) InstanceValue.buildInstanceValue()
+        InstanceValue<ID> instanceValue = (InstanceValue<ID>) InstanceValue.<ID>buildInstanceValue()
                 .type(entityType)
                 .identifier(instanceGraph.getId())
                 .build();
@@ -99,7 +99,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             log.debug("Circular delete found, stop collecting statements");
             return;
         }
-        statements.add(new DeleteStatement(instanceValue));
+        statements.add(new DeleteStatement<ID>(instanceValue));
         if (container != null) {
             statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
                     .type(container.getEContainingClass())
@@ -120,7 +120,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         // Check if there is any Remove Reference related to mandatory relation
-        Collection<InstanceReference> mandatoryReferencesToRemove = instanceGraph.getBackReferences().stream()
+        Collection<InstanceReference<ID>> mandatoryReferencesToRemove = instanceGraph.getBackReferences().stream()
                 .filter(r -> r.getReference().getLowerBound() > 0 && !AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")).collect(Collectors.toSet());
         checkState(mandatoryReferencesToRemove.stream()
                         .noneMatch(r -> statements.stream().noneMatch(s -> s instanceof DeleteStatement && Objects.equals(s.getInstance().getIdentifier(), r.getReferencedElement().getId()))),

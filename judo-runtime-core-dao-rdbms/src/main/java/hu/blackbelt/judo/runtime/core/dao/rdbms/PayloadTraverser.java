@@ -21,7 +21,8 @@ class PayloadTraverser<E> {
     EReference container;
     AsmUtils asmUtils;
 
-    public static void traversePayload(Consumer<PayloadTraverser> processor, PayloadTraverser context) {
+    public static void traversePayload(@SuppressWarnings("rawtypes") Consumer<PayloadTraverser> processor, 
+    		@SuppressWarnings("rawtypes") PayloadTraverser context) {
         List<EReference> references;
 
         processor.accept(context);

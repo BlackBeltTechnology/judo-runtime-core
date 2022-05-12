@@ -7,7 +7,6 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsReference;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
@@ -44,7 +43,7 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             IdentifierProvider<ID> identifierProvider) {
@@ -84,7 +83,7 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
                                 MapSqlParameterSource updateStatementNamedParameters = new MapSqlParameterSource()
                                         .addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
-                                Map<EReference, Object> updateReferenceMapForCurrentStatement = updateReferenceMap.entrySet().stream()
+                                Map<EReference, ID> updateReferenceMapForCurrentStatement = updateReferenceMap.entrySet().stream()
                                         .filter(e -> (e.getKey().getReference().eContainer().equals(entityForCurrentStatement)) ||
                                                 (e.getKey().getReference().getEReferenceType().equals(entityForCurrentStatement)))
                                         .collect(toMap(e -> e.getKey().getReference(), Map.Entry::getValue));

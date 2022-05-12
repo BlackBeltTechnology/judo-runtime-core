@@ -10,17 +10,10 @@ import java.time.OffsetDateTime;
 @Getter
 public class UpdateStatement<ID> extends Statement<ID> {
 
-    @Builder.Default
-    Integer version = null;
-
-    @Builder.Default
-    ID userId = null;
-
-    @Builder.Default
-    String userName = null;
-
-    @Builder.Default
-    OffsetDateTime timestamp = null;
+    private final Integer version;
+    private final ID userId;
+    private final String userName;
+    private final OffsetDateTime timestamp;
 
     @Builder(builderMethodName = "buildUpdateStatement")
     public UpdateStatement(

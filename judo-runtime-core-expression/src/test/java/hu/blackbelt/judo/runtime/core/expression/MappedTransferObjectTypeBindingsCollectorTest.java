@@ -5,8 +5,6 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
-import hu.blackbelt.judo.runtime.core.expression.MappedTransferObjectTypeBindings;
-import hu.blackbelt.judo.runtime.core.expression.TransferObjectTypeBindingsCollector;
 import hu.blackbelt.judo.tatami.psm2measure.Psm2Measure;
 import hu.blackbelt.model.northwind.Demo;
 import lombok.extern.slf4j.Slf4j;

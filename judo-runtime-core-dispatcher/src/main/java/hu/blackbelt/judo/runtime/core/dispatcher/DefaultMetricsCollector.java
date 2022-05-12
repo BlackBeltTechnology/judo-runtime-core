@@ -40,7 +40,8 @@ public class DefaultMetricsCollector implements MetricsCollector {
         if (enabled) {
             context.putIfAbsent(FRAMEWORK_METRICS, new TreeMap<>());
             context.putIfAbsent(FRAMEWORK_METRICS_STACK, new Stack<>());
-            Stack<StackEntry> stack = context.getAs(Stack.class, FRAMEWORK_METRICS_STACK);
+            @SuppressWarnings("unchecked")
+			Stack<StackEntry> stack = context.getAs(Stack.class, FRAMEWORK_METRICS_STACK);
             stack.push(new StackEntry(key));
             log.debug("Started collector with key: {}", key);
         }
@@ -50,7 +51,8 @@ public class DefaultMetricsCollector implements MetricsCollector {
     @Override
     public void stop(String key) {
         if (enabled) {
-            final Stack stack = context.getAs(Stack.class, FRAMEWORK_METRICS_STACK);
+            @SuppressWarnings("rawtypes")
+			final Stack stack = context.getAs(Stack.class, FRAMEWORK_METRICS_STACK);
             if (!stack.empty()) {
                 final StackEntry entry = (StackEntry)stack.pop();
                 if (!entry.key.equals(key)) {
@@ -74,7 +76,8 @@ public class DefaultMetricsCollector implements MetricsCollector {
     @Override
     public Map<String, AtomicLong> getMetrics() {
         if (enabled) {
-            final Map<String, AtomicLong> metrics = context.getAs(Map.class, FRAMEWORK_METRICS);
+            @SuppressWarnings("unchecked")
+			final Map<String, AtomicLong> metrics = context.getAs(Map.class, FRAMEWORK_METRICS);
             return metrics != null ? Collections.unmodifiableMap(metrics.entrySet().stream()
                     .filter(e -> verbose || !e.getKey().startsWith("_"))
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()))) : Collections.emptyMap();
@@ -84,7 +87,8 @@ public class DefaultMetricsCollector implements MetricsCollector {
     }
 
     private void incrementCounter(final String key, final long delta) {
-        final Map<String, AtomicLong> metrics = context.getAs(Map.class, FRAMEWORK_METRICS);
+        @SuppressWarnings("unchecked")
+		final Map<String, AtomicLong> metrics = context.getAs(Map.class, FRAMEWORK_METRICS);
         if (metrics != null) {
             log.trace("Increment collector: {}, delta = {}", key, delta);
             final AtomicLong counter;
@@ -100,7 +104,8 @@ public class DefaultMetricsCollector implements MetricsCollector {
 
     public void submit() {
         if (enabled) {
-            final Map<String, AtomicLong> metrics = Optional.ofNullable(context.getAs(Map.class, FRAMEWORK_METRICS)).orElse(Collections.emptyMap());
+            @SuppressWarnings("unchecked")
+			final Map<String, AtomicLong> metrics = Optional.ofNullable(context.getAs(Map.class, FRAMEWORK_METRICS)).orElse(Collections.emptyMap());
             if (metricsConsumer != null) {
                 metricsConsumer.accept(metrics);
             }

@@ -56,7 +56,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider) {
@@ -147,7 +147,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                         .filter(e -> e.getKey().eContainer().equals(entityForCurrentStatement))
                                         .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                                Map<EReference, Object> mandatoryReferenceMapForCurrentStatement = mandatoryReferenceMap.entrySet().stream()
+                                Map<EReference, ID> mandatoryReferenceMapForCurrentStatement = mandatoryReferenceMap.entrySet().stream()
                                         .filter(e -> (e.getKey().getReference().eContainer().equals(entityForCurrentStatement)) ||
                                                 (e.getKey().getReference().getEReferenceType().equals(entityForCurrentStatement)))
                                         .collect(toMap(e -> e.getKey().getReference(), Map.Entry::getValue));
@@ -233,13 +233,13 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                             Collection<RdbmsReference<ID>> rdbmsReferences) {
 
           // Topoligical Sorting over foreign key dependencies
-          Graph<Statement, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+          Graph<Statement<ID>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
           insertStatements.stream().forEach(s -> graph.addVertex(s));
           rdbmsReferences.stream()
                   .filter(rdbmsReference -> getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory())
                   .forEach(rdbmsReference -> {
 
-                      Statement oppositeStatement = insertStatements.stream()
+                      Statement<ID> oppositeStatement = insertStatements.stream()
                               .filter(insertStatement ->
                                       insertStatement
                                               .getInstance()
@@ -256,6 +256,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                   });
 
           // Iterate the ordered statement
+          @SuppressWarnings({ "rawtypes", "unchecked" })
           Iterator<InsertStatement<ID>> iterator = new TopologicalOrderIterator(graph);
           return stream(spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
     }
@@ -279,7 +280,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                         .map(addReferenceStatement ->
                                 {
                                     RdbmsReference<ID> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                            RdbmsReference.rdbmsReferenceBuilder()
+                                            RdbmsReference.<ID>rdbmsReferenceBuilder()
                                                     .statement(insertStatement)
                                                     .identifier(insertStatement.getInstance().getIdentifier())
                                                     .oppositeIdentifier(addReferenceStatement.getIdentifier())

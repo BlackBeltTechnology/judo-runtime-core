@@ -5,7 +5,6 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.ETypedElement;
@@ -13,7 +12,6 @@ import org.eclipse.emf.ecore.ETypedElement;
 import java.util.Collection;
 import java.util.Objects;
 
-@Slf4j
 @RequiredArgsConstructor
 @Builder
 public class CreateInstanceAuthorizer extends BehaviourAuthorizer {

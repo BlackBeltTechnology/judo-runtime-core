@@ -7,8 +7,6 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
@@ -17,11 +15,9 @@ import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
-import hu.blackbelt.judo.runtime.core.dispatcher.validators.Validator;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
-import lombok.NonNull;
 
 import javax.transaction.TransactionManager;
 

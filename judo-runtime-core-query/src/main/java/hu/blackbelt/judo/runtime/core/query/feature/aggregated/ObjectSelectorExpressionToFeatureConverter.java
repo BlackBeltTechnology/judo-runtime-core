@@ -9,14 +9,12 @@ import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 import hu.blackbelt.judo.runtime.core.query.JoinFactory;
 import hu.blackbelt.judo.runtime.core.query.feature.ExpressionToFeatureConverter;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 
 import static hu.blackbelt.judo.meta.expression.object.util.builder.ObjectBuilders.newObjectVariableReferenceBuilder;
 import static hu.blackbelt.judo.meta.query.runtime.QueryUtils.getNextSubSelectAlias;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 
-@Slf4j
 public class ObjectSelectorExpressionToFeatureConverter extends ExpressionToFeatureConverter<ObjectSelectorExpression> {
 
     private final JoinFactory joinFactory;

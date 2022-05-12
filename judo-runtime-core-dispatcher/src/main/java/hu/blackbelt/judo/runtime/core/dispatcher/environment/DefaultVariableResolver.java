@@ -58,14 +58,16 @@ public class DefaultVariableResolver implements VariableResolver {
         return dataTypeManager.getCoercer().coerce(value, type);
     }
 
-    public void registerSupplier(final String category, final String key, final Supplier supplier, final boolean cacheable) {
+    @SuppressWarnings("unchecked")
+	public void registerSupplier(final String category, final String key, @SuppressWarnings("rawtypes") final Supplier supplier, final boolean cacheable) {
         suppliers.put(category + ":" + key, supplier);
         if (cacheable) {
             cacheableKeys.add(category + ":" + (key != null ? key : "*"));
         }
     }
 
-    public void registerFunction(final String category, final Function function, final boolean cacheable) {
+    @SuppressWarnings("unchecked")
+	public void registerFunction(final String category, @SuppressWarnings("rawtypes") final Function function, final boolean cacheable) {
         functions.put(category, function);
         if (cacheable) {
             cacheableKeys.add(category + ":*");

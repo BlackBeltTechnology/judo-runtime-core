@@ -34,9 +34,8 @@ public class RdbmsContainerJoin extends RdbmsJoin {
     @Override
     protected String getJoinCondition(String prefix, EMap<Node, String> prefixes, final Coercer coercer, final MapSqlParameterSource sqlParameters) {
         final List<String> partners = new ArrayList<>();
-        int index = 0;
-        for (final EReference r : references) {
-            partners.add(prefix + alias + POSTFIX + index++);
+        for (int index = 0; index < references.size(); index++) {
+            partners.add(prefix + alias + POSTFIX + index);
         }
 
         checkArgument(!partners.isEmpty(), "Partner must not be empty");

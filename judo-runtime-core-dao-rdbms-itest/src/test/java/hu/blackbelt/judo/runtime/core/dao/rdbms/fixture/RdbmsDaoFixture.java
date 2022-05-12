@@ -174,7 +174,7 @@ public class RdbmsDaoFixture {
     protected RdbmsUtils rdbmsUtils;
 
     @Getter
-    RdbmsParameterMapper rdbmsParameterMapper;
+    RdbmsParameterMapper<UUID> rdbmsParameterMapper;
 
     @Getter
     RdbmsInstanceCollector<UUID> rdbmsInstanceCollector;
@@ -327,13 +327,13 @@ public class RdbmsDaoFixture {
             rdbmsUtils = new RdbmsUtils(rdbmsModel.getResourceSet());
 
             if (dialect instanceof HsqldbDialect) {
-                rdbmsParameterMapper = HsqldbRdbmsParameterMapper.builder()
+                rdbmsParameterMapper = HsqldbRdbmsParameterMapper.<UUID>builder()
                         .coercer(DATA_TYPE_MANAGER.getCoercer())
                         .rdbmsModel(rdbmsModel)
                         .identifierProvider(getIdProvider())
                         .build();
             } else  if (dialect instanceof PostgresqlDialect) {
-                rdbmsParameterMapper = PostgresqlRdbmsParameterMapper.builder()
+                rdbmsParameterMapper = PostgresqlRdbmsParameterMapper.<UUID>builder()
                         .coercer(DATA_TYPE_MANAGER.getCoercer())
                         .rdbmsModel(rdbmsModel)
                         .identifierProvider(getIdProvider())
@@ -534,8 +534,8 @@ public class RdbmsDaoFixture {
 
     public DAO<UUID> getDao() {
         if (cachedDao == null) {
-            Sequence sequence = null;
-            MapperFactory mapperFactory = null;
+            Sequence<Long> sequence = null;
+            MapperFactory<UUID> mapperFactory = null;
             if (dialect instanceof HsqldbDialect) {
                 sequence = HsqldbRdbmsSequence.builder()
                         .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
@@ -543,7 +543,7 @@ public class RdbmsDaoFixture {
                         .increment(SEQUENCE_INCREMENT)
                         .createIfNotExists(true)
                         .build();
-                mapperFactory = new HsqldbMapperFactory();
+                mapperFactory = new HsqldbMapperFactory<UUID>();
 
             } else if (dialect instanceof PostgresqlDialect) {
                 sequence = HsqldbRdbmsSequence.builder()
@@ -553,7 +553,7 @@ public class RdbmsDaoFixture {
                         .createIfNotExists(true)
                         .build();
 
-                mapperFactory = new PostgresqlMapperFactory();
+                mapperFactory = new PostgresqlMapperFactory<UUID>();
             } else {
                 throw new IllegalArgumentException("Unknown dialect: " + rdbmsDatasourceFixture.getDialect());
             }
@@ -566,7 +566,7 @@ public class RdbmsDaoFixture {
                     .measureResourceSet(measureModel.getResourceSet())
                     .build();
 
-            RdbmsBuilder rdbmsBuilder = RdbmsBuilder.builder()
+            RdbmsBuilder<UUID> rdbmsBuilder = RdbmsBuilder.<UUID>builder()
                     .ancestorNameFactory(new AncestorNameFactory(asmUtils.all(EClass.class)))
                     .asmUtils(asmUtils)
                     .coercer(DATA_TYPE_MANAGER.getCoercer())
@@ -579,7 +579,7 @@ public class RdbmsDaoFixture {
                     .mapperFactory(mapperFactory)
                     .build();
 
-            ModifyStatementExecutor modifyStatementExecutor = ModifyStatementExecutor.<UUID>builder()
+            ModifyStatementExecutor<UUID> modifyStatementExecutor = ModifyStatementExecutor.<UUID>builder()
                     .coercer(DATA_TYPE_MANAGER.getCoercer())
                     .rdbmsModel(rdbmsModel)
                     .rdbmsParameterMapper(rdbmsParameterMapper)
@@ -589,7 +589,7 @@ public class RdbmsDaoFixture {
                     .rdbmsResolver(rdbmsResolver)
                     .build();
 
-            SelectStatementExecutor selectStatementExecutor = SelectStatementExecutor.<UUID>builder()
+            SelectStatementExecutor<UUID> selectStatementExecutor = SelectStatementExecutor.<UUID>builder()
                     .queryFactory(queryFactory)
                     .asmModel(asmModel)
                     .chunkSize(CHUNK_SIZE)

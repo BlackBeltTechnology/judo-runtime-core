@@ -10,9 +10,11 @@ import java.util.function.Function;
 @Getter
 public class Translator implements Function<Expression, Expression> {
 
-    private final Map<Class, Function> translators = new LinkedHashMap<>();
+    @SuppressWarnings("rawtypes")
+	private final Map<Class, Function> translators = new LinkedHashMap<>();
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Expression apply(final Expression expression) {
         return translators.entrySet().stream()
                 .filter(t -> t.getKey().isAssignableFrom(expression.getClass()))

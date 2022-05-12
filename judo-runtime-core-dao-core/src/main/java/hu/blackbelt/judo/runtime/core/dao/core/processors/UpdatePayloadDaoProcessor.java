@@ -48,20 +48,20 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
     private final boolean optimisticLockEnabled;
 
     public UpdatePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
-                                     QueryFactory queryFactory, InstanceCollector instanceCollector,
+                                     QueryFactory queryFactory, InstanceCollector<ID> instanceCollector,
                                      Function<EClass, Payload> defaultValuesProvider,
                                      Metadata<ID> metadata,
                                      boolean optimisticLockEnabled) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
         this.metadata = metadata;
         this.optimisticLockEnabled = optimisticLockEnabled;
-        insertPayloadDaoProcessor = new InsertPayloadDaoProcessor(resourceSet, identifierProvider,
+        insertPayloadDaoProcessor = new InsertPayloadDaoProcessor<ID>(resourceSet, identifierProvider,
                 queryFactory, instanceCollector, defaultValuesProvider, metadata);
-        deletePayloadDaoProcessor = new DeletePayloadDaoProcessor(resourceSet, identifierProvider,
+        deletePayloadDaoProcessor = new DeletePayloadDaoProcessor<ID>(resourceSet, identifierProvider,
                 queryFactory, instanceCollector);
-        addReferencePayloadDaoProcessor = new AddReferencePayloadDaoProcessor(resourceSet, identifierProvider,
+        addReferencePayloadDaoProcessor = new AddReferencePayloadDaoProcessor<ID>(resourceSet, identifierProvider,
                 queryFactory, instanceCollector);
-        removeReferencePayloadDaoProcessor = new RemoveReferencePayloadDaoProcessor(resourceSet, identifierProvider,
+        removeReferencePayloadDaoProcessor = new RemoveReferencePayloadDaoProcessor<ID>(resourceSet, identifierProvider,
                 queryFactory, instanceCollector);
     }
 
@@ -87,14 +87,16 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         checkArgument(getAsmUtils().isMappedTransferObjectType(transferObjectType), "Type have to be mapped transfer object");
 
-        ID originalIdentifier = (ID) originalPayload.get(getIdentifierProvider().getName());
-        ID updatedIdentifier = (ID) updatePayload.get(getIdentifierProvider().getName());
+        @SuppressWarnings("unchecked")
+		ID originalIdentifier = (ID) originalPayload.get(getIdentifierProvider().getName());
+        @SuppressWarnings("unchecked")
+		ID updatedIdentifier = (ID) updatePayload.get(getIdentifierProvider().getName());
 
         checkArgument(originalIdentifier.equals(updatedIdentifier), "The original identifier does not match with the original");
 
         EClass entityType = getAsmUtils().getMappedEntityType(transferObjectType).get();
 
-        InstanceGraph instanceGraph = getInstanceCollector().collectGraph(entityType, updatedIdentifier);
+        InstanceGraph<ID> instanceGraph = getInstanceCollector().collectGraph(entityType, updatedIdentifier);
 
         // The elements have to be processed
         collectStaments(transferObjectType, instanceGraph, originalPayload, updatePayload, statements, null, null, checkMandatoryFeatures);
@@ -115,7 +117,8 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             log.warn("Entity type is not found in payload");
             entityType = getAsmUtils().getMappedEntityType(transferObjectType).get();
         }
-        ID identifier = (ID) originalPayload.get(getIdentifierProvider().getName());
+        @SuppressWarnings("unchecked")
+		ID identifier = (ID) originalPayload.get(getIdentifierProvider().getName());
         checkArgument(identifier != null, "Identifier is mandatory: " + originalPayload.toString());
 
         final Integer originalVersion = originalPayload.getAs(Integer.class, VERSION);
@@ -170,7 +173,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 )
                 .collect(HashMap::new, (m, v)->m.put(v.getKey(), v.getValue()), HashMap::putAll));
 
-        UpdateStatement currentStatement = currentStatementBuilder.build();
+        UpdateStatement<ID> currentStatement = currentStatementBuilder.build();
 
         // Add attributes (mapped name of attribute resolved here)
         attributes.stream()
@@ -287,7 +290,8 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
     }
 
 
-    private void mergePayloads(final EReference mappedReference,
+    @SuppressWarnings("unchecked")
+	private void mergePayloads(final EReference mappedReference,
                                                     final InstanceGraph<ID> parentInstanceGraph,
                                                     final Payload originalPayload,
                                                     final Payload updatePayload,

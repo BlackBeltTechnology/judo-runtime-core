@@ -54,7 +54,7 @@ public class RangeValidator<ID> implements Validator {
             return feedbackItems;
         }
 
-        final BehaviourCall getRangeCall = new AlwaysRollbackTransactionalBehaviourCall(context, transactionManager) {
+        final BehaviourCall<ID> getRangeCall = new AlwaysRollbackTransactionalBehaviourCall<ID>(context, transactionManager) {
             @Override
             public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
                 return dao.getRangeOf((EReference) feature, instance, DAO.QueryCustomizer.<ID>builder()
@@ -68,7 +68,8 @@ public class RangeValidator<ID> implements Validator {
             }
         };
 
-        final Collection<Payload> range = (List<Payload>) getRangeCall.call(null, null);
+        @SuppressWarnings("unchecked")
+		final Collection<Payload> range = (List<Payload>) getRangeCall.call(null, null);
         final Collection<ID> validIds = range.stream()
                 .map(ri -> ri.getAs(identifierProvider.getType(), identifierProvider.getName()))
                 .collect(Collectors.toSet());

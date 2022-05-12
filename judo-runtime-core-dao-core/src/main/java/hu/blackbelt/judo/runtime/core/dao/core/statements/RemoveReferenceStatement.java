@@ -6,7 +6,6 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
 @Getter
-@ToString
 public class RemoveReferenceStatement<ID> extends ReferenceStatement<ID> {
 
     @Builder(builderMethodName = "buildRemoveReferenceStatement")

@@ -6,7 +6,9 @@ import java.util.Collection;
 
 public class ValidationException extends ClientException {
 
-    @Getter
+	private static final long serialVersionUID = 1550702685342981741L;
+
+	@Getter
     private final Collection<FeedbackItem> feedbackItems;
 
     public ValidationException(final Collection<FeedbackItem> feedbackItems) {

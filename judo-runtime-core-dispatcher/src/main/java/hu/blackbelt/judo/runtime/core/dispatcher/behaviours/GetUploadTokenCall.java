@@ -12,7 +12,7 @@ import org.eclipse.emf.ecore.EOperation;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class GetUploadTokenCall implements BehaviourCall {
+public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
 
     private static final String TOKEN_KEY = "token";
     public static final String ATTRIBUTE_KEY = "attribute";

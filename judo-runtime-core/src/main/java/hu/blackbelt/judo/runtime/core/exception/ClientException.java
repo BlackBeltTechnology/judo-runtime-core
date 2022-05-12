@@ -2,7 +2,9 @@ package hu.blackbelt.judo.runtime.core.exception;
 
 public abstract class ClientException extends RuntimeException {
 
-    public ClientException() {
+	private static final long serialVersionUID = -8702561328947134480L;
+
+	public ClientException() {
     }
 
     public ClientException(String message) {

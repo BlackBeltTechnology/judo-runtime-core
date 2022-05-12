@@ -109,28 +109,29 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final Collection<Validator> validators = new ArrayList<>();
 
-    private Set<BehaviourCall> behaviourCalls;
+    private Set<BehaviourCall<ID>> behaviourCalls;
 
-    private void setupBehaviourCalls(DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
-        behaviourCalls = ImmutableSet.<BehaviourCall>builder()
+    @SuppressWarnings("unchecked")
+	private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
+        behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
-                        new ListCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
-                        new CreateInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new ValidateCreateCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new RefreshCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new UpdateInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
-                        new ValidateUpdateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
-                        new DeleteInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new SetReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new UnsetReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new AddReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new RemoveReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new GetReferenceRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetInputRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetPrincipalCall(dao, identifierProvider, asmUtils, actorResolver),
-                        new GetTemplateCall(dao, asmUtils),
-                        new GetMetadataCall(asmUtils, () -> openIdConfigurationProvider),
-                        new GetUploadTokenCall(asmUtils, filestoreTokenIssuer)
+                        new ListCall<ID>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
+                        new CreateInstanceCall<ID>(dao, identifierProvider, asmUtils, transactionManager),
+                        new ValidateCreateCall<ID>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new RefreshCall<ID>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new UpdateInstanceCall<ID>(dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
+                        new ValidateUpdateCall<ID>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
+                        new DeleteInstanceCall<ID>(dao, identifierProvider, asmUtils, transactionManager),
+                        new SetReferenceCall<ID>(dao, identifierProvider, asmUtils, transactionManager),
+                        new UnsetReferenceCall<ID>(dao, identifierProvider, asmUtils, transactionManager),
+                        new AddReferenceCall<ID>(dao, identifierProvider, asmUtils, transactionManager),
+                        new RemoveReferenceCall<ID>(dao, identifierProvider, asmUtils, transactionManager),
+                        new GetReferenceRangeCall<ID>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new GetInputRangeCall<ID>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new GetPrincipalCall<ID>(dao, identifierProvider, asmUtils, actorResolver),
+                        new GetTemplateCall<ID>(dao, asmUtils),
+                        new GetMetadataCall<ID>(asmUtils, () -> openIdConfigurationProvider),
+                        new GetUploadTokenCall<ID>(asmUtils, filestoreTokenIssuer)
                 )
                 .build();
     }
@@ -283,7 +284,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 .forEach(t -> dataTypeManager.registerCustomType(t, t.getInstanceClassName(), null, new FileTypeFormatter()));
     }
 
-    private void unregisterDataTypes() {
+    @SuppressWarnings("unused")
+	private void unregisterDataTypes() {
         getAsmUtils().all(EDataType.class)
                 .filter(t -> "byte[]".equals(t.getInstanceClassName()))
                 .forEach(t -> dataTypeManager.unregisterCustomType(t));
@@ -323,7 +325,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             }
         } else {
             checkArgument(exchange.containsKey(identifierProvider.getName()), "Bound operation must have an identifier");
-            final ID id = (ID) exchange.get(identifierProvider.getName());
+            @SuppressWarnings("unchecked")
+			final ID id = (ID) exchange.get(identifierProvider.getName());
             final String entityType = (String) exchange.get(ENTITY_TYPE_MAP_KEY);
             return Optional.of(SignedIdentifier.builder()
                     .identifier(dataTypeManager.getCoercer().coerce(id, String.class))
@@ -366,7 +369,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         }
     }
 
-    private Set<BehaviourCall> getBehaviourCalls() {
+    private Set<BehaviourCall<ID>> getBehaviourCalls() {
         if (behaviourCalls == null) {
             setupBehaviourCalls(dao, identifierProvider, getAsmUtils());
         }
@@ -388,7 +391,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         return validators;
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Map<String, Object> callOperation(final String operationFullyQualifiedName, final Map<String, Object> exchange) {
         MDC.put("operation", operationFullyQualifiedName);
         Payload result = null;
@@ -425,7 +429,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 EOperation implementation;
                 Optional<EClass> mappedTransferObjectType = Optional.empty();
 
-                if (getAsmUtils().isBound(operation)) {
+                if (AsmUtils.isBound(operation)) {
                     mappedTransferObjectType = Optional.of(getContainerOfBoundOperation(operation));
 
                     id = getIdForBoundOperation(mappedTransferObjectType.get(), exchange, exposed);
@@ -513,13 +517,13 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         } else if (AsmUtils.getBehaviour(operation).filter(b -> AsmUtils.OperationBehaviour.GET_REFERENCE_RANGE.equals(b) || AsmUtils.OperationBehaviour.GET_INPUT_RANGE.equals(b)).isPresent()) {
                             validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false); // not necessary because optional type is used for owner instance
                             validationContext.put(RequestConverter.IGNORE_INVALID_VALUES_KEY, true);
-                        } else if (getAsmUtils().getExtensionAnnotationValue(operation, "inputRange", false).isPresent()) {
+                        } else if (AsmUtils.getExtensionAnnotationValue(operation, "inputRange", false).isPresent()) {
                             validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false);
                             validationContext.put(RequestConverter.IGNORE_INVALID_VALUES_KEY, true);
                         }
 
                         if (parameter.isMany()) {
-                            final Collection<Map<String, Object>> parameterList = exchange.get(parameter.getName()) != null ? ((Collection<Map<String, Object>>) exchange.get(parameter.getName())) : Collections.emptyList();
+							final Collection<Map<String, Object>> parameterList = exchange.get(parameter.getName()) != null ? ((Collection<Map<String, Object>>) exchange.get(parameter.getName())) : Collections.emptyList();
                             final int parameterListSize = parameterList.size();
                             if (parameterListSize < parameter.getLowerBound()) {
                                 final Map<String, Object> details = new LinkedHashMap<>();
@@ -578,7 +582,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                             exchange.put(parameter.getName(), payloadList);
                         } else {
                             try {
-                                final Optional<Payload> payload = exchange.get(parameter.getName()) != null ? requestConverter.convert((Map<String, Object>) exchange.get(parameter.getName()), validationContext) : Optional.empty();
+								final Optional<Payload> payload = exchange.get(parameter.getName()) != null ? requestConverter.convert((Map<String, Object>) exchange.get(parameter.getName()), validationContext) : Optional.empty();
                                 if (payload.isPresent()) {
                                     exchange.put(parameter.getName(), payload.get());
                                     if (AsmUtils.getBehaviour(operation).filter(b -> AsmUtils.OperationBehaviour.SET_REFERENCE.equals(b)).isPresent()) {
@@ -587,7 +591,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                                                 .get();
                                         feedbackItems.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, payload.get(), validationContext));
                                     }
-                                    Optional<String> inputRangeReferenceFQName = getAsmUtils().getExtensionAnnotationValue(operation, "inputRange", false);
+                                    Optional<String> inputRangeReferenceFQName = AsmUtils.getExtensionAnnotationValue(operation, "inputRange", false);
                                     if (inputRangeReferenceFQName.isPresent()) {
                                         Optional<SignedIdentifier> signedIdentifier = identifierSigner.extractSignedIdentifier(transferObjectType, payload.get());
                                         final Payload inputPayload = getTransferObjectAsBoundType(transferObjectType, signedIdentifier.get());
@@ -647,7 +651,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 if (SCRIPT.equals(callType) || SDK.equals(callType)) {
                     operationCall = new TransactionalCall(transactionManager, operationCall, operation);
 
-                    if (getAsmUtils().isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
+                    if (AsmUtils.isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
                         final Payload thisMappedTransferObject = getTransferObjectAsBoundType(mappedTransferObjectType.get(), id.get());
 
                         exchange.put(INSTANCE_KEY_OF_BOUND_OPERATION, thisMappedTransferObject);
@@ -687,9 +691,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 }
 
                 if (result != null && result.get(FAULT) != null) {
-                    final String faultTypeAsString = (String) ((Map<String, Object>) result.get(FAULT)).get(FAULT_TYPE);
-                    final String errorCode = (String) ((Map<String, Object>) result.get(FAULT)).get(FAULT_ERROR_CODE);
-                    final Throwable cause = (Throwable) ((Map<String, Object>) result.get(FAULT)).get(FAULT_CAUSE);
+					final String faultTypeAsString = (String) ((Map<String, Object>) result.get(FAULT)).get(FAULT_TYPE);
+					final String errorCode = (String) ((Map<String, Object>) result.get(FAULT)).get(FAULT_ERROR_CODE);
+					final Throwable cause = (Throwable) ((Map<String, Object>) result.get(FAULT)).get(FAULT_CAUSE);
                     throw new BusinessException(faultTypeAsString, errorCode, (Map<String, Object>) result.get(FAULT), cause);
                 } else if (exposed && outputParameterName.isPresent() && result != null && result.get(outputParameterName.get()) != null) {
                     final ResponseConverter responseConverter = ResponseConverter.builder()

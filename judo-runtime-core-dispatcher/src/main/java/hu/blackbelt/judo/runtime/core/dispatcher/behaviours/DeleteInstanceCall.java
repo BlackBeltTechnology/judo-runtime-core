@@ -11,13 +11,13 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall {
+public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final IdentifierProvider<ID> identifierProvider;
     final AsmUtils asmUtils;
 
-    public DeleteInstanceCall(DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
+    public DeleteInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -29,15 +29,16 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall {
         return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.DELETE_INSTANCE).isPresent();
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
         final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final boolean bound = asmUtils.isBound(operation);
+        final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        dao.delete(owner, exchange.get(identifierProvider.getName()));
+        dao.delete(owner, (ID) exchange.get(identifierProvider.getName()));
 
         return null;
     }

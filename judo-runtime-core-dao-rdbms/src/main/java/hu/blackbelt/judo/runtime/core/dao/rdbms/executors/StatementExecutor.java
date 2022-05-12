@@ -11,17 +11,14 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.tatami.core.EMapWrapper;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Stream;
 
-@Slf4j(topic = "dao-rdbms")
 public abstract class StatementExecutor<ID> {
 
     public static final String ID_COLUMN_NAME = "ID";
@@ -69,7 +66,7 @@ public abstract class StatementExecutor<ID> {
     private final Coercer coercer;
 
     @Getter
-    private final RdbmsParameterMapper rdbmsParameterMapper;
+    private final RdbmsParameterMapper<ID> rdbmsParameterMapper;
 
     @Getter
     private final RdbmsResolver rdbmsResolver;
@@ -77,10 +74,11 @@ public abstract class StatementExecutor<ID> {
     @Getter
     private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
 
-    public StatementExecutor(@NonNull AsmModel asmModel,
+    @SuppressWarnings("unchecked")
+	public StatementExecutor(@NonNull AsmModel asmModel,
                              @NonNull RdbmsModel rdbmsModel,
                              @NonNull TransformationTraceService transformationTraceService,
-                             @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+                             @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
                              @NonNull RdbmsResolver rdbmsResolver,
                              @NonNull Coercer coercer,
                              IdentifierProvider<ID> identifierProvider) {
@@ -106,7 +104,7 @@ public abstract class StatementExecutor<ID> {
         return Stream.concat(referenceStatements.stream()
                 .map(addReferenceStatement ->
                         rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                RdbmsReference.rdbmsReferenceBuilder()
+                                RdbmsReference.<ID>rdbmsReferenceBuilder()
                                         .statement(addReferenceStatement)
                                         .identifier(addReferenceStatement.getIdentifier())
                                         .oppositeIdentifier(addReferenceStatement.getInstance().getIdentifier())
@@ -116,7 +114,7 @@ public abstract class StatementExecutor<ID> {
                 referenceStatements.stream().filter(r -> r.getReference().getEOpposite() != null)
                         .map(addReferenceStatement ->
                                 rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                        RdbmsReference.rdbmsReferenceBuilder()
+                                        RdbmsReference.<ID>rdbmsReferenceBuilder()
                                                 .statement(addReferenceStatement)
                                                 .identifier(addReferenceStatement.getInstance().getIdentifier())
                                                 .oppositeIdentifier(addReferenceStatement.getIdentifier())
@@ -143,7 +141,8 @@ public abstract class StatementExecutor<ID> {
             boolean mandatory,
             boolean optional) {
 
-        Map<RdbmsReference<ID>, ID> referenceMap = new EMapWrapper(ECollections.asEMap(Maps.newHashMap()));
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		Map<RdbmsReference<ID>, ID> referenceMap = new EMapWrapper(ECollections.asEMap(Maps.<RdbmsReference<ID>, ID>newHashMap()));
 
         collectRdbmsReferencesReferenceStatements(referenceStatements)
                 .filter(rdbmsReference -> rdbmsReference.getRule().isForeignKey() || rdbmsReference.getRule().isInverseForeignKey())

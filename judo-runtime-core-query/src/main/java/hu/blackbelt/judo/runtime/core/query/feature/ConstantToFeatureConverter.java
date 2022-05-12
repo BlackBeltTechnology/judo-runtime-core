@@ -26,7 +26,8 @@ import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newConstan
 @Slf4j
 public class ConstantToFeatureConverter extends ExpressionToFeatureConverter<Constant> {
 
-    private final Coercer coercer;
+    @SuppressWarnings("unused")
+	private final Coercer coercer;
     private final MeasureProvider<Measure, Unit> measureProvider;
 
     public ConstantToFeatureConverter(final FeatureFactory factory, final Coercer coercer, final AsmModelAdapter modelAdapter, final MeasureProvider<Measure, Unit> measureProvider) {

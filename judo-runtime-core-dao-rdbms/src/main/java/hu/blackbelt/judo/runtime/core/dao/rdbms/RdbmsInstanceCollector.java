@@ -45,7 +45,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     private final RdbmsModel rdbmsModel;
     private final Coercer coercer;
     private final IdentifierProvider<ID> identifierProvider;
-    private RdbmsParameterMapper rdbmsParameterMapper;
+    private RdbmsParameterMapper<ID> rdbmsParameterMapper;
 
     private final AtomicReference<RdbmsModelResourceSupport> rdbmsSupport = new AtomicReference<>(null);
 
@@ -65,7 +65,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             @NonNull RdbmsModel rdbmsModel,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper) {
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.asmUtils = asmUtils;
         this.rdbmsResolver = rdbmsResolver;
@@ -138,7 +138,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
             if (parentId.isPresent()) {
                 containmentIds.get(referenceChain).put(id, graphOfRecord);
-                final InstanceReference instanceReference = InstanceReference.<ID>builder()
+                final InstanceReference<ID> instanceReference = InstanceReference.<ID>builder()
                         .reference(referenceChain.get(referenceChain.size() - 1))
                         .referencedElement(graphOfRecord)
                         .build();
@@ -189,7 +189,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                     final InstanceGraph<ID> joinedGraph = InstanceGraph.<ID>builder().id(joinedId).build();
                     graphs.put(joinedId, joinedGraph);
 
-                    final InstanceReference instanceReference = InstanceReference.<ID>builder()
+                    final InstanceReference<ID> instanceReference = InstanceReference.<ID>builder()
                             .reference(join.getReference())
                             .referencedElement(joinedGraph)
                             .build();
@@ -216,7 +216,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         return containmentIds;
     }
 
-    private Map<ID, InstanceGraph<ID>> collectInstances(final RdbmsSelect select, final Collection<ID> ids, final RdbmsParameterMapper parameterMapper) {
+    private Map<ID, InstanceGraph<ID>> collectInstances(final RdbmsSelect select, final Collection<ID> ids, final RdbmsParameterMapper<ID> parameterMapper) {
         final Map<ID, InstanceGraph<ID>> graphs = new HashMap<>();
 
         final String sql = select.toSql();
@@ -250,7 +250,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         return graphs;
     }
 
-    private void collectSubSelectInstances(final RdbmsSubSelect subSelect, final Map<ID, InstanceGraph<ID>> graphs, final EList<EReference> prevReferenceChain, final RdbmsParameterMapper parameterMapper) {
+    private void collectSubSelectInstances(final RdbmsSubSelect subSelect, final Map<ID, InstanceGraph<ID>> graphs, final EList<EReference> prevReferenceChain, final RdbmsParameterMapper<ID> parameterMapper) {
         final EList<EReference> referenceChain = new BasicEList<>();
         referenceChain.addAll(prevReferenceChain);
         referenceChain.add(subSelect.getReference());

@@ -2,7 +2,8 @@ package hu.blackbelt.judo.runtime.core.exception;
 
 public class AuthenticationRequiredException extends ClientException {
 
-    private final FeedbackItem feedbackItem;
+	private static final long serialVersionUID = -5826001649836508910L;
+	private final FeedbackItem feedbackItem;
 
     public AuthenticationRequiredException(FeedbackItem feedbackItem) {
         super();

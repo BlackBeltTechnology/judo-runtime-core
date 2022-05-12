@@ -7,7 +7,6 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.FileType;
-import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.AttributeSelector;
@@ -23,13 +22,11 @@ import hu.blackbelt.judo.meta.jql.jqldsl.JqlExpression;
 import hu.blackbelt.judo.meta.jql.runtime.JqlParser;
 import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.Unit;
-import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
@@ -65,7 +62,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     private final Translator translator = new Translator();
     private final MetricsCollector metricsCollector;
-    private final RdbmsBuilder rdbmsBuilder;
+    private final RdbmsBuilder<ID> rdbmsBuilder;
     private final QueryFactory queryFactory;
     private final DataTypeManager dataTypeManager;
     private final int chunkSize;
@@ -76,11 +73,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                    @NonNull final RdbmsModel rdbmsModel,
                                    @NonNull final TransformationTraceService transformationTraceService,
                                    @NonNull final QueryFactory queryFactory,
-                                   @NonNull final RdbmsParameterMapper rdbmsParameterMapper,
+                                   @NonNull final RdbmsParameterMapper<ID> rdbmsParameterMapper,
                                    @NonNull final RdbmsResolver rdbmsResolver,
                                    @NonNull final DataTypeManager dataTypeManager,
                                    @NonNull final IdentifierProvider<ID> identifierProvider,
-                                   @NonNull final RdbmsBuilder rdbmsBuilder,
+                                   @NonNull final RdbmsBuilder<ID> rdbmsBuilder,
                                    @NonNull final MetricsCollector metricsCollector,
                                    @NonNull final Integer chunkSize) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, dataTypeManager.getCoercer(),
@@ -119,7 +116,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         translator.getTranslators().put(TimeConstant.class, TimeConstantTranslator.builder().build());
     }
 
-    public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
+	public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
         rdbmsBuilder.getConstantFields().set(new HashMap<>());
 
         EClass entityType;
@@ -197,7 +194,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer          query customizer
      * @return result set (list of records) that can has embedded result sets
      */
-    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+	public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final Select _select = queryFactory.getQuery(mappedTransferObjectType).get();
@@ -237,7 +234,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
     }
 
-    public Payload executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EAttribute attribute, final Map<String, Object> parameters) {
+	public Payload executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EAttribute attribute, final Map<String, Object> parameters) {
         try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final SubSelect subSelect = queryFactory.getDataQuery(attribute).orElseThrow(() -> new IllegalStateException("Query for static data not prepared yet"));
@@ -263,7 +260,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer query customizer
      * @return result set (list of records) that can has embedded result sets
      */
-    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+	public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final EClass referenceHolder = reference.getEContainingClass();
@@ -369,7 +366,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     private synchronized <T extends EObject> T clone(final T original) {
         final EcoreUtil.Copier copier = new EcoreUtil.Copier(true, true);
-        final T result = (T) copier.copy(original);
+        @SuppressWarnings("unchecked")
+		final T result = (T) copier.copy(original);
         copier.copyReferences();
 
         return result;
@@ -385,7 +383,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .buildTypeName(type)
                 .orElseThrow(() -> new IllegalStateException("Invalid type name"));
 
-        final JqlExpressionBuildingContext context = new JqlExpressionBuildingContext();
+        @SuppressWarnings("rawtypes")
+		final JqlExpressionBuildingContext context = new JqlExpressionBuildingContext();
         final Instance _this = newInstanceBuilder()
                 .withName("this")
                 .withElementName(typeName)
@@ -434,7 +433,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param skipParents     skip parent IDs from result
      * @return result set
      */
-    private EMap<Target, Map<ID, Payload>> runQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final Collection<ID> instanceIds, final Collection<ID> parentIds, final EList<EReference> referenceChain, final DAO.Seek seek, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters, final boolean skipParents) {
+    @SuppressWarnings("unchecked")
+	private EMap<Target, Map<ID, Payload>> runQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final Collection<ID> instanceIds, final Collection<ID> parentIds, final EList<EReference> referenceChain, final DAO.Seek seek, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters, final boolean skipParents) {
         // map of sources, key is ID column alias, value is the source object (including SELECT and all JOINs)
         final Map<String, Node> sources = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getIdColumnAlias(j), j -> j)));
         sources.put(RdbmsAliasUtil.getIdColumnAlias(query.getSelect()), query.getSelect());
@@ -478,7 +478,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         log.debug("Instance IDs: {}", instanceIds);
         log.debug("Parent IDs: {}", parentIds);
 
-        final RdbmsResultSet resultSetHandler = RdbmsResultSet.builder()
+        final RdbmsResultSet<ID> resultSetHandler = RdbmsResultSet.<ID>builder()
                 .query(query)
                 .filterByInstances(instanceIds != null)
                 .parentIdFilterQuery(parentIds != null ? query : null)
@@ -773,7 +773,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
     }
 
-    private void executeSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> newReferenceChain, final EMap<Target, Map<ID, Payload>> results, final Collection<ID> ids, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private void executeSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> newReferenceChain, final EMap<Target, Map<ID, Payload>> results, final Collection<ID> ids, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
         log.trace("  IDs: {}", ids);
 
         // map storing subquery results, it will be filled by recursive call
@@ -789,7 +790,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         log.trace("  - parent key: {}", subParentKey);
 
         subQueryResults.get(subQueryTarget).values().forEach(subQueryRecord -> {
-            final Collection<ID> parentIds = (Collection<ID>) subQueryRecord.get(subParentKey);
+			final Collection<ID> parentIds = (Collection<ID>) subQueryRecord.get(subParentKey);
             log.trace("    - parent IDs: {}", parentIds);
 
             checkArgument(parentIds != null, "Unknown parent ID");

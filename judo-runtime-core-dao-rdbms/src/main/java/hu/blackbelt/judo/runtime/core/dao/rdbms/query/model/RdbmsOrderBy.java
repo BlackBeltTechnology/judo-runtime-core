@@ -18,7 +18,7 @@ public class RdbmsOrderBy {
     private final boolean fromSubSelect;
 
     @NonNull
-    private final boolean descending;
+    private final Boolean descending;
 
     public String toSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
         return (fromSubSelect ? rdbmsField.getRdbmsAlias() : rdbmsField.toSql(prefix, false, coercer, sqlParameters, prefixes)) +

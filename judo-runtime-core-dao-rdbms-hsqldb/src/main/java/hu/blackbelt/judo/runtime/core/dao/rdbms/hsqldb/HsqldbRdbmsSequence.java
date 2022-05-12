@@ -37,7 +37,8 @@ public class HsqldbRdbmsSequence implements Sequence<Long> {
     @AllArgsConstructor
     private enum Operation {
         CURRENT_VALUE("CURRVAL"), NEXT_VALUE("NEXTVAL");
-        String functionName;
+        @SuppressWarnings("unused")
+		String functionName;
     }
 
     private Long execute(String sequenceName, final Operation operation) {

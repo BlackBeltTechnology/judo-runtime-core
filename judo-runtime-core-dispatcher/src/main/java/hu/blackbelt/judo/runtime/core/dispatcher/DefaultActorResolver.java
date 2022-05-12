@@ -13,7 +13,6 @@ import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -97,7 +96,8 @@ public class DefaultActorResolver<ID> implements ActorResolver {
             filterAttribute = emailClaim.get();
         } else {
             filterAttribute = actorType.getEAllAttributes().stream()
-                    .filter(actorAttribute -> claims.containsKey(actorAttribute.getName()) && asmUtils.getMappedAttribute(actorAttribute).filter(a -> asmUtils.isIdentifier(a)).isPresent())
+                    .filter(actorAttribute -> claims.containsKey(actorAttribute.getName()) 
+                    		&& asmUtils.getMappedAttribute(actorAttribute).filter(a -> AsmUtils.isIdentifier(a)).isPresent())
                     .sorted((a1, a2) -> AsmUtils.equals(a1, a2) ? 0 : a1.getName().compareTo(a2.getName()))
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException("ID attribute in Entity type matching any access token claim not found"));

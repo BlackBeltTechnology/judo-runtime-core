@@ -17,10 +17,10 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
-public class EntityTypeNameMapper extends RdbmsMapper<EntityTypeName> {
+public class EntityTypeNameMapper<ID> extends RdbmsMapper<EntityTypeName> {
 
     @NonNull
-    private final RdbmsBuilder rdbmsBuilder;
+    private final RdbmsBuilder<ID> rdbmsBuilder;
 
     @Override
     public Stream<? extends RdbmsField> map(final EntityTypeName entityTypeName, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {

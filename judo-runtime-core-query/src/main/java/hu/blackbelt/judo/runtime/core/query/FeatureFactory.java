@@ -20,16 +20,15 @@ import hu.blackbelt.judo.meta.query.FeatureTargetMapping;
 import hu.blackbelt.judo.runtime.core.query.feature.*;
 import hu.blackbelt.judo.runtime.core.query.feature.aggregated.*;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-@Slf4j
 public class FeatureFactory {
 
-    private Map<Class, ExpressionToFeatureConverter> converters = new ConcurrentHashMap<>();
+    @SuppressWarnings("rawtypes")
+	private Map<Class, ExpressionToFeatureConverter> converters = new ConcurrentHashMap<>();
 
     public FeatureFactory(final JoinFactory joinFactory, final AsmModelAdapter modelAdapter, final Coercer coercer, final MeasureProvider<Measure, Unit> measureProvider) {
         converters.put(AsString.class, new AsStringToFeatureConverter(this, modelAdapter));
@@ -102,7 +101,8 @@ public class FeatureFactory {
     }
 
     public Feature convert(final Expression expression, final Context context, final FeatureTargetMapping targetMapping) {
-        final Optional<ExpressionToFeatureConverter> converter = converters.entrySet().stream()
+        @SuppressWarnings({ "rawtypes", "unchecked" })
+		final Optional<ExpressionToFeatureConverter> converter = converters.entrySet().stream()
                 .filter(c -> c.getKey().isAssignableFrom(expression.getClass()))
                 .map(c -> c.getValue())
                 .findAny();
@@ -111,7 +111,8 @@ public class FeatureFactory {
             throw new IllegalStateException("Unsupported expression: " + expression.getClass().getName());
         }
 
-        final Feature feature = converter.get().convert(expression, context, targetMapping);
+        @SuppressWarnings({ "unchecked" })
+		final Feature feature = converter.get().convert(expression, context, targetMapping);
         if (targetMapping != null) {
             feature.getTargetMappings().add(targetMapping);
         }

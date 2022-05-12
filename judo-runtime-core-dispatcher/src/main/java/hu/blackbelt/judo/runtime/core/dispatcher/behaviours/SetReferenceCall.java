@@ -14,13 +14,13 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class SetReferenceCall<ID> extends TransactionalBehaviourCall {
+public class SetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public SetReferenceCall(DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
+    public SetReferenceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -32,7 +32,8 @@ public class SetReferenceCall<ID> extends TransactionalBehaviourCall {
         return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.SET_REFERENCE).isPresent();
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
@@ -40,10 +41,10 @@ public class SetReferenceCall<ID> extends TransactionalBehaviourCall {
         final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        final boolean bound = asmUtils.isBound(operation);
+        final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        final ID instanceId = (ID) exchange.get(identifierProvider.getName());
+		final ID instanceId = (ID) exchange.get(identifierProvider.getName());
         final Collection<ID> referencedIds;
         if (owner.isMany()) {
             referencedIds = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()

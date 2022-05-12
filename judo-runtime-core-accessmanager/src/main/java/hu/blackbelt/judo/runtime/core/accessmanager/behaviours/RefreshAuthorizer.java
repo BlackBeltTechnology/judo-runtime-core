@@ -5,12 +5,10 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Collection;
 
-@Slf4j
 @RequiredArgsConstructor
 @Builder
 public class RefreshAuthorizer extends BehaviourAuthorizer {

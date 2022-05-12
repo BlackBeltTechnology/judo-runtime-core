@@ -4,7 +4,6 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -15,8 +14,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 @RequiredArgsConstructor
-@Slf4j
-public class GetMetadataCall implements BehaviourCall {
+public class GetMetadataCall<ID> implements BehaviourCall<ID> {
 
     final AsmUtils asmUtils;
     final Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider;

@@ -21,12 +21,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
-public class VariableMapper extends RdbmsMapper<Variable> {
+public class VariableMapper<ID> extends RdbmsMapper<Variable> {
 
     public static final String PARAMETER_VARIABLE_KEY = "PARAMETER";
 
     @NonNull
-    private final RdbmsBuilder rdbmsBuilder;
+    private final RdbmsBuilder<ID> rdbmsBuilder;
 
     @Override
     public Stream<? extends RdbmsField> map(final Variable variable, final EMap<Node, EList<EClass>> ancestors, SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {

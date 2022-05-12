@@ -11,11 +11,11 @@ import lombok.NonNull;
 import java.sql.Time;
 import java.sql.Timestamp;
 
-public class PostgresqlRdbmsParameterMapper extends DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
+public class PostgresqlRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
     @Builder
     private PostgresqlRdbmsParameterMapper(@NonNull Coercer coercer,
                                           @NonNull RdbmsModel rdbmsModel,
-                                          @NonNull IdentifierProvider identifierProvider) {
+                                          @NonNull IdentifierProvider<ID> identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
         getSqlTypes().put(Timestamp.class, vd -> "TIMESTAMPTZ");

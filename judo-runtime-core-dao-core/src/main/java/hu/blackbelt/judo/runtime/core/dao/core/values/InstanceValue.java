@@ -11,7 +11,6 @@ import org.eclipse.emf.ecore.EClass;
 import java.util.List;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
 
 /**
  * Represents a statement instance. It can contain attributes and references. All statement have minimum one instance
@@ -29,11 +28,11 @@ public class InstanceValue<ID> {
     ID identifier;
 
     @Builder.Default
-    List<AttributeValue> attributes = newArrayList();
+    List<AttributeValue<Object>> attributes = newArrayList();
 
     public void addAttributeValue(EAttribute attribute, Object value) {
         attributes.add(AttributeValue
-                .attributeValueBuilder()
+                .<Object>attributeValueBuilder()
                     .attribute(attribute)
                     .value(value)
                     .build());

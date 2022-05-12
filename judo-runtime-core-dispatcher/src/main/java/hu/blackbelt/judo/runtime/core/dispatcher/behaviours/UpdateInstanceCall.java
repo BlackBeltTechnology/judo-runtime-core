@@ -15,14 +15,14 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall {
+public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO dao;
+    final DAO<ID> dao;
     final IdentifierProvider<ID> identifierProvider;
     final AsmUtils asmUtils;
     final Coercer coercer;
 
-    public UpdateInstanceCall(DAO dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager, Coercer coercer) {
+    public UpdateInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager, Coercer coercer) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -43,18 +43,21 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall {
         final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        final boolean bound = asmUtils.isBound(operation);
+        final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        final Payload payload = asPayload((Map<String, Object>) exchange.get(inputParameterName));
+        @SuppressWarnings("unchecked")
+		final Payload payload = asPayload((Map<String, Object>) exchange.get(inputParameterName));
         if (payload.get(identifierProvider.getName()) == null) {
             payload.put(identifierProvider.getName(), exchange.get(identifierProvider.getName()));
         } else {
             payload.put(identifierProvider.getName(),
                     coercer.coerce(exchange.get(identifierProvider.getName()), identifierProvider.getType()));
 
-            final ID idInPayload = (ID) payload.get(identifierProvider.getName());
-            final ID idOfSubject = (ID) exchange.get(identifierProvider.getName());
+            @SuppressWarnings("unchecked")
+			final ID idInPayload = (ID) payload.get(identifierProvider.getName());
+            @SuppressWarnings("unchecked")
+			final ID idOfSubject = (ID) exchange.get(identifierProvider.getName());
 
             if (!Objects.equals(idInPayload, idOfSubject)) {
                 throw new IllegalArgumentException("Identifier in payload must match operation subject");

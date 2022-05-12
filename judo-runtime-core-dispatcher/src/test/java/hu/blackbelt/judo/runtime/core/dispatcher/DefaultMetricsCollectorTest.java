@@ -104,8 +104,8 @@ class DefaultMetricsCollectorTest {
     @Test
     void doubleStopThrows() {
         assertThrows(IllegalStateException.class, () -> {
-            MetricsCancelToken ct_outer = metricsCollector.start(outerKey);
-            MetricsCancelToken ct_inner = metricsCollector.start(innerKey);
+            metricsCollector.start(outerKey);
+            metricsCollector.start(innerKey);
             metricsCollector.stop(innerKey);
             metricsCollector.stop(innerKey);
         });
@@ -122,7 +122,6 @@ class DefaultMetricsCollectorTest {
 
     @Test
     void measurementIsNotZero() throws InterruptedException {
-        AtomicLong measuredTime;
         try (MetricsCancelToken ct_outer = metricsCollector.start(outerKey)) {
             Thread.sleep(1L);
         }

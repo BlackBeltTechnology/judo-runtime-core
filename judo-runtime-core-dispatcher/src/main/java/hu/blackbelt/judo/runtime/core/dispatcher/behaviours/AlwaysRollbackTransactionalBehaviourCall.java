@@ -10,7 +10,7 @@ import javax.transaction.TransactionManager;
 import java.util.Map;
 
 @Slf4j
-public abstract class AlwaysRollbackTransactionalBehaviourCall implements BehaviourCall {
+public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
 
     TransactionManager transactionManager;
     Context context;

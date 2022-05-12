@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(MockitoExtension.class)
 public class InsertPayloadDaoProcessorTest {
 
-    InsertPayloadDaoProcessor insertPayloadProcessor;
+    InsertPayloadDaoProcessor<UUID> insertPayloadProcessor;
 
     private AsmModel asmModel;
     private AsmUtils asmUtils;
@@ -72,12 +72,12 @@ public class InsertPayloadDaoProcessorTest {
 
         asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-        insertPayloadProcessor = new InsertPayloadDaoProcessor(asmModel.getResourceSet(),
+        insertPayloadProcessor = new InsertPayloadDaoProcessor<UUID>(asmModel.getResourceSet(),
                 new UUIDIdentifierProvider(),
                 new QueryFactory(asmModel.getResourceSet(), new ResourceSetImpl(), new DefaultCoercer()),
-                new EmptyMapIntstanceCollector(),
+                new EmptyMapIntstanceCollector<UUID>(),
                 (clazz) -> Payload.empty(),
-                Metadata.buildMetadata()
+                Metadata.<UUID>buildMetadata()
                         .timestamp(OffsetDateTime.now())
                         .build());
     }

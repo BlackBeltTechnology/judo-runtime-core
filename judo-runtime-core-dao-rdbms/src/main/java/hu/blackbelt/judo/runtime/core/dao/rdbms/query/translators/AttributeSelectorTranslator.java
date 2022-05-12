@@ -13,7 +13,6 @@ import hu.blackbelt.judo.meta.expression.variable.ObjectVariable;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
@@ -25,7 +24,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Builder
-@Slf4j
 public class AttributeSelectorTranslator implements Function<AttributeSelector, Expression> {
 
     @NonNull

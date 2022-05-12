@@ -11,6 +11,7 @@ import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 
 import javax.inject.Provider;
 
+@SuppressWarnings("rawtypes")
 public class ModifyStatementExecutorProvider implements Provider<ModifyStatementExecutor> {
 
     @Inject
@@ -19,7 +20,7 @@ public class ModifyStatementExecutorProvider implements Provider<ModifyStatement
     @Inject
     DataTypeManager dataTypeManager;
 
-    @Inject
+	@Inject
     IdentifierProvider identifierProvider;
 
     @Inject
@@ -31,7 +32,8 @@ public class ModifyStatementExecutorProvider implements Provider<ModifyStatement
     @Inject
     RdbmsResolver rdbmsResolver;
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public ModifyStatementExecutor get() {
         return ModifyStatementExecutor.builder()
                 .asmModel(models.getAsmModel())

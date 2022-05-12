@@ -1,6 +1,5 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.fixture;
 
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultMetricsCollector;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.extension.*;
 

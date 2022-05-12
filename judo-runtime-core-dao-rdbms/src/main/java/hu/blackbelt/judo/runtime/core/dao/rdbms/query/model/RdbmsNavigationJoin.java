@@ -2,7 +2,6 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
@@ -20,7 +19,7 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RdbmsNavigationJoin extends RdbmsJoin {
+public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
 
     private final EMap<Node, EList<EClass>> subAncestors = ECollections.asEMap(new HashMap<>());
     private final String subFrom;
@@ -40,7 +39,7 @@ public class RdbmsNavigationJoin extends RdbmsJoin {
     @Builder
     private RdbmsNavigationJoin(@NonNull final SubSelect query,
                                 final SubSelect parentIdFilterQuery,
-                                final RdbmsBuilder rdbmsBuilder,
+                                final RdbmsBuilder<ID> rdbmsBuilder,
                                 final boolean withoutFeatures,
                                 final Map<String, Object> queryParameters) {
         super();
@@ -127,9 +126,9 @@ public class RdbmsNavigationJoin extends RdbmsJoin {
         });
 
         subJoins.addAll(aggregations.stream()
-                .map(subSelect -> RdbmsQueryJoin.builder()
+                .map(subSelect -> RdbmsQueryJoin.<ID>builder()
                         .resultSet(
-                                RdbmsResultSet.builder()
+                                RdbmsResultSet.<ID>builder()
                                         .query(subSelect)
                                         .filterByInstances(false)
                                         .parentIdFilterQuery(parentIdFilterQuery)
@@ -170,7 +169,7 @@ public class RdbmsNavigationJoin extends RdbmsJoin {
         subConditions.addAll(query.getNavigationJoins().stream()
                 .flatMap(join -> join.getFilters().stream().map(f -> RdbmsFunction.builder()
                         .pattern("EXISTS ({0})")
-                        .parameter(RdbmsNavigationFilter.builder()
+                        .parameter(RdbmsNavigationFilter.<ID>builder()
                                 .filter(f)
                                 .rdbmsBuilder(rdbmsBuilder)
                                 .parentIdFilterQuery(parentIdFilterQuery)

@@ -7,8 +7,6 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultMetricsCollector;
 
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class DefaultMetricsCollectorProvider implements Provider<MetricsCollector> {
@@ -20,7 +18,8 @@ public class DefaultMetricsCollectorProvider implements Provider<MetricsCollecto
     @Inject
     Context context;
 
-    @Inject(optional = true)
+    @SuppressWarnings("rawtypes")
+	@Inject(optional = true)
     @Named(METRICS_COLLECTOR_CONSUMER)
     Consumer metricsConsumer = (m) -> {};
 
@@ -32,7 +31,8 @@ public class DefaultMetricsCollectorProvider implements Provider<MetricsCollecto
     @Named(METRICS_COLLECTOR_VERBOSE)
     Boolean verbose = false;
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public MetricsCollector get() {
         return DefaultMetricsCollector.builder()
                 .context(context)

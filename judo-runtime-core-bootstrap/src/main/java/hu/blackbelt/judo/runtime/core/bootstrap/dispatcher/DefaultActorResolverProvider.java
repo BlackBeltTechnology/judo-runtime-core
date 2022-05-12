@@ -16,7 +16,8 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     @Inject
     AsmModel asmModel;
 
-    @Inject
+    @SuppressWarnings("rawtypes")
+	@Inject
     DAO dao;
 
     @Inject
@@ -26,7 +27,8 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     @Named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS)
     Boolean checkMappedActors = false;
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public ActorResolver get() {
         return DefaultActorResolver.builder()
                 .dataTypeManager(dataTypeManager)

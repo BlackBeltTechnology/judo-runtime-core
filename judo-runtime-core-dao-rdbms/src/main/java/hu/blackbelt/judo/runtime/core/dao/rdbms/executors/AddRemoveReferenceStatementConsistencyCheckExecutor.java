@@ -6,14 +6,12 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.ReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.util.Collection;
@@ -29,7 +27,6 @@ import static com.google.common.base.Preconditions.checkState;
  *
  * @param <ID>
  */
-@Slf4j(topic = "dao-rdbms")
 class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
@@ -37,7 +34,7 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementE
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider) {

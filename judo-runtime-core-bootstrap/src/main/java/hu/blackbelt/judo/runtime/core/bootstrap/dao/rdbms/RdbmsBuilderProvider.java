@@ -16,6 +16,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 
 import org.eclipse.emf.ecore.EClass;
 
+@SuppressWarnings("rawtypes")
 public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     @Inject
     JudoModelSpecification models;
@@ -23,10 +24,10 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     @Inject
     RdbmsResolver rdbmsResolver;
 
-    @Inject
+	@Inject
     RdbmsParameterMapper rdbmsParameterMapper;
 
-    @Inject
+	@Inject
     IdentifierProvider identifierProvider;
 
     @Inject
@@ -35,13 +36,14 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     @Inject
     VariableResolver variableResolver;
     
-    @Inject
+	@Inject
     MapperFactory mapperFactory;
 
     @Inject
     Dialect dialect;
 
-    @Override
+    @SuppressWarnings({ "unchecked" })
+	@Override
     public RdbmsBuilder get() {
         AsmUtils asm = new AsmUtils(models.getAsmModel().getResourceSet());
 

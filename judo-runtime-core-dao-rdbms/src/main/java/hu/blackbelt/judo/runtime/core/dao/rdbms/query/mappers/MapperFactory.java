@@ -4,6 +4,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 
 import java.util.Map;
 
-public interface MapperFactory {
-    Map<Class, RdbmsMapper> getMappers(RdbmsBuilder rdbmsBuilder);
+public interface MapperFactory<ID> {
+	Map<Class<?>, RdbmsMapper<?>> getMappers(RdbmsBuilder<ID> rdbmsBuilder);
 }

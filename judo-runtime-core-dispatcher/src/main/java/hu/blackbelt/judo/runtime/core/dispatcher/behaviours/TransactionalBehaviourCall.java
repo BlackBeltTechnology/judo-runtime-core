@@ -7,7 +7,7 @@ import javax.transaction.Status;
 import javax.transaction.TransactionManager;
 import java.util.Map;
 
-public abstract class TransactionalBehaviourCall implements BehaviourCall {
+public abstract class TransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
 
     TransactionManager transactionManager;
 

@@ -26,7 +26,8 @@ public class FileTypeFormatter implements Formatter<FileType> {
 
     @Override
     public FileType parseString(final String str) {
-        final Map<String, Object> map = new Gson().fromJson(str, Map.class);
+        @SuppressWarnings("unchecked")
+		final Map<String, Object> map = new Gson().fromJson(str, Map.class);
         return FileType.builder()
                 .id((String) map.get(KEY_ID))
                 .fileName((String) map.get(KEY_FILENAME))
