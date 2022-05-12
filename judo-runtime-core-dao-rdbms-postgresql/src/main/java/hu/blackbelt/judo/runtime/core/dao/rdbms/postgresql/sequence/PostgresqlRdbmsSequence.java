@@ -61,4 +61,5 @@ public class PostgresqlRdbmsSequence implements Sequence<Long> {
     public Long getCurrentValue(String sequenceName) {
         return execute(sequenceName, Operation.CURRENT_VALUE);
     }
+
 }
