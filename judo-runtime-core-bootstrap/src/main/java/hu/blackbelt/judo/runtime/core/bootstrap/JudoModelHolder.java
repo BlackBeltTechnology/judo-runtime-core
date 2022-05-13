@@ -13,7 +13,7 @@ import lombok.NonNull;
 
 @Builder
 @Getter
-public class JudoModelSpecification {
+public class JudoModelHolder {
 
     @NonNull
     AsmModel asmModel;

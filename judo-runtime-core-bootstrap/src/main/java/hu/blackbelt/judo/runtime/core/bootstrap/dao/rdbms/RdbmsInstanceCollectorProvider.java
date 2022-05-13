@@ -5,7 +5,7 @@ import com.google.inject.Provider;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
@@ -24,7 +24,7 @@ public class RdbmsInstanceCollectorProvider implements Provider<InstanceCollecto
     RdbmsResolver rdbmsResolver;
 
     @Inject
-    JudoModelSpecification models;
+    JudoModelHolder models;
 
     @Inject
     DataTypeManager dataTypeManager;

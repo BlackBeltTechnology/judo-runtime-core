@@ -2,14 +2,14 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 
 public class RdbmsResolverProvider implements Provider<RdbmsResolver> {
 
     @Inject
-    JudoModelSpecification models;
+    JudoModelHolder models;
 
     @Inject
     TransformationTraceService transformationTraceService;

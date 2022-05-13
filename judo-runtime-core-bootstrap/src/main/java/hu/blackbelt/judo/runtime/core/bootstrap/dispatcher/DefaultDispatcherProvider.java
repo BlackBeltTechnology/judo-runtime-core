@@ -10,7 +10,7 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
@@ -31,7 +31,7 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     public static final String DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION = "dispatcherRequiredStringValidatorOption";
 
     @Inject
-    JudoModelSpecification models;
+    JudoModelHolder models;
 
     @Inject
     DAO dao;

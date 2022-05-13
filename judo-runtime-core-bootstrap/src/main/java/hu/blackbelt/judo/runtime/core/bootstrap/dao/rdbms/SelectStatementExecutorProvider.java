@@ -5,7 +5,7 @@ import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
@@ -21,7 +21,7 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
     public static final String SELECT_CHUNK_SIZE = "rdbmsDaoChunkSize";
 
     @Inject
-    JudoModelSpecification models;
+    JudoModelHolder models;
 
     @Inject
     QueryFactory queryFactory;

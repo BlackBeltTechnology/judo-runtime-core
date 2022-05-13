@@ -603,11 +603,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jooq</groupId>
-                <artifactId>jooq</artifactId>
-                <version>${jooq-version}</version>
-            </dependency>
-            <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
                 <artifactId>judo-runtime-core</artifactId>
                 <version>${project.version}</version>

@@ -64,9 +64,9 @@ public class JudoDefaultModule extends AbstractModule {
     public static final String ACTOR_RESOLVER_CHECK_MAPPED_ACTORS = "actorResolverCheckMappedActors";
 
     private final Object injectModulesTo;
-    private final JudoModelSpecification models;
+    private final JudoModelHolder models;
 
-    JudoDefaultModule(Object injectModulesTo, JudoModelSpecification models) {
+    JudoDefaultModule(Object injectModulesTo, JudoModelHolder models) {
         this.injectModulesTo = injectModulesTo;
         this.models = models;
     }
@@ -88,7 +88,7 @@ public class JudoDefaultModule extends AbstractModule {
         bind(AsmModel.class).toInstance(models.getAsmModel());
 
         // Model
-        bind(JudoModelSpecification.class).toInstance(models);
+        bind(JudoModelHolder.class).toInstance(models);
 
         // HSQLDB
         bind(Dialect.class).toInstance(new HsqldbDialect());

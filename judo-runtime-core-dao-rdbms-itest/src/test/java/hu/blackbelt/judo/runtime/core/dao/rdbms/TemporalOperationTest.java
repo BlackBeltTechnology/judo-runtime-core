@@ -770,7 +770,7 @@ public class TemporalOperationTest {
         });
 
         TIMESTAMP_ADDITIONS.entrySet().stream()
-                .filter(e -> datasourceFixture.isJooqEnabled() && !ChronoUnit.MILLIS.equals(e.getValue())) // millisecond assertions are skipped because it is not supported yet
+                .filter(e -> !ChronoUnit.MILLIS.equals(e.getValue())) // millisecond assertions are skipped because it is not supported yet
                 .forEach(e -> {
                     log.debug("Checking saved timestamp addition {}...", e.getKey());
                     assertEquals(timestamp.plus(2 * DIFFERENCE.longValue(), e.getValue()).atZoneSameInstant(ZoneOffset.UTC), saved.getAs(OffsetDateTime.class, e.getKey()).atZoneSameInstant(ZoneOffset.UTC));
@@ -779,7 +779,7 @@ public class TemporalOperationTest {
                 });
 
         TIME_ADDITIONS.entrySet().stream()
-                .filter(e -> datasourceFixture.isJooqEnabled() && !ChronoUnit.MILLIS.equals(e.getValue())) // millisecond assertions are skipped because it is not supported yet
+                .filter(e -> !ChronoUnit.MILLIS.equals(e.getValue())) // millisecond assertions are skipped because it is not supported yet
                 .forEach(e -> {
                     log.debug("Checking saved time addition {}...", e.getKey());
                     assertEquals(time.plus(2 * DIFFERENCE.longValue(), e.getValue()), saved.getAs(LocalTime.class, e.getKey()));
@@ -788,7 +788,7 @@ public class TemporalOperationTest {
                 });
 
         DATE_ADDITIONS.entrySet().stream()
-                .filter(e -> datasourceFixture.isJooqEnabled() && !ChronoUnit.MILLIS.equals(e.getValue())) // millisecond assertions are skipped because it is not supported yet
+                .filter(e -> !ChronoUnit.MILLIS.equals(e.getValue())) // millisecond assertions are skipped because it is not supported yet
                 .forEach(e -> {
                     log.debug("Checking saved date addition {}...", e.getKey());
                     assertEquals(date.plus(2 * DIFFERENCE.longValue(), e.getValue()), saved.getAs(LocalDate.class, e.getKey()));

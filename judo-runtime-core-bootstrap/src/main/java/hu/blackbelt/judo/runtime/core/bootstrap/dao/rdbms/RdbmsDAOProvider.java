@@ -7,7 +7,7 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelSpecification;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsDAOImpl;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
@@ -22,7 +22,7 @@ public class RdbmsDAOProvider implements Provider<DAO> {
     public static final String RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS = "rdbmsDaoMarkSelectedRangeItems";
 
     @Inject
-    private JudoModelSpecification models;
+    private JudoModelHolder models;
 
     @Inject
     private DataSource dataSource;

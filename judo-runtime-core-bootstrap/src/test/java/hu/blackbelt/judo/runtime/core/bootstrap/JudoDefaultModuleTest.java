@@ -74,7 +74,8 @@ class JudoDefaultModuleTest {
 
         // Asm2RdbmsTransformationTrace asm2RdbmsTransformationTraceLoaded =
         //                fromModelsAndTrace(NORTHWIND, asmModel, rdbmsModel, new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
-        Injector injector = Guice.createInjector(new JudoDefaultModule(this, JudoModelSpecification.builder()
+        
+        Injector injector = Guice.createInjector(new JudoDefaultModule(this, JudoModelHolder.builder()
                 .asmModel(asmModel)
                 .rdbmsModel(rdbmsModel)
                 .measureModel(measureModel)

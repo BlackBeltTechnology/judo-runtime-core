@@ -17,11 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.ttddyy.dsproxy.listener.logging.DefaultQueryLogEntryCreator;
 import net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener;
 import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
-import org.jooq.DSLContext;
-import org.jooq.SQLDialect;
-import org.jooq.conf.ParamCastMode;
-import org.jooq.conf.Settings;
-import org.jooq.impl.DSL;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.function.Executable;
 import org.testcontainers.containers.JdbcDatabaseContainer;
@@ -48,8 +43,8 @@ public class RdbmsDatasourceFixture {
     @Getter
     protected String dialect = System.getProperty("dialect", DIALECT_HSQLDB);
 
-    @Getter
-    protected boolean jooqEnabled = Boolean.parseBoolean(System.getProperty("jooqEnabled"));
+//    @Getter
+//    protected boolean jooqEnabled = Boolean.parseBoolean(System.getProperty("jooqEnabled"));
 
     @Getter
     protected String container = System.getProperty("container", CONTAINER_NONE);
@@ -60,18 +55,17 @@ public class RdbmsDatasourceFixture {
     @Getter
     protected DataSource wrappedDataSource;
 
-    @Getter
-    protected DSLContext jooqContext;
-
-    @Getter
+     @Getter
     protected Database liquibaseDb;
 
     @Getter
     TransactionManager transactionManager;
 
-    public JdbcDatabaseContainer sqlContainer;
+    @SuppressWarnings("rawtypes")
+	public JdbcDatabaseContainer sqlContainer;
 
-    public void setupDatasource() {
+    @SuppressWarnings({ "rawtypes", "resource" })
+	public void setupDatasource() {
         if (dialect.equals(DIALECT_POSTGRESQL)) {
             if (container.equals(CONTAINER_NONE) || container.equals(CONTAINER_POSTGRESQL)) {
                 sqlContainer =
@@ -138,30 +132,18 @@ public class RdbmsDatasourceFixture {
             executeInitiLiquibase(Marker.class.getClassLoader(), "liquibase/postgresql-init-changelog.xml", ds);
         }
 
-        wrappedDataSource = ProxyDataSourceBuilder
-                .create(jooqEnabled ? getJooqContext(ds).parsingDataSource() : ds)
-                .name("JOOQ_DATA_SOURCE_PROXY")
-                .listener(loggingListener)
-                .build();
-    }
+//        wrappedDataSource = ProxyDataSourceBuilder
+//                .create(jooqEnabled ? getJooqContext(ds).parsingDataSource() : ds)
+//                .name("JOOQ_DATA_SOURCE_PROXY")
+//                .listener(loggingListener)
+//                .build();
 
-    private SQLDialect getJooqSqlDialect() {
-        if (dialect.equals(DIALECT_HSQLDB)) {
-            return SQLDialect.HSQLDB;
-        } else if (dialect.equals(DIALECT_POSTGRESQL)) {
-            return SQLDialect.POSTGRES;
-        } else {
-            throw new IllegalStateException("Unsupported dialect: " + dialect);
-        }
-    }
+      wrappedDataSource = ProxyDataSourceBuilder
+      .create(ds)
+      .name("JOOQ_DATA_SOURCE_PROXY")
+      .listener(loggingListener)
+      .build();
 
-    private DSLContext getJooqContext(DataSource dataSource) {
-        if (jooqContext == null) {
-            final Settings settings = new Settings();
-            settings.setParamCastMode(ParamCastMode.NEVER);
-            jooqContext = DSL.using(dataSource, getJooqSqlDialect(), settings);
-        }
-        return jooqContext;
     }
 
     @SneakyThrows
@@ -177,7 +159,8 @@ public class RdbmsDatasourceFixture {
     public void executeInitiLiquibase(ClassLoader classLoader, String name, DataSource dataSource) {
         try {
             setLiquibaseDbDialect(dataSource.getConnection());
-            final Liquibase liquibase = new Liquibase(name,
+            @SuppressWarnings("resource")
+			final Liquibase liquibase = new Liquibase(name,
                     new ClassLoaderResourceAccessor(classLoader), liquibaseDb);
             liquibase.update((String) null);
             liquibaseDb.close();
