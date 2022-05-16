@@ -34,11 +34,11 @@ import java.util.function.Supplier;
 @Slf4j
 public class JudoDatasourceFixture {
 
-    static {
-        System.setProperty("user.timezone", "UTC");
-        //         TZ: 'GMT+2'
-        //        PGTZ: 'GMT+2'
-    }
+//    static {
+//        System.setProperty("user.timezone", "UTC");
+//        //         TZ: 'GMT+2'
+//        //        PGTZ: 'GMT+2'
+//    }
 
     public static final String CONTAINER_NONE = "none";
     public static final String CONTAINER_POSTGRESQL = "postgresql";
@@ -73,9 +73,9 @@ public class JudoDatasourceFixture {
         if (dialect.equals(DIALECT_POSTGRESQL)) {
             if (container.equals(CONTAINER_NONE) || container.equals(CONTAINER_POSTGRESQL)) {
                 sqlContainer =
-                        (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600))
-                                .withEnv("TZ", "GMT")
-                                .withEnv("PGTZ", "GMT");
+                        (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600));
+//                                .withEnv("TZ", "GMT")
+//                                .withEnv("PGTZ", "GMT");
             } else if (container.equals(CONTAINER_YUGABYTEDB)) {
                 sqlContainer =
                         (YugabytedbSQLContainer) new YugabytedbSQLContainer().withStartupTimeout(Duration.ofSeconds(600));
