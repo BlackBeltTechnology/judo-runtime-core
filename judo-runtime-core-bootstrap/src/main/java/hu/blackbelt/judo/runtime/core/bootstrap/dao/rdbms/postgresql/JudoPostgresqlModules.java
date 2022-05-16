@@ -40,7 +40,7 @@ public class JudoPostgresqlModules extends AbstractModule {
     }
 	
 	@Builder
-	public JudoPostgresqlModules(String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
+	private JudoPostgresqlModules(String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
 		this.host = host;
 		this.port = port;
 		this.user = user;
@@ -50,15 +50,11 @@ public class JudoPostgresqlModules extends AbstractModule {
 	}
 
 	protected void configure() {
-        // Postgresql
         bind(Dialect.class).toInstance(new PostgresqlDialect());
-        
+		bind(DataSource.class).toProvider(PostgresqlAtomikosDataSourceProvider.class).in(Singleton.class);
+
         bind(MapperFactory.class).toProvider(PostgresqlMapperFactoryProvider.class).in(Singleton.class);
         bind(RdbmsParameterMapper.class).toProvider(PostgresqlRdbmsParameterMapperProvider.class).in(Singleton.class);
-
-        // Datasource        
-        bind(DataSource.class).toProvider(PostgresqlAtomikosDataSourceProvider.class).in(Singleton.class);
-        
 
         bind(Integer.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_PORT)).toInstance(port);
         bind(String.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_HOST)).toInstance(host);
@@ -67,9 +63,7 @@ public class JudoPostgresqlModules extends AbstractModule {
         bind(String.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(databaseName);
         bind(Integer.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_POOLSIZE)).toInstance(poolSize);
         
-        
-        
-        bind(Sequence.class).toProvider(HsqldbRdbmsSequenceProvider.class).in(Singleton.class);
+        bind(Sequence.class).toProvider(PostgresqlRdbmsSequenceProvider.class).in(Singleton.class);
         bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_START)).toInstance(1L);
         bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_INCREMENT)).toInstance(1L);
         bind(Boolean.class).annotatedWith(Names.named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)).toInstance(true);

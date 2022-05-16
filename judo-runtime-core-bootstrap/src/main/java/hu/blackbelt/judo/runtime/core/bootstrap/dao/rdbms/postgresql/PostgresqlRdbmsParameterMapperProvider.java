@@ -8,6 +8,7 @@ import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.query.HsqldbRdbmsParameterMapper;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlRdbmsParameterMapper;
 
 @SuppressWarnings("rawtypes")
 public class PostgresqlRdbmsParameterMapperProvider implements Provider<RdbmsParameterMapper> {
@@ -27,7 +28,7 @@ public class PostgresqlRdbmsParameterMapperProvider implements Provider<RdbmsPar
     @SuppressWarnings("unchecked")
 	@Override
     public RdbmsParameterMapper get() {
-        return HsqldbRdbmsParameterMapper.builder()
+        return PostgresqlRdbmsParameterMapper.builder()
                 .coercer(dataTypeManager.getCoercer())
                 .rdbmsModel(models.getRdbmsModel())
                 .identifierProvider(identifierProvider)

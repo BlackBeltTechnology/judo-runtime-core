@@ -94,50 +94,8 @@ class JudoDefaultModuleTest {
                 .trace(new HashMap<>())
                 .build();
 
-        // Asm2RdbmsTransformationTrace asm2RdbmsTransformationTraceLoaded =
-        //                fromModelsAndTrace(NORTHWIND, asmModel, rdbmsModel, new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
-        
-        
-        /*
-    @SuppressWarnings("rawtypes")
-	public JdbcDatabaseContainer sqlContainer;
-
-    @SuppressWarnings({ "rawtypes", "resource" })
-	public void setupDatabase() {
-        if (dialect.equals(DIALECT_POSTGRESQL)) {
-            if (container.equals(CONTAINER_NONE) || container.equals(CONTAINER_POSTGRESQL)) {
-                sqlContainer =
-                        (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600));
-            } else if (container.equals(CONTAINER_YUGABYTEDB)) {
-                sqlContainer =
-                        (YugabytedbSQLContainer) new YugabytedbSQLContainer().withStartupTimeout(Duration.ofSeconds(600));
-            }
-        }
-    }
-         */
-        
-        sqlContainer =
-                (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600));
-        sqlContainer.start();
-        
-        /*
-            ds.setDriverClassName(sqlContainer.getDriverClassName());
-            ds.setUrl(sqlContainer.getJdbcUrl());
-            ds.setUser(sqlContainer.getUsername());
-            ds.setPassword(sqlContainer.getPassword());
-
-         */
-        
-        
         Injector injector = Guice.createInjector(
-        		JudoPostgresqlModules.builder()
-        			.host(sqlContainer.getHost())
-        			.databaseName(sqlContainer.getDatabaseName())
-        			.user(sqlContainer.getUsername())
-        			.password(sqlContainer.getPassword())
-        			.port(sqlContainer.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT))
-        			.poolSize(10)
-        			.build(),
+        		JudoHsqldbModules.builder().build(),
         		new JudoDefaultModule(this, 
         				JudoModelHolder.builder()
 			                .asmModel(asmModel)

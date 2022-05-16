@@ -12,6 +12,7 @@ import java.io.File;
 import javax.sql.DataSource;
 import javax.transaction.TransactionManager;
 
+import lombok.Builder;
 import org.hsqldb.server.Server;
 
 import com.google.inject.AbstractModule;
@@ -26,13 +27,35 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 
 public class JudoHsqldbModules extends AbstractModule {
+
+    private Boolean runServer = false;
+    private String databaseName = "judo";
+    private File databasePath = new File(".", "judo.db");
+    private Integer port = 31001;
+
+
+    public static class JudoHsqldbModulesBuilder {
+        private Boolean runServer = false;
+        private String databaseName = "judo";
+        private File databasePath = new File(".", "judo.db");
+        private Integer port = 31001;
+    }
+    @Builder
+    private JudoHsqldbModules(Boolean runServer, String databaseName, File databasePath, Integer port) {
+        this.runServer = runServer;
+        this.databaseName = databaseName;
+        this.databasePath = databasePath;
+        this.port = port;
+    }
     protected void configure() {
 
         // HSQLDB
         bind(Dialect.class).toInstance(new HsqldbDialect());
-        bind(Server.class).toProvider(HsqldbServerProvider.class).in(Singleton.class);
-        bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance("judo");
-        bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(new File(".", "judo.db"));
+        if (runServer) {
+            bind(Server.class).toProvider(HsqldbServerProvider.class).in(Singleton.class);
+        }
+        bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance(databaseName);
+        bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(databasePath);
         bind(Integer.class).annotatedWith(Names.named(HSQLDB_SERVER_PORT)).toInstance(31001);
 
         bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);

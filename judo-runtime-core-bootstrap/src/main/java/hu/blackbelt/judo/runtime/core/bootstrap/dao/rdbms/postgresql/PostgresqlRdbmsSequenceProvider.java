@@ -5,6 +5,7 @@ import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsSequence;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.sequence.PostgresqlRdbmsSequence;
 
 import javax.sql.DataSource;
 
@@ -32,7 +33,7 @@ public class PostgresqlRdbmsSequenceProvider implements Provider<Sequence> {
 
     @Override
     public Sequence get() {
-        HsqldbRdbmsSequence.HsqldbRdbmsSequenceBuilder builder = HsqldbRdbmsSequence.builder();
+        PostgresqlRdbmsSequence.PostgresqlRdbmsSequenceBuilder builder = PostgresqlRdbmsSequence.builder();
         builder
                 .dataSource(dataSource)
                 .start(start)

@@ -262,9 +262,8 @@ public class JudoRuntimeFixture {
                     Collections.singletonList(rdbmsDatasourceFixture.getDialect()));
 
             if (rdbmsDatasourceFixture.getDialect().equals("hsqldb")) {
-            	
             	databaseModule = Modules
-            			.override(new JudoHsqldbModules())
+            			.override(JudoHsqldbModules.builder().build())
             			.with(new JudoHsqldbDatasourceWrapperModule(rdbmsDatasourceFixture.getWrappedDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
             } else if (rdbmsDatasourceFixture.getDialect().equals("postgresql")) {
             	databaseModule = Modules
@@ -274,20 +273,16 @@ public class JudoRuntimeFixture {
                 throw new IllegalArgumentException("Unknown dialect: " + rdbmsDatasourceFixture.getDialect());
             }
 
-
             asmModel = defaultWorkflow.getTransformationContext().getByClass(AsmModel.class).get();
-
             measureModel = defaultWorkflow.getTransformationContext().getByClass(MeasureModel.class).get();
             rdbmsModel = defaultWorkflow.getTransformationContext().get(RdbmsModel.class, "rdbms:" + rdbmsDatasourceFixture.getDialect()).get();
             liquibaseModel = defaultWorkflow.getTransformationContext().get(LiquibaseModel.class, "liquibase:" + rdbmsDatasourceFixture.getDialect()).get();
             expressionModel = defaultWorkflow.getTransformationContext().getByClass(ExpressionModel.class).get();
             scriptModel = defaultWorkflow.getTransformationContext().getByClass(ScriptModel.class).get();
-
             asm2RdbmsTransformationTrace = defaultWorkflow.getTransformationContext().get(Asm2RdbmsTransformationTrace.class, "asm2rdbmstrace:" + rdbmsDatasourceFixture.getDialect()).get();
 
             this.asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-            
             injector = Guice.createInjector(
             		databaseModule,
             		new JudoDefaultModule(this, 

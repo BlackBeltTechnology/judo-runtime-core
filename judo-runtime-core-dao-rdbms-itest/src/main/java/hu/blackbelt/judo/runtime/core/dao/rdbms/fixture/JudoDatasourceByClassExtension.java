@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.fixture;
 
+import liquibase.pro.packaged.P;
 import org.junit.jupiter.api.extension.*;
 
 import javax.transaction.Status;
