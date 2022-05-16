@@ -20,10 +20,10 @@ import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.esm.ui.util.builder.UiBuilders;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -51,8 +51,8 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class RangeTest {
 
@@ -167,96 +167,96 @@ public class RangeTest {
 
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testRange(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getFruitEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testRange(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getFruitEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass appleType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
-        final EClass pearType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Pear").get();
-        final EClass basketType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Basket").get();
-        final EClass fruitType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Fruit").get();
-        final EClass shelfType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Shelf").get();
+        final EClass appleType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
+        final EClass pearType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Pear").get();
+        final EClass basketType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Basket").get();
+        final EClass fruitType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Fruit").get();
+        final EClass shelfType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Shelf").get();
         final EReference breakfastInBasket = basketType.getEAllReferences().stream().filter(r -> "breakfast".equals(r.getName())).findAny().get();
         final EReference rangeInFruit = fruitType.getEAllReferences().stream().filter(r -> "range".equals(r.getName())).findAny().get();
         final EReference fruitsOnShelf = shelfType.getEAllReferences().stream().filter(r -> "fruits".equals(r.getName())).findAny().get();
 
-        final Payload galaApple = daoFixture.getDao().create(appleType, map(
+        final Payload galaApple = runtimeFixture.getDao().create(appleType, map(
                 "variety", "GALA"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved GALA apple: {}", galaApple);
-        final UUID galaAppleId = galaApple.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID galaAppleId = galaApple.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload pinkLadyApple = daoFixture.getDao().create(appleType, map(
+        final Payload pinkLadyApple = runtimeFixture.getDao().create(appleType, map(
                 "variety", "PINK_LADY"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved PINK LADY apple: {}", pinkLadyApple);
-        final UUID pinkLadyAppleId = pinkLadyApple.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID pinkLadyAppleId = pinkLadyApple.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload williamsPear = daoFixture.getDao().create(pearType, map(
+        final Payload williamsPear = runtimeFixture.getDao().create(pearType, map(
                 "variety", "WILLIAMS"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved WILLIAMS pear: {}", williamsPear);
-        final UUID williamsPearId = williamsPear.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID williamsPearId = williamsPear.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Collection<Payload> rangeOfBreakfast = daoFixture.getDao().getRangeOf(breakfastInBasket, null, DAO.QueryCustomizer.<UUID>builder()
+        final Collection<Payload> rangeOfBreakfast = runtimeFixture.getDao().getRangeOf(breakfastInBasket, null, DAO.QueryCustomizer.<UUID>builder()
                 .withoutFeatures(true)
                 .build());
         log.debug("Range of breakfast: {}", rangeOfBreakfast);
-        final Set<UUID> rangeOfBreakfastIds = rangeOfBreakfast.stream().map(i -> i.getAs(UUID.class, daoFixture.getUuid().getName())).collect(Collectors.toSet());
+        final Set<UUID> rangeOfBreakfastIds = rangeOfBreakfast.stream().map(i -> i.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
         assertThat(rangeOfBreakfastIds, equalTo(ImmutableSet.of(galaAppleId, pinkLadyAppleId)));
 
-        final UUID firstRangeOption = rangeOfBreakfast.iterator().next().getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID firstRangeOption = rangeOfBreakfast.iterator().next().getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload basket = daoFixture.getDao().create(basketType, map(
-                "breakfast", map(daoFixture.getIdProvider().getName(), firstRangeOption)
+        final Payload basket = runtimeFixture.getDao().create(basketType, map(
+                "breakfast", map(runtimeFixture.getIdProvider().getName(), firstRangeOption)
         ), null);
         log.debug("Saved basket: {}", basket);
-        final UUID basketId = basket.getAs(UUID.class, daoFixture.getUuid().getName());
-        assertThat(basket.getAsPayload("breakfast").getAs(UUID.class, daoFixture.getUuid().getName()), equalTo(firstRangeOption));
+        final UUID basketId = basket.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
+        assertThat(basket.getAsPayload("breakfast").getAs(UUID.class, runtimeFixture.getIdProvider().getName()), equalTo(firstRangeOption));
 
-        List<Payload> range = daoFixture.getDao().getAllReferencedInstancesOf(rangeInFruit, rangeInFruit.getEReferenceType());
+        List<Payload> range = runtimeFixture.getDao().getAllReferencedInstancesOf(rangeInFruit, rangeInFruit.getEReferenceType());
         log.debug("Range: {}", range);
-        final Set<UUID> rangeIds = range.stream().map(i -> i.getAs(UUID.class, daoFixture.getUuid().getName())).collect(Collectors.toSet());
+        final Set<UUID> rangeIds = range.stream().map(i -> i.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
         assertThat(rangeIds, equalTo(ImmutableSet.of(galaAppleId)));
 
-        final Collection<Payload> rangeOfFruits = daoFixture.getDao().getRangeOf(fruitsOnShelf, null, null);
+        final Collection<Payload> rangeOfFruits = runtimeFixture.getDao().getRangeOf(fruitsOnShelf, null, null);
         log.debug("Range of fruits: {}", rangeOfFruits);
-        final Set<UUID> rangeOfFruitsIds = rangeOfFruits.stream().map(i -> i.getAs(UUID.class, daoFixture.getUuid().getName())).collect(Collectors.toSet());
+        final Set<UUID> rangeOfFruitsIds = rangeOfFruits.stream().map(i -> i.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
         assertThat(rangeOfFruitsIds, equalTo(ImmutableSet.of(williamsPearId)));
     }
 
     @Test
-    public void testDeletedReference(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getFruitEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testDeletedReference(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getFruitEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass appleType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
-        final EClass basketType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Basket").get();
+        final EClass appleType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
+        final EClass basketType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Basket").get();
 
-        final Payload galaApple = daoFixture.getDao().create(appleType, map(
+        final Payload galaApple = runtimeFixture.getDao().create(appleType, map(
                 "variety", "GALA"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved GALA apple: {}", galaApple);
-        final UUID galaAppleId = galaApple.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID galaAppleId = galaApple.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        daoFixture.getDao().delete(appleType, galaAppleId);
+        runtimeFixture.getDao().delete(appleType, galaAppleId);
 
         try {
-            final Payload basket = daoFixture.getDao().create(basketType, map(
-                    "breakfast", map(daoFixture.getIdProvider().getName(), galaAppleId)
+            final Payload basket = runtimeFixture.getDao().create(basketType, map(
+                    "breakfast", map(runtimeFixture.getIdProvider().getName(), galaAppleId)
             ), null);
             fail();
         } catch (ValidationException ex) {
@@ -265,12 +265,12 @@ public class RangeTest {
             final FeedbackItem feedbackItem = feedbackItems.iterator().next();
             assertThat(feedbackItem.getCode(), equalTo("ENTITY_NOT_FOUND"));
             assertThat(feedbackItem.getLevel(), equalTo(FeedbackItem.Level.ERROR));
-            assertThat(feedbackItem.getDetails().get(daoFixture.getIdProvider().getName()), equalTo(galaAppleId));
+            assertThat(feedbackItem.getDetails().get(runtimeFixture.getIdProvider().getName()), equalTo(galaAppleId));
         }
     }
 
     @Test
-    public void testRangeOfContainments(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testRangeOfContainments(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
         final BooleanType booleanType = newBooleanTypeBuilder().withName("Boolean").build();
@@ -335,13 +335,13 @@ public class RangeTest {
                 .withElements(stringType, integerType, booleanType, car, wheel, actor)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass carType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Car").get();
-        final EReference spareWheelOfCarType = daoFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Car#spareWheel").get();
+        final EClass carType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Car").get();
+        final EReference spareWheelOfCarType = runtimeFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Car#spareWheel").get();
 
-        final Payload car1 = daoFixture.getDao().create(carType, map(
+        final Payload car1 = runtimeFixture.getDao().create(carType, map(
                 "licensePlate", "ABC123",
                 "color", "red",
                 "wheels", Arrays.asList(
@@ -355,11 +355,11 @@ public class RangeTest {
         log.debug("Saved car ABC-123: {}", car1);
 
         car1.put("color", "green");
-        final Collection<Payload> rangeOfShapeWheel1 = daoFixture.getDao().getRangeOf(spareWheelOfCarType, car1, null);
+        final Collection<Payload> rangeOfShapeWheel1 = runtimeFixture.getDao().getRangeOf(spareWheelOfCarType, car1, null);
         log.debug("Range of spare wheel for car ABC-123: {}", rangeOfShapeWheel1);
         assertThat(rangeOfShapeWheel1.stream().map(w -> w.get("produced")).collect(Collectors.toSet()), equalTo(ImmutableSet.of(2018, 2019, 2020, 2021, 2015)));
 
-        final Collection<Payload> rangeOfShapeWheel2 = daoFixture.getDao().getRangeOf(spareWheelOfCarType, map(
+        final Collection<Payload> rangeOfShapeWheel2 = runtimeFixture.getDao().getRangeOf(spareWheelOfCarType, map(
                 "color", "black",
                 "wheels", Arrays.asList(
                         map("produced", 2005),
@@ -374,7 +374,7 @@ public class RangeTest {
     }
 
     @Test
-    public void testRangeOnTwoWayRelationExpression(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testRangeOnTwoWayRelationExpression(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>();
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
 
@@ -481,36 +481,36 @@ public class RangeTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass planetEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Planet").get();
-        final EClass creatureEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Creature").get();
-        final EReference referenceToPlanet =  daoFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Creature#planet").get();
-        final EReference referenceToCreature =  daoFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Planet#creatures").get();
-        final EReference referenceSelectableCreature =  daoFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Planet#visitors").get();
-        final EReference referenceAvailableCreature =  daoFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Planet#availableVisitors").get();
+        final EClass planetEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Planet").get();
+        final EClass creatureEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Creature").get();
+        final EReference referenceToPlanet =  runtimeFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Creature#planet").get();
+        final EReference referenceToCreature =  runtimeFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Planet#creatures").get();
+        final EReference referenceSelectableCreature =  runtimeFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Planet#visitors").get();
+        final EReference referenceAvailableCreature =  runtimeFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Planet#availableVisitors").get();
 
-        final Payload planetPayload = daoFixture.getDao().create(
+        final Payload planetPayload = runtimeFixture.getDao().create(
                 planetEClass, Payload.map("name", "Venus"), null);
         log.debug("{} created with payload: {}", planetEClass.getName(), planetPayload);
 
-        final Payload creaturePayload = daoFixture.getDao().create(
+        final Payload creaturePayload = runtimeFixture.getDao().create(
                 creatureEClass, Payload.map("name", "Alien"), null);
         log.debug("{} created with payload: {}", creatureEClass.getName(), creaturePayload);
 
-        final Payload creatureWithoutPlanetPayload = daoFixture.getDao().create(
+        final Payload creatureWithoutPlanetPayload = runtimeFixture.getDao().create(
                 creatureEClass, Payload.map("name", "Visitor"), null);
         log.debug("{} created with payload: {}", creatureEClass.getName(), creatureWithoutPlanetPayload);
 
-        daoFixture.getDao().addReferences(referenceToCreature,
-                planetPayload.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()),
-                ImmutableList.of(creaturePayload.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())));
+        runtimeFixture.getDao().addReferences(referenceToCreature,
+                planetPayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()),
+                ImmutableList.of(creaturePayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())));
 
-        Collection<Payload> availableCreatures = daoFixture.getDao().getByIdentifier(planetEClass,
-                planetPayload.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).get().getAs(Collection.class, "availableVisitors");
+        Collection<Payload> availableCreatures = runtimeFixture.getDao().getByIdentifier(planetEClass,
+                planetPayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).get().getAs(Collection.class, "availableVisitors");
 
-        Collection<Payload> selectableCreatures = daoFixture.getDao().getRangeOf(referenceSelectableCreature, creaturePayload,
+        Collection<Payload> selectableCreatures = runtimeFixture.getDao().getRangeOf(referenceSelectableCreature, creaturePayload,
                 null);
 
 

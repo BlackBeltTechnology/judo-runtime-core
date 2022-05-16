@@ -13,10 +13,10 @@ import hu.blackbelt.judo.meta.psm.measure.MeasuredType;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -42,8 +42,8 @@ import static hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class TemporalOperationTest {
     public static final String MODEL_NAME = "temporaloperations";
@@ -704,18 +704,18 @@ public class TemporalOperationTest {
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getPsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getPsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testOperations(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testOperations(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         final LocalDate date = LocalDate.of(2019, 02, 03);
         final OffsetDateTime timestamp = LocalDateTime.of(2019, 03, 04, 02, 05, 06, 0)
                 .atOffset(ZoneOffset.systemDefault().getRules().getOffset(ZonedDateTime.now().toInstant()));

@@ -25,12 +25,14 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import javax.sql.DataSource;
 import javax.transaction.*;
 import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.function.Supplier;
 
 @Slf4j
-public class RdbmsDatasourceFixture {
+public class JudoDatasourceFixture {
 
     public static final String CONTAINER_NONE = "none";
     public static final String CONTAINER_POSTGRESQL = "postgresql";
@@ -42,9 +44,6 @@ public class RdbmsDatasourceFixture {
 
     @Getter
     protected String dialect = System.getProperty("dialect", DIALECT_HSQLDB);
-
-//    @Getter
-//    protected boolean jooqEnabled = Boolean.parseBoolean(System.getProperty("jooqEnabled"));
 
     @Getter
     protected String container = System.getProperty("container", CONTAINER_NONE);
@@ -65,11 +64,11 @@ public class RdbmsDatasourceFixture {
 	public JdbcDatabaseContainer sqlContainer;
 
     @SuppressWarnings({ "rawtypes", "resource" })
-	public void setupDatasource() {
+	public void setupDatabase() {
         if (dialect.equals(DIALECT_POSTGRESQL)) {
             if (container.equals(CONTAINER_NONE) || container.equals(CONTAINER_POSTGRESQL)) {
                 sqlContainer =
-                        (PostgreSQLContainer) new PostgreSQLContainer().withStartupTimeout(Duration.ofSeconds(600));
+                        (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600));
             } else if (container.equals(CONTAINER_YUGABYTEDB)) {
                 sqlContainer =
                         (YugabytedbSQLContainer) new YugabytedbSQLContainer().withStartupTimeout(Duration.ofSeconds(600));
@@ -83,6 +82,19 @@ public class RdbmsDatasourceFixture {
         }
     }
 
+    public void dropSchema() {
+        try (Connection connection = originalDataSource.getConnection(); Statement statement = connection.createStatement()) {
+            if (dialect.equals(DIALECT_POSTGRESQL)) {
+                statement.execute("select 'drop table \"' || tablename || '\" cascade;' from pg_tables;");
+            } else if (dialect.equals(DIALECT_HSQLDB)) {
+                statement.execute("TRUNCATE SCHEMA PUBLIC RESTART IDENTITY AND COMMIT NO CHECK");
+                //statement.execute("DROP SCHEMA PUBLIC CASCADE");
+            }
+        } catch (SQLException throwables) {
+            throw new RuntimeException("Could not drop schema", throwables);
+        }
+
+    }
 
     @SneakyThrows
     public void prepareDatasources() {
@@ -92,11 +104,11 @@ public class RdbmsDatasourceFixture {
         UUID uuid = UUID.randomUUID();
         System.setProperty("com.atomikos.icatch.output_dir", "target/test-classes/tm/data/logs/" + uuid  + "/ ");
         System.setProperty("com.atomikos.icatch.log_base_dir", "target/test-classes/tm/data/logs/"  + uuid + "/");
+
         AtomikosNonXADataSourceBean ds = new AtomikosNonXADataSourceBean();
         ds.setPoolSize(10);
         ds.setLocalTransactionMode(true);
         ds.setUniqueResourceName("db");
-
 
         if (dialect.equals(DIALECT_HSQLDB)) {
             ds.setUniqueResourceName("hsqldb");
@@ -119,12 +131,6 @@ public class RdbmsDatasourceFixture {
         SLF4JQueryLoggingListener loggingListener = new SLF4JQueryLoggingListener();
         loggingListener.setQueryLogEntryCreator(new DefaultQueryLogEntryCreator());
 
-//        dataSource = ProxyDataSourceBuilder
-//                .create(ds)
-//                .name("DATA_SOURCE_PROXY")
-//                .listener(loggingListener)
-//                .build();
-
         originalDataSource = ds;
 
         // Execute dialect based datatsource preprations
@@ -132,15 +138,9 @@ public class RdbmsDatasourceFixture {
             executeInitiLiquibase(Marker.class.getClassLoader(), "liquibase/postgresql-init-changelog.xml", ds);
         }
 
-//        wrappedDataSource = ProxyDataSourceBuilder
-//                .create(jooqEnabled ? getJooqContext(ds).parsingDataSource() : ds)
-//                .name("JOOQ_DATA_SOURCE_PROXY")
-//                .listener(loggingListener)
-//                .build();
-
       wrappedDataSource = ProxyDataSourceBuilder
       .create(ds)
-      .name("JOOQ_DATA_SOURCE_PROXY")
+      .name("DATA_SOURCE_PROXY")
       .listener(loggingListener)
       .build();
 

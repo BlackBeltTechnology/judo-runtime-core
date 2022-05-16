@@ -12,10 +12,10 @@ import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder;
 import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder.ScriptTestEntityBuilder;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -53,8 +53,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class ScriptTest {
 
@@ -62,7 +62,7 @@ public class ScriptTest {
     public static final String INPUT_THIS = "__this";
     public static final String OUTPUT = "output";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -75,19 +75,19 @@ public class ScriptTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
     @Test
-    public void constructWithAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void constructWithAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Cat").withAttribute("String", "categoryName");
         modelBuilder.addMappedTransferObject("CatInfo", "Cat").withAttribute("String", "categoryName");
@@ -107,7 +107,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void constructNoParams(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void constructNoParams(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Test");
         modelBuilder.addMappedTransferObject("TestInfo", "Test");
@@ -120,7 +120,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityContainmentSingleCreate(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityContainmentSingleCreate(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails")
                 .withAttribute("String", "text");
@@ -148,7 +148,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityContainmentSingleSetUnset(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityContainmentSingleSetUnset(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails")
                 .withAttribute("String", "text");
@@ -171,7 +171,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityContainmentChildSet(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityContainmentChildSet(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails")
                 .withAttribute("String", "text");
@@ -196,7 +196,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityReferenceSingleUnset(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityReferenceSingleUnset(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Category").withAttribute("String", "categoryName");
         modelBuilder.addMappedTransferObject("CategoryInfo", "Category").withAttribute("String", "categoryName");
@@ -223,7 +223,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityContainmentMultiAdd(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityContainmentMultiAdd(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails")
                 .withAttribute("String", "text");
@@ -241,7 +241,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityContainmentMultiAddNewParam(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityContainmentMultiAddNewParam(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Course");
         modelBuilder.addEntity("Attendance")
@@ -257,7 +257,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void setRelationsContainments(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void setRelationsContainments(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("A")
                 .withAttribute("String", "name");
@@ -306,7 +306,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void createUtoWithMtoParam(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void createUtoWithMtoParam(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity");
         modelBuilder.addMappedTransferObject("TransferEntity", "Entity");
@@ -327,7 +327,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testConstantDerived(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testConstantDerived(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity")
                 .withProperty("String", "derived", "'hello'");
@@ -341,7 +341,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testUndefinedEquals(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUndefinedEquals(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "e");
         modelBuilder.addEntity("Entity")
@@ -360,7 +360,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityDelete(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityDelete(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails").withAttribute("String", "text");
         modelBuilder.addMappedTransferObject("ProductDetailsInfo", "ProductDetails").withAttribute("String", "text");
@@ -377,7 +377,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityDeleteViaReference(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityDeleteViaReference(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "text");
         modelBuilder.addUnboundOperation("init").withBody(
@@ -393,7 +393,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityCollectionDeleteFrom(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityCollectionDeleteFrom(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails").withAttribute("String", "text");
         modelBuilder.addUnboundOperation("deleteOne").withBody(
@@ -431,7 +431,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityUnboundAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityUnboundAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails").withAttribute("String", "text").withAttribute("String", "text2");
         modelBuilder.addMappedTransferObject("ProductDetailsInfo", "ProductDetails")
@@ -465,7 +465,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityUnboundRelation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityUnboundRelation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Related");
         modelBuilder.addEntity("Entity");
@@ -496,7 +496,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityCollectionDeleteMember(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityCollectionDeleteMember(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "text");
         modelBuilder.addUnboundOperation("init").withBody(
@@ -515,7 +515,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityDeleteViaUnmappedTransferObject(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityDeleteViaUnmappedTransferObject(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "text");
         modelBuilder.addUnmappedTransferObject("TO").withRelation("Entity", "e", cardinality(0, 1));
@@ -536,7 +536,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityDeleteViaMappedTransferObjectViaOperationCall(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityDeleteViaMappedTransferObjectViaOperationCall(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "text");
         modelBuilder.addEntity("TO")
@@ -561,7 +561,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityDeleteViaUnmappedTransferObjectViaOperationCall(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityDeleteViaUnmappedTransferObjectViaOperationCall(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "text");
         modelBuilder.addUnmappedTransferObject("TO")
@@ -586,7 +586,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityDeleteFromUnmappedTransferObjectCollection(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityDeleteFromUnmappedTransferObjectCollection(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "text");
         modelBuilder.addUnmappedTransferObject("TO")
@@ -613,7 +613,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void entityDeleteViaNavigation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void entityDeleteViaNavigation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "text");
         modelBuilder.addEntity("TO")
@@ -632,7 +632,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void selectAll(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void selectAll(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("ProductDetails").withAttribute("String", "text");
         modelBuilder.addMappedTransferObject("ProductDetailsInfo", "ProductDetails").withAttribute("String", "text");
@@ -651,7 +651,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnNew(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnNew(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Category").withAttribute("String", "categoryName");
         modelBuilder.addUnboundOperation("initializer", "return new demo::entities::Category('categoryName')", "Category", cardinality(0, 1));
@@ -661,7 +661,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnNewCollectionFromIf(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnNewCollectionFromIf(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Category").withAttribute("String", "categoryName");
         modelBuilder.addUnboundOperation("initializer", "" +
@@ -674,7 +674,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnObjectNavigation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnObjectNavigation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Category").withAttribute("String", "categoryName");
         modelBuilder.addEntity("Product")
@@ -690,7 +690,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnCollection(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnCollection(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Product").withAttribute("String", "productName");
         modelBuilder.addEntity("Category")
@@ -711,7 +711,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnCollectionNavigation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnCollectionNavigation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Product").withAttribute("String", "productName");
         modelBuilder.addEntity("Category")
@@ -731,7 +731,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnCollectionFromCollectionNavigation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnCollectionFromCollectionNavigation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Product").withAttribute("String", "productName");
         modelBuilder.addEntity("Category")
@@ -752,7 +752,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void multipleStepNavigationRemove(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void multipleStepNavigationRemove(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Address");
         modelBuilder.addEntity("Person").withAggregation("Address", "addresses", cardinality(0, -1));
@@ -767,7 +767,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void numericFunction(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void numericFunction(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity")
                 .withAttribute("Double", "value")
@@ -787,7 +787,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void constructWithRelation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void constructWithRelation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Category").withAttribute("String", "categoryName");
         modelBuilder.addMappedTransferObject("CategoryInfo", "Category").withAttribute("String", "categoryName");
@@ -815,7 +815,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void updateAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void updateAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Address").withAttribute("String", "address");
         modelBuilder.addMappedTransferObject("AddressInfo", "Address").withAttribute("String", "address");
@@ -830,7 +830,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void updateDoubleAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void updateDoubleAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("DoubleWrapper").withAttribute("Double", "value");
         modelBuilder.addMappedTransferObject("DoubleWrapperInfo", "DoubleWrapper").withAttribute("Double", "value");
@@ -847,7 +847,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void updateVariable(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void updateVariable(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("DoubleWrapper").withAttribute("Double", "value");
         modelBuilder.addMappedTransferObject("DoubleWrapperInfo", "DoubleWrapper").withAttribute("Double", "value");
@@ -863,7 +863,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void unmappedTransferObject(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void unmappedTransferObject(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity").withAttribute("String", "name");
         modelBuilder.addMappedTransferObject("EntityInfo", "Entity").withAttribute("String", "name");
@@ -903,7 +903,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void boundOperation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void boundOperation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnmappedTransferObject("TextWrapper").withAttribute("String", "text");
         modelBuilder.addEntity("Template").withAttribute("String", "text");
@@ -948,7 +948,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void callReturnsMulti(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void callReturnsMulti(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity").withAttribute("String", "text");
         builder.addUnboundOperation("init")
@@ -969,7 +969,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void callParamMulti(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void callParamMulti(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity").withAttribute("String", "text");
         builder.addUnboundOperation("init")
@@ -993,7 +993,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void inputAny(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void inputAny(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity").withAttribute("String", "text");
         builder.addUnboundOperation("init")
@@ -1006,7 +1006,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void collectionCount(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void collectionCount(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity").withAttribute("String", "text");
         builder.addUnboundOperation("init")
@@ -1019,7 +1019,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void collectionEmpty(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void collectionEmpty(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity").withAttribute("String", "text");
         builder.addUnboundOperation("init")
@@ -1032,7 +1032,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void stringSubstring(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void stringSubstring(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity")
                 .withAttribute("String", "text")
@@ -1059,7 +1059,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void stringReplace(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void stringReplace(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity")
                 .withAttribute("String", "text")
@@ -1077,7 +1077,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void setEmptyCollectionAsReference(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void setEmptyCollectionAsReference(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "e");
         modelBuilder.addEntity("Entity")
@@ -1093,7 +1093,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnUnmappedToFromCall(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnUnmappedToFromCall(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity");
         builder.addUnmappedTransferObject("Unmapped").withAttribute("String", "text");
@@ -1123,7 +1123,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void updateRelationAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void updateRelationAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Address").withAttribute("String", "address");
         modelBuilder.addMappedTransferObject("AddressInfo", "Address").withAttribute("String", "address");
@@ -1151,7 +1151,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void updateMulti(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void updateMulti(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Author").withAttribute("String", "name");
         modelBuilder.addMappedTransferObject("AuthorInfo", "Author").withAttribute("String", "name");
@@ -1192,7 +1192,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testUndefined(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUndefined(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Entity").withAttribute("String", "text");
         builder.addEntity("Entity2").withRelation("Entity", "entity", cardinality(0, 1));
@@ -1207,7 +1207,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void kleene(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void kleene(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addUnmappedTransferObject("Input")
             .withAttribute("Boolean", "t")
@@ -1380,7 +1380,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void createArray(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void createArray(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Teacher").withAttribute("String", "name");
         modelBuilder.addEntity("TeacherHolder").withRelation("Teacher", "teacher", cardinality(0, 1));
@@ -1410,7 +1410,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnHead(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnHead(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Course")
                 .withAttribute("String", "name");
@@ -1427,7 +1427,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void headLambda(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void headLambda(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnmappedTransferObject("StringHolder")
                 .withAttribute("String", "value");
@@ -1457,7 +1457,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void updateMultiForLoop(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void updateMultiForLoop(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Author").withAttribute("String", "name");
         modelBuilder.addMappedTransferObject("AuthorInfo", "Author").withAttribute("String", "name");
@@ -1499,7 +1499,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void manyToMany(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void manyToMany(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Author").withAttribute("String", "name");
         modelBuilder.addEntity("Book").withAttribute("String", "title").withAggregation("Author", "authors", cardinality(0, -1));
@@ -1519,7 +1519,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testReturningInstanceMultipleTimesInResponsePayload(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testReturningInstanceMultipleTimesInResponsePayload(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Author")
                 .withAttribute("String", "name");
@@ -1544,7 +1544,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void refreshPayload(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void refreshPayload(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Attendance")
                 .withProperty("Double", "gradePointsAverage", "self.evaluations!avg(eval | eval.gradePoints)")
@@ -1570,7 +1570,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testReturningNullValues(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testReturningNullValues(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "eName");
@@ -1591,7 +1591,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void unboundAttributeUnique(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void unboundAttributeUnique(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "eName");
         modelBuilder.addMappedTransferObject("F", "E")
@@ -1611,7 +1611,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableAttributeSet(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableAttributeSet(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "eName");
@@ -1633,7 +1633,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableReferenceSet(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableReferenceSet(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "eName");
@@ -1660,7 +1660,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableReferenceAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableReferenceAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "eName");
@@ -1689,7 +1689,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableCollectionDeclaration(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableCollectionDeclaration(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("D").withAttribute("String", "dName");
         modelBuilder.addEntity("E")
@@ -1721,7 +1721,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableReferenceGet(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableReferenceGet(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("D").withAttribute("String", "name");
         modelBuilder.addEntity("E")
@@ -1744,7 +1744,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableInput(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableInput(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("D").withAttribute("String", "name");
         modelBuilder.addEntity("E")
@@ -1759,7 +1759,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableNavigation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableNavigation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("D").withAttribute("String", "name");
         modelBuilder.addEntity("E")
@@ -1782,7 +1782,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void immutableDelete(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void immutableDelete(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E");
         modelBuilder.addUnboundOperation("initializer").withBody("" +
@@ -1798,7 +1798,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void optionalInput(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void optionalInput(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E");
         modelBuilder.addUnboundOperation("initializer").withBody("" +
@@ -1812,7 +1812,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void booleanAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void booleanAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("Boolean", "b");
@@ -1828,7 +1828,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void objectComparison(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void objectComparison(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("F");
         modelBuilder.addEntity("E")
@@ -1856,7 +1856,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void enumerations(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void enumerations(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("Country", "country");
         modelBuilder.addUnboundOperation("initializer").withBody("" +
@@ -1873,7 +1873,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void filter(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void filter(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "name");
         modelBuilder.addUnboundOperation("initializer").withBody("" +
@@ -1890,7 +1890,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void existsForAll(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void existsForAll(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "name");
         modelBuilder.addUnmappedTransferObject("Result")
@@ -1910,7 +1910,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void aggregation(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void aggregation(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "name")
@@ -1975,7 +1975,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void contains(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void contains(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E");
         modelBuilder.addEntity("F")
@@ -2023,7 +2023,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void sort(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void sort(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "name")
                 .withAttribute("Integer", "number");
@@ -2049,7 +2049,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void unmappedStatic(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void unmappedStatic(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "name");
         modelBuilder.addUnmappedTransferObject("Result")
@@ -2072,7 +2072,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void unmappedStaticAttribute(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void unmappedStaticAttribute(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E").withAttribute("String", "name");
         modelBuilder.addEntity("F").withRelation("E", "e", cardinality(0, 1));
@@ -2105,7 +2105,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void spawn(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void spawn(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Thing").withAttribute("String", "thingName");
         modelBuilder.addEntity("Fruit").withAttribute("String", "fruitName")
@@ -2133,7 +2133,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void spawnExtended(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void spawnExtended(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("Category")
@@ -2254,7 +2254,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void isAssignable(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void isAssignable(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Fruit")
                 .withAttribute("String", "fruitName");
@@ -2289,7 +2289,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void actor(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void actor(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity")
                 .withIdentifier("String", "email");
@@ -2326,7 +2326,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void timestamp(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void timestamp(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("Timestamp", "time");
@@ -2372,7 +2372,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void date(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void date(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("Date", "date");
@@ -2409,7 +2409,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void matches(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void matches(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "text");
@@ -2431,7 +2431,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void like(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void like(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "text");
@@ -2455,7 +2455,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void asString(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void asString(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnmappedTransferObject("Result")
                 .withAttribute("String", "integerAsString")
@@ -2490,7 +2490,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void switches(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void switches(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnboundOperation("initializer").withBody(
                 "var demo::types::Integer i = true ? 1 : 0\n" +
@@ -2507,7 +2507,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void undefinedInput(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void undefinedInput(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("Integer", "nonRequired");
@@ -2525,7 +2525,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void undefinedInputCollection(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void undefinedInputCollection(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("Integer", "integerAttr");
@@ -2542,7 +2542,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void returnEmptyAny(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void returnEmptyAny(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("E")
                 .withAttribute("String", "id");
@@ -2574,7 +2574,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testMeasures(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testMeasures(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity")
                 .withAttribute("MassStoredInKilograms", "massKg")
@@ -2624,7 +2624,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testEnvironmentVariables(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testEnvironmentVariables(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnmappedTransferObject("Result")
                 .withAttribute("Integer", "integer")
@@ -2685,7 +2685,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testObjectCreationWithSeveralParameters(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testObjectCreationWithSeveralParameters(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         final int numberOfArguments = 30;
@@ -2714,7 +2714,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testUnsetCollection(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUnsetCollection(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("Item")
@@ -2783,16 +2783,16 @@ public class ScriptTest {
     }
 
     @Test
-    public void testUndefinedMutableInputWithObject(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUndefinedMutableInputWithObject(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         testUndefinedMutableInput(fixture, datasourceFixture, 1);
     }
 
     @Test
-    public void testUndefinedMutableInputWithCollection(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUndefinedMutableInputWithCollection(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         testUndefinedMutableInput(fixture, datasourceFixture, -1);
     }
 
-    private void testUndefinedMutableInput(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture, int relationUpperCardinality) {
+    private void testUndefinedMutableInput(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture, int relationUpperCardinality) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("Consumer")
@@ -2817,7 +2817,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testTransientRelationsInScript(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testTransientRelationsInScript(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         StringType stringType = newStringTypeBuilder().withName("string").withMaxLength(255).build();
 
         TransferObjectType funding = newTransferObjectTypeBuilder()
@@ -2916,7 +2916,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testEqualsOperatorWithBooleansInProperties(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testEqualsOperatorWithBooleansInProperties(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Tester")
@@ -2982,7 +2982,7 @@ public class ScriptTest {
     }
 
     @Test
-    public void testEqualsOperatorWithBooleansInIfBlocks(RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testEqualsOperatorWithBooleansInIfBlocks(JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
         builder.addEntity("Tester")
                 .withAttribute("Boolean", "L")

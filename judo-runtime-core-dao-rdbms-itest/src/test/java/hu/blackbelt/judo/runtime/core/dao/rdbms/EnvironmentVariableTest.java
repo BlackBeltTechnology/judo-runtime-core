@@ -8,10 +8,10 @@ import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.custom.Gps;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.custom.StringToGpsConverter;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -35,30 +35,30 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class EnvironmentVariableTest {
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void currentTimestamp(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void currentTimestamp(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         OffsetDateTime startTimestamp = OffsetDateTime.now();
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnmappedTransferObject("TransferObject")
                 .withStaticData("Timestamp", "currentTimestamp", "demo::types::TimeStamp!getVariable('SYSTEM', 'current_timestamp')")
                 .withStaticData("Timestamp", "timeNow", "demo::types::TimeStamp!now()");
         Model model = modelBuilder.build();
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        EClass eClass = daoFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
-        Payload payload = daoFixture.getDao().getStaticData(getAttribute(eClass, "currentTimestamp"));
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        EClass eClass = runtimeFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
+        Payload payload = runtimeFixture.getDao().getStaticData(getAttribute(eClass, "currentTimestamp"));
         OffsetDateTime returnedTimestamp = payload.getAs(OffsetDateTime.class, "currentTimestamp");
-        payload = daoFixture.getDao().getStaticData(getAttribute(eClass, "timeNow"));
+        payload = runtimeFixture.getDao().getStaticData(getAttribute(eClass, "timeNow"));
         OffsetDateTime returnedTimeNow = payload.getAs(OffsetDateTime.class, "timeNow");
         OffsetDateTime endTimestamp = OffsetDateTime.now();
         assertThat(returnedTimestamp, greaterThan(startTimestamp));
@@ -68,7 +68,7 @@ public class EnvironmentVariableTest {
     }
 
     @Test
-    public void currentTime(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void currentTime(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         LocalTime now = LocalTime.now();
         LocalTime startTime = LocalTime.of(now.getHour(), now.getMinute(), now.getSecond());
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
@@ -76,12 +76,12 @@ public class EnvironmentVariableTest {
                 .withStaticData("Time", "currentTime", "demo::types::Time!getVariable('SYSTEM', 'current_time')")
                 .withStaticData("Time", "timeNow", "demo::types::Time!now()");
         Model model = modelBuilder.build();
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        EClass eClass = daoFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
-        Payload payload = daoFixture.getDao().getStaticData(getAttribute(eClass, "currentTime"));
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        EClass eClass = runtimeFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
+        Payload payload = runtimeFixture.getDao().getStaticData(getAttribute(eClass, "currentTime"));
         LocalTime returnedTime = payload.getAs(LocalTime.class, "currentTime");
-        payload = daoFixture.getDao().getStaticData(getAttribute(eClass, "timeNow"));
+        payload = runtimeFixture.getDao().getStaticData(getAttribute(eClass, "timeNow"));
         LocalTime returnedTimeNow = payload.getAs(LocalTime.class, "timeNow");
         LocalTime endTime = LocalTime.now();
         assertThat(returnedTime, not(lessThan((startTime))));
@@ -91,19 +91,19 @@ public class EnvironmentVariableTest {
     }
 
     @Test
-    public void currentDate(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void currentDate(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         LocalDate startDate = LocalDate.now();
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnmappedTransferObject("TransferObject")
                 .withStaticData("Date", "currentDate", "demo::types::Date!getVariable('SYSTEM', 'current_date')")
                 .withStaticData("Date", "dateNow", "demo::types::Date!now()");
         Model model = modelBuilder.build();
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        EClass eClass = daoFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
-        Payload payload = daoFixture.getDao().getStaticData(getAttribute(eClass, "currentDate"));
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        EClass eClass = runtimeFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
+        Payload payload = runtimeFixture.getDao().getStaticData(getAttribute(eClass, "currentDate"));
         LocalDate returnedCurrentDate = payload.getAs(LocalDate.class, "currentDate");
-        payload = daoFixture.getDao().getStaticData(getAttribute(eClass, "dateNow"));
+        payload = runtimeFixture.getDao().getStaticData(getAttribute(eClass, "dateNow"));
         LocalDate returnedDateNow = payload.getAs(LocalDate.class, "dateNow");
         LocalDate endDate = LocalDate.now();
         assertThat(returnedCurrentDate, greaterThanOrEqualTo(startDate));
@@ -113,7 +113,7 @@ public class EnvironmentVariableTest {
     }
 
     @Test
-    public void systemAndEnvironmentProperties(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void systemAndEnvironmentProperties(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addUnmappedTransferObject("TransferObject")
                 .withStaticData("Integer", "integer", "demo::types::Integer!getVariable('ENVIRONMENT', 'integer')")
@@ -146,30 +146,30 @@ public class EnvironmentVariableTest {
         System.setProperty("gps", "47.510746,19.0346693");
 
         Model model = modelBuilder.build();
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        EDataType gpsType = daoFixture.getAsmUtils().resolve("demo.types.GPS").map(dataType -> (EDataType) dataType).get();
-        RdbmsDaoFixture.DATA_TYPE_MANAGER.registerCustomType(gpsType, Gps.class.getName(), Collections.singleton(new StringToGpsConverter()));
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        EDataType gpsType = runtimeFixture.getAsmUtils().resolve("demo.types.GPS").map(dataType -> (EDataType) dataType).get();
+        runtimeFixture.getDataTypeManager().registerCustomType(gpsType, Gps.class.getName(), Collections.singleton(new StringToGpsConverter()));
 
-        EClass eClass = daoFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
-        assertData(daoFixture, eClass, Integer.class, "integer", 1);
-        assertData(daoFixture, eClass, Boolean.class, "boolean1", true);
-        assertData(daoFixture, eClass, Boolean.class, "boolean2", true);
-        assertData(daoFixture, eClass, String.class, "string", "foo");
-        assertData(daoFixture, eClass, Double.class, "double", 3.1415926535);
-        assertData(daoFixture, eClass, Long.class, "long", 123456789012345678L);
-        assertData(daoFixture, eClass, Integer.class, "country", 1);
-        assertData(daoFixture, eClass, Double.class, "mass", 42.0);
-        assertData(daoFixture, eClass, String.class, "stringUndefined", nullValue());
-        assertData(daoFixture, eClass, Integer.class, "countryUndefined", nullValue());
-        assertData(daoFixture, eClass, String.class, "gps", "47.510746,19.0346693");
-        assertData(daoFixture, eClass, OffsetDateTime.class, "timestamp", OffsetDateTime.parse("2020-11-19T16:38:00+00:00"));
-        assertData(daoFixture, eClass, LocalDate.class, "date", LocalDate.of(2020, 11, 19));
-        assertData(daoFixture, eClass, LocalTime.class, "time", LocalTime.of(16, 38, 01));
+        EClass eClass = runtimeFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
+        assertData(runtimeFixture, eClass, Integer.class, "integer", 1);
+        assertData(runtimeFixture, eClass, Boolean.class, "boolean1", true);
+        assertData(runtimeFixture, eClass, Boolean.class, "boolean2", true);
+        assertData(runtimeFixture, eClass, String.class, "string", "foo");
+        assertData(runtimeFixture, eClass, Double.class, "double", 3.1415926535);
+        assertData(runtimeFixture, eClass, Long.class, "long", 123456789012345678L);
+        assertData(runtimeFixture, eClass, Integer.class, "country", 1);
+        assertData(runtimeFixture, eClass, Double.class, "mass", 42.0);
+        assertData(runtimeFixture, eClass, String.class, "stringUndefined", nullValue());
+        assertData(runtimeFixture, eClass, Integer.class, "countryUndefined", nullValue());
+        assertData(runtimeFixture, eClass, String.class, "gps", "47.510746,19.0346693");
+        assertData(runtimeFixture, eClass, OffsetDateTime.class, "timestamp", OffsetDateTime.parse("2020-11-19T16:38:00+00:00"));
+        assertData(runtimeFixture, eClass, LocalDate.class, "date", LocalDate.of(2020, 11, 19));
+        assertData(runtimeFixture, eClass, LocalTime.class, "time", LocalTime.of(16, 38, 01));
     }
 
     @Test
-    public void testUsingVariablesToFilter(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUsingVariablesToFilter(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity("Entity")
                 .withAttribute("String", "attribute")
@@ -187,19 +187,19 @@ public class EnvironmentVariableTest {
         System.setProperty("ATTRIBUTE_FILTER", "X");
 
         Model model = modelBuilder.build();
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        EClass entityType = daoFixture.getAsmUtils().getClassByFQName("demo._default_transferobjecttypes.entities.Entity").get();
-        Payload e1 = daoFixture.getDao().create(entityType, Payload.map("attribute", "X"), null);
+        EClass entityType = runtimeFixture.getAsmUtils().getClassByFQName("demo._default_transferobjecttypes.entities.Entity").get();
+        Payload e1 = runtimeFixture.getDao().create(entityType, Payload.map("attribute", "X"), null);
         e1.remove("__$created");
-        Payload e2 = daoFixture.getDao().create(entityType, Payload.map("attribute", "Y"), null);
+        Payload e2 = runtimeFixture.getDao().create(entityType, Payload.map("attribute", "Y"), null);
         e2.remove("__$created");
-        Payload e3 = daoFixture.getDao().create(entityType, Payload.empty(), null);
+        Payload e3 = runtimeFixture.getDao().create(entityType, Payload.empty(), null);
         e3.remove("__$created");
 
-        EClass eClass = daoFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
-        Payload result = daoFixture.getDao().getStaticFeatures(eClass);
+        EClass eClass = runtimeFixture.getAsmUtils().getClassByFQName("demo.services.TransferObject").get();
+        Payload result = runtimeFixture.getDao().getStaticFeatures(eClass);
         log.debug("Result of filtering by variables: {}", result);
         assertThat(result.getAsCollectionPayload("filteredInstances"), equalTo(Collections.singletonList(e1)));
         assertThat(result.getAsCollectionPayload("nullIsNotComparableInstances"), equalTo(Collections.emptyList()));
@@ -210,7 +210,7 @@ public class EnvironmentVariableTest {
     }
 
     @Test
-    public void testCheckingEnumVariableIsDefined(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testCheckingEnumVariableIsDefined(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         BooleanType booleanType = newBooleanTypeBuilder()
                 .withName("Boolean")
                 .build();
@@ -270,11 +270,11 @@ public class EnvironmentVariableTest {
 
         System.setProperty("COUNTRY", "HU");
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        EClass eClass = daoFixture.getAsmUtils().getClassByFQName("M.Tester").get();
-        Payload result = daoFixture.getDao().getStaticFeatures(eClass);
+        EClass eClass = runtimeFixture.getAsmUtils().getClassByFQName("M.Tester").get();
+        Payload result = runtimeFixture.getDao().getStaticFeatures(eClass);
         log.debug("Result of testCheckingEnumVariableIsDefined: {}", result);
 
         assertThat(result, equalTo(Payload.map(
@@ -286,12 +286,12 @@ public class EnvironmentVariableTest {
         )));
     }
 
-    private void assertData(RdbmsDaoFixture daoFixture, EClass eClass, Class<?> resultClass, String attribute, Object expectedValue) {
-        assertData(daoFixture, eClass, resultClass, attribute, is(expectedValue));
+    private void assertData(JudoRuntimeFixture runtimeFixture, EClass eClass, Class<?> resultClass, String attribute, Object expectedValue) {
+        assertData(runtimeFixture, eClass, resultClass, attribute, is(expectedValue));
     }
 
-    private void assertData(RdbmsDaoFixture daoFixture, EClass eClass, Class<?> resultClass, String attribute, Matcher<Object> matcher) {
-        Payload payload = daoFixture.getDao().getStaticData(getAttribute(eClass, attribute));
+    private void assertData(JudoRuntimeFixture runtimeFixture, EClass eClass, Class<?> resultClass, String attribute, Matcher<Object> matcher) {
+        Payload payload = runtimeFixture.getDao().getStaticData(getAttribute(eClass, attribute));
         assertThat(payload.getAs(resultClass, attribute), matcher);
     }
 

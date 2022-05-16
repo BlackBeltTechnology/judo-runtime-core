@@ -7,10 +7,10 @@ import hu.blackbelt.judo.meta.esm.structure.MemberType;
 import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
@@ -31,8 +31,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class OptimisticLockTest {
 
@@ -47,12 +47,12 @@ public class OptimisticLockTest {
     }
 
     @AfterEach
-    public void teardown(final RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(final JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testSimpleOptimisticLock(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testSimpleOptimisticLock(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
         final BooleanType booleanType = newBooleanTypeBuilder().withName("Boolean").build();
@@ -74,15 +74,15 @@ public class OptimisticLockTest {
                 .withElements(stringType, integerType, booleanType, person)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass personType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Person").get();
-        final Function<Payload, UUID> idExtractor = p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final EClass personType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Person").get();
+        final Function<Payload, UUID> idExtractor = p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         final OffsetDateTime ts1 = OffsetDateTime.now().truncatedTo(ChronoUnit.MICROS);
 
-        final Payload p1 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p1 = runtimeFixture.getDao().create(personType, Payload.map(
                 NAME, "Gipsz Jakab"
         ), null);
         final OffsetDateTime ts2 = OffsetDateTime.now();
@@ -95,8 +95,8 @@ public class OptimisticLockTest {
         assertTrue((ts1.isBefore(createdTs1) || ts1.isEqual(createdTs1)) && (ts2.isAfter(createdTs1) || ts2.isEqual(createdTs1)));
 
         // test update without version
-        final Payload p2 = daoFixture.getDao().update(personType, Payload.map(
-                daoFixture.getIdProvider().getName(), p1Id,
+        final Payload p2 = runtimeFixture.getDao().update(personType, Payload.map(
+                runtimeFixture.getIdProvider().getName(), p1Id,
                 NAME, "Teszt Elek"
         ), null);
         final OffsetDateTime ts3 = OffsetDateTime.now();
@@ -109,8 +109,8 @@ public class OptimisticLockTest {
         assertTrue((ts2.isBefore(updatedTs2) || ts2.isEqual(updatedTs2)) && (ts3.isAfter(updatedTs2) || ts3.isEqual(updatedTs2)));
 
         // test update with valid version
-        final Payload p3 = daoFixture.getDao().update(personType, Payload.map(
-                daoFixture.getIdProvider().getName(), p1Id,
+        final Payload p3 = runtimeFixture.getDao().update(personType, Payload.map(
+                runtimeFixture.getIdProvider().getName(), p1Id,
                 NAME, "Gipsz Jakab",
                 StatementExecutor.ENTITY_VERSION_MAP_KEY, 2
         ), null);
@@ -124,14 +124,14 @@ public class OptimisticLockTest {
         assertTrue((ts3.isBefore(updatedTs3) || ts3.isEqual(updatedTs3)) && (ts4.isAfter(updatedTs3) || ts4.isEqual(updatedTs3)));
 
         // test update with invalid version
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().update(personType, Payload.map(
-                daoFixture.getIdProvider().getName(), p1Id,
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().update(personType, Payload.map(
+                runtimeFixture.getIdProvider().getName(), p1Id,
                 NAME, "Teszt Elek",
                 StatementExecutor.ENTITY_VERSION_MAP_KEY, 2
         ), null));
 
         // ensure update is not executed
-        final Payload p4 = daoFixture.getDao().getByIdentifier(personType, p1Id).get();
+        final Payload p4 = runtimeFixture.getDao().getByIdentifier(personType, p1Id).get();
         log.debug("Person #4: {}", p4);
         final OffsetDateTime updatedTs4 = p4.getAs(OffsetDateTime.class, StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY);
         assertThat(p4.getAs(Integer.class, StatementExecutor.ENTITY_VERSION_MAP_KEY), equalTo(3));
@@ -140,7 +140,7 @@ public class OptimisticLockTest {
     }
 
     @Test
-    public void testInheritance(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testInheritance(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
         final BooleanType booleanType = newBooleanTypeBuilder().withName("Boolean").build();
@@ -175,19 +175,19 @@ public class OptimisticLockTest {
                 .withElements(stringType, integerType, booleanType, person, student)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass personType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Person").get();
-        final EClass studentType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Student").get();
-        final Function<Payload, UUID> idExtractor = p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final EClass personType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Person").get();
+        final EClass studentType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Student").get();
+        final Function<Payload, UUID> idExtractor = p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload p1 = daoFixture.getDao().create(studentType, Payload.map(
+        final Payload p1 = runtimeFixture.getDao().create(studentType, Payload.map(
                 NAME, "Gipsz Jakab"
         ), null);
         final UUID p1Id = idExtractor.apply(p1);
         assertThat(p1.getAs(Integer.class, StatementExecutor.ENTITY_VERSION_MAP_KEY), equalTo(1));
-        final Payload p2 = daoFixture.getDao().create(studentType, Payload.map(
+        final Payload p2 = runtimeFixture.getDao().create(studentType, Payload.map(
                 NAME, "Teszt Elek",
                 CLASS, "9/C"
         ), null);
@@ -197,15 +197,15 @@ public class OptimisticLockTest {
         final OffsetDateTime ts1 = OffsetDateTime.now();
 
         p1.put(NAME, "Jakab Gipsz");
-        daoFixture.getDao().update(studentType, p1, null);
+        runtimeFixture.getDao().update(studentType, p1, null);
 
         p2.put(NAME, "Elek Teszt");
-        daoFixture.getDao().update(personType, p2, null);
+        runtimeFixture.getDao().update(personType, p2, null);
 
         final OffsetDateTime ts2 = OffsetDateTime.now();
 
-        final Payload p1UpdatedAsStudent = daoFixture.getDao().getByIdentifier(studentType, p1Id).get();
-        final Payload p1UpdatedAsPerson = daoFixture.getDao().getByIdentifier(personType, p1Id).get();
+        final Payload p1UpdatedAsStudent = runtimeFixture.getDao().getByIdentifier(studentType, p1Id).get();
+        final Payload p1UpdatedAsPerson = runtimeFixture.getDao().getByIdentifier(personType, p1Id).get();
         final OffsetDateTime p1UpdatedAsStudentTs = p1UpdatedAsStudent.getAs(OffsetDateTime.class, StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY);
         final OffsetDateTime p1UpdatedAsPersonTs = p1UpdatedAsPerson.getAs(OffsetDateTime.class, StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY);
 
@@ -216,8 +216,8 @@ public class OptimisticLockTest {
         assertTrue((p1UpdatedAsStudentTs.isBefore(ts2) || p1UpdatedAsStudentTs.isEqual(ts2)) && (p1UpdatedAsStudentTs.isAfter(ts1) || p1UpdatedAsStudentTs.isEqual(ts1)));
         assertTrue((p1UpdatedAsPersonTs.isBefore(ts2) || p1UpdatedAsPersonTs.isEqual(ts2)) && (p1UpdatedAsPersonTs.isAfter(ts1) || p1UpdatedAsPersonTs.isEqual(ts1)));
 
-        final Payload p2UpdatedAsStudent = daoFixture.getDao().getByIdentifier(studentType, p2Id).get();
-        final Payload p2UpdatedAsPerson = daoFixture.getDao().getByIdentifier(personType, p2Id).get();
+        final Payload p2UpdatedAsStudent = runtimeFixture.getDao().getByIdentifier(studentType, p2Id).get();
+        final Payload p2UpdatedAsPerson = runtimeFixture.getDao().getByIdentifier(personType, p2Id).get();
         final OffsetDateTime p2UpdatedAsStudentTs = p2UpdatedAsStudent.getAs(OffsetDateTime.class, StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY);
         final OffsetDateTime p2UpdatedAsPersonTs = p2UpdatedAsPerson.getAs(OffsetDateTime.class, StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY);
 

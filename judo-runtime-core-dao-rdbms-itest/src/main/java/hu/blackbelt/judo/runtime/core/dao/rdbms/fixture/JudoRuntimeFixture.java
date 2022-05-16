@@ -1,6 +1,12 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.fixture;
 
 import com.google.common.collect.Maps;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Module;
+import com.google.inject.util.Modules;
+
 import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
@@ -21,51 +27,31 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.support.PsmModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsUtils;
 import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
 import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsSequence;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.query.HsqldbRdbmsParameterMapper;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.query.mappers.HsqldbMapperFactory;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlDialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlRdbmsParameterMapper;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.query.mappers.PostgresqlMapperFactory;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
+import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
+import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.script.codegen.generator.Script2JavaGenerator;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
-import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultActorResolver;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultIdentifierSigner;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultMetricsCollector;
-import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
-import hu.blackbelt.judo.runtime.core.dispatcher.context.ThreadContext;
-import hu.blackbelt.judo.runtime.core.dispatcher.environment.*;
-import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
-import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoDefaultModule;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbDatasourceWrapperModule;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbModules;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.JudoPostgresqlDatasourceWrapperModule;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.JudoPostgresqlModules;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.tatami.asm2expression.Asm2ExpressionConfiguration;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
-import hu.blackbelt.judo.tatami.core.TransformationTraceService;
-import hu.blackbelt.judo.tatami.core.TransformationTraceServiceImpl;
 import hu.blackbelt.judo.tatami.core.workflow.work.WorkReport;
 import hu.blackbelt.judo.tatami.core.workflow.work.WorkStatus;
 import hu.blackbelt.judo.tatami.script2operation.Script2Operation;
 import hu.blackbelt.judo.tatami.workflow.DefaultWorkflowSave;
 import hu.blackbelt.judo.tatami.workflow.DefaultWorkflowSetupParameters;
 import hu.blackbelt.judo.tatami.workflow.PsmDefaultWorkflow;
-import hu.blackbelt.mapper.impl.DefaultCoercer;
-import hu.blackbelt.osgi.filestore.security.api.*;
-import hu.blackbelt.osgi.filestore.security.api.exceptions.InvalidTokenException;
-import hu.blackbelt.osgi.liquibase.StreamResourceAccessor;
 import hu.blackbelt.structured.map.proxy.CompositeClassLoader;
 import liquibase.Liquibase;
 import liquibase.exception.DatabaseException;
@@ -73,16 +59,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import net.ttddyy.dsproxy.listener.logging.DefaultQueryLogEntryCreator;
-import net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener;
 import org.eclipse.emf.common.util.BasicEMap;
-import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.slf4j.bridge.SLF4JBridgeHandler;
+import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -110,85 +94,32 @@ import static hu.blackbelt.judo.tatami.esm2psm.Esm2Psm.executeEsm2PsmTransformat
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Slf4j
-public class RdbmsDaoFixture {
+public class JudoRuntimeFixture {
 
-    public static final DataTypeManager DATA_TYPE_MANAGER = new DataTypeManager(new DefaultCoercer());
-    public static final int CHUNK_SIZE = 10;
-    public static final long SEQUENCE_START = 20L;
-    public static final long SEQUENCE_INCREMENT = 2L;
-    public final Context context = new ThreadContext(DATA_TYPE_MANAGER);
-    public DefaultVariableResolver variableResolver = new DefaultVariableResolver(DATA_TYPE_MANAGER, context);
-
-    public QueryFactory queryFactory;
-
-    public static final TokenIssuer FILESTORE_TOKEN_ISSUER = new TokenIssuer() {
-        @Override
-        public String createUploadToken(Token<UploadClaim> token) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public String createDownloadToken(Token<DownloadClaim> token) {
-            throw new UnsupportedOperationException();
-        }
-    };
-
-    public static final TokenValidator FILESTORE_TOKEN_VALIDATOR = new TokenValidator() {
-        @Override
-        public Token<UploadClaim> parseUploadToken(String tokenString) throws InvalidTokenException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Token<DownloadClaim> parseDownloadToken(String tokenString) throws InvalidTokenException {
-            throw new UnsupportedOperationException();
-        }
-    };
+    static {
+        SLF4JBridgeHandler.install();
+        SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
+    }
+    private ByteArrayOutputStream liquibaseStream;
+    private Script2JavaGenerator scriptGenerator = new Script2JavaGenerator();
+    private Map<String, Function<Payload, Payload>> operationImplementations = new ConcurrentHashMap<>();
+    private boolean initialized;
+    private Module databaseModule;
+    private MeasureModel measureModel;
+    private RdbmsModel rdbmsModel;
+    private LiquibaseModel liquibaseModel;
+    private ExpressionModel expressionModel;
+    private Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace;
+    private ScriptModel scriptModel;
 
     @Getter
-    private DefaultDispatcher<UUID> dispatcher;
-    private DispatcherFunctionProvider dispatcherFunctionProvider;
+    private Injector injector;
 
     @Getter
     protected AsmModel asmModel;
 
     @Getter
-    protected MeasureModel measureModel;
-
-    @Getter
-    protected RdbmsModel rdbmsModel;
-
-    @Getter
-    protected LiquibaseModel liquibaseModel;
-
-    @Getter
-    protected ExpressionModel expressionModel;
-
-    @Getter
-    protected Asm2RdbmsTransformationTrace asm2RdbmsTransformationTrace;
-
-    @Getter
-    protected RdbmsResolver rdbmsResolver;
-
-    @Getter
-    protected RdbmsUtils rdbmsUtils;
-
-    @Getter
-    RdbmsParameterMapper<UUID> rdbmsParameterMapper;
-
-    @Getter
-    RdbmsInstanceCollector<UUID> rdbmsInstanceCollector;
-
-    @Getter
-    protected TransformationTraceService transformationTraceService;
-
-    @Getter
-    protected IdentifierProvider<UUID> uuid = new UUIDIdentifierProvider();
-
-    private ByteArrayOutputStream liquibaseStream;
-
-    @Getter
-    private ScriptModel scriptModel;
+    private AsmUtils asmUtils;
 
     @Getter
     private String modelName;
@@ -196,40 +127,71 @@ public class RdbmsDaoFixture {
     @Getter
     private PsmModel psmModel;
 
-    @Getter
-    private AsmUtils asmUtils;
-
     @Setter
     private boolean ignoreSdk = true;
 
     @Setter
     private boolean validateModels = Boolean.parseBoolean(System.getProperty("validateModels", "false"));
 
-    private RdbmsDAOImpl<UUID> cachedDao = null;
-
-    private Script2JavaGenerator scriptGenerator = new Script2JavaGenerator();
-
-    private Map<String, Function<Payload, Payload>> operationImplementations = new ConcurrentHashMap<>();
-
-    private boolean initialized;
-
-    private Dialect dialect;
-
     @Getter
-    private RdbmsDatasourceFixture rdbmsDatasourceFixture;
+    private JudoDatasourceFixture rdbmsDatasourceFixture;
+        
+    @Inject
+    DAO dao;
+    
+    @Inject
+    @Getter
+    MetricsCollector metricsCollector;
 
-    private MetricsCollector metricsCollector;
+    @Inject
+    @Getter
+    InstanceCollector instanceCollector;
 
-    public RdbmsDaoFixture(String modelName) {
+    @Inject
+    @Getter
+    Dispatcher dispatcher;
+    
+    @Inject
+    @Getter
+    VariableResolver variableResolver;
+
+    @Inject
+    IdentifierProvider idProvider;
+
+    @Inject
+    @Getter
+    Context context;
+
+    @Inject
+    @Getter
+    QueryFactory queryFactory;
+
+    @Inject
+    @Getter
+    DataTypeManager dataTypeManager;
+
+    @Inject
+    @Getter
+    Sequence sequence;
+
+    @Inject
+    @Getter
+    RdbmsResolver rdbmsResolver;
+
+    @Inject
+    @Getter
+    RdbmsParameterMapper rdbmsParameterMapper;
+
+    @Inject
+    @Getter
+    DispatcherFunctionProvider dispatcherFunctionProvider;
+
+    public JudoRuntimeFixture(String modelName) {
         this.modelName = modelName;
-        this.metricsCollector = DefaultMetricsCollector.builder()
-                .enabled(Boolean.parseBoolean(System.getProperty("enabledMetrics", "false")))
-                .context(context)
-                .build();
     }
 
-    public void init(hu.blackbelt.judo.meta.esm.namespace.Model model, RdbmsDatasourceFixture datasourceFixture) {
-
+    public void init(hu.blackbelt.judo.meta.esm.namespace.Model model, JudoDatasourceFixture datasourceFixture) {
+    	
         try {
             final EsmModel esmModel = createEsmModel(model);
 
@@ -270,7 +232,7 @@ public class RdbmsDaoFixture {
         }
     }
 
-    public void init(Model model, RdbmsDatasourceFixture datasourceFixture) {
+    public void init(Model model, JudoDatasourceFixture datasourceFixture) {
 
         try {
             this.psmModel = createPsmModel(model);
@@ -299,11 +261,15 @@ public class RdbmsDaoFixture {
                     new File("target/test-classes/"),
                     Collections.singletonList(rdbmsDatasourceFixture.getDialect()));
 
-            // dialect = Dialect.parse(rdbmsDatasourceFixture.getDialect(), rdbmsDatasourceFixture.jooqEnabled);
             if (rdbmsDatasourceFixture.getDialect().equals("hsqldb")) {
-                dialect = new HsqldbDialect();
+            	
+            	databaseModule = Modules
+            			.override(new JudoHsqldbModules())
+            			.with(new JudoHsqldbDatasourceWrapperModule(rdbmsDatasourceFixture.getWrappedDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
             } else if (rdbmsDatasourceFixture.getDialect().equals("postgresql")) {
-                dialect = new PostgresqlDialect();
+            	databaseModule = Modules
+            			.override(JudoPostgresqlModules.builder().build())
+            			.with(new JudoPostgresqlDatasourceWrapperModule(rdbmsDatasourceFixture.getWrappedDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
             } else {
                 throw new IllegalArgumentException("Unknown dialect: " + rdbmsDatasourceFixture.getDialect());
             }
@@ -319,85 +285,32 @@ public class RdbmsDaoFixture {
 
             asm2RdbmsTransformationTrace = defaultWorkflow.getTransformationContext().get(Asm2RdbmsTransformationTrace.class, "asm2rdbmstrace:" + rdbmsDatasourceFixture.getDialect()).get();
 
-            asmUtils = new AsmUtils(asmModel.getResourceSet());
+            this.asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-            transformationTraceService = new TransformationTraceServiceImpl();
-            transformationTraceService.add(asm2RdbmsTransformationTrace);
-            rdbmsResolver = new RdbmsResolver(asmModel, transformationTraceService);
-            rdbmsUtils = new RdbmsUtils(rdbmsModel.getResourceSet());
-
-            if (dialect instanceof HsqldbDialect) {
-                rdbmsParameterMapper = HsqldbRdbmsParameterMapper.<UUID>builder()
-                        .coercer(DATA_TYPE_MANAGER.getCoercer())
-                        .rdbmsModel(rdbmsModel)
-                        .identifierProvider(getIdProvider())
-                        .build();
-            } else  if (dialect instanceof PostgresqlDialect) {
-                rdbmsParameterMapper = PostgresqlRdbmsParameterMapper.<UUID>builder()
-                        .coercer(DATA_TYPE_MANAGER.getCoercer())
-                        .rdbmsModel(rdbmsModel)
-                        .identifierProvider(getIdProvider())
-                        .build();
-            } else {
-                throw new IllegalArgumentException("Unknown dialect: " + rdbmsDatasourceFixture.getDialect());
-            }
-
-            rdbmsInstanceCollector = RdbmsInstanceCollector.<UUID>builder()
-                    .jdbcTemplate(new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource()))
-                    .asmUtils(asmUtils)
-                    .rdbmsResolver(rdbmsResolver)
-                    .rdbmsModel(rdbmsModel)
-                    .coercer(DATA_TYPE_MANAGER.getCoercer())
-                    .identifierProvider(getIdProvider())
-                    .rdbmsParameterMapper(rdbmsParameterMapper)
-                    .build();
-
+            
+            injector = Guice.createInjector(
+            		databaseModule,
+            		new JudoDefaultModule(this, 
+            				JudoModelHolder.builder()
+    			                .asmModel(asmModel)
+    			                .rdbmsModel(rdbmsModel)
+    			                .measureModel(measureModel)
+    			                .expressionModel(expressionModel)
+    			                .scriptModel(scriptModel)
+    			                .asm2rdbms(asm2RdbmsTransformationTrace)
+    			                .build()));
 
             liquibaseStream = new ByteArrayOutputStream();
             liquibaseModel.saveLiquibaseModel(liquibaseSaveArgumentsBuilder()
                     .outputStream(fixUriOutputStream(liquibaseStream)));
 
-            SLF4JQueryLoggingListener loggingListener = new SLF4JQueryLoggingListener();
-            loggingListener.setQueryLogEntryCreator(new DefaultQueryLogEntryCreator());
+//            SLF4JQueryLoggingListener loggingListener = new SLF4JQueryLoggingListener();
+//            loggingListener.setQueryLogEntryCreator(new DefaultQueryLogEntryCreator());
             final EMap<EOperation, Function<Payload, Payload>> scripts = new BasicEMap<>();
-            dispatcherFunctionProvider = new DispatcherFunctionProvider() {
-                @Override
-                public EMap<EOperation, Function<Payload, Payload>> getSdkFunctions() {
-                    return ECollections.emptyEMap();
-                }
-
-                @Override
-                public EMap<EOperation, Function<Payload, Payload>> getScriptFunctions() {
-                    return scripts;
-                }
-            };
-            IdentifierSigner identifierSigner = new DefaultIdentifierSigner<>(asmModel, uuid, DATA_TYPE_MANAGER);
-            ActorResolver actorResolver = DefaultActorResolver.<UUID>builder()
-                    .dataTypeManager(DATA_TYPE_MANAGER)
-                    .dao(getDao())
-                    .asmModel(asmModel)
-                    .checkMappedActors(false)
-                    .build();
-
-            dispatcher = DefaultDispatcher.<UUID>builder()
-                    .asmModel(asmModel)
-                    .expressionModel(expressionModel)
-                    .dao(getDao())
-                    .identifierProvider(getIdProvider())
-                    .dispatcherFunctionProvider(dispatcherFunctionProvider)
-                    .dataTypeManager(DATA_TYPE_MANAGER)
-                    .identifierSigner(identifierSigner)
-                    .actorResolver(actorResolver)
-                    .transactionManager(rdbmsDatasourceFixture.getTransactionManager())
-                    .context(context)
-                    .metricsCollector(metricsCollector)
-                    .filestoreTokenIssuer(FILESTORE_TOKEN_ISSUER)
-                    .filestoreTokenValidator(FILESTORE_TOKEN_VALIDATOR)
-                    .build();
 
             Map<String, String> sourceCodesByFqName = Maps.newHashMap();
             ScriptModelResourceSupport scriptModelResourceSupport =
-                    scriptModelResourceSupportBuilder().resourceSet(getScriptModel().getResourceSet()).build();
+                    scriptModelResourceSupportBuilder().resourceSet(scriptModel.getResourceSet()).build();
             StringBuilder sourceCodeText = new StringBuilder();
 
             CompositeClassLoader compositeClassLoader = new CompositeClassLoader(Script2Operation.class.getClassLoader());
@@ -465,21 +378,23 @@ public class RdbmsDaoFixture {
                             String operationFqName = String.format("%s#%s", binding.getTypeName(), binding.getOperationName()).replaceAll("::", ".");
                             scripts.put(asmUtils.resolveOperation(operationFqName).get(), operationImplementation);
                             operationImplementations.put(binding.getOperationName(), operationImplementation);
+
                             Class aClass = operationImplementation.getClass();
                             try {
                                 aClass.getMethod("setDao", DAO.class).invoke(operationImplementation, getDao());
                                 aClass.getMethod("setDispatcher", Dispatcher.class).invoke(operationImplementation, getDispatcher());
                                 aClass.getMethod("setIdProvider", IdentifierProvider.class).invoke(operationImplementation, getIdProvider());
-                                aClass.getMethod("setAsmModel", AsmModel.class).invoke(operationImplementation, getAsmModel());
-                                aClass.getMethod("setVariableResolver", VariableResolver.class).invoke(operationImplementation, variableResolver);
+                                aClass.getMethod("setAsmModel", AsmModel.class).invoke(operationImplementation, asmModel);
+                                aClass.getMethod("setVariableResolver", VariableResolver.class).invoke(operationImplementation, getVariableResolver());
                             } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
                                 throw new RuntimeException(e);
                             }
 
                         });
             }
+            getDispatcherFunctionProvider().getScriptFunctions().putAll(scripts);
             createDatabase();
-            metricsCollector.start("TEST");
+//            metricsCollector.start("TEST");
             this.initialized = true;
         } catch (Exception e) {
             log.error("Exception in RdbmDaoFixture.init: ", e);
@@ -523,120 +438,19 @@ public class RdbmsDaoFixture {
                 }
             }
         }
-        metricsCollector.stop("TEST");
-        context.removeAll();
+//        metricsCollector.stop("TEST");
+//        context.removeAll();
     }
 
     private String getLiquibaseName() {
         return modelName + ".changelog.xml";
     }
 
-
-    public DAO<UUID> getDao() {
-        if (cachedDao == null) {
-            Sequence<Long> sequence = null;
-            MapperFactory<UUID> mapperFactory = null;
-            if (dialect instanceof HsqldbDialect) {
-                sequence = HsqldbRdbmsSequence.builder()
-                        .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
-                        .start(SEQUENCE_START)
-                        .increment(SEQUENCE_INCREMENT)
-                        .createIfNotExists(true)
-                        .build();
-                mapperFactory = new HsqldbMapperFactory<UUID>();
-
-            } else if (dialect instanceof PostgresqlDialect) {
-                sequence = HsqldbRdbmsSequence.builder()
-                        .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
-                        .start(SEQUENCE_START)
-                        .increment(SEQUENCE_INCREMENT)
-                        .createIfNotExists(true)
-                        .build();
-
-                mapperFactory = new PostgresqlMapperFactory<UUID>();
-            } else {
-                throw new IllegalArgumentException("Unknown dialect: " + rdbmsDatasourceFixture.getDialect());
-            }
-
-
-            queryFactory = QueryFactory.builder()
-                    .asmResourceSet(asmModel.getResourceSet())
-                    .coercer(DATA_TYPE_MANAGER.getCoercer())
-                    .expressionResourceSet(expressionModel.getResourceSet())
-                    .measureResourceSet(measureModel.getResourceSet())
-                    .build();
-
-            RdbmsBuilder<UUID> rdbmsBuilder = RdbmsBuilder.<UUID>builder()
-                    .ancestorNameFactory(new AncestorNameFactory(asmUtils.all(EClass.class)))
-                    .asmUtils(asmUtils)
-                    .coercer(DATA_TYPE_MANAGER.getCoercer())
-                    .dialect(dialect)
-                    .rdbmsResolver(rdbmsResolver)
-                    .identifierProvider(getIdProvider())
-                    .parameterMapper(rdbmsParameterMapper)
-                    .rdbmsModel(rdbmsModel)
-                    .variableResolver(variableResolver)
-                    .mapperFactory(mapperFactory)
-                    .build();
-
-            ModifyStatementExecutor<UUID> modifyStatementExecutor = ModifyStatementExecutor.<UUID>builder()
-                    .coercer(DATA_TYPE_MANAGER.getCoercer())
-                    .rdbmsModel(rdbmsModel)
-                    .rdbmsParameterMapper(rdbmsParameterMapper)
-                    .identifierProvider(getIdProvider())
-                    .transformationTraceService(transformationTraceService)
-                    .asmModel(asmModel)
-                    .rdbmsResolver(rdbmsResolver)
-                    .build();
-
-            SelectStatementExecutor<UUID> selectStatementExecutor = SelectStatementExecutor.<UUID>builder()
-                    .queryFactory(queryFactory)
-                    .asmModel(asmModel)
-                    .chunkSize(CHUNK_SIZE)
-                    .dataTypeManager(DATA_TYPE_MANAGER)
-                    .identifierProvider(getIdProvider())
-                    .rdbmsBuilder(rdbmsBuilder)
-                    .metricsCollector(metricsCollector)
-                    .rdbmsParameterMapper(rdbmsParameterMapper)
-                    .rdbmsModel(rdbmsModel)
-                    .transformationTraceService(transformationTraceService)
-                    .rdbmsResolver(rdbmsResolver)
-                    .build();
-
-            cachedDao = RdbmsDAOImpl.<UUID>builder()
-                    .asmModel(asmModel)
-                    .dataSource(rdbmsDatasourceFixture.getWrappedDataSource())
-                    .identifierProvider(new UUIDIdentifierProvider())
-                    .context(context)
-                    .optimisticLockEnabled(true)
-                    .markSelectedRangeItems(false)
-                    .metricsCollector(metricsCollector)
-                    .instanceCollector(getRdbmsInstanceCollector())
-                    .modifyStatementExecutor(modifyStatementExecutor)
-                    .selectStatementExecutor(selectStatementExecutor)
-                    .queryFactory(queryFactory)
-                    .build();
-
-
-
-            variableResolver.registerSupplier("SYSTEM", "current_timestamp", new CurrentTimestampProvider(), false);
-            variableResolver.registerSupplier("SYSTEM", "current_date", new CurrentDateProvider(), false);
-            variableResolver.registerSupplier("SYSTEM", "current_time", new CurrentTimeProvider(), false);
-            variableResolver.registerFunction("ENVIRONMENT", new EnvironmentVariableProvider(), true);
-            variableResolver.registerFunction("SEQUENCE", new SequenceProvider(sequence), false);
-        }
-        return cachedDao;
-    }
-
     public void addCustomJoinDefinition(final EReference reference, final CustomJoinDefinition customJoinDefinition) {
-        queryFactory.getCustomJoinDefinitions().put(reference, customJoinDefinition);
+        getQueryFactory().getCustomJoinDefinitions().put(reference, customJoinDefinition);
     }
 
-    public IdentifierProvider<UUID> getIdProvider() {
-        return uuid;
-    }
-
-    public List<Payload> getContents(String fqName, String... references) {
+     public List<Payload> getContents(String fqName, String... references) {
         List<Payload> result = new ArrayList<>();
         EClass classByFQName = getAsmClass(fqName);
         List<Payload> classPayloads = getDao().getAllOf(classByFQName);
@@ -656,7 +470,7 @@ public class RdbmsDaoFixture {
         String classFqName = payload.getAs(String.class, "__toType");
         EClass classByFqName = getAsmClass(classFqName);
         UUID uuid = payload.getAs(UUID.class, getIdProvider().getName());
-        return getDao().getByIdentifier(classByFqName, uuid).get();
+        return (Payload) getDao().getByIdentifier(classByFqName, uuid).get();
 
     }
 
@@ -672,10 +486,6 @@ public class RdbmsDaoFixture {
         return initialized;
     }
 
-    public Context getContext() {
-        return context;
-    }
-
     private PsmModel createPsmModel(Model model) {
         java.lang.String createdSourceModelName = "urn:psm.judo-meta-psm";
         PsmModel psmModel = PsmModel.buildPsmModel().uri(URI.createURI(createdSourceModelName)).name("demo").build();
@@ -688,6 +498,16 @@ public class RdbmsDaoFixture {
         EsmModel esmModel = EsmModel.buildEsmModel().uri(URI.createURI(createdSourceModelName)).name("demo").build();
         esmModel.addContent(model);
         return esmModel;
+    }
+
+    @SuppressWarnings("unchecked")
+	public IdentifierProvider<UUID> getIdProvider() {
+    	return idProvider;
+    }
+
+    @SuppressWarnings("unchecked")
+	public DAO<UUID> getDao() {
+    	return dao;
     }
 
     @SneakyThrows

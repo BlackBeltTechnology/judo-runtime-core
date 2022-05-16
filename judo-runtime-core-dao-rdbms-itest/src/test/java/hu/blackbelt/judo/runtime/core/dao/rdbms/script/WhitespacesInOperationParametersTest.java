@@ -14,8 +14,8 @@ import java.util.function.Function;
 import static hu.blackbelt.judo.meta.psm.PsmTestModelBuilder.Cardinality.cardinality;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class WhitespacesInOperationParametersTest {
 
@@ -23,7 +23,7 @@ public class WhitespacesInOperationParametersTest {
     public static final String OUTPUT = "output";
     public static final String ID_KEY = "__identifier";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -36,19 +36,19 @@ public class WhitespacesInOperationParametersTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
     @Test
-    public void test(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void test(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Tester")
@@ -76,11 +76,11 @@ public class WhitespacesInOperationParametersTest {
             log.debug(String.format("Testing operation:\n%s", operationBody));
         });
 
-        daoFixture.init(builder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(builder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
         operationDescriptors.forEach((operationName, operationParameter) -> {
-            Payload operationResult = run(daoFixture, operationName, Payload.empty());
+            Payload operationResult = run(runtimeFixture, operationName, Payload.empty());
             assertNotNull(operationResult);
             Payload output = operationResult.getAsPayload(OUTPUT);
             assertNotNull(output);

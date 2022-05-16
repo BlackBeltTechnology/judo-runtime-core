@@ -13,10 +13,10 @@ import hu.blackbelt.judo.meta.esm.structure.util.builder.MappingBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.TwoWayRelationMemberBuilder;
 import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.esm.type.util.builder.StringTypeBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -40,8 +40,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class SetOperationTest {
     private static final String MODEL_NAME = "M";
@@ -56,18 +56,9 @@ public class SetOperationTest {
     private static final String GROUP_RELATION_FQ_NAME = USER_FQ_NAME + "#" + GROUP_RELATION_NAME;
     private static final String USER_RELATION_FQ_NAME = GROUP_FQ_NAME + "#" + USER_RELATION_NAME;
 
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
-
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        idProviderClass = daoFixture.getIdProvider().getType();
-        idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     private static Model getEsmModelWithTwoWayCardinality(int groupsLower, int groupsUpper, int usersLower, int usersUpper) {
@@ -128,24 +119,24 @@ public class SetOperationTest {
                 .build();
     }
 
-    private void checkEReferenceContentOf(RdbmsDaoFixture daoFixture,
+    private void checkEReferenceContentOf(JudoRuntimeFixture runtimeFixture,
                                           UUID groupID,
                                           EReference userEReference,
                                           Collection<UUID> expectedUserEReferenceIDs,
                                           EReference groupEReference) {
-        Collection<UUID> actualUserEReferenceIDs = daoFixture.getDao()
+        Collection<UUID> actualUserEReferenceIDs = runtimeFixture.getDao()
                 .getNavigationResultAt(groupID, userEReference)
                 .stream()
-                .map(p -> p.getAs(idProviderClass, idProviderName))
+                .map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
 
         assertThat(actualUserEReferenceIDs, equalTo(expectedUserEReferenceIDs));
 
-        daoFixture.getDao().getAllOf(userEReference.getEReferenceType()).forEach(userPayload -> {
-            final UUID userID = userPayload.getAs(idProviderClass, idProviderName);
-            final Collection<UUID> actualGroupEReferenceIDs = daoFixture.getDao()
+        runtimeFixture.getDao().getAllOf(userEReference.getEReferenceType()).forEach(userPayload -> {
+            final UUID userID = userPayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+            final Collection<UUID> actualGroupEReferenceIDs = runtimeFixture.getDao()
                     .getNavigationResultAt(userID, groupEReference).stream()
-                    .map(p -> p.getAs(idProviderClass, idProviderName))
+                    .map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                     .collect(Collectors.toSet());
             assertEquals(actualUserEReferenceIDs.contains(groupID), actualGroupEReferenceIDs.contains(userID),
                          "Group " + groupID + " <---> " + userID + " User reference is inconsistent");
@@ -153,281 +144,281 @@ public class SetOperationTest {
     }
 
     @Test
-    public void testEntityToEntityTwoWayAssociationSingleToCollection(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithTwoWayCardinality(0, 1, 0, -1), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testEntityToEntityTwoWayAssociationSingleToCollection(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithTwoWayCardinality(0, 1, 0, -1), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass groupEClass = daoFixture.getAsmUtils().getClassByFQName(GROUP_FQ_NAME).get();
-        final EClass userEClass = daoFixture.getAsmUtils().getClassByFQName(USER_FQ_NAME).get();
-        final EReference userEReference = daoFixture.getAsmUtils().resolveReference(USER_RELATION_FQ_NAME).get();
-        final EReference groupEReference = daoFixture.getAsmUtils().resolveReference(GROUP_RELATION_FQ_NAME).get();
+        final EClass groupEClass = runtimeFixture.getAsmUtils().getClassByFQName(GROUP_FQ_NAME).get();
+        final EClass userEClass = runtimeFixture.getAsmUtils().getClassByFQName(USER_FQ_NAME).get();
+        final EReference userEReference = runtimeFixture.getAsmUtils().resolveReference(USER_RELATION_FQ_NAME).get();
+        final EReference groupEReference = runtimeFixture.getAsmUtils().resolveReference(GROUP_RELATION_FQ_NAME).get();
 
-        final UUID groupID = daoFixture.getDao()
+        final UUID groupID = runtimeFixture.getDao()
                 .create(groupEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", groupEClass.getName(), groupID);
 
-        final UUID user1ID = daoFixture.getDao()
+        final UUID user1ID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupID, userEReference, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user1ID);
 
-        final UUID user2ID = daoFixture.getDao()
+        final UUID user2ID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupID, userEReference, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user2ID);
 
-        final UUID user3ID = daoFixture.getDao()
+        final UUID user3ID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupID, userEReference, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user3ID);
 
-        final UUID user4ID = daoFixture.getDao()
+        final UUID user4ID = runtimeFixture.getDao()
                 .create(userEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user4ID);
 
-        final UUID user5ID = daoFixture.getDao()
+        final UUID user5ID = runtimeFixture.getDao()
                 .create(userEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user5ID);
 
-        checkEReferenceContentOf(daoFixture, groupID, userEReference, ImmutableSet.of(user1ID, user2ID, user3ID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupID, userEReference, ImmutableSet.of(user1ID, user2ID, user3ID), groupEReference);
 
-        daoFixture.getDao().setReference(userEReference, groupID, ImmutableSet.of(user1ID));
+        runtimeFixture.getDao().setReference(userEReference, groupID, ImmutableSet.of(user1ID));
 
-        checkEReferenceContentOf(daoFixture, groupID, userEReference, ImmutableSet.of(user1ID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupID, userEReference, ImmutableSet.of(user1ID), groupEReference);
 
-        daoFixture.getDao().setReference(userEReference, groupID, ImmutableSet.of(user4ID, user5ID));
+        runtimeFixture.getDao().setReference(userEReference, groupID, ImmutableSet.of(user4ID, user5ID));
 
-        checkEReferenceContentOf(daoFixture, groupID, userEReference, ImmutableSet.of(user4ID, user5ID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupID, userEReference, ImmutableSet.of(user4ID, user5ID), groupEReference);
     }
 
     @Test
-    public void testEntityToEntityTwoWayAssociationRequiredToCollectionRequiredSingle(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithTwoWayCardinality(1, 1, 0, -1), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testEntityToEntityTwoWayAssociationRequiredToCollectionRequiredSingle(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithTwoWayCardinality(1, 1, 0, -1), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        testEntityToEntityTwoWayAssociationSingleToCollection(daoFixture, false);
+        testEntityToEntityTwoWayAssociationSingleToCollection(runtimeFixture, false);
     }
 
     @Test
-    public void testEntityToEntityTwoWayAssociationRequiredToCollectionOptionalSingle(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithTwoWayCardinality(0, 1, 0, -1), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testEntityToEntityTwoWayAssociationRequiredToCollectionOptionalSingle(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithTwoWayCardinality(0, 1, 0, -1), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        testEntityToEntityTwoWayAssociationSingleToCollection(daoFixture, true);
+        testEntityToEntityTwoWayAssociationSingleToCollection(runtimeFixture, true);
     }
 
-    private void testEntityToEntityTwoWayAssociationSingleToCollection(RdbmsDaoFixture daoFixture, boolean allowRemove) {
-        daoFixture.beginTransaction();
-        final EClass userEClass = daoFixture.getAsmUtils().getClassByFQName(USER_FQ_NAME).get();
-        final EClass groupEClass = daoFixture.getAsmUtils().getClassByFQName(GROUP_FQ_NAME).get();
-        final EReference groupEReference = daoFixture.getAsmUtils().resolveReference(GROUP_RELATION_FQ_NAME).get();
-        final EReference userEReference = daoFixture.getAsmUtils().resolveReference(USER_RELATION_FQ_NAME).get();
+    private void testEntityToEntityTwoWayAssociationSingleToCollection(JudoRuntimeFixture runtimeFixture, boolean allowRemove) {
+        runtimeFixture.beginTransaction();
+        final EClass userEClass = runtimeFixture.getAsmUtils().getClassByFQName(USER_FQ_NAME).get();
+        final EClass groupEClass = runtimeFixture.getAsmUtils().getClassByFQName(GROUP_FQ_NAME).get();
+        final EReference groupEReference = runtimeFixture.getAsmUtils().resolveReference(GROUP_RELATION_FQ_NAME).get();
+        final EReference userEReference = runtimeFixture.getAsmUtils().resolveReference(USER_RELATION_FQ_NAME).get();
 
-        final UUID groupAID = daoFixture.getDao()
+        final UUID groupAID = runtimeFixture.getDao()
                 .create(groupEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", groupEClass.getName(), groupAID);
 
-        final UUID groupBID = daoFixture.getDao()
+        final UUID groupBID = runtimeFixture.getDao()
                 .create(groupEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", groupEClass.getName(), groupBID);
 
-        final UUID user1ID = daoFixture.getDao()
+        final UUID user1ID = runtimeFixture.getDao()
                 .create(userEClass, Payload.map(GROUP_RELATION_NAME,
-                                                Payload.map(idProviderName, groupAID)), DAO.QueryCustomizer.<UUID>builder()
+                                                Payload.map(runtimeFixture.getIdProvider().getName(), groupAID)), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user1ID);
 
-        final UUID user2ID = daoFixture.getDao()
+        final UUID user2ID = runtimeFixture.getDao()
                 .create(userEClass, Payload.map(GROUP_RELATION_NAME,
-                                                Payload.map(idProviderName, groupAID)), DAO.QueryCustomizer.<UUID>builder()
+                                                Payload.map(runtimeFixture.getIdProvider().getName(), groupAID)), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user2ID);
 
-        final UUID user3ID = daoFixture.getDao()
+        final UUID user3ID = runtimeFixture.getDao()
                 .create(userEClass, Payload.map(GROUP_RELATION_NAME,
-                                                Payload.map(idProviderName, groupBID)), DAO.QueryCustomizer.<UUID>builder()
+                                                Payload.map(runtimeFixture.getIdProvider().getName(), groupBID)), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", userEClass.getName(), user3ID);
 
         // do not change (admin) group members
-        daoFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID));
+        runtimeFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID));
 
-        checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
 
         if (allowRemove) {
-            daoFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID));
-            checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(user1ID), groupEReference);
-            checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
+            runtimeFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID));
+            checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(user1ID), groupEReference);
+            checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
 
-            daoFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID));
-            checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
-            checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
+            runtimeFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID));
+            checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
+            checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
 
-            daoFixture.getDao().removeReferences(userEReference, groupAID, ImmutableSet.of(user2ID));
-            checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(user1ID), groupEReference);
-            checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
+            runtimeFixture.getDao().removeReferences(userEReference, groupAID, ImmutableSet.of(user2ID));
+            checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(user1ID), groupEReference);
+            checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
 
-            daoFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID));
-            checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
-            checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
+            runtimeFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID));
+            checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
+            checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
         }
 
-        daoFixture.commitTransaction();
+        runtimeFixture.commitTransaction();
 
         if (!allowRemove) {
-            daoFixture.beginTransaction();
-            assertThrows(IllegalStateException.class, () -> daoFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID)));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID)));
+            runtimeFixture.rollbackTransaction();
 
-            daoFixture.beginTransaction();
-            assertThrows(IllegalStateException.class, () -> daoFixture.getDao().removeReferences(userEReference, groupAID, ImmutableSet.of(user2ID)));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().removeReferences(userEReference, groupAID, ImmutableSet.of(user2ID)));
+            runtimeFixture.rollbackTransaction();
         }
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID, user3ID)));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().setReference(userEReference, groupAID, ImmutableSet.of(user1ID, user2ID, user3ID)));
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().addReferences(userEReference, groupAID, ImmutableSet.of(user3ID)));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().addReferences(userEReference, groupAID, ImmutableSet.of(user3ID)));
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
+        runtimeFixture.beginTransaction();
+        checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(user3ID), groupEReference);
 
-        daoFixture.getDao().setReference(groupEReference, user3ID, ImmutableSet.of(groupAID));
+        runtimeFixture.getDao().setReference(groupEReference, user3ID, ImmutableSet.of(groupAID));
 
-        checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID, user3ID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(), groupEReference);
-        daoFixture.commitTransaction();
+        checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(user1ID, user2ID, user3ID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(), groupEReference);
+        runtimeFixture.commitTransaction();
     }
 
     @Test
-    public void testConflictingCreateAndAttach(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testConflictingCreateAndAttach(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Model model = getEsmModelWithTwoWayCardinality(0, -1, 0, -1);
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        daoFixture.beginTransaction();
+        runtimeFixture.beginTransaction();
 
-        final EClass userEClass = daoFixture.getAsmUtils().getClassByFQName(USER_FQ_NAME).get();
-        final EClass groupEClass = daoFixture.getAsmUtils().getClassByFQName(GROUP_FQ_NAME).get();
-        final EReference groupEReference = daoFixture.getAsmUtils().resolveReference(GROUP_RELATION_FQ_NAME).get();
-        final EReference userEReference = daoFixture.getAsmUtils().resolveReference(USER_RELATION_FQ_NAME).get();
+        final EClass userEClass = runtimeFixture.getAsmUtils().getClassByFQName(USER_FQ_NAME).get();
+        final EClass groupEClass = runtimeFixture.getAsmUtils().getClassByFQName(GROUP_FQ_NAME).get();
+        final EReference groupEReference = runtimeFixture.getAsmUtils().resolveReference(GROUP_RELATION_FQ_NAME).get();
+        final EReference userEReference = runtimeFixture.getAsmUtils().resolveReference(USER_RELATION_FQ_NAME).get();
 
-        final UUID groupAID = daoFixture.getDao()
+        final UUID groupAID = runtimeFixture.getDao()
                 .create(groupEClass, Payload.map("name", "A"), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final UUID groupBID = daoFixture.getDao()
+        final UUID groupBID = runtimeFixture.getDao()
                 .create(groupEClass, Payload.map("name", "B"), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final UUID groupCID = daoFixture.getDao()
+        final UUID groupCID = runtimeFixture.getDao()
                 .create(groupEClass, Payload.map("name", "C"), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final UUID userAID = daoFixture.getDao()
+        final UUID userAID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupAID, userEReference, Payload.map("name", "A"), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", userEClass.getName(), userAID);
 
-        checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(userAID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupCID, userEReference, ImmutableSet.of(), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(userAID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupCID, userEReference, ImmutableSet.of(), groupEReference);
 
-        final UUID userBID = daoFixture.getDao()
+        final UUID userBID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupAID,
                                             userEReference,
                                             Payload.map("name", "B",
-                                                        GROUP_RELATION_NAME, ImmutableSet.of(Payload.map(idProviderName, groupAID),
-                                                                                             Payload.map(idProviderName, groupBID),
-                                                                                             Payload.map(idProviderName, groupCID))), DAO.QueryCustomizer.<UUID>builder()
+                                                        GROUP_RELATION_NAME, ImmutableSet.of(Payload.map(runtimeFixture.getIdProvider().getName(), groupAID),
+                                                                                             Payload.map(runtimeFixture.getIdProvider().getName(), groupBID),
+                                                                                             Payload.map(runtimeFixture.getIdProvider().getName(), groupCID))), DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", userEClass.getName(), userBID);
 
-        checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(userAID, userBID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(userBID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupCID, userEReference, ImmutableSet.of(userBID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(userAID, userBID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(userBID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupCID, userEReference, ImmutableSet.of(userBID), groupEReference);
 
-        daoFixture.commitTransaction();
+        runtimeFixture.commitTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao()
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupAID,
                                             userEReference,
                                             Payload.map("name", "C",
-                                                        GROUP_RELATION_NAME, ImmutableSet.of(Payload.map(idProviderName, groupBID),
-                                                                                             Payload.map(idProviderName, groupCID))), DAO.QueryCustomizer.<UUID>builder()
+                                                        GROUP_RELATION_NAME, ImmutableSet.of(Payload.map(runtimeFixture.getIdProvider().getName(), groupBID),
+                                                                                             Payload.map(runtimeFixture.getIdProvider().getName(), groupCID))), DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build()));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao()
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupAID,
                                             userEReference,
                                             Payload.map("name", "D",
                                                         GROUP_RELATION_NAME, null), DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build()));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao()
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao()
                 .createNavigationInstanceAt(groupAID,
                                             userEReference,
                                             Payload.map("name", "E",
                                                         GROUP_RELATION_NAME, ImmutableSet.of()), DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build()));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        checkEReferenceContentOf(daoFixture, groupAID, userEReference, ImmutableSet.of(userAID, userBID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupBID, userEReference, ImmutableSet.of(userBID), groupEReference);
-        checkEReferenceContentOf(daoFixture, groupCID, userEReference, ImmutableSet.of(userBID), groupEReference);
-        daoFixture.commitTransaction();
+        runtimeFixture.beginTransaction();
+        checkEReferenceContentOf(runtimeFixture, groupAID, userEReference, ImmutableSet.of(userAID, userBID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupBID, userEReference, ImmutableSet.of(userBID), groupEReference);
+        checkEReferenceContentOf(runtimeFixture, groupCID, userEReference, ImmutableSet.of(userBID), groupEReference);
+        runtimeFixture.commitTransaction();
     }
 
 }

@@ -12,10 +12,10 @@ import hu.blackbelt.judo.meta.esm.structure.TransferObjectType;
 import hu.blackbelt.judo.meta.esm.type.EnumerationType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -37,8 +37,8 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class SchoolTest {
 
@@ -180,59 +180,59 @@ public class SchoolTest {
         return model;
     }
 
-    RdbmsDaoFixture daoFixture;
+    JudoRuntimeFixture runtimeFixture;
 
     @BeforeEach
-    public void initFixture(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        this.daoFixture = daoFixture;
-        this.daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void initFixture(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        this.runtimeFixture = runtimeFixture;
+        this.runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     private UUID createSchool(String name) {
-        EClass schoolType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".School").get();
-        Payload school = daoFixture.getDao().create(schoolType, map("name", name), DAO.QueryCustomizer.<UUID>builder()
+        EClass schoolType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".School").get();
+        Payload school = runtimeFixture.getDao().create(schoolType, map("name", name), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        UUID id = school.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        UUID id = school.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         return id;
     }
 
     private UUID createClass(String name, UUID schoolId) {
-        EClass schoolType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".School").get();
+        EClass schoolType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".School").get();
         EReference schoolClasses = schoolType.getEAllReferences().stream().filter(r -> "classes".equals(r.getName())).findAny().get();
-        Payload classPayload = daoFixture.getDao().createNavigationInstanceAt(schoolId, schoolClasses, map("name", name), DAO.QueryCustomizer.<UUID>builder()
+        Payload classPayload = runtimeFixture.getDao().createNavigationInstanceAt(schoolId, schoolClasses, map("name", name), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        UUID id = classPayload.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        UUID id = classPayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("Created class {} of school {} with ID: {}", new Object[]{name, schoolId, id});
         return id;
     }
 
     private UUID createStudent(String name, double height, UUID classId) {
-        EClass classType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Class").get();
+        EClass classType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Class").get();
         EReference classStudents = classType.getEAllReferences().stream().filter(r -> "students".equals(r.getName())).findAny().get();
-        Payload studentPayload = daoFixture.getDao().createNavigationInstanceAt(classId, classStudents, map("name", name, "height", height), DAO.QueryCustomizer.<UUID>builder()
+        Payload studentPayload = runtimeFixture.getDao().createNavigationInstanceAt(classId, classStudents, map("name", name, "height", height), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        UUID id = studentPayload.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        UUID id = studentPayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("Created student {} of class {} with ID: {}", new Object[]{name, classId, id});
         return id;
     }
 
     private UUID createParent(String name, double height, int gender, UUID studentId) {
-        EClass studentType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Student").get();
+        EClass studentType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Student").get();
         EReference studentParents = studentType.getEAllReferences().stream().filter(r -> "parents".equals(r.getName())).findAny().get();
-        Payload parentPayload = daoFixture.getDao().createNavigationInstanceAt(studentId, studentParents,
+        Payload parentPayload = runtimeFixture.getDao().createNavigationInstanceAt(studentId, studentParents,
                 map("name", name, "height", height, "gender", gender), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build());
-        UUID id = parentPayload.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        UUID id = parentPayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("Created parent {} of student {} with ID: {}", new Object[]{name, studentId, id});
         return id;
     }
@@ -252,21 +252,21 @@ public class SchoolTest {
         UUID student_1_2 = createStudent("Student1/Class2", 160, class2);
         UUID mother_1_2 = createParent("Mother/Student1/Class2", 150, 1, student_1_2);
 
-        EClass apType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AP").get();
-        EClass studentType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Student").get();
+        EClass apType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AP").get();
+        EClass studentType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Student").get();
         EReference tallestStudentInEachClass = apType.getEAllReferences().stream().filter(r -> "tallestStudentInEachClass".equals(r.getName())).findAny().get();
-        List<Payload> tallestStudentInEachClassList = daoFixture.getDao().getAllReferencedInstancesOf(tallestStudentInEachClass, studentType).stream()
+        List<Payload> tallestStudentInEachClassList = runtimeFixture.getDao().getAllReferencedInstancesOf(tallestStudentInEachClass, studentType).stream()
                 .collect(Collectors.toList());
         assertThat(tallestStudentInEachClassList, hasSize(2));
-        Payload tallestStudentInEachClassMotherHeightAvg = daoFixture.getDao().getStaticData(apType.getEAllAttributes().stream().filter(a -> "tallestStudentInEachClassMotherHeightAvg".equals(a.getName())).findAny().get());
-        Payload tallestStudentsInEachClassMotherHeightAvg = daoFixture.getDao().getStaticData(apType.getEAllAttributes().stream().filter(a -> "tallestStudentsInEachClassMotherHeightAvg".equals(a.getName())).findAny().get());
+        Payload tallestStudentInEachClassMotherHeightAvg = runtimeFixture.getDao().getStaticData(apType.getEAllAttributes().stream().filter(a -> "tallestStudentInEachClassMotherHeightAvg".equals(a.getName())).findAny().get());
+        Payload tallestStudentsInEachClassMotherHeightAvg = runtimeFixture.getDao().getStaticData(apType.getEAllAttributes().stream().filter(a -> "tallestStudentsInEachClassMotherHeightAvg".equals(a.getName())).findAny().get());
         assertThat(tallestStudentInEachClassMotherHeightAvg.getAs(Double.class, "tallestStudentInEachClassMotherHeightAvg"), is(165.0));
         assertThat(tallestStudentsInEachClassMotherHeightAvg.getAs(Double.class, "tallestStudentsInEachClassMotherHeightAvg"), is(170.0));
 
-        EClass schoolType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".School").get();
+        EClass schoolType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".School").get();
 
         long allSchoolQueryStart = System.currentTimeMillis();
-        Payload school1Payload = daoFixture.getDao().getAllOf(schoolType).get(0);
+        Payload school1Payload = runtimeFixture.getDao().getAllOf(schoolType).get(0);
         log.debug("All school query time: {} ms", System.currentTimeMillis() - allSchoolQueryStart);
         log.debug("School1: \n {} ", school1Payload);
         Collection<Payload> tallestStudentMothers = school1Payload.getAsCollectionPayload("tallestStudentMothers");

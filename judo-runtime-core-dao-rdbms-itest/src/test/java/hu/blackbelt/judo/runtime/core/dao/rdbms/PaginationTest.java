@@ -13,10 +13,10 @@ import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.esm.type.TimestampType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -42,8 +42,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class PaginationTest {
 
@@ -137,24 +137,24 @@ public class PaginationTest {
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testWindowing(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        final EClass listType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".List").get();
+    public void testWindowing(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        final EClass listType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".List").get();
         final EAttribute nameOfListAttribute = listType.getEAllAttributes().stream().filter(a -> "name".equals(a.getName())).findAny().get();
         final EReference sortedItemsReference = listType.getEAllReferences().stream().filter(a -> "sortedItems".equals(a.getName())).findAny().get();
 
-        final EClass listItemType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Item").get();
+        final EClass listItemType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Item").get();
         final EAttribute numberOfListItemAttribute = listItemType.getEAllAttributes().stream().filter(a -> "number".equals(a.getName())).findAny().get();
         final EAttribute listNameOfListItemAttribute = listItemType.getEAllAttributes().stream().filter(a -> "listName".equals(a.getName())).findAny().get();
         final EAttribute topicOfListItemAttribute = listItemType.getEAllAttributes().stream().filter(a -> "topic".equals(a.getName())).findAny().get();
 
-        final EClass apType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AP").get();
+        final EClass apType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AP").get();
         final EReference apListsReference = apType.getEAllReferences().stream().filter(r -> "lists".equals(r.getName())).findAny().get();
 
         final Map<Character, UUID> listIds = new HashMap<>();
@@ -177,10 +177,10 @@ public class PaginationTest {
                     "items", items
             );
 
-            final Payload payload = daoFixture.getDao().create(listType, list, DAO.QueryCustomizer.<UUID>builder()
+            final Payload payload = runtimeFixture.getDao().create(listType, list, DAO.QueryCustomizer.<UUID>builder()
                     .mask(Collections.emptyMap())
                     .build());
-            final UUID id = payload.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+            final UUID id = payload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
             listIds.put(ch, id);
         }
         final Map<Character, UUID> orderedListIds = new LinkedHashMap<>();
@@ -192,53 +192,53 @@ public class PaginationTest {
         log.debug("List IDs: {}", orderedListIds);
         log.debug("Characters: {}", orderedListIds.keySet());
 
-        final List<Payload> lists1To4 = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> lists1To4 = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .seek(DAO.Seek.builder()
                         .limit(4)
                         .build())
                 .build());
         log.debug("Lists 1 to 4: {}", lists1To4.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> lists1To4Ids = lists1To4.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> lists1To4Ids = lists1To4.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedLists1To4Ids = orderedListIds.entrySet().stream()
                 .limit(4)
                 .map(e -> e.getValue()).collect(Collectors.toList());
         assertThat(lists1To4Ids, equalTo(expectedLists1To4Ids));
 
-        final List<Payload> lists5To8 = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> lists5To8 = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .seek(DAO.Seek.builder()
                         .limit(4)
                         .lastItem(lists1To4.get(lists1To4Ids.size() - 1))
                         .build())
                 .build());
         log.debug("Lists 5 to 8: {}", lists5To8.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> lists5To8Ids = lists5To8.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> lists5To8Ids = lists5To8.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedLists5To8Ids = orderedListIds.entrySet().stream()
                 .skip(4)
                 .limit(4)
                 .map(e -> e.getValue()).collect(Collectors.toList());
         assertThat(lists5To8Ids, equalTo(expectedLists5To8Ids));
 
-        final List<Payload> lists2Of4 = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> lists2Of4 = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.name == 'ListA' or this.name == 'ListB'")
                 .seek(DAO.Seek.builder()
                         .limit(4)
                         .build())
                 .build());
         log.debug("Lists 1 to 4 ['A', 'B']: {}", lists2Of4.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> lists2Of4Ids = lists2Of4.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> lists2Of4Ids = lists2Of4.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedLists2Of4Ids = orderedListIds.entrySet().stream()
                 .filter(e -> e.getKey() == 'A' || e.getKey() == 'B')
                 .limit(2)
                 .map(e -> e.getValue()).collect(Collectors.toList());
         assertThat(lists2Of4Ids, equalTo(expectedLists2Of4Ids));
 
-        final List<Payload> orderedLists1To4 = daoFixture.getDao().searchReferencedInstancesOf(apListsReference, apListsReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> orderedLists1To4 = runtimeFixture.getDao().searchReferencedInstancesOf(apListsReference, apListsReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .seek(DAO.Seek.builder()
                         .limit(4)
                         .build())
                 .build());
         log.debug("Lists 1 to 4: {}", orderedLists1To4.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> orderedLists1To4Ids = orderedLists1To4.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> orderedLists1To4Ids = orderedLists1To4.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedOrderedLists1To4Ids = ImmutableList.of(
                 orderedListIds.get('A'),
                 orderedListIds.get('B'),
@@ -247,14 +247,14 @@ public class PaginationTest {
         );
         assertThat(orderedLists1To4Ids, equalTo(expectedOrderedLists1To4Ids));
 
-        final List<Payload> orderedLists5To8 = daoFixture.getDao().searchReferencedInstancesOf(apListsReference, apListsReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> orderedLists5To8 = runtimeFixture.getDao().searchReferencedInstancesOf(apListsReference, apListsReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .seek(DAO.Seek.builder()
                         .limit(4)
                         .lastItem(orderedLists1To4.get(orderedLists1To4.size() - 1))
                         .build())
                 .build());
         log.debug("Lists 5 to 8: {}", orderedLists5To8.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> orderedLists5To8Ids = orderedLists5To8.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> orderedLists5To8Ids = orderedLists5To8.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedOrderedLists5To8Ids = ImmutableList.of(
                 orderedListIds.get('E'),
                 orderedListIds.get('F'),
@@ -263,21 +263,21 @@ public class PaginationTest {
         );
         assertThat(orderedLists5To8Ids, equalTo(expectedOrderedLists5To8Ids));
 
-        final List<Payload> orderedLists2Of4 = daoFixture.getDao().searchReferencedInstancesOf(apListsReference, apListsReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> orderedLists2Of4 = runtimeFixture.getDao().searchReferencedInstancesOf(apListsReference, apListsReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.name == 'ListA' or this.name == 'ListB'")
                 .seek(DAO.Seek.builder()
                         .limit(4)
                         .build())
                 .build());
         log.debug("Lists 1 to 4 ['A', 'B']: {}", orderedLists2Of4.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> orderedLists2Of4Ids = orderedLists2Of4.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> orderedLists2Of4Ids = orderedLists2Of4.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedOrderedLists2Of4Ids = ImmutableList.of(
                 orderedListIds.get('A'),
                 orderedListIds.get('B')
         );
         assertThat(orderedLists2Of4Ids, equalTo(expectedOrderedLists2Of4Ids));
 
-        final List<Payload> abcLists1To4 = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> abcLists1To4 = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfListAttribute)
                         .descending(false)
@@ -287,7 +287,7 @@ public class PaginationTest {
                         .build())
                 .build());
         log.debug("Lists 1 to 4 (ABC): {}", abcLists1To4.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> abcLists1To4Ids = abcLists1To4.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> abcLists1To4Ids = abcLists1To4.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedAbcLists1To4Ids = ImmutableList.of(
                 orderedListIds.get('A'),
                 orderedListIds.get('B'),
@@ -296,7 +296,7 @@ public class PaginationTest {
         );
         assertThat(abcLists1To4Ids, equalTo(expectedAbcLists1To4Ids));
 
-        final List<Payload> abcLists5To8 = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> abcLists5To8 = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfListAttribute)
                         .descending(false)
@@ -307,7 +307,7 @@ public class PaginationTest {
                         .build())
                 .build());
         log.debug("Lists 5 to 8 (ABC): {}", abcLists5To8.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> abcLists5To8Ids = abcLists5To8.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> abcLists5To8Ids = abcLists5To8.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedAbcLists5To8Ids = ImmutableList.of(
                 orderedListIds.get('E'),
                 orderedListIds.get('F'),
@@ -316,7 +316,7 @@ public class PaginationTest {
         );
         assertThat(abcLists5To8Ids, equalTo(expectedAbcLists5To8Ids));
 
-        final List<Payload> abcLists1To4Reverse = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> abcLists1To4Reverse = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfListAttribute)
                         .descending(false)
@@ -327,10 +327,10 @@ public class PaginationTest {
                         .build())
                 .build());
         log.debug("Lists 1 to 4 (ABC, reverse): {}", abcLists1To4Reverse.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> abcLists1To4ReverseIds = abcLists1To4Reverse.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> abcLists1To4ReverseIds = abcLists1To4Reverse.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         assertThat(abcLists1To4ReverseIds, equalTo(expectedAbcLists1To4Ids));
 
-        final List<Payload> zyxLists1To4 = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> zyxLists1To4 = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfListAttribute)
                         .descending(true)
@@ -340,7 +340,7 @@ public class PaginationTest {
                         .build())
                 .build());
         log.debug("Lists 1 to 4 (ZYX): {}", zyxLists1To4.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> zyxLists1To4Ids = zyxLists1To4.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> zyxLists1To4Ids = zyxLists1To4.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedZyxLists1To4Ids = ImmutableList.of(
                 orderedListIds.get('Z'),
                 orderedListIds.get('Y'),
@@ -349,7 +349,7 @@ public class PaginationTest {
         );
         assertThat(zyxLists1To4Ids, equalTo(expectedZyxLists1To4Ids));
 
-        final List<Payload> zyxLists5To8 = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> zyxLists5To8 = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfListAttribute)
                         .descending(true)
@@ -360,7 +360,7 @@ public class PaginationTest {
                         .build())
                 .build());
         log.debug("Lists 5 to 8 (ZYX): {}", zyxLists5To8.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> zyxLists5To8Ids = zyxLists5To8.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> zyxLists5To8Ids = zyxLists5To8.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         final List<UUID> expectedZyxLists5To8Ids = ImmutableList.of(
                 orderedListIds.get('V'),
                 orderedListIds.get('U'),
@@ -369,7 +369,7 @@ public class PaginationTest {
         );
         assertThat(zyxLists5To8Ids, equalTo(expectedZyxLists5To8Ids));
 
-        final List<Payload> zyxLists1To4Reverse = daoFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> zyxLists1To4Reverse = runtimeFixture.getDao().search(listType, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfListAttribute)
                         .descending(true)
@@ -381,10 +381,10 @@ public class PaginationTest {
                         .build())
                 .build());
         log.debug("Lists 1 to 4 (ZYX, reverse): {}", zyxLists1To4Reverse.stream().map(l -> l.getAs(String.class, "name")).collect(Collectors.toList()));
-        final List<UUID> zyxLists1To4ReverseIds = zyxLists1To4Reverse.stream().map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final List<UUID> zyxLists1To4ReverseIds = zyxLists1To4Reverse.stream().map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
         assertThat(zyxLists1To4ReverseIds, equalTo(expectedZyxLists1To4Ids));
 
-        final List<Payload> itemsList1To10 = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsList1To10 = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(numberOfListItemAttribute)
@@ -403,7 +403,7 @@ public class PaginationTest {
         final List<String> expectedItemsList1To10FqNames = Arrays.asList("ListA.26", "ListA.25", "ListB.25", "ListA.24", "ListB.24", "ListC.24", "ListA.23", "ListB.23", "ListC.23", "ListD.23");
         assertThat(itemsList1To10FqNames, equalTo(expectedItemsList1To10FqNames));
 
-        final List<Payload> itemsList11To20 = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsList11To20 = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(numberOfListItemAttribute)
@@ -423,7 +423,7 @@ public class PaginationTest {
         final List<String> expectedItemsList11To20FqNames = Arrays.asList("ListA.22", "ListB.22", "ListC.22", "ListD.22", "ListE.22", "ListA.21", "ListB.21", "ListC.21", "ListD.21", "ListE.21");
         assertThat(itemsList11To20FqNames, equalTo(expectedItemsList11To20FqNames));
 
-        final List<Payload> itemsList1To10Reverse = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsList1To10Reverse = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(numberOfListItemAttribute)
@@ -443,7 +443,7 @@ public class PaginationTest {
         log.debug("List items 1 to 10 reverse: {}", itemsList1To10ReverseFqNames);
         assertThat(itemsList1To10ReverseFqNames, equalTo(expectedItemsList1To10FqNames));
 
-        final List<Payload> itemsByTopic1To10 = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsByTopic1To10 = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(topicOfListItemAttribute)
@@ -466,7 +466,7 @@ public class PaginationTest {
         final List<String> expectedItemsByTopic1To10FqNames = Arrays.asList("ListA.1#TopicA", "ListA.2#TopicB", "ListB.1#TopicB", "ListA.3#TopicC", "ListB.2#TopicC", "ListC.1#TopicC", "ListB.3#TopicD", "ListC.2#TopicD", "ListD.1#TopicD", "ListC.3#TopicE");
         assertThat(itemsByTopic1To10FqNames, equalTo(expectedItemsByTopic1To10FqNames));
 
-        final List<Payload> itemsByTopic11To20 = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsByTopic11To20 = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(topicOfListItemAttribute)
@@ -490,7 +490,7 @@ public class PaginationTest {
         final List<String> expectedItemsByTopic11To20FqNames = Arrays.asList("ListD.2#TopicE", "ListD.3#TopicF", "ListA.26#null", "ListA.25#null", "ListB.25#null", "ListA.24#null", "ListB.24#null", "ListC.24#null", "ListA.23#null", "ListB.23#null");
         assertThat(itemsByTopic11To20FqNames, equalTo(expectedItemsByTopic11To20FqNames));
 
-        final List<Payload> itemsByTopic21To30 = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsByTopic21To30 = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(topicOfListItemAttribute)
@@ -514,7 +514,7 @@ public class PaginationTest {
         final List<String> expectedItemsByTopic21To30FqNames = Arrays.asList("ListC.23#null", "ListD.23#null", "ListA.22#null", "ListB.22#null", "ListC.22#null", "ListD.22#null", "ListE.22#null", "ListA.21#null", "ListB.21#null", "ListC.21#null");
         assertThat(itemsByTopic21To30FqNames, equalTo(expectedItemsByTopic21To30FqNames));
 
-        final List<Payload> itemsByTopic11To20Reverse = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsByTopic11To20Reverse = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(topicOfListItemAttribute)
@@ -538,7 +538,7 @@ public class PaginationTest {
         log.debug("List items by topic 11 to 20 (reverse): {}", itemsByTopic11To20ReverseFqNames);
         assertThat(itemsByTopic11To20ReverseFqNames, equalTo(itemsByTopic11To20FqNames));
 
-        final List<Payload> itemsByTopic1To10Reverse = daoFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> itemsByTopic1To10Reverse = runtimeFixture.getDao().search(listItemType, DAO.QueryCustomizer.<UUID>builder()
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder()
                                 .attribute(topicOfListItemAttribute)
@@ -565,13 +565,13 @@ public class PaginationTest {
         final List<Integer> integersFrom1To26 = IntStream.rangeClosed(1, 26).boxed().collect(Collectors.toList());
         final List<Integer> integersFrom26To1 = IntStream.rangeClosed(1, 26).boxed().sorted((i, j) -> j - i).collect(Collectors.toList());
 
-        final List<Integer> sortedItemsOfListA = daoFixture.getDao().searchNavigationResultAt(listIds.get('A'), sortedItemsReference, null).stream()
+        final List<Integer> sortedItemsOfListA = runtimeFixture.getDao().searchNavigationResultAt(listIds.get('A'), sortedItemsReference, null).stream()
                 .map(i -> i.getAs(Integer.class, "number"))
                 .collect(Collectors.toList());
         log.debug("Sorted items of ListA: {}", sortedItemsOfListA);
         assertThat(sortedItemsOfListA, equalTo(integersFrom26To1));
 
-        final List<Integer> customSortedItemsOfListA = daoFixture.getDao().searchNavigationResultAt(listIds.get('A'), sortedItemsReference, DAO.QueryCustomizer.<UUID>builder()
+        final List<Integer> customSortedItemsOfListA = runtimeFixture.getDao().searchNavigationResultAt(listIds.get('A'), sortedItemsReference, DAO.QueryCustomizer.<UUID>builder()
                         .orderBy(DAO.OrderBy.builder()
                                 .attribute(numberOfListItemAttribute)
                                 .descending(false)
@@ -582,7 +582,7 @@ public class PaginationTest {
         log.debug("Custom sorted items of ListA: {}", customSortedItemsOfListA);
         assertThat(customSortedItemsOfListA, equalTo(integersFrom1To26));
 
-        final List<Integer> customReverseSortedItemsOfListA = daoFixture.getDao().searchNavigationResultAt(listIds.get('A'), sortedItemsReference, DAO.QueryCustomizer.<UUID>builder()
+        final List<Integer> customReverseSortedItemsOfListA = runtimeFixture.getDao().searchNavigationResultAt(listIds.get('A'), sortedItemsReference, DAO.QueryCustomizer.<UUID>builder()
                         .orderBy(DAO.OrderBy.builder()
                                 .attribute(numberOfListItemAttribute)
                                 .descending(true)
@@ -595,7 +595,7 @@ public class PaginationTest {
     }
 
     @Test
-    public void testPaginationByTimestamp(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testPaginationByTimestamp(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final TimestampType timestampType = newTimestampTypeBuilder().withName("Timestamp").withBaseUnit(DurationType.SECOND).build();
 
@@ -610,16 +610,16 @@ public class PaginationTest {
                 .withElements(stringType, timestampType, logEntry)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass logEntryType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".LogEntry").get();
-        final EAttribute timestampOfLogEntryAttribute = daoFixture.getAsmUtils().resolveAttribute(DTO_PACKAGE + ".LogEntry#timestamp").get();
+        final EClass logEntryType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".LogEntry").get();
+        final EAttribute timestampOfLogEntryAttribute = runtimeFixture.getAsmUtils().resolveAttribute(DTO_PACKAGE + ".LogEntry#timestamp").get();
 
-        final BiFunction<OffsetDateTime, String, UUID> create = (timestamp, message) -> daoFixture.getDao().create(logEntryType,
+        final BiFunction<OffsetDateTime, String, UUID> create = (timestamp, message) -> runtimeFixture.getDao().create(logEntryType,
                         Payload.map("timestamp", timestamp, "message", message),
                         DAO.QueryCustomizer.<UUID>builder().withoutFeatures(true).build())
-                .getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         final UUID id1 = create.apply(OffsetDateTime.of(2021, 7, 29, 15, 7, 1, 111_000_000, ZoneOffset.UTC), "Message1");
         final UUID id2 = create.apply(OffsetDateTime.of(2021, 7, 29, 15, 7, 1, 110_000_000, ZoneOffset.UTC), "Message2");
@@ -630,11 +630,11 @@ public class PaginationTest {
         final UUID id7 = create.apply(OffsetDateTime.of(2021, 1, 29, 15, 7, 1, 100_000_000, ZoneOffset.UTC), "Message7");
         final UUID id8 = create.apply(OffsetDateTime.of(2021, 1, 29, 15, 7, 1, 0, ZoneOffset.UTC), "Message8");
 
-        final Function<DAO.Seek, List<Payload>> search = seek -> daoFixture.getDao().search(logEntryType, DAO.QueryCustomizer.<UUID>builder()
+        final Function<DAO.Seek, List<Payload>> search = seek -> runtimeFixture.getDao().search(logEntryType, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder().attribute(timestampOfLogEntryAttribute).build())
                 .seek(seek)
                 .build());
-        final Function<List<Payload>, List<UUID>> extractIds = result -> result.stream().map(e -> e.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList());
+        final Function<List<Payload>, List<UUID>> extractIds = result -> result.stream().map(e -> e.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList());
 
         final List<Payload> logEntry87 = search.apply(DAO.Seek.builder().limit(2).build());
         final List<UUID> id87 = extractIds.apply(logEntry87);

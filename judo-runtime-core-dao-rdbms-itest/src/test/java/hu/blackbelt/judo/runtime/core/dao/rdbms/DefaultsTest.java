@@ -6,10 +6,10 @@ import hu.blackbelt.judo.meta.esm.namespace.util.builder.NamespaceBuilders;
 import hu.blackbelt.judo.meta.esm.structure.*;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.AfterEach;
@@ -27,8 +27,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class DefaultsTest {
 
@@ -37,12 +37,12 @@ public class DefaultsTest {
     public static final String DTO_PACKAGE = MODEL_NAME + "._default_transferobjecttypes";
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testDefaultValues(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testDefaultValues(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(16).withScale(0).build();
 
@@ -107,31 +107,31 @@ public class DefaultsTest {
                 stringType, integerType,
                 tester, testerDTO1, testerDTO2
         ));
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass testerType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tester").get();
-        final EClass testerDTO1Type = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".TesterDTO1").get();
-        final EClass testerDTO2Type = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".TesterDTO2").get();
+        final EClass testerType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tester").get();
+        final EClass testerDTO1Type = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".TesterDTO1").get();
+        final EClass testerDTO2Type = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".TesterDTO2").get();
 
-        final Payload tester10 = daoFixture.getDao().create(testerType, Payload.map("number", 10L), null);
+        final Payload tester10 = runtimeFixture.getDao().create(testerType, Payload.map("number", 10L), null);
         log.debug("Tester 10: {}", tester10);
         assertThat(tester10.get("string"), equalTo("text"));
         assertFalse(tester10.containsKey("_number_default_M_Tester"));
         assertFalse(tester10.containsKey("_string_default_M_Tester"));
         assertFalse(tester10.containsKey("_selected_default_M_Tester"));
-        final Payload tester5 = daoFixture.getDao().create(testerType, Payload.map("number", 5L), null);
+        final Payload tester5 = runtimeFixture.getDao().create(testerType, Payload.map("number", 5L), null);
         log.debug("Tester 5: {}", tester5);
-        final Payload testerDefaults = daoFixture.getDao().create(testerType, Payload.empty(), null);
+        final Payload testerDefaults = runtimeFixture.getDao().create(testerType, Payload.empty(), null);
         log.debug("Tester defaults: {}", testerDefaults);
         assertThat(testerDefaults.get("string"), equalTo("text"));
         assertThat(testerDefaults.get("number"), equalTo(2L));
         assertFalse(testerDefaults.containsKey("_number_default_M_Tester"));
         assertFalse(testerDefaults.containsKey("_string_default_M_Tester"));
         assertFalse(testerDefaults.containsKey("_selected_default_M_Tester"));
-        assertThat(testerDefaults.getAsPayload("selected").getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(tester5.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())));
+        assertThat(testerDefaults.getAsPayload("selected").getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(tester5.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())));
 
-        final Payload defaults = daoFixture.getDao().getDefaultsOf(testerType);
+        final Payload defaults = runtimeFixture.getDao().getDefaultsOf(testerType);
         log.debug("Defaults: {}", defaults);
 
         final Payload expectedDefaults = Payload.map(
@@ -142,7 +142,7 @@ public class DefaultsTest {
 
         assertThat(defaults, equalTo(expectedDefaults));
 
-        final Payload dto1Defaults = daoFixture.getDao().getDefaultsOf(testerDTO1Type);
+        final Payload dto1Defaults = runtimeFixture.getDao().getDefaultsOf(testerDTO1Type);
         log.debug("DTO1 defaults: {}", dto1Defaults);
 
         final Payload expectedDTO1Defaults = Payload.map(
@@ -152,15 +152,15 @@ public class DefaultsTest {
 
         assertThat(dto1Defaults, equalTo(expectedDTO1Defaults));
 
-        final Payload testerDto1Defaults = daoFixture.getDao().create(testerDTO1Type, Payload.empty(), null);
+        final Payload testerDto1Defaults = runtimeFixture.getDao().create(testerDTO1Type, Payload.empty(), null);
         log.debug("Tester DTO1: {}", testerDto1Defaults);
 
         assertThat(testerDto1Defaults.get("n"), equalTo(1L));
         assertThat(testerDto1Defaults.get("selected"), notNullValue());
         assertFalse(testerDto1Defaults.containsKey("_n_default_M_TesterDTO1"));
-        assertThat(testerDto1Defaults.getAsPayload("selected").getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(testerDefaults.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())));
+        assertThat(testerDto1Defaults.getAsPayload("selected").getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(testerDefaults.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())));
 
-        final Payload testerDto1DefaultsEntity = daoFixture.getDao().getByIdentifier(testerType, testerDto1Defaults.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).get();
+        final Payload testerDto1DefaultsEntity = runtimeFixture.getDao().getByIdentifier(testerType, testerDto1Defaults.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).get();
         log.debug("Tester DTO1 entity: {}", testerDto1DefaultsEntity);
 
         assertThat(testerDto1DefaultsEntity.get("number"), equalTo(1L));
@@ -169,32 +169,32 @@ public class DefaultsTest {
         assertFalse(testerDto1DefaultsEntity.containsKey("_number_default_M_Tester"));
         assertFalse(testerDto1DefaultsEntity.containsKey("_string_default_M_Tester"));
         assertFalse(testerDto1DefaultsEntity.containsKey("_selected_default_M_Tester"));
-        assertThat(testerDto1DefaultsEntity.getAsPayload("selected").getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(testerDefaults.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())));
+        assertThat(testerDto1DefaultsEntity.getAsPayload("selected").getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(testerDefaults.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())));
 
-        final Payload dto2Defaults = daoFixture.getDao().getDefaultsOf(testerDTO2Type);
+        final Payload dto2Defaults = runtimeFixture.getDao().getDefaultsOf(testerDTO2Type);
         log.debug("DTO2 defaults: {}", dto2Defaults);
 
         final Payload expectedDTO2Defaults = Payload.empty();
 
         assertThat(dto2Defaults, equalTo(expectedDTO2Defaults));
 
-        final Payload testerDto2Defaults = daoFixture.getDao().create(testerDTO2Type, Payload.empty(), null);
+        final Payload testerDto2Defaults = runtimeFixture.getDao().create(testerDTO2Type, Payload.empty(), null);
         log.debug("Tester DTO2: {}", testerDto2Defaults);
         assertFalse(testerDto2Defaults.containsKey("_number_default_M_Tester"));
         assertFalse(testerDto2Defaults.containsKey("_string_default_M_Tester"));
         assertFalse(testerDto2Defaults.containsKey("_selected_default_M_Tester"));
 
-        final Payload testerDto2DefaultsEntity = daoFixture.getDao().getByIdentifier(testerType, testerDto2Defaults.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).get();
+        final Payload testerDto2DefaultsEntity = runtimeFixture.getDao().getByIdentifier(testerType, testerDto2Defaults.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).get();
         log.debug("Tester DTO2 entity: {}", testerDto2DefaultsEntity);
 
         assertThat(testerDto2DefaultsEntity.get("number"), equalTo(4L));
         assertThat(testerDto2DefaultsEntity.get("string"), equalTo("text"));
         assertThat(testerDto2DefaultsEntity.get("selected"), notNullValue());
-        assertThat(testerDto2DefaultsEntity.getAsPayload("selected").getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(testerDto1DefaultsEntity.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())));
+        assertThat(testerDto2DefaultsEntity.getAsPayload("selected").getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(testerDto1DefaultsEntity.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())));
     }
 
     @Test
-    public void testDefaultsOfNonExposedRequired(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testDefaultsOfNonExposedRequired(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(16).withScale(0).build();
 
@@ -244,25 +244,25 @@ public class DefaultsTest {
                 stringType, integerType,
                 orderItem, category, orderItemDTO
         ));
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass categoryType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Category").get();
-        final EClass orderItemType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".OrderItem").get();
-        final EClass orderItemDTOType = (EClass) daoFixture.getAsmUtils().resolve(MODEL_NAME + ".OrderItemDTO").get();
+        final EClass categoryType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Category").get();
+        final EClass orderItemType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".OrderItem").get();
+        final EClass orderItemDTOType = (EClass) runtimeFixture.getAsmUtils().resolve(MODEL_NAME + ".OrderItemDTO").get();
 
-        daoFixture.getDao().create(categoryType, Payload.map(
+        runtimeFixture.getDao().create(categoryType, Payload.map(
                 "name", "Category"
         ), null);
-        final Payload orderItem1 = daoFixture.getDao().create(orderItemDTOType, Payload.empty(), null);
-        final Payload orderItem1Loaded = daoFixture.getDao().getByIdentifier(orderItemType, orderItem1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).get();
+        final Payload orderItem1 = runtimeFixture.getDao().create(orderItemDTOType, Payload.empty(), null);
+        final Payload orderItem1Loaded = runtimeFixture.getDao().getByIdentifier(orderItemType, orderItem1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).get();
 
         assertThat(orderItem1Loaded.get("quantityquantityquantityquantityquantityquantityquantityquantityquantityquantity"), equalTo(1L));
         assertThat(orderItem1Loaded.getAsPayload("category").get("name"), equalTo("Category"));
     }
 
     @Test
-    public void testDefaultsOfUnmappedTransferObjectType(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testDefaultsOfUnmappedTransferObjectType(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(16).withScale(0).build();
 
@@ -300,14 +300,14 @@ public class DefaultsTest {
         model.getElements().addAll(Arrays.asList(
                 stringType, integerType, ball, tester
         ));
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass ballType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Ball").get();
-        final EClass testerType = (EClass) daoFixture.getAsmUtils().resolve(MODEL_NAME + ".Tester").get();
+        final EClass ballType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Ball").get();
+        final EClass testerType = (EClass) runtimeFixture.getAsmUtils().resolve(MODEL_NAME + ".Tester").get();
 
-        final Payload ball1 = daoFixture.getDao().create(ballType, Payload.empty(), null);
-        final Payload testerDefaults = daoFixture.getDao().getDefaultsOf(testerType);
+        final Payload ball1 = runtimeFixture.getDao().create(ballType, Payload.empty(), null);
+        final Payload testerDefaults = runtimeFixture.getDao().getDefaultsOf(testerType);
 
         assertThat(testerDefaults.getAs(Long.class, "constantDefault"), equalTo(1L));
         assertThat(testerDefaults.getAs(Long.class, "additionDefault"), equalTo(3L));

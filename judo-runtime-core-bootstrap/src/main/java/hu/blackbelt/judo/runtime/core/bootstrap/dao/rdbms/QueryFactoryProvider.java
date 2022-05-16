@@ -36,7 +36,7 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
     public QueryFactory get() {
 
         JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
-        jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(true);
+        jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
 
         final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(models.getAsmModel().getResourceSet(),
                 models.getMeasureModel().getResourceSet(), URI.createURI("expr:" + models.getAsmModel().getName()), jqlExpressionBuilderConfig);

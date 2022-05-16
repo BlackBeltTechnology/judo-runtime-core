@@ -20,8 +20,8 @@ import static hu.blackbelt.judo.meta.psm.PsmTestModelBuilder.Cardinality.cardina
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class DecimalTargetedIntegerDivisionTest {
 
@@ -29,7 +29,7 @@ public class DecimalTargetedIntegerDivisionTest {
     public static final String OUTPUT = "output";
     public static final String ID_KEY = "__identifier";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -42,19 +42,19 @@ public class DecimalTargetedIntegerDivisionTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
     @Test
-    public void testIntegerDivisionInPractice(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testIntegerDivisionInPractice(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Tester")
@@ -66,16 +66,16 @@ public class DecimalTargetedIntegerDivisionTest {
                               "     : 0")
                 .withRelation("Tester", "targets", cardinality(0, -1));
 
-        daoFixture.setValidateModels(true);
-        daoFixture.init(builder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao initialized");
+        runtimeFixture.setValidateModels(true);
+        runtimeFixture.init(builder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao initialized");
 
-        EClass testerEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "Tester").orElseThrow();
+        EClass testerEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "Tester").orElseThrow();
         EReference targetsEReference = testerEClass.getEAllReferences().stream()
                 .filter(r -> "targets".equals(r.getName()))
                 .findAny().orElseThrow();
 
-        DAO<UUID> dao = daoFixture.getDao();
+        DAO<UUID> dao = runtimeFixture.getDao();
 
         UUID mainTesterID = dao.create(testerEClass, Payload.map("name", "MainTester"), DAO.QueryCustomizer.<UUID>builder().build())
                 .getAs(UUID.class, ID_KEY);
@@ -113,7 +113,7 @@ public class DecimalTargetedIntegerDivisionTest {
     }
 
     @Test
-    public void testGenericIntegerDivision(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testGenericIntegerDivision(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Tester")
@@ -128,19 +128,19 @@ public class DecimalTargetedIntegerDivisionTest {
                           "return new demo::entities::Tester(td = td, ntd = ntd)")
                 .withOutput("Tester", cardinality(1, 1));
 
-        daoFixture.setValidateModels(true);
-        daoFixture.init(builder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao initialized");
+        runtimeFixture.setValidateModels(true);
+        runtimeFixture.init(builder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao initialized");
 
-        AsmUtils asmUtils = daoFixture.getAsmUtils();
+        AsmUtils asmUtils = runtimeFixture.getAsmUtils();
         EClass testerEClass = asmUtils.getClassByFQName(DTO + "Tester").orElseThrow();
 
-        DAO<UUID> dao = daoFixture.getDao();
+        DAO<UUID> dao = runtimeFixture.getDao();
 
         UUID testerID = dao.create(testerEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder().build())
                 .getAs(UUID.class, ID_KEY);
 
-        Payload dOpResult = daoFixture.getOperationImplementations().get("dOp")
+        Payload dOpResult = runtimeFixture.getOperationImplementations().get("dOp")
                 .apply(Payload.map(ID_KEY, testerID))
                 .getAsPayload(OUTPUT);
 
@@ -156,7 +156,7 @@ public class DecimalTargetedIntegerDivisionTest {
     }
 
     @Test
-    public void testDoubleDivision(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testDoubleDivision(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Tester")
@@ -168,11 +168,11 @@ public class DecimalTargetedIntegerDivisionTest {
                 .withBody("return new demo::entities::Tester(a = 1, b = 9)")
                 .withOutput("Tester", cardinality(1, 1));
 
-        daoFixture.setValidateModels(true);
-        daoFixture.init(builder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao initialized");
+        runtimeFixture.setValidateModels(true);
+        runtimeFixture.init(builder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao initialized");
 
-        Double ntd = run(daoFixture, "dOp", Payload.empty()).getAsPayload(OUTPUT).getAs(Double.class, "ntd");
+        Double ntd = run(runtimeFixture, "dOp", Payload.empty()).getAsPayload(OUTPUT).getAs(Double.class, "ntd");
         assertTrue(0.11 <= ntd && ntd <= 0.12, String.format("%1$f <= %2$f && %2$f <= %3$f", 0.11, ntd, 0.12));
 
     }

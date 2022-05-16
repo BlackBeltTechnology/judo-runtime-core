@@ -14,10 +14,10 @@ import hu.blackbelt.judo.meta.esm.namespace.Model;
 import hu.blackbelt.judo.meta.esm.namespace.util.builder.NamespaceBuilders;
 import hu.blackbelt.judo.meta.esm.structure.*;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -41,8 +41,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class ActorTest {
 
@@ -311,39 +311,39 @@ public class ActorTest {
     private static Collection<UUID> myAs;
 
     @BeforeAll
-    public static void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public static void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass entityAType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".EntityA").get();
-        final EClass userType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".User").get();
+        final EClass entityAType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".EntityA").get();
+        final EClass userType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".User").get();
         final EReference asOfUserReference = userType.getEAllReferences().stream().filter(r -> AS.equals(r.getName())).findAny().get();
 
-        final Payload a1 = daoFixture.getDao().create(entityAType, Payload.map(NAME, "a1", GROUP, "Y"), DAO.QueryCustomizer.<UUID>builder()
+        final Payload a1 = runtimeFixture.getDao().create(entityAType, Payload.map(NAME, "a1", GROUP, "Y"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        a1Id = a1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        a1Id = a1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload a2 = daoFixture.getDao().create(entityAType, Payload.map(NAME, "a2", GROUP, "Y"), DAO.QueryCustomizer.<UUID>builder()
+        final Payload a2 = runtimeFixture.getDao().create(entityAType, Payload.map(NAME, "a2", GROUP, "Y"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        a2Id = a2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        a2Id = a2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload a3 = daoFixture.getDao().create(entityAType, Payload.map(NAME, "a3", GROUP, "X"), DAO.QueryCustomizer.<UUID>builder()
+        final Payload a3 = runtimeFixture.getDao().create(entityAType, Payload.map(NAME, "a3", GROUP, "X"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        a3Id = a3.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        a3Id = a3.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload user1 = daoFixture.getDao().create(userType, Payload.map(NAME, "User1", EMAIL, "user1@example.com"), DAO.QueryCustomizer.<UUID>builder()
+        final Payload user1 = runtimeFixture.getDao().create(userType, Payload.map(NAME, "User1", EMAIL, "user1@example.com"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        user1Id = user1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        daoFixture.getDao().addReferences(asOfUserReference, user1Id, Collections.singleton(a1Id));
+        user1Id = user1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        runtimeFixture.getDao().addReferences(asOfUserReference, user1Id, Collections.singleton(a1Id));
 
-        final Payload user2 = daoFixture.getDao().create(userType, Payload.map(NAME, "User2", EMAIL, "user2@example.com"), DAO.QueryCustomizer.<UUID>builder()
+        final Payload user2 = runtimeFixture.getDao().create(userType, Payload.map(NAME, "User2", EMAIL, "user2@example.com"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        user2Id = user2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        user2Id = user2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("A instances: {}", Arrays.asList(a1Id, a2Id, a3Id));
         log.debug("User instances: {}", Arrays.asList(user1Id, user2Id));
 
@@ -358,76 +358,76 @@ public class ActorTest {
                     .collect(Collectors.toSet());
 
     @AfterAll
-    public static void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public static void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testActorWithMappedPrincipal(RdbmsDaoFixture daoFixture) {
-        final EClass actorWithMappedPrincipalType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithMappedPrincipal").get();
+    public void testActorWithMappedPrincipal(JudoRuntimeFixture runtimeFixture) {
+        final EClass actorWithMappedPrincipalType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithMappedPrincipal").get();
 
-        final Principal user1 = getPrincipal(daoFixture, actorWithMappedPrincipalType, user1Id);
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "AllAs", user1), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "XAs", user1), daoFixture.getIdProvider()), equalTo(xAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "MyAs", user1), daoFixture.getIdProvider()), equalTo(myAs));
+        final Principal user1 = getPrincipal(runtimeFixture, actorWithMappedPrincipalType, user1Id);
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "AllAs", user1), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "XAs", user1), runtimeFixture.getIdProvider()), equalTo(xAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "MyAs", user1), runtimeFixture.getIdProvider()), equalTo(myAs));
 
-        final Principal user2 = getPrincipal(daoFixture, actorWithMappedPrincipalType, user2Id);
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "AllAs", user2), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "XAs", user2), daoFixture.getIdProvider()), equalTo(xAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "MyAs", user2), daoFixture.getIdProvider()), equalTo(Collections.emptySet()));
+        final Principal user2 = getPrincipal(runtimeFixture, actorWithMappedPrincipalType, user2Id);
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "AllAs", user2), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "XAs", user2), runtimeFixture.getIdProvider()), equalTo(xAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithMappedPrincipalType), "MyAs", user2), runtimeFixture.getIdProvider()), equalTo(Collections.emptySet()));
     }
 
     @Test
-    public void testActorWithEntityPrincipal(RdbmsDaoFixture daoFixture) {
-        final EClass actorWithEntityPrincipalType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithEntityPrincipal").get();
+    public void testActorWithEntityPrincipal(JudoRuntimeFixture runtimeFixture) {
+        final EClass actorWithEntityPrincipalType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithEntityPrincipal").get();
 
-        final Principal user1 = getPrincipal(daoFixture, actorWithEntityPrincipalType, user1Id);
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "AllAs", user1), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "XAs", user1), daoFixture.getIdProvider()), equalTo(xAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "MyAs", user1), daoFixture.getIdProvider()), equalTo(myAs));
+        final Principal user1 = getPrincipal(runtimeFixture, actorWithEntityPrincipalType, user1Id);
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "AllAs", user1), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "XAs", user1), runtimeFixture.getIdProvider()), equalTo(xAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "MyAs", user1), runtimeFixture.getIdProvider()), equalTo(myAs));
 
-        final Principal user2 = getPrincipal(daoFixture, actorWithEntityPrincipalType, user2Id);
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "AllAs", user2), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "XAs", user2), daoFixture.getIdProvider()), equalTo(xAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "MyAs", user2), daoFixture.getIdProvider()), equalTo(Collections.emptySet()));
+        final Principal user2 = getPrincipal(runtimeFixture, actorWithEntityPrincipalType, user2Id);
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "AllAs", user2), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "XAs", user2), runtimeFixture.getIdProvider()), equalTo(xAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithEntityPrincipalType), "MyAs", user2), runtimeFixture.getIdProvider()), equalTo(Collections.emptySet()));
     }
 
     @Test
-    public void testActorWithUnmappedPrincipal(RdbmsDaoFixture daoFixture) {
-        final EClass actorWithUnmappedPrincipalType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithUnmappedPrincipal").get();
+    public void testActorWithUnmappedPrincipal(JudoRuntimeFixture runtimeFixture) {
+        final EClass actorWithUnmappedPrincipalType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithUnmappedPrincipal").get();
 
-        final Principal externalUser = getExternalPrincipal(daoFixture, actorWithUnmappedPrincipalType);
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithUnmappedPrincipalType), "AllAs", externalUser), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithUnmappedPrincipalType), "XAs", externalUser), daoFixture.getIdProvider()), equalTo(xAs));
+        final Principal externalUser = getExternalPrincipal(runtimeFixture, actorWithUnmappedPrincipalType);
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithUnmappedPrincipalType), "AllAs", externalUser), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithUnmappedPrincipalType), "XAs", externalUser), runtimeFixture.getIdProvider()), equalTo(xAs));
     }
 
     @Test
-    public void testActorWithoutPrincipal(RdbmsDaoFixture daoFixture) {
-        final EClass actorWithoutPrincipalType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithoutPrincipal").get();
+    public void testActorWithoutPrincipal(JudoRuntimeFixture runtimeFixture) {
+        final EClass actorWithoutPrincipalType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".ActorWithoutPrincipal").get();
 
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithoutPrincipalType), "AllAs", null), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithoutPrincipalType), "XAs", null), daoFixture.getIdProvider()), equalTo(xAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithoutPrincipalType), "AllAs", null), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(actorWithoutPrincipalType), "XAs", null), runtimeFixture.getIdProvider()), equalTo(xAs));
     }
 
     @Test
-    public void testAnonymousWithUnmappedPrincipal(RdbmsDaoFixture daoFixture) {
-        final EClass anonymousWithUnmappedPrincipalType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AnonymousWithUnmappedPrincipal").get();
+    public void testAnonymousWithUnmappedPrincipal(JudoRuntimeFixture runtimeFixture) {
+        final EClass anonymousWithUnmappedPrincipalType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AnonymousWithUnmappedPrincipal").get();
 
-        final Principal externalUser = getExternalPrincipal(daoFixture, anonymousWithUnmappedPrincipalType);
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithUnmappedPrincipalType), "AllAs", externalUser), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithUnmappedPrincipalType), "XAs", externalUser), daoFixture.getIdProvider()), equalTo(xAs));
+        final Principal externalUser = getExternalPrincipal(runtimeFixture, anonymousWithUnmappedPrincipalType);
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithUnmappedPrincipalType), "AllAs", externalUser), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithUnmappedPrincipalType), "XAs", externalUser), runtimeFixture.getIdProvider()), equalTo(xAs));
     }
 
     @Test
-    public void testAnonymousWithoutPrincipal(RdbmsDaoFixture daoFixture) {
-        final EClass anonymousWithoutPrincipalType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AnonymousWithoutPrincipal").get();
+    public void testAnonymousWithoutPrincipal(JudoRuntimeFixture runtimeFixture) {
+        final EClass anonymousWithoutPrincipalType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AnonymousWithoutPrincipal").get();
 
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithoutPrincipalType), "AllAs", null), daoFixture.getIdProvider()), equalTo(allAs));
-        assertThat(EXTRACT_IDS.apply(getAccessElements(daoFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithoutPrincipalType), "XAs", null), daoFixture.getIdProvider()), equalTo(xAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithoutPrincipalType), "AllAs", null), runtimeFixture.getIdProvider()), equalTo(allAs));
+        assertThat(EXTRACT_IDS.apply(getAccessElements(runtimeFixture.getDispatcher(), AsmUtils.getClassifierFQName(anonymousWithoutPrincipalType), "XAs", null), runtimeFixture.getIdProvider()), equalTo(xAs));
     }
 
-    private JudoPrincipal getPrincipal(RdbmsDaoFixture daoFixture, EClass actorType, UUID id) {
-        final Payload actor = daoFixture.getDao().getByIdentifier(actorType, id).get();
+    private JudoPrincipal getPrincipal(JudoRuntimeFixture runtimeFixture, EClass actorType, UUID id) {
+        final Payload actor = runtimeFixture.getDao().getByIdentifier(actorType, id).get();
 
         return JudoPrincipal.builder().name(actor.getAs(String.class, EMAIL))
                 .attributes(actor)
@@ -435,7 +435,7 @@ public class ActorTest {
                 .build();
     }
 
-    private JudoPrincipal getExternalPrincipal(RdbmsDaoFixture daoFixture, EClass actorType) {
+    private JudoPrincipal getExternalPrincipal(JudoRuntimeFixture runtimeFixture, EClass actorType) {
         return JudoPrincipal.builder().name("ExternalUser")
                 .attributes(Collections.emptyMap())
                 .client(AsmUtils.getClassifierFQName(actorType))

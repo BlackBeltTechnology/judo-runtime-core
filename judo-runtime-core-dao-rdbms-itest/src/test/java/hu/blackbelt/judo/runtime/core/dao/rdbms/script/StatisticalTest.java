@@ -10,10 +10,10 @@ import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.AfterEach;
@@ -35,14 +35,14 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class StatisticalTest {
 
     private static final String FQNAME = "demo._default_transferobjecttypes.entities.";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -55,17 +55,17 @@ public class StatisticalTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testAggregationWithBothNullToInfiniteCardinality(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testAggregationWithBothNullToInfiniteCardinality(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("Aggregated")
@@ -102,7 +102,7 @@ public class StatisticalTest {
     }
 
     @Test
-    void testContainmentWithNullToInfiniteCardinality(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testContainmentWithNullToInfiniteCardinality(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("Contained")
@@ -136,7 +136,7 @@ public class StatisticalTest {
     }
 
     @Test
-    void testOneDirectionalAssociationWithNullToInfiniteCardinality(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testOneDirectionalAssociationWithNullToInfiniteCardinality(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("Associated")
@@ -170,7 +170,7 @@ public class StatisticalTest {
     }
 
     @Test
-    void testTwoDirectionalAssociationWithBothNullToInfiniteCardinality(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testTwoDirectionalAssociationWithBothNullToInfiniteCardinality(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("Associate1")
@@ -275,7 +275,7 @@ public class StatisticalTest {
     }
 
     @Test
-    void testNavigatedAssociationWithAllNullToInfiniteCardinality(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testNavigatedAssociationWithAllNullToInfiniteCardinality(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
 
         modelBuilder.addEntity("C")
@@ -323,7 +323,7 @@ public class StatisticalTest {
     }
 
     @Test
-    public void testMultipleReferencedSumAndCount(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testMultipleReferencedSumAndCount(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
 
@@ -398,50 +398,50 @@ public class StatisticalTest {
                 stringType, integerType, product, order, orderItem
         ));
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass productType = daoFixture.getAsmUtils().getClassByFQName("M._default_transferobjecttypes.Product").get();
-        final EClass orderType = daoFixture.getAsmUtils().getClassByFQName("M._default_transferobjecttypes.Order").get();
+        final EClass productType = runtimeFixture.getAsmUtils().getClassByFQName("M._default_transferobjecttypes.Product").get();
+        final EClass orderType = runtimeFixture.getAsmUtils().getClassByFQName("M._default_transferobjecttypes.Order").get();
 
-        final Payload product1 = daoFixture.getDao().create(productType, Payload.map(
+        final Payload product1 = runtimeFixture.getDao().create(productType, Payload.map(
                 "name", "Product1",
                 "price", 22
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID product1Id = product1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID product1Id = product1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload product2 = daoFixture.getDao().create(productType, Payload.map(
+        final Payload product2 = runtimeFixture.getDao().create(productType, Payload.map(
                 "name", "Product2",
                 "price", 35
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID product2Id = product2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID product2Id = product2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload product3 = daoFixture.getDao().create(productType, Payload.map(
+        final Payload product3 = runtimeFixture.getDao().create(productType, Payload.map(
                 "name", "Product3",
                 "price", 13
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID product3Id = product3.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID product3Id = product3.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("Saved products: {}", Arrays.asList(product1Id, product2Id, product3Id));
 
-        final Payload order1 = daoFixture.getDao().create(orderType, Payload.map(
+        final Payload order1 = runtimeFixture.getDao().create(orderType, Payload.map(
                 "items", Arrays.asList(
-                        Payload.map("product", Payload.map(daoFixture.getIdProvider().getName(), product1Id)),
-                        Payload.map("product", Payload.map(daoFixture.getIdProvider().getName(), product1Id)),
-                        Payload.map("product", Payload.map(daoFixture.getIdProvider().getName(), product1Id)),
-                        Payload.map("product", Payload.map(daoFixture.getIdProvider().getName(), product2Id))
+                        Payload.map("product", Payload.map(runtimeFixture.getIdProvider().getName(), product1Id)),
+                        Payload.map("product", Payload.map(runtimeFixture.getIdProvider().getName(), product1Id)),
+                        Payload.map("product", Payload.map(runtimeFixture.getIdProvider().getName(), product1Id)),
+                        Payload.map("product", Payload.map(runtimeFixture.getIdProvider().getName(), product2Id))
                 )
         ), null);
 
         log.debug("Saved order1: {}", order1);
         final int totalNumberOfProductsInOrder1 = order1.getAsCollectionPayload("items").size();
         final int numberOfProductsInOrder1 = order1.getAsCollectionPayload("items").stream()
-                .map(i -> i.getAsPayload("product").getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()))
+                .map(i -> i.getAsPayload("product").getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet())
                 .size();
         final int totalPriceInOrder1 = order1.getAsCollectionPayload("items").stream()
@@ -449,7 +449,7 @@ public class StatisticalTest {
                 .sum();
         final int sumOfUnitPricesInOrder1 = order1.getAsCollectionPayload("items").stream()
                 .map(i -> i.getAsPayload("product"))
-                .collect(Collectors.toMap(i -> i.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), i -> i.getAs(Integer.class, "price"), (x, y) -> x))
+                .collect(Collectors.toMap(i -> i.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), i -> i.getAs(Integer.class, "price"), (x, y) -> x))
                 .values().stream().mapToInt(Integer::valueOf).sum();
 
         assertThat(order1.getAs(Integer.class, "totalNumberOfProducts"), equalTo(totalNumberOfProductsInOrder1));

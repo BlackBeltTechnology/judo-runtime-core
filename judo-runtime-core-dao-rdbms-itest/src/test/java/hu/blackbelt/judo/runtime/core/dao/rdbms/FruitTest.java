@@ -12,10 +12,10 @@ import hu.blackbelt.judo.meta.psm.measure.MeasuredType;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.AfterEach;
@@ -41,8 +41,8 @@ import static hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class FruitTest {
     public static final String MODEL_NAME = "fruittest";
@@ -219,18 +219,18 @@ public class FruitTest {
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getPsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getPsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testDate(RdbmsDaoFixture daoFixture) {
+    void testDate(JudoRuntimeFixture runtimeFixture) {
         final LocalDate plantedOn = LocalDate.of(2020, 02, 12);
         final OffsetDateTime producedOn = OffsetDateTime.of(2020, 05, 10, 14, 56, 10, 123456000, ZoneOffset.UTC);
 
@@ -243,10 +243,10 @@ public class FruitTest {
                 PRODUCED_ON, producedOn,
                 QUALITY_DURATION, qualityDurationInHours);
 
-        final EClass dto = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + FRUIT_DTO).get();
+        final EClass dto = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + FRUIT_DTO).get();
 
-        final Payload saved = daoFixture.getDao().create(dto, fruit, null);
-        final UUID id = saved.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final Payload saved = runtimeFixture.getDao().create(dto, fruit, null);
+        final UUID id = saved.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         // TODO - check daylight saving (JNG-1586)
 
@@ -258,6 +258,6 @@ public class FruitTest {
         assertEquals(Double.valueOf(qualityDurationInHours / 168), saved.getAs(Double.class, CALCULATED_QUALITY_DURATION));
         assertEquals(true, saved.getAs(Boolean.class, PRODUCED_IN_2020));
         assertEquals(producedOn.atZoneSameInstant(ZoneOffset.UTC), saved.getAs(OffsetDateTime.class, PRODUCED_ON).atZoneSameInstant(ZoneOffset.UTC));
-        daoFixture.getDao().delete(dto, id);
+        runtimeFixture.getDao().delete(dto, id);
     }
 }

@@ -22,8 +22,8 @@ import static hu.blackbelt.judo.meta.esm.structure.RelationKind.AGGREGATION;
 import static hu.blackbelt.judo.meta.esm.structure.util.builder.StructureBuilders.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class TransientFeatureSetWithoutReloadTest {
 
@@ -33,7 +33,7 @@ public class TransientFeatureSetWithoutReloadTest {
 
     private static final StringType STRING_TYPE = TypeBuilders.newStringTypeBuilder().withName("String").withMaxLength(255).build();
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -46,20 +46,20 @@ public class TransientFeatureSetWithoutReloadTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
     @Test
     @Disabled
-    public void test(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void test(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         // target
         TransferObjectType target = newTransferObjectTypeBuilder()
                 .withName("Target")
@@ -138,10 +138,10 @@ public class TransientFeatureSetWithoutReloadTest {
                 .withElements(STRING_TYPE, tester, target, mappedTester, unmappedTester, testHolder)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        Payload result = daoFixture.getOperationImplementations()
+        Payload result = runtimeFixture.getOperationImplementations()
                 .get("operation")
                 .apply(Payload.empty())
                 .getAsPayload(OUTPUT);

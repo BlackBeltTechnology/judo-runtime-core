@@ -2,6 +2,9 @@ package hu.blackbelt.judo.runtime.core.bootstrap;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.name.Names;
+import com.google.inject.util.Modules;
+
 import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
@@ -19,20 +22,39 @@ import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelReso
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
 import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbModules;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.JudoPostgresqlModules;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
+
+import org.aspectj.lang.annotation.After;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.containers.JdbcDatabaseContainer;
+import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.time.Duration;
 import java.util.HashMap;
 
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider.POSTGRESQL_DATABASENAME;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider.POSTGRESQL_HOST;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider.POSTGRESQL_PASSWORD;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider.POSTGRESQL_POOLSIZE;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider.POSTGRESQL_PORT;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider.POSTGRESQL_USER;
 import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 class JudoDefaultModuleTest {
+	
+    @SuppressWarnings("rawtypes")
+	public JdbcDatabaseContainer sqlContainer;
+
     @BeforeEach
     void init() throws Exception {
+    	    	
 
         AsmModel asmModel = AsmModel.buildAsmModel()
                 .name("judo")
@@ -75,14 +97,56 @@ class JudoDefaultModuleTest {
         // Asm2RdbmsTransformationTrace asm2RdbmsTransformationTraceLoaded =
         //                fromModelsAndTrace(NORTHWIND, asmModel, rdbmsModel, new File(TARGET_TEST_CLASSES, NORTHWIND_ASM_2_RDBMS_MODEL));
         
-        Injector injector = Guice.createInjector(new JudoDefaultModule(this, JudoModelHolder.builder()
-                .asmModel(asmModel)
-                .rdbmsModel(rdbmsModel)
-                .measureModel(measureModel)
-                .expressionModel(expressionModel)
-                .scriptModel(scriptModel)
-                .asm2rdbms(asm2rdbms)
-                .build()));
+        
+        /*
+    @SuppressWarnings("rawtypes")
+	public JdbcDatabaseContainer sqlContainer;
+
+    @SuppressWarnings({ "rawtypes", "resource" })
+	public void setupDatabase() {
+        if (dialect.equals(DIALECT_POSTGRESQL)) {
+            if (container.equals(CONTAINER_NONE) || container.equals(CONTAINER_POSTGRESQL)) {
+                sqlContainer =
+                        (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600));
+            } else if (container.equals(CONTAINER_YUGABYTEDB)) {
+                sqlContainer =
+                        (YugabytedbSQLContainer) new YugabytedbSQLContainer().withStartupTimeout(Duration.ofSeconds(600));
+            }
+        }
+    }
+         */
+        
+        sqlContainer =
+                (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600));
+        sqlContainer.start();
+        
+        /*
+            ds.setDriverClassName(sqlContainer.getDriverClassName());
+            ds.setUrl(sqlContainer.getJdbcUrl());
+            ds.setUser(sqlContainer.getUsername());
+            ds.setPassword(sqlContainer.getPassword());
+
+         */
+        
+        
+        Injector injector = Guice.createInjector(
+        		JudoPostgresqlModules.builder()
+        			.host(sqlContainer.getHost())
+        			.databaseName(sqlContainer.getDatabaseName())
+        			.user(sqlContainer.getUsername())
+        			.password(sqlContainer.getPassword())
+        			.port(sqlContainer.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT))
+        			.poolSize(10)
+        			.build(),
+        		new JudoDefaultModule(this, 
+        				JudoModelHolder.builder()
+			                .asmModel(asmModel)
+			                .rdbmsModel(rdbmsModel)
+			                .measureModel(measureModel)
+			                .expressionModel(expressionModel)
+			                .scriptModel(scriptModel)
+			                .asm2rdbms(asm2rdbms)
+			                .build()));
 
         @SuppressWarnings("rawtypes")
         DAO dao = injector.getInstance(DAO.class);
@@ -95,6 +159,14 @@ class JudoDefaultModuleTest {
 
     }
 
+    @AfterEach
+    void tearDown() {
+        if (sqlContainer != null && sqlContainer.isRunning()) {
+            sqlContainer.stop();
+        }
+    }
+    
+    
     @Test
     void test() {
         assertTrue(true);

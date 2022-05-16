@@ -14,10 +14,10 @@ import hu.blackbelt.judo.meta.esm.structure.util.builder.MappingBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.OneWayRelationMemberBuilder;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.util.builder.NumericTypeBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -40,29 +40,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class CreateThroughDerivedRelationTest {
     public static final String MODEL_NAME = "M";
     public static final String DTO_PACKAGE = MODEL_NAME + "._default_transferobjecttypes";
 
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
-
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        idProviderClass = daoFixture.getIdProvider().getType();
-        idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testCreateThroughDerivedRelation(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testCreateThroughDerivedRelation(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final NumericType integerType = NumericTypeBuilder.create().withName("integer").withPrecision(3).withScale(0).build();
 
         final List<NamespaceElement> namespaceElements = new ArrayList<>(singletonList(integerType));
@@ -113,52 +104,52 @@ public class CreateThroughDerivedRelationTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        daoFixture.beginTransaction();
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.beginTransaction();
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
-        final EClass entityAEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
-        final EReference entityAEReference = daoFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Base#a").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EClass entityAEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
+        final EReference entityAEReference = runtimeFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".Base#a").get();
 
-        final UUID entityBaseID = daoFixture.getDao()
+        final UUID entityBaseID = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
-        daoFixture.commitTransaction();
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        runtimeFixture.commitTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().createNavigationInstanceAt(entityBaseID, entityAEReference, Payload.map("number", 25), null));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().createNavigationInstanceAt(entityBaseID, entityAEReference, Payload.map("number", 25), null));
+        runtimeFixture.rollbackTransaction();
 
-        checkEReferenceContentOf(daoFixture, entityBaseEClass, entityBaseID, ImmutableSet.of());
-        assertEquals(daoFixture.getDao().getAllOf(entityAEClass).size(), 0);
+        checkEReferenceContentOf(runtimeFixture, entityBaseEClass, entityBaseID, ImmutableSet.of());
+        assertEquals(runtimeFixture.getDao().getAllOf(entityAEClass).size(), 0);
 
-        daoFixture.beginTransaction();
-        final UUID entityAID = daoFixture.getDao()
+        runtimeFixture.beginTransaction();
+        final UUID entityAID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(entityBaseID, entityAEReference, Payload.map("number", 100), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
-        daoFixture.commitTransaction();
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        runtimeFixture.commitTransaction();
 
-        checkEReferenceContentOf(daoFixture, entityBaseEClass, entityBaseID, ImmutableSet.of(entityAID));
+        checkEReferenceContentOf(runtimeFixture, entityBaseEClass, entityBaseID, ImmutableSet.of(entityAID));
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalStateException.class, () -> daoFixture.getOperationImplementations().get("testOp").apply(Payload.empty()));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getOperationImplementations().get("testOp").apply(Payload.empty()));
+        runtimeFixture.rollbackTransaction();
 
-        checkEReferenceContentOf(daoFixture, entityBaseEClass, entityBaseID, ImmutableSet.of(entityAID));
-        assertEquals(daoFixture.getDao().getAllOf(entityAEClass).size(), 1);
+        checkEReferenceContentOf(runtimeFixture, entityBaseEClass, entityBaseID, ImmutableSet.of(entityAID));
+        assertEquals(runtimeFixture.getDao().getAllOf(entityAEClass).size(), 1);
     }
 
-    private void checkEReferenceContentOf(RdbmsDaoFixture daoFixture, EClass entityBaseEClass, UUID entityBaseID, Set<UUID> expectedEntityAID) {
-        final Set<UUID> actualEntityAIDs = daoFixture.getDao()
+    private void checkEReferenceContentOf(JudoRuntimeFixture runtimeFixture, EClass entityBaseEClass, UUID entityBaseID, Set<UUID> expectedEntityAID) {
+        final Set<UUID> actualEntityAIDs = runtimeFixture.getDao()
                 .getByIdentifier(entityBaseEClass, entityBaseID)
                 .orElseThrow(() -> new RuntimeException(entityBaseEClass.getName() + " with id: " + entityBaseID + " does not exist"))
                 .getAsCollectionPayload("a").stream()
-                .map(e -> e.getAs(idProviderClass, idProviderName))
+                .map(e -> e.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
 
         assertThat(actualEntityAIDs, equalTo(expectedEntityAID));

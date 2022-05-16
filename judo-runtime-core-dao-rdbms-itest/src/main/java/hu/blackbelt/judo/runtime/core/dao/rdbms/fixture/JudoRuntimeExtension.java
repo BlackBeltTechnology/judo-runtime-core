@@ -8,23 +8,19 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
-public class RdbmsDaoExtension implements ParameterResolver, BeforeEachCallback, AfterEachCallback {
+public class JudoRuntimeExtension implements ParameterResolver, BeforeEachCallback, AfterEachCallback {
 
-    private Map<String, RdbmsDaoFixture> fixtureMap = new ConcurrentHashMap<>();
-
-//    private DefaultMetricsCollector metricsCollector = DefaultMetricsCollector.builder()
-//            .enabled(Boolean.parseBoolean(System.getProperty("enabledMetrics", "false")))
-//            .build();
+    private Map<String, JudoRuntimeFixture> fixtureMap = new ConcurrentHashMap<>();
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return parameterContext.getParameter().getType().isAssignableFrom(RdbmsDaoFixture.class);
+        return parameterContext.getParameter().getType().isAssignableFrom(JudoRuntimeFixture.class);
     }
 
     @Override
     public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
         Optional<ExtensionContext> ctx = Optional.of(extensionContext);
-        RdbmsDaoFixture fixture = null;
+        JudoRuntimeFixture fixture = null;
         String name = "";
         while (fixture == null && ctx.isPresent()) {
             if (ctx.get().getParent().isPresent()) {
@@ -34,7 +30,7 @@ public class RdbmsDaoExtension implements ParameterResolver, BeforeEachCallback,
             ctx = ctx.get().getParent();
         }
         if (fixture == null) {
-            fixture = new RdbmsDaoFixture(sanitizeFileName(name));
+            fixture = new JudoRuntimeFixture(sanitizeFileName(name));
             fixtureMap.put(extensionContext.getDisplayName(), fixture);
         }
         return fixture;
@@ -55,7 +51,7 @@ public class RdbmsDaoExtension implements ParameterResolver, BeforeEachCallback,
     public void afterEach(ExtensionContext context) throws Exception {
         Optional<ExtensionContext> ctx = Optional.of(context);
         if (ctx.isPresent()) {
-            RdbmsDaoFixture fixture = fixtureMap.get(context.getDisplayName());
+        	JudoRuntimeFixture fixture = fixtureMap.get(context.getDisplayName());
             if (fixture != null) {
                 fixtureMap.remove(context.getDisplayName());
             }

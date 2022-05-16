@@ -20,8 +20,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class UnsetTest {
 
@@ -29,7 +29,7 @@ public class UnsetTest {
     public static final String OUTPUT = "output";
     public static final String ID_KEY = "__identifier";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -42,19 +42,19 @@ public class UnsetTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
     @Test
-    public void testUnset(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUnset(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Tester")
@@ -71,23 +71,23 @@ public class UnsetTest {
                           "return tester")
                 .withOutput("Tester", cardinality(0, 1));
 
-        daoFixture.init(builder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao initialized");
+        runtimeFixture.init(builder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao initialized");
 
-        EClass testerEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "Tester").orElseThrow();
+        EClass testerEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "Tester").orElseThrow();
         EReference tEReference = testerEClass.getEAllReferences().stream().filter(r -> "t".equals(r.getName())).findAny().orElseThrow();
 
-        DAO<UUID> dao = daoFixture.getDao();
+        DAO<UUID> dao = runtimeFixture.getDao();
 
         UUID testerMainID = dao.create(testerEClass, Payload.map("name", "TesterMain"), DAO.QueryCustomizer.<UUID>builder().build())
                 .getAs(UUID.class, ID_KEY);
         dao.createNavigationInstanceAt(testerMainID, tEReference, Payload.map("name", "TesterTarget"), DAO.QueryCustomizer.<UUID>builder().build());
 
-        Payload emptyResult = run(daoFixture, "operation", Payload.empty()).getAsPayload(OUTPUT);
+        Payload emptyResult = run(runtimeFixture, "operation", Payload.empty()).getAsPayload(OUTPUT);
         assertThat(emptyResult, equalTo(Payload.empty()));
 
         assertThat(dao.getByIdentifier(testerEClass, testerMainID).orElseThrow().getAs(String.class, "name"), equalTo("TesterMain"));
-        Payload result = run(daoFixture, "operation", Payload.map("input", Payload.map(ID_KEY, testerMainID))).getAsPayload(OUTPUT);
+        Payload result = run(runtimeFixture, "operation", Payload.map("input", Payload.map(ID_KEY, testerMainID))).getAsPayload(OUTPUT);
         assertThat(result.getAsPayload("t"), nullValue());
         assertThat(result.getAs(String.class, "name"), nullValue());
         assertThat(dao.getByIdentifier(testerEClass, testerMainID).orElseThrow().getAs(String.class, "name"), nullValue());

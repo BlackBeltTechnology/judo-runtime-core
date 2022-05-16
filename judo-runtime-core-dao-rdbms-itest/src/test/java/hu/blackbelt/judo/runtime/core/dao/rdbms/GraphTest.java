@@ -8,10 +8,10 @@ import hu.blackbelt.judo.meta.psm.data.EntityType;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -32,8 +32,8 @@ import static hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders.newCardi
 import static hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders.newStringTypeBuilder;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class GraphTest {
 
@@ -127,7 +127,7 @@ public class GraphTest {
         return model;
     }
 
-    void testCount(RdbmsDaoFixture testFixture) {
+    void testCount(JudoRuntimeFixture testFixture) {
         final Payload source1 = map(NAME, "source1");
 
         final Payload target1 = map(NAME, "target1");
@@ -169,19 +169,19 @@ public class GraphTest {
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testGraphWithJoin(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testGraphWithJoin(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         testFixture.init(getPsmModel(false), datasourceFixture);
         assertTrue(testFixture.isInitialized(), "DAO initialized");
         testCount(testFixture);
     }
 
     @Test
-    void testGraphWithoutJoin(RdbmsDaoFixture testFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testGraphWithoutJoin(JudoRuntimeFixture testFixture, JudoDatasourceFixture datasourceFixture) {
         testFixture.init(getPsmModel(true), datasourceFixture);
         assertTrue(testFixture.isInitialized(), "DAO initialized");
         testCount(testFixture);

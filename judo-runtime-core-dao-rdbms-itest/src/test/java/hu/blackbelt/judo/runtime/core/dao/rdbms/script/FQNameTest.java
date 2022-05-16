@@ -21,8 +21,8 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class FQNameTest {
 
@@ -30,7 +30,7 @@ public class FQNameTest {
     public static final String OUTPUT = "output";
     public static final String ID_KEY = "__identifier";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -43,19 +43,19 @@ public class FQNameTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
     @Test
-    public void testUsingNonFQNames(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testUsingNonFQNames(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("AncientTester");
@@ -108,14 +108,14 @@ public class FQNameTest {
                 .withBody("var demo::entities::Tester t = new demo::entities::Tester()\n" +
                           "return t.operation()");
 
-        daoFixture.init(builder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao initialized");
+        runtimeFixture.init(builder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao initialized");
 
-        UUID testResultID = run(daoFixture, "op", Payload.empty())
+        UUID testResultID = run(runtimeFixture, "op", Payload.empty())
                 .getAsPayload(OUTPUT)
                 .getAs(UUID.class, ID_KEY);
 
-        AsmUtils asmUtils = daoFixture.getAsmUtils();
+        AsmUtils asmUtils = runtimeFixture.getAsmUtils();
 
         EClass testerEClass = asmUtils.getClassByFQName(DTO + "Tester").get();
         EClass testResultEClass = asmUtils.getClassByFQName(DTO + "TestResult").get();
@@ -123,7 +123,7 @@ public class FQNameTest {
         Map<String, EReference> testResultEReferences = testResultEClass.getEAllReferences().stream()
                 .collect(Collectors.toMap(r -> r.getName(), r -> r));
 
-        DAO<UUID> dao = daoFixture.getDao();
+        DAO<UUID> dao = runtimeFixture.getDao();
 
         List<Payload> singleDeclarationWithValue =
                 dao.getNavigationResultAt(testResultID, testResultEReferences.get("singleDeclarationWithValue"));

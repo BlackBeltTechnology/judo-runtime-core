@@ -7,10 +7,10 @@ import hu.blackbelt.judo.meta.psm.runtime.PsmModel;
 import hu.blackbelt.judo.meta.psm.support.PsmModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.custom.Gps;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.custom.StringToGpsConverter;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import hu.blackbelt.model.northwind.Demo;
 import hu.blackbelt.structured.map.proxy.MapHolder;
 import lombok.extern.slf4j.Slf4j;
@@ -34,8 +34,8 @@ import static hu.blackbelt.judo.sdk.query.Filter.THIS_NAME;
 import static hu.blackbelt.judo.sdk.query.StringFilter.matches;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class StatementExecutorTest {
 
@@ -60,63 +60,63 @@ public class StatementExecutorTest {
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.setIgnoreSdk(false);
-        daoFixture.init(getPsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        final EDataType gpsType = daoFixture.getAsmUtils().resolve(DEMO_GPS_TYPE).map(dataType -> (EDataType) dataType).get();
-        RdbmsDaoFixture.DATA_TYPE_MANAGER.registerCustomType(gpsType, Gps.class.getName(), Collections.singleton(new StringToGpsConverter()));
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.setIgnoreSdk(false);
+        runtimeFixture.init(getPsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        final EDataType gpsType = runtimeFixture.getAsmUtils().resolve(DEMO_GPS_TYPE).map(dataType -> (EDataType) dataType).get();
+        runtimeFixture.getDataTypeManager().registerCustomType(gpsType, Gps.class.getName(), Collections.singleton(new StringToGpsConverter()));
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
-    private UUID init(RdbmsDaoFixture daoFixture) {
-        final EClass categoryInfoClass = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_CATEGORY_INFO).get();
+    private UUID init(JudoRuntimeFixture runtimeFixture) {
+        final EClass categoryInfoClass = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_CATEGORY_INFO).get();
 
-        final Payload category1 = daoFixture.getDao().create(categoryInfoClass, asPayload(((MapHolder) buildCategory1()).toMap()), null);
-        final Payload category2 = daoFixture.getDao().create(categoryInfoClass, asPayload(((MapHolder) buildCategory2()).toMap()), null);
-        final Payload category3 = daoFixture.getDao().create(categoryInfoClass, asPayload(((MapHolder) buildCategory3()).toMap()), null);
+        final Payload category1 = runtimeFixture.getDao().create(categoryInfoClass, asPayload(((MapHolder) buildCategory1()).toMap()), null);
+        final Payload category2 = runtimeFixture.getDao().create(categoryInfoClass, asPayload(((MapHolder) buildCategory2()).toMap()), null);
+        final Payload category3 = runtimeFixture.getDao().create(categoryInfoClass, asPayload(((MapHolder) buildCategory3()).toMap()), null);
 
-        final EClass shipperInfoClass = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_SHIPPER_INFO).get();
-        final Payload shipper = daoFixture.getDao().create(shipperInfoClass, asPayload(((MapHolder) buildShipper()).toMap()), null);
+        final EClass shipperInfoClass = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_SHIPPER_INFO).get();
+        final Payload shipper = runtimeFixture.getDao().create(shipperInfoClass, asPayload(((MapHolder) buildShipper()).toMap()), null);
 
-        final EClass productInfoClass = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_PRODUCT_INFO).get();
-        final Payload product1 = daoFixture.getDao().create(productInfoClass, asPayload(((MapHolder) buildProduct1(CategoryInfo.builder().with__identifier(category1.getAs(UUID.class, daoFixture.getUuid().getName())).build())).toMap()), null);
-        final Payload product2 = daoFixture.getDao().create(productInfoClass, asPayload(((MapHolder) buildProduct2(CategoryInfo.builder().with__identifier(category3.getAs(UUID.class, daoFixture.getUuid().getName())).build())).toMap()), null);
-        final Payload product3 = daoFixture.getDao().create(productInfoClass, asPayload(((MapHolder) buildProduct3(CategoryInfo.builder().with__identifier(category1.getAs(UUID.class, daoFixture.getUuid().getName())).build())).toMap()), null);
+        final EClass productInfoClass = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_PRODUCT_INFO).get();
+        final Payload product1 = runtimeFixture.getDao().create(productInfoClass, asPayload(((MapHolder) buildProduct1(CategoryInfo.builder().with__identifier(category1.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).build())).toMap()), null);
+        final Payload product2 = runtimeFixture.getDao().create(productInfoClass, asPayload(((MapHolder) buildProduct2(CategoryInfo.builder().with__identifier(category3.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).build())).toMap()), null);
+        final Payload product3 = runtimeFixture.getDao().create(productInfoClass, asPayload(((MapHolder) buildProduct3(CategoryInfo.builder().with__identifier(category1.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).build())).toMap()), null);
 
-        final EClass orderInfoClass = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_INTERNATIONAL_ORDER_INFO).get();
-        final Payload order = daoFixture.getDao().create(orderInfoClass, asPayload(((MapHolder) buildInternationalOrder(ShipperInfo.builder().with__identifier(shipper.getAs(UUID.class, daoFixture.getUuid().getName())).build(),
-                ProductInfo.builder().with__identifier(product1.getAs(UUID.class, daoFixture.getUuid().getName())).build(),
-                ProductInfo.builder().with__identifier(product2.getAs(UUID.class, daoFixture.getUuid().getName())).build(),
-                ProductInfo.builder().with__identifier(product3.getAs(UUID.class, daoFixture.getUuid().getName())).build())).toMap()), null);
+        final EClass orderInfoClass = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_INTERNATIONAL_ORDER_INFO).get();
+        final Payload order = runtimeFixture.getDao().create(orderInfoClass, asPayload(((MapHolder) buildInternationalOrder(ShipperInfo.builder().with__identifier(shipper.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).build(),
+                ProductInfo.builder().with__identifier(product1.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).build(),
+                ProductInfo.builder().with__identifier(product2.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).build(),
+                ProductInfo.builder().with__identifier(product3.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).build())).toMap()), null);
 
-        return order.getAs(UUID.class, daoFixture.getUuid().getName());
+        return order.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
     }
 
-    private void cleanup(RdbmsDaoFixture daoFixture, final Collection<UUID> ids) {
-        final EClass orderInfo = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_ORDER_INFO).get();
-        ids.forEach(id -> daoFixture.getDao().delete(orderInfo, id));
+    private void cleanup(JudoRuntimeFixture runtimeFixture, final Collection<UUID> ids) {
+        final EClass orderInfo = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_ORDER_INFO).get();
+        ids.forEach(id -> runtimeFixture.getDao().delete(orderInfo, id));
     }
 
     @Test
-    public void testSingleOrderInsertQueryDelete(RdbmsDaoFixture daoFixture) {
-        final UUID id = init(daoFixture);
+    public void testSingleOrderInsertQueryDelete(JudoRuntimeFixture runtimeFixture) {
+        final UUID id = init(runtimeFixture);
 
-        final EClass _internationalOrderInfoQuery = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_INTERNATIONAL_ORDER_INFO).get();
+        final EClass _internationalOrderInfoQuery = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_INTERNATIONAL_ORDER_INFO).get();
 
-        final EClass _internalAP = daoFixture.getAsmUtils().getClassByFQName(DEMO_INTERNAL_AP).get();
+        final EClass _internalAP = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_INTERNAL_AP).get();
         final Optional<EReference> _lastTwoWeekOrders = _internalAP.getEAllReferences().stream().filter(r -> "LastTwoWeekOrders".equals(r.getName())).findAny();
 
         final long startTs = System.currentTimeMillis();
         final Collection<? extends Map<String, Object>> results;
         if (_lastTwoWeekOrders.isPresent()) {
-            results = daoFixture.getDao().getAllReferencedInstancesOf(_lastTwoWeekOrders.get(), _lastTwoWeekOrders.get().getEReferenceType());
+            results = runtimeFixture.getDao().getAllReferencedInstancesOf(_lastTwoWeekOrders.get(), _lastTwoWeekOrders.get().getEReferenceType());
         } else {
-            results = daoFixture.getDao().getAllReferencedInstancesOf(_lastTwoWeekOrders.get(), _internationalOrderInfoQuery);
+            results = runtimeFixture.getDao().getAllReferencedInstancesOf(_lastTwoWeekOrders.get(), _internationalOrderInfoQuery);
         }
 
         final long endTs = System.currentTimeMillis();
@@ -125,12 +125,12 @@ public class StatementExecutorTest {
         assertEquals(results.size(), 1);
         final Map<String, Object> orderInfo = results.iterator().next();
 
-        assertEquals(id, orderInfo.get(daoFixture.getUuid().getName()));
+        assertEquals(id, orderInfo.get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildShipper().getCompanyName(), orderInfo.get("shipperName"));
 
         // TODO - workaround because zoned datetime is not supported yet (JNG-1586)
         final OffsetDateTime expectedOrderDate = buildInternationalOrder(null, null, null, null).getOrderDate().withOffsetSameInstant(ZoneOffset.UTC);
-        assertEquals(expectedOrderDate, RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer().coerce(orderInfo.get("orderDate"), OffsetDateTime.class).withOffsetSameInstant(ZoneOffset.UTC));
+        assertEquals(expectedOrderDate, runtimeFixture.getDataTypeManager().getCoercer().coerce(orderInfo.get("orderDate"), OffsetDateTime.class).withOffsetSameInstant(ZoneOffset.UTC));
         assertEquals(buildInternationalOrder(null, null, null, null).getPriority().getOrdinal(), orderInfo.get("priority"));
         assertEquals(buildShipper().getLocation(), orderInfo.get("shipperLocation"));
 
@@ -165,9 +165,9 @@ public class StatementExecutorTest {
         assertEquals(expectedItem1.getUnitPrice() * expectedItem1.getQuantity() * (1 - expectedItem1.getDiscount()), item1.get().get("price"));
         assertEquals(expectedItem1.getDiscount(), item1.get().get("discount"));
         assertEquals(buildProduct1(null).getProductName(), item1.get().get("productName"));
-        assertEquals(category1Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) item1.get().get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category1Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) item1.get().get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildCategory1().getCategoryName(), ((Map<String, Object>) item1.get().get("category")).get("categoryName"));
-        assertEquals(category1Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) ((Map<String, Object>) item1.get().get("product")).get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category1Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) ((Map<String, Object>) item1.get().get("product")).get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildProduct1(null).getProductName(), ((Map<String, Object>) item1.get().get("product")).get("productName"));
         assertEquals(buildCategory1().getCategoryName(), ((Map<String, Object>) ((Map<String, Object>) item1.get().get("product")).get("category")).get("categoryName"));
 
@@ -176,9 +176,9 @@ public class StatementExecutorTest {
         assertEquals(expectedItem2.getUnitPrice() * expectedItem2.getQuantity() * (1 - expectedItem2.getDiscount()), item2.get().get("price"));
         assertEquals(expectedItem2.getDiscount(), item2.get().get("discount"));
         assertEquals(buildProduct2(null).getProductName(), item2.get().get("productName"));
-        assertEquals(category3Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) item2.get().get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category3Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) item2.get().get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildCategory3().getCategoryName(), ((Map<String, Object>) item2.get().get("category")).get("categoryName"));
-        assertEquals(category3Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) ((Map<String, Object>) item2.get().get("product")).get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category3Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) ((Map<String, Object>) item2.get().get("product")).get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildProduct2(null).getProductName(), ((Map<String, Object>) item2.get().get("product")).get("productName"));
         assertEquals(buildCategory3().getCategoryName(), ((Map<String, Object>) ((Map<String, Object>) item2.get().get("product")).get("category")).get("categoryName"));
 
@@ -187,9 +187,9 @@ public class StatementExecutorTest {
         assertEquals(expectedItem3.getUnitPrice() * expectedItem3.getQuantity() * (1 - expectedItem3.getDiscount()), item3.get().get("price"));
         assertEquals(expectedItem3.getDiscount(), item3.get().get("discount"));
         assertEquals(buildProduct3(null).getProductName(), item3.get().get("productName"));
-        assertEquals(category1Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) item3.get().get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category1Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) item3.get().get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildCategory1().getCategoryName(), ((Map<String, Object>) item3.get().get("category")).get("categoryName"));
-        assertEquals(category1Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) ((Map<String, Object>) item3.get().get("product")).get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category1Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) ((Map<String, Object>) item3.get().get("product")).get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildProduct3(null).getProductName(), ((Map<String, Object>) item3.get().get("product")).get("productName"));
         assertEquals(buildCategory1().getCategoryName(), ((Map<String, Object>) ((Map<String, Object>) item3.get().get("product")).get("category")).get("categoryName"));
 
@@ -198,9 +198,9 @@ public class StatementExecutorTest {
         assertEquals(expectedItem4.getUnitPrice() * expectedItem4.getQuantity() * (1 - expectedItem4.getDiscount()), item4.get().get("price"));
         assertEquals(expectedItem4.getDiscount(), item4.get().get("discount"));
         assertEquals(buildProduct3(null).getProductName(), item4.get().get("productName"));
-        assertEquals(category1Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) item4.get().get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category1Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) item4.get().get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildCategory1().getCategoryName(), ((Map<String, Object>) item4.get().get("category")).get("categoryName"));
-        assertEquals(category1Ofcategories.get().get(daoFixture.getUuid().getName()), ((Map<String, Object>) ((Map<String, Object>) item4.get().get("product")).get("category")).get(daoFixture.getUuid().getName()));
+        assertEquals(category1Ofcategories.get().get(runtimeFixture.getIdProvider().getName()), ((Map<String, Object>) ((Map<String, Object>) item4.get().get("product")).get("category")).get(runtimeFixture.getIdProvider().getName()));
         assertEquals(buildProduct3(null).getProductName(), ((Map<String, Object>) item4.get().get("product")).get("productName"));
         assertEquals(buildCategory1().getCategoryName(), ((Map<String, Object>) ((Map<String, Object>) item4.get().get("product")).get("category")).get("categoryName"));
 
@@ -222,41 +222,42 @@ public class StatementExecutorTest {
         assertEquals(orderInfo.get("totalPrice"), expectedTotalPrice);
         assertEquals(orderInfo.get("totalWeight"), expectedTotalWeight);
 
-        final UUID item1Id = (UUID) item1.get().get(daoFixture.getUuid().getName());
-        final EClass _orderItemQuery = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_ORDER_ITEM).get();
+        final UUID item1Id = (UUID) item1.get().get(runtimeFixture.getIdProvider().getName());
+        final EClass _orderItemQuery = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_ORDER_ITEM).get();
         final EReference _orderItemCategory = _orderItemQuery.getEAllReferences().stream().filter(r -> "category".equals(r.getName())).findAny().get();
 
         final long startTs2 = System.currentTimeMillis();
-        final Collection<? extends Map<String, Object>> results2 = daoFixture.getDao().getNavigationResultAt(item1Id, _orderItemCategory);
+        final Collection<? extends Map<String, Object>> results2 = runtimeFixture.getDao().getNavigationResultAt(item1Id, _orderItemCategory);
         final long endTs2 = System.currentTimeMillis();
         log.debug("Results returned in {} ms:\n{}", (endTs2 - startTs2), results2);
 
-        final UUID category1Id = (UUID) category1Ofcategories.get().get(daoFixture.getUuid().getName());
-        final EClass _categoryInfo = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_CATEGORY_INFO).get();
+        final UUID category1Id = (UUID) category1Ofcategories.get().get(runtimeFixture.getIdProvider().getName());
+        final EClass _categoryInfo = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_CATEGORY_INFO).get();
         final EReference _products = _categoryInfo.getEAllReferences().stream().filter(r -> "products".equals(r.getName())).findAny().get();
 
         final long startTs3 = System.currentTimeMillis();
-        final Collection<? extends Map<String, Object>> results3 = daoFixture.getDao().getNavigationResultAt(category1Id, _products);
+        final Collection<? extends Map<String, Object>> results3 = runtimeFixture.getDao().getNavigationResultAt(category1Id, _products);
         final long endTs3 = System.currentTimeMillis();
         log.debug("Results returned in {} ms:\n{}", (endTs3 - startTs3), results3);
 
         final Optional<? extends Map<String, Object>> product3Ofcategory1 = results3.stream().filter(c -> Objects.equals(c.get("productName"), buildProduct3(null).getProductName())).findAny();
 
-        final UUID product3Id = (UUID) product3Ofcategory1.get().get(daoFixture.getUuid().getName());
-        final EClass _productInfo = daoFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_PRODUCT_INFO).get();
+        final UUID product3Id = (UUID) product3Ofcategory1.get().get(runtimeFixture.getIdProvider().getName());
+        final EClass _productInfo = runtimeFixture.getAsmUtils().getClassByFQName(DEMO_SERVICE_PRODUCT_INFO).get();
         final EReference _category = _productInfo.getEAllReferences().stream().filter(r -> "category".equals(r.getName())).findAny().get();
 
         final long startTs4 = System.currentTimeMillis();
-        final Collection<? extends Map<String, Object>> results4 = daoFixture.getDao().getNavigationResultAt(product3Id, _category);
+        final Collection<? extends Map<String, Object>> results4 = runtimeFixture.getDao().getNavigationResultAt(product3Id, _category);
         final long endTs4 = System.currentTimeMillis();
         log.debug("Results returned in {} ms:\n{}", (endTs4 - startTs4), results4);
 
         assertEquals(buildCategory1().getCategoryName(), results4.iterator().next().get("categoryName"));
-        assertEquals(category1Id, results4.iterator().next().get(daoFixture.getUuid().getName()));
+        assertEquals(category1Id, results4.iterator().next().get(runtimeFixture.getIdProvider().getName()));
 
         OrderInfo.OrderInfoDao orderInfoDao = new internal.demo.services.OrderInfoDaoImpl();
-        ((internal.demo.services.OrderInfoDaoImpl) orderInfoDao).setAsmModel(daoFixture.getAsmModel());
-        ((internal.demo.services.OrderInfoDaoImpl) orderInfoDao).setDao(daoFixture.getDao());
+        ((internal.demo.services.OrderInfoDaoImpl) orderInfoDao).setAsmModel(runtimeFixture.getAsmModel());
+        ((internal.demo.services.OrderInfoDaoImpl) orderInfoDao).setDao(runtimeFixture.getDao());
+
         List<sdk.demo.services.OrderInfo> daoResult = orderInfoDao.search()
                 .orderBy(sdk.demo.services.OrderInfo.Attribute.ORDER_DATE)
                 .orderBy(sdk.demo.services.OrderInfo.Attribute.TOTAL_WEIGHT)
@@ -282,7 +283,7 @@ public class StatementExecutorTest {
         assertEquals(1, daoCategories2.size());
         assertEquals(buildCategory1().getCategoryName(), daoCategories2.get(0).getCategoryName());
 
-        cleanup(daoFixture, Collections.singleton(id));
+        cleanup(runtimeFixture, Collections.singleton(id));
     }
 
     private static CategoryInfo buildCategory1() {

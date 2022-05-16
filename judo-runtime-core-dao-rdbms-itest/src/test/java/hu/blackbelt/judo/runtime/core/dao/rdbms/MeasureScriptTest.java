@@ -19,10 +19,10 @@ import hu.blackbelt.judo.meta.esm.structure.EntityType;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.DataMemberBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.EntityTypeBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.MappingBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.AfterEach;
@@ -44,29 +44,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class MeasureScriptTest {
     public static final String MODEL_NAME = "M";
     public static final String DTO_PACKAGE = MODEL_NAME + "._default_transferobjecttypes";
 
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
-
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        idProviderClass = daoFixture.getIdProvider().getType();
-        idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testMeasureScriptTest(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testMeasureScriptTest(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>();
 
         final Unit dm = UnitBuilder.create().withName("decimeter").withSymbol("dm").withRateDividend(1).withRateDivisor(10).build();
@@ -116,43 +107,43 @@ public class MeasureScriptTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass testEntityEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Test").get();
+        final EClass testEntityEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Test").get();
 
-        final UUID testEntityID1 = daoFixture.getDao()
+        final UUID testEntityID1 = runtimeFixture.getDao()
                 .create(testEntityEClass, Payload.map("lengthIn_dm", 0), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", testEntityEClass.getName(), testEntityID1);
 
-        final UUID testEntityID2 = daoFixture.getDao()
+        final UUID testEntityID2 = runtimeFixture.getDao()
                 .create(testEntityEClass, Payload.map("lengthIn_dm", 1), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", testEntityEClass.getName(), testEntityID2);
 
-        final UUID testEntityID3 = daoFixture.getDao()
+        final UUID testEntityID3 = runtimeFixture.getDao()
                 .create(testEntityEClass, Payload.map("lengthIn_dm", 1000), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", testEntityEClass.getName(), testEntityID3);
 
-        final UUID testEntityID4 = daoFixture.getDao()
+        final UUID testEntityID4 = runtimeFixture.getDao()
                 .create(testEntityEClass, Payload.map("lengthIn_dm", 15000), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", testEntityEClass.getName(), testEntityID4);
 
-        final Set<UUID> testOperationOutputIDs = daoFixture.getOperationImplementations()
+        final Set<UUID> testOperationOutputIDs = runtimeFixture.getOperationImplementations()
                 .get("testOperation").apply(Payload.empty())
                 .getAsCollectionPayload("output").stream()
-                .map(p -> p.getAs(idProviderClass, idProviderName))
+                .map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
 
         assertThat(testOperationOutputIDs, equalTo(ImmutableSet.of(testEntityID4)));

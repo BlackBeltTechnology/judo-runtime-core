@@ -13,10 +13,11 @@ import hu.blackbelt.judo.meta.esm.structure.util.builder.MappingBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.OneWayRelationMemberBuilder;
 import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.esm.type.util.builder.StringTypeBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
+import liquibase.pro.packaged.r;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -40,8 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class CardinalityTest {
     public static final String MODEL_NAME = "M";
@@ -58,18 +59,9 @@ public class CardinalityTest {
     private static final String RELATION_NAME = "testRelation";
     private static final String RELATION_FQNAME = RELATION_OWNER_FQNAME + "#" + RELATION_NAME;
 
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
-
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        idProviderClass = daoFixture.getIdProvider().getType();
-        idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     private static Model getEsmModelWithCardinality(int lowerCardinality, int upperCardinality) {
@@ -118,216 +110,216 @@ public class CardinalityTest {
                 .build();
     }
 
-    private void checkRelationContentOf(RdbmsDaoFixture daoFixture, UUID ownerID, EReference eReference, Collection<UUID> expectedIDs) {
-        final Collection<UUID> actualIDs = daoFixture.getDao()
+    private void checkRelationContentOf(JudoRuntimeFixture runtimeFixture, UUID ownerID, EReference eReference, Collection<UUID> expectedIDs) {
+        final Collection<UUID> actualIDs = runtimeFixture.getDao()
                 .getNavigationResultAt(ownerID, eReference).stream()
-                .map(p -> p.getAs(idProviderClass, idProviderName))
+                .map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
 
         assertThat(actualIDs, equalTo(expectedIDs));
     }
 
     @Test
-    public void testCardinalityViolationsSingleOptional(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithCardinality(0, 1), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+    public void testCardinalityViolationsSingleOptional(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithCardinality(0, 1), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        testCardinalityViolationsSingle(daoFixture);
+        testCardinalityViolationsSingle(runtimeFixture);
     }
 
     @Test
-    public void testCardinalityViolationsSingleRequired(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithCardinality(1, 1), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+    public void testCardinalityViolationsSingleRequired(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithCardinality(1, 1), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        testCardinalityViolationsSingle(daoFixture);
+        testCardinalityViolationsSingle(runtimeFixture);
     }
 
-    private void testCardinalityViolationsSingle(RdbmsDaoFixture daoFixture) {
-        daoFixture.beginTransaction();
-        final EClass ownerEClass = daoFixture.getAsmUtils().getClassByFQName(RELATION_OWNER_FQNAME).get();
-        final EClass targetEClass = daoFixture.getAsmUtils().getClassByFQName(RELATION_TARGET_FQNAME).get();
-        final EReference testEReference = daoFixture.getAsmUtils().resolveReference(RELATION_FQNAME).get();
+    private void testCardinalityViolationsSingle(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.beginTransaction();
+        final EClass ownerEClass = runtimeFixture.getAsmUtils().getClassByFQName(RELATION_OWNER_FQNAME).get();
+        final EClass targetEClass = runtimeFixture.getAsmUtils().getClassByFQName(RELATION_TARGET_FQNAME).get();
+        final EReference testEReference = runtimeFixture.getAsmUtils().resolveReference(RELATION_FQNAME).get();
 
-        final UUID targetAID = daoFixture.getDao()
+        final UUID targetAID = runtimeFixture.getDao()
                 .create(targetEClass, Payload.map(ATTRIBUTE_NAME, "A"),
                         DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", targetEClass.getName(), targetAID);
 
-        final UUID ownerID = daoFixture.getDao()
+        final UUID ownerID = runtimeFixture.getDao()
                 .create(ownerEClass, Payload.map(ATTRIBUTE_NAME, "Owner",
-                                                 RELATION_NAME, Payload.map(idProviderName, targetAID)),
+                                                 RELATION_NAME, Payload.map(runtimeFixture.getIdProvider().getName(), targetAID)),
                         DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", ownerEClass.getName(), ownerID);
 
-        checkRelationContentOf(daoFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
-        daoFixture.commitTransaction();
+        checkRelationContentOf(runtimeFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
+        runtimeFixture.commitTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao()
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao()
                 .createNavigationInstanceAt(ownerID, testEReference, Payload.map(ATTRIBUTE_NAME, "B"),
                         DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build()));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.rollbackTransaction();
 
         if (testEReference.getLowerBound() == 1) {
-            daoFixture.beginTransaction();
-            assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of()));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of()));
+            runtimeFixture.rollbackTransaction();
 
-            daoFixture.beginTransaction();
-            assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().unsetReference(testEReference, ownerID));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().unsetReference(testEReference, ownerID));
+            runtimeFixture.rollbackTransaction();
         }
 
-        daoFixture.beginTransaction();
-        checkRelationContentOf(daoFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
-        daoFixture.commitTransaction();
+        runtimeFixture.beginTransaction();
+        checkRelationContentOf(runtimeFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
+        runtimeFixture.commitTransaction();
     }
 
     @Test
-    public void testCardinalityViolationsInfiniteCollectionRequired(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithCardinality(1, -1), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+    public void testCardinalityViolationsInfiniteCollectionRequired(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithCardinality(1, -1), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        daoFixture.beginTransaction();
-        final EClass ownerEClass = daoFixture.getAsmUtils().getClassByFQName(RELATION_OWNER_FQNAME).get();
-        final EClass targetEClass = daoFixture.getAsmUtils().getClassByFQName(RELATION_TARGET_FQNAME).get();
-        final EReference testEReference = daoFixture.getAsmUtils().resolveReference(RELATION_FQNAME).get();
+        runtimeFixture.beginTransaction();
+        final EClass ownerEClass = runtimeFixture.getAsmUtils().getClassByFQName(RELATION_OWNER_FQNAME).get();
+        final EClass targetEClass = runtimeFixture.getAsmUtils().getClassByFQName(RELATION_TARGET_FQNAME).get();
+        final EReference testEReference = runtimeFixture.getAsmUtils().resolveReference(RELATION_FQNAME).get();
 
-        final UUID targetAID = daoFixture.getDao()
+        final UUID targetAID = runtimeFixture.getDao()
                 .create(targetEClass, Payload.map(ATTRIBUTE_NAME, "A"),
                         DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{}created with id: {}", targetEClass.getName(), targetAID);
 
-        final UUID ownerID = daoFixture.getDao()
+        final UUID ownerID = runtimeFixture.getDao()
                 .create(ownerEClass, Payload.map(ATTRIBUTE_NAME, "Owner",
-                                                 RELATION_NAME, ImmutableSet.of(Payload.map(idProviderName, targetAID))),
+                                                 RELATION_NAME, ImmutableSet.of(Payload.map(runtimeFixture.getIdProvider().getName(), targetAID))),
                         DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{}created with id: {}", ownerEClass.getName(), ownerID);
 
-        checkRelationContentOf(daoFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
-        daoFixture.commitTransaction();
+        checkRelationContentOf(runtimeFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
+        runtimeFixture.commitTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().removeReferences(testEReference, ownerID, ImmutableSet.of(targetAID)));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().removeReferences(testEReference, ownerID, ImmutableSet.of(targetAID)));
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of()));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of()));
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        checkRelationContentOf(daoFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
-        daoFixture.commitTransaction();
+        runtimeFixture.beginTransaction();
+        checkRelationContentOf(runtimeFixture, ownerID, testEReference, ImmutableSet.of(targetAID));
+        runtimeFixture.commitTransaction();
     }
 
     @Test
-    public void testCardinalityViolationsFiniteCollectionRequired(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithCardinality(0, 2), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+    public void testCardinalityViolationsFiniteCollectionRequired(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithCardinality(0, 2), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        testCardinalityViolationsFiniteCollection(daoFixture);
+        testCardinalityViolationsFiniteCollection(runtimeFixture);
     }
 
     @Test
-    public void testCardinalityViolationsFiniteCollectionOptional(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModelWithCardinality(2, 2), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+    public void testCardinalityViolationsFiniteCollectionOptional(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModelWithCardinality(2, 2), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        testCardinalityViolationsFiniteCollection(daoFixture);
+        testCardinalityViolationsFiniteCollection(runtimeFixture);
     }
 
-    private void testCardinalityViolationsFiniteCollection(RdbmsDaoFixture daoFixture) {
-        daoFixture.beginTransaction();
+    private void testCardinalityViolationsFiniteCollection(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.beginTransaction();
 
-        final EClass ownerEClass = daoFixture.getAsmUtils().getClassByFQName(RELATION_OWNER_FQNAME).get();
-        final EClass targetEClass = daoFixture.getAsmUtils().getClassByFQName(RELATION_TARGET_FQNAME).get();
-        final EReference testEReference = daoFixture.getAsmUtils().resolveReference(RELATION_FQNAME).get();
+        final EClass ownerEClass = runtimeFixture.getAsmUtils().getClassByFQName(RELATION_OWNER_FQNAME).get();
+        final EClass targetEClass = runtimeFixture.getAsmUtils().getClassByFQName(RELATION_TARGET_FQNAME).get();
+        final EReference testEReference = runtimeFixture.getAsmUtils().resolveReference(RELATION_FQNAME).get();
 
-        final UUID targetAID = daoFixture.getDao()
+        final UUID targetAID = runtimeFixture.getDao()
                 .create(targetEClass, Payload.map(ATTRIBUTE_NAME, "A"), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", targetEClass.getName(), targetAID);
 
-        final UUID targetBID = daoFixture.getDao()
+        final UUID targetBID = runtimeFixture.getDao()
                 .create(targetEClass, Payload.map(ATTRIBUTE_NAME, "B"), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", targetEClass.getName(), targetBID);
 
-        final UUID targetCID = daoFixture.getDao()
+        final UUID targetCID = runtimeFixture.getDao()
                 .create(targetEClass, Payload.map(ATTRIBUTE_NAME, "C"), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", targetEClass.getName(), targetCID);
 
-        final UUID ownerID = daoFixture.getDao()
+        final UUID ownerID = runtimeFixture.getDao()
                 .create(ownerEClass, Payload.map(ATTRIBUTE_NAME, "Owner",
-                                                 RELATION_NAME, ImmutableSet.of(Payload.map(idProviderName, targetAID),
-                                                                                Payload.map(idProviderName, targetBID))),
+                                                 RELATION_NAME, ImmutableSet.of(Payload.map(runtimeFixture.getIdProvider().getName(), targetAID),
+                                                                                Payload.map(runtimeFixture.getIdProvider().getName(), targetBID))),
                         DAO.QueryCustomizer.<UUID>builder()
                                 .mask(Collections.emptyMap())
                                 .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", ownerEClass.getName(), ownerID);
 
-        checkRelationContentOf(daoFixture, ownerID, testEReference, ImmutableSet.of(targetAID, targetBID));
-        daoFixture.commitTransaction();
+        checkRelationContentOf(runtimeFixture, ownerID, testEReference, ImmutableSet.of(targetAID, targetBID));
+        runtimeFixture.commitTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().createNavigationInstanceAt(ownerID, testEReference, Payload.map(ATTRIBUTE_NAME, "D"),
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().createNavigationInstanceAt(ownerID, testEReference, Payload.map(ATTRIBUTE_NAME, "D"),
                 DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build()));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of(targetAID, targetBID, targetCID)));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of(targetAID, targetBID, targetCID)));
+        runtimeFixture.rollbackTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().addReferences(testEReference, ownerID, ImmutableSet.of(targetCID)));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().addReferences(testEReference, ownerID, ImmutableSet.of(targetCID)));
+        runtimeFixture.rollbackTransaction();
 
         if (testEReference.getLowerBound() == testEReference.getUpperBound()) {
-            daoFixture.beginTransaction();
-            assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of(targetAID)));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of(targetAID)));
+            runtimeFixture.rollbackTransaction();
 
-            daoFixture.beginTransaction();
-            assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of()));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().setReference(testEReference, ownerID, ImmutableSet.of()));
+            runtimeFixture.rollbackTransaction();
 
-            daoFixture.beginTransaction();
-            assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().removeReferences(testEReference, ownerID, ImmutableSet.of(targetAID)));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().removeReferences(testEReference, ownerID, ImmutableSet.of(targetAID)));
+            runtimeFixture.rollbackTransaction();
 
-            daoFixture.beginTransaction();
-            assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().removeReferences(testEReference, ownerID, ImmutableSet.of(targetAID, targetBID)));
-            daoFixture.rollbackTransaction();
+            runtimeFixture.beginTransaction();
+            assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().removeReferences(testEReference, ownerID, ImmutableSet.of(targetAID, targetBID)));
+            runtimeFixture.rollbackTransaction();
         }
 
-        daoFixture.beginTransaction();
-        checkRelationContentOf(daoFixture, ownerID, testEReference, ImmutableSet.of(targetAID, targetBID));
-        daoFixture.commitTransaction();
+        runtimeFixture.beginTransaction();
+        checkRelationContentOf(runtimeFixture, ownerID, testEReference, ImmutableSet.of(targetAID, targetBID));
+        runtimeFixture.commitTransaction();
     }
 
 }

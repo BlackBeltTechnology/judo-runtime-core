@@ -7,10 +7,10 @@ import hu.blackbelt.judo.meta.esm.structure.EntityType;
 import hu.blackbelt.judo.meta.esm.structure.MemberType;
 import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -30,8 +30,8 @@ import static hu.blackbelt.judo.meta.esm.type.util.builder.TypeBuilders.newStrin
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class StatefulFlagTest {
 
@@ -83,43 +83,43 @@ public class StatefulFlagTest {
 
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testRange(RdbmsDaoFixture daoFixture) {
-        final EClass referencedType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Referenced").get();
-        final EClass referrerType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Referrer").get();
+    public void testRange(JudoRuntimeFixture runtimeFixture) {
+        final EClass referencedType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Referenced").get();
+        final EClass referrerType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Referrer").get();
         final EReference singleOfReferrerReference = referrerType.getEAllReferences().stream().filter(r -> "single".equals(r.getName())).findAny().get();
         final EReference manyOfReferrerReference = referrerType.getEAllReferences().stream().filter(r -> "many".equals(r.getName())).findAny().get();
 
-        final UUID referenced1Id = daoFixture.getDao().create(referencedType, empty(), DAO.QueryCustomizer.<UUID>builder()
+        final UUID referenced1Id = runtimeFixture.getDao().create(referencedType, empty(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
-                .build()).getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final UUID referenced2Id = daoFixture.getDao().create(referencedType, empty(), DAO.QueryCustomizer.<UUID>builder()
+                .build()).getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final UUID referenced2Id = runtimeFixture.getDao().create(referencedType, empty(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
-                .build()).getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final UUID referrerId = daoFixture.getDao().create(referrerType, empty(), DAO.QueryCustomizer.<UUID>builder()
+                .build()).getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final UUID referrerId = runtimeFixture.getDao().create(referrerType, empty(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
-                .build()).getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        daoFixture.getDao().setReference(singleOfReferrerReference, referrerId, Collections.singleton(referenced1Id));
-        daoFixture.getDao().setReference(manyOfReferrerReference, referrerId, Collections.singleton(referenced2Id));
+                .build()).getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        runtimeFixture.getDao().setReference(singleOfReferrerReference, referrerId, Collections.singleton(referenced1Id));
+        runtimeFixture.getDao().setReference(manyOfReferrerReference, referrerId, Collections.singleton(referenced2Id));
 
-        daoFixture.getContext().put("STATEFUL", Boolean.FALSE);
+        runtimeFixture.getContext().put("STATEFUL", Boolean.FALSE);
 
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().create(referencedType, empty(), null), "INSERT is not supported in stateless operation");
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().update(referencedType, map(daoFixture.getIdProvider().getName(), referenced1Id), null), "UPDATE is not supported in stateless operation");
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().delete(referencedType, referenced1Id), "DELETE is not supported in stateless operation");
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().setReference(singleOfReferrerReference, referrerId, Collections.singleton(referenced2Id)), "SET is not supported in stateless operation");
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().unsetReference(singleOfReferrerReference, referrerId), "UNSET is not supported in stateless operation");
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().addReferences(manyOfReferrerReference, referrerId, Collections.singleton(referenced1Id)), "ADD is not supported in stateless operation");
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().removeReferences(manyOfReferrerReference, referrerId, Collections.singleton(referenced1Id)), "REMOVE is not supported in stateless operation");
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().create(referencedType, empty(), null), "INSERT is not supported in stateless operation");
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().update(referencedType, map(runtimeFixture.getIdProvider().getName(), referenced1Id), null), "UPDATE is not supported in stateless operation");
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().delete(referencedType, referenced1Id), "DELETE is not supported in stateless operation");
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().setReference(singleOfReferrerReference, referrerId, Collections.singleton(referenced2Id)), "SET is not supported in stateless operation");
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().unsetReference(singleOfReferrerReference, referrerId), "UNSET is not supported in stateless operation");
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().addReferences(manyOfReferrerReference, referrerId, Collections.singleton(referenced1Id)), "ADD is not supported in stateless operation");
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().removeReferences(manyOfReferrerReference, referrerId, Collections.singleton(referenced1Id)), "REMOVE is not supported in stateless operation");
     }
 }

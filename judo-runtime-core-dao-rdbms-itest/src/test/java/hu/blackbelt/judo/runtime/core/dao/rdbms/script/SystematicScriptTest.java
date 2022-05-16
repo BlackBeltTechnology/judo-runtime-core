@@ -5,10 +5,10 @@ import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder;
 import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder.ScriptTestEntityBuilder;
 import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder.ScriptTestMappedTransferObjectBuilder;
 import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder.ScriptTestUnmappedTransferObjectBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.script.subject.creator.SubjectCreator;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.script.subject.creator.SubjectCreator.SubjectCollectionCreator;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.script.subject.creator.impl.*;
@@ -33,8 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class SystematicScriptTest {
 
@@ -44,7 +44,7 @@ public class SystematicScriptTest {
 
     // PREP //////////////////////////////////////////
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -57,13 +57,13 @@ public class SystematicScriptTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     /**
@@ -85,9 +85,9 @@ public class SystematicScriptTest {
      * @param rdbmsDatasourceFixture test parameter
      * @param fixture                test parameter
      * @return Payload
-     * @see RdbmsDaoFixture#dropDatabase()
+     * @see JudoRuntimeFixture#dropDatabase()
      */
-    private Payload testSubject(SubjectCreator sc, String unboundOperationBody, boolean hasReturn, RdbmsDatasourceFixture rdbmsDatasourceFixture, RdbmsDaoFixture fixture) {
+    private Payload testSubject(SubjectCreator sc, String unboundOperationBody, boolean hasReturn, JudoDatasourceFixture rdbmsDatasourceFixture, JudoRuntimeFixture fixture) {
         PsmTestModelBuilder modelBuilder = sc.getPsmTestModelBuilder();
 
         String objectType = sc.getReturnType().replace("[]", "");
@@ -162,7 +162,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testAssignToVariableParameter")
-    public void testAssignCollectionToVariable(SubjectCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testAssignCollectionToVariable(SubjectCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -192,7 +192,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testCollectionsInForStatementParameter")
-    public void testCollectionsInForStatement(SubjectCollectionCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testCollectionsInForStatement(SubjectCollectionCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -218,7 +218,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testDeleteParameter")
-    public void testDelete(SubjectCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testDelete(SubjectCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -245,7 +245,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testAddObjectToCollectionParameter")
-    public void testAddObjectToCollection(SubjectCollectionCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testAddObjectToCollection(SubjectCollectionCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -283,7 +283,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testAddAllToCollectionParameter")
-    public void testAddAllToCollection(SubjectCollectionCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testAddAllToCollection(SubjectCollectionCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -321,7 +321,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testRemoveFromCollectionParameter")
-    public void testRemoveFromCollection(SubjectCollectionCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testRemoveFromCollection(SubjectCollectionCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -381,7 +381,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testSetAttributeParameter")
-    public void testSetAttribute(TestClass tc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testSetAttribute(TestClass tc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", tc.sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -418,7 +418,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testUnsetAttributeParameter")
-    public void testUnsetAttribute(SubjectCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testUnsetAttribute(SubjectCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -446,7 +446,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testSetSingleRelationParameter")
-    public void testSetSingleRelation(SubjectCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testSetSingleRelation(SubjectCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -472,7 +472,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testUnsetSingleRelationParameter")
-    public void testUnsetSingleRelation(SubjectCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testUnsetSingleRelation(SubjectCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         final String script = "\n" +
                 "<<PREP>>\n" +
                 "\n" +
@@ -497,7 +497,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testSetMultiRelationParameter")
-    public void testSetMultiRelation(SubjectCollectionCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testSetMultiRelation(SubjectCollectionCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -528,7 +528,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testUnsetMultiRelationParameter")
-    public void testUnsetMultiRelation(SubjectCollectionCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testUnsetMultiRelation(SubjectCollectionCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final String script = "\n" +
                 "<<PREP>>\n" +
@@ -561,7 +561,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testOperationParameterParameter")
-    public void testOperationParameter(SubjectCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testOperationParameter(SubjectCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         final boolean isCollection = sc instanceof SubjectCollectionCreator;
         final String script = "\n" +
@@ -600,7 +600,7 @@ public class SystematicScriptTest {
 
     @ParameterizedTest
     @MethodSource("testUseInObjectCreationParameter")
-    public void testUseInObjectCreation(SubjectCreator sc, RdbmsDaoFixture fixture, RdbmsDatasourceFixture rdbmsDatasourceFixture) {
+    public void testUseInObjectCreation(SubjectCreator sc, JudoRuntimeFixture fixture, JudoDatasourceFixture rdbmsDatasourceFixture) {
         log.info("Subject: {}", sc.getName());
         String TEST_UTO_NAME = "TestUTO";
         String TEST_RELATION_OR_ATTRIBUTE_NAME = "_test";

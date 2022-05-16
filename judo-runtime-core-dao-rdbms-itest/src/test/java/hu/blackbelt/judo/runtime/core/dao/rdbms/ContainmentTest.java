@@ -10,10 +10,10 @@ import hu.blackbelt.judo.meta.esm.structure.OneWayRelationMember;
 import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.EntityTypeBuilder;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -39,8 +39,8 @@ import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class ContainmentTest {
 
@@ -177,105 +177,105 @@ public class ContainmentTest {
         return entityType;
     }
 
-    RdbmsDaoFixture daoFixture;
+    JudoRuntimeFixture runtimeFixture;
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        this.daoFixture = daoFixture;
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        this.runtimeFixture = runtimeFixture;
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testContainmentCreatedBeforeContainer(RdbmsDaoFixture daoFixture) {
-        Function<String, EClass> getClass = className -> daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + className).get();
+    public void testContainmentCreatedBeforeContainer(JudoRuntimeFixture runtimeFixture) {
+        Function<String, EClass> getClass = className -> runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + className).get();
         BiFunction<EClass, String, EReference> getReference = (type, referenceName) -> type.getEAllReferences().stream().filter(r -> referenceName.equals(r.getName())).findAny().get();
 
-        EClass container1Type = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Container1").get();
-        EClass containmentType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Containment").get();
+        EClass container1Type = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Container1").get();
+        EClass containmentType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Containment").get();
         EClass c1Type = getClass.apply("C1");
         EClass d1Type = getClass.apply("D1");
         EClass d2Type = getClass.apply("D2");
         EReference containment1Of1Reference = container1Type.getEAllReferences().stream().filter(r -> "ContainmentContainment1".equals(r.getName())).findAny().get();
         final EReference containment1sOf1Reference = container1Type.getEAllReferences().stream().filter(r -> "ContainmentMultiContainment1".equals(r.getName())).findAny().get();
-        UUID container1Id = create(daoFixture, container1Type, "Container1");
-        UUID containment1Id = create(daoFixture, containmentType, "C1");
-        UUID d1Id = create(daoFixture, d1Type, "D1", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
-        UUID d2Id = create(daoFixture, d2Type, "D1", "ContainmentName", "ContainmentName", "C1Name", "C1Name", "C2Name", "C2Name");
-        UUID containment5Id = create(daoFixture, containmentType, "C5", "C1Name", "C1Name");
+        UUID container1Id = create(runtimeFixture, container1Type, "Container1");
+        UUID containment1Id = create(runtimeFixture, containmentType, "C1");
+        UUID d1Id = create(runtimeFixture, d1Type, "D1", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
+        UUID d2Id = create(runtimeFixture, d2Type, "D1", "ContainmentName", "ContainmentName", "C1Name", "C1Name", "C2Name", "C2Name");
+        UUID containment5Id = create(runtimeFixture, containmentType, "C5", "C1Name", "C1Name");
 
-        UUID containment2Id = create(daoFixture, containmentType, "C1");
-        UUID container2Id = create(daoFixture, container1Type, "Container2", "ContainmentContainment1", daoFixture.getDao().getByIdentifier(getClass.apply("Containment"), containment2Id).get());
+        UUID containment2Id = create(runtimeFixture, containmentType, "C1");
+        UUID container2Id = create(runtimeFixture, container1Type, "Container2", "ContainmentContainment1", runtimeFixture.getDao().getByIdentifier(getClass.apply("Containment"), containment2Id).get());
 
-        daoFixture.getDao().setReference(containment1Of1Reference, container1Id, Collections.singleton(containment1Id));
-        daoFixture.getDao().setReference(containment1sOf1Reference, container1Id, Arrays.asList(containment1Id, containment5Id, d1Id, d2Id));
-        daoFixture.getDao().delete(d1Type, d1Id);
-        List<Payload> allContainers = daoFixture.getDao().getAllOf(container1Type);
+        runtimeFixture.getDao().setReference(containment1Of1Reference, container1Id, Collections.singleton(containment1Id));
+        runtimeFixture.getDao().setReference(containment1sOf1Reference, container1Id, Arrays.asList(containment1Id, containment5Id, d1Id, d2Id));
+        runtimeFixture.getDao().delete(d1Type, d1Id);
+        List<Payload> allContainers = runtimeFixture.getDao().getAllOf(container1Type);
         log.debug("Containers: {}", allContainers);
-        log.debug("Child containments: {}", daoFixture.getDao().getAllOf(c1Type));
+        log.debug("Child containments: {}", runtimeFixture.getDao().getAllOf(c1Type));
     }
 
     @Test
-    public void testContainmentInRelation(RdbmsDaoFixture daoFixture) {
-        Function<String, EClass> getClass = className -> daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + className).get();
+    public void testContainmentInRelation(JudoRuntimeFixture runtimeFixture) {
+        Function<String, EClass> getClass = className -> runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + className).get();
         BiFunction<EClass, String, EReference> getReference = (type, referenceName) -> type.getEAllReferences().stream().filter(r -> referenceName.equals(r.getName())).findAny().get();
-        UUID c1Id = create(daoFixture, getClass.apply("C1"), "C1", "ContainmentName", "ContainmentName");
-        UUID d1Id = create(daoFixture, getClass.apply("D1"), "C1", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
-        UUID d1Id2 = create(daoFixture, getClass.apply("D1"), "D12", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
-        UUID d1Id3 = create(daoFixture, getClass.apply("D1"), "D13", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
-        UUID relatedId = create(daoFixture, getClass.apply("Related"), "Related", "relation", daoFixture.getDao().getByIdentifier(getClass.apply("D1"), d1Id).get());
+        UUID c1Id = create(runtimeFixture, getClass.apply("C1"), "C1", "ContainmentName", "ContainmentName");
+        UUID d1Id = create(runtimeFixture, getClass.apply("D1"), "C1", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
+        UUID d1Id2 = create(runtimeFixture, getClass.apply("D1"), "D12", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
+        UUID d1Id3 = create(runtimeFixture, getClass.apply("D1"), "D13", "ContainmentName", "ContainmentName", "C1Name", "C1Name");
+        UUID relatedId = create(runtimeFixture, getClass.apply("Related"), "Related", "relation", runtimeFixture.getDao().getByIdentifier(getClass.apply("D1"), d1Id).get());
         EReference relationRef = getReference.apply(getClass.apply("Related"), "relation");
-        daoFixture.getDao().setReference(relationRef, relatedId, Collections.singleton(d1Id));
+        runtimeFixture.getDao().setReference(relationRef, relatedId, Collections.singleton(d1Id));
         EReference relationD1Ref = getReference.apply(getClass.apply("Related"), "relationD1");
-        daoFixture.getDao().setReference(relationD1Ref, relatedId, Collections.singleton(d1Id));
+        runtimeFixture.getDao().setReference(relationD1Ref, relatedId, Collections.singleton(d1Id));
         EReference multiRelationRef = getReference.apply(getClass.apply("Related"), "multiRelation");
-        daoFixture.getDao().setReference(multiRelationRef, relatedId, Arrays.asList(d1Id2, d1Id3));
-        UUID container1Id = create(daoFixture, getClass.apply("Container1"), "Container1");
+        runtimeFixture.getDao().setReference(multiRelationRef, relatedId, Arrays.asList(d1Id2, d1Id3));
+        UUID container1Id = create(runtimeFixture, getClass.apply("Container1"), "Container1");
         EReference containmentReference = getReference.apply(getClass.apply("Container1"), "ContainmentContainment1");
         EReference multiContainmentReference = getReference.apply(getClass.apply("Container1"), "ContainmentMultiContainment1");
-        daoFixture.getDao().setReference(containmentReference, container1Id, Collections.singleton(d1Id));
-        daoFixture.getDao().setReference(multiContainmentReference, container1Id, Arrays.asList(d1Id2, d1Id3));
+        runtimeFixture.getDao().setReference(containmentReference, container1Id, Collections.singleton(d1Id));
+        runtimeFixture.getDao().setReference(multiContainmentReference, container1Id, Arrays.asList(d1Id2, d1Id3));
 
-        UUID i1Id = create(daoFixture, getClass.apply("I1"), "I1");
-        UUID i12Id = create(daoFixture, getClass.apply("I1"), "I12");
-        UUID i13Id = create(daoFixture, getClass.apply("I1"), "I13");
+        UUID i1Id = create(runtimeFixture, getClass.apply("I1"), "I1");
+        UUID i12Id = create(runtimeFixture, getClass.apply("I1"), "I12");
+        UUID i13Id = create(runtimeFixture, getClass.apply("I1"), "I13");
 
-        daoFixture.getDao().update(getClass.apply("D1"), Payload.map(
-                daoFixture.getIdProvider().getName(), d1Id,
+        runtimeFixture.getDao().update(getClass.apply("D1"), Payload.map(
+                runtimeFixture.getIdProvider().getName(), d1Id,
                 "D1Name", "D1Name-Updated"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        daoFixture.getDao().setReference(getReference.apply(getClass.apply("C1"), "I1Containment1"), c1Id, Arrays.asList(i1Id));
-        daoFixture.getDao().setReference(getReference.apply(getClass.apply("D1"), "I1MultiContainment1"), d1Id, Arrays.asList(i12Id, i13Id));
-        daoFixture.getDao().setReference(getReference.apply(getClass.apply("D1"), "I1MultiContainment1"), d1Id, Arrays.asList(i12Id, i13Id));
+        runtimeFixture.getDao().setReference(getReference.apply(getClass.apply("C1"), "I1Containment1"), c1Id, Arrays.asList(i1Id));
+        runtimeFixture.getDao().setReference(getReference.apply(getClass.apply("D1"), "I1MultiContainment1"), d1Id, Arrays.asList(i12Id, i13Id));
+        runtimeFixture.getDao().setReference(getReference.apply(getClass.apply("D1"), "I1MultiContainment1"), d1Id, Arrays.asList(i12Id, i13Id));
 
-        Payload d1Result = daoFixture.getDao().getNavigationResultAt(relatedId, relationD1Ref).get(0);
-        log.debug("Containments as relation: {} ", daoFixture.getDao().getNavigationResultAt(relatedId, relationRef));
+        Payload d1Result = runtimeFixture.getDao().getNavigationResultAt(relatedId, relationD1Ref).get(0);
+        log.debug("Containments as relation: {} ", runtimeFixture.getDao().getNavigationResultAt(relatedId, relationRef));
         log.debug("D1 containment as relation: {} ", d1Result);
         assertThat(d1Result.getAs(String.class, "D1Name"), is("D1Name-Updated"));
     }
 
-    private UUID create(RdbmsDaoFixture daoFixture, EClass type, String name, Object... customKeyValuePairs) {
+    private UUID create(JudoRuntimeFixture runtimeFixture, EClass type, String name, Object... customKeyValuePairs) {
         Map<String, Object> payloadMap = new HashMap<>();
         payloadMap.put(type.getName() + "Name", name);
         for (int i = 0; i < customKeyValuePairs.length; i += 2) {
             payloadMap.put((String) customKeyValuePairs[i], customKeyValuePairs[i + 1]);
         }
-        Payload container1 = daoFixture.getDao().create(type, Payload.asPayload(payloadMap), DAO.QueryCustomizer.<UUID>builder()
+        Payload container1 = runtimeFixture.getDao().create(type, Payload.asPayload(payloadMap), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        return container1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        return container1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
     }
 
-    private UUID createNavigation(RdbmsDaoFixture daoFixture, UUID container1Id, EReference reference, String name) {
-        Payload containment = daoFixture.getDao().createNavigationInstanceAt(container1Id, reference, map(
+    private UUID createNavigation(JudoRuntimeFixture runtimeFixture, UUID container1Id, EReference reference, String name) {
+        Payload containment = runtimeFixture.getDao().createNavigationInstanceAt(container1Id, reference, map(
                 reference.getEType().getName()+"Name", name,
                 REFERENCE_ID, name
                 ),
@@ -284,12 +284,12 @@ public class ContainmentTest {
                         .build()
         );
         assertThat(containment.getAs(String.class, REFERENCE_ID), is(name));
-        return containment.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        return containment.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
     }
 
     @Test
-    public void testContainment(RdbmsDaoFixture daoFixture) {
-        Function<String, EClass> getClass = className -> daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + className).get();
+    public void testContainment(JudoRuntimeFixture runtimeFixture) {
+        Function<String, EClass> getClass = className -> runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + className).get();
         BiFunction<EClass, String, EReference> getReference = (type, referenceName) -> type.getEAllReferences().stream().filter(r -> referenceName.equals(r.getName())).findAny().get();
 
         EClass container1Type = getClass.apply("Container1");
@@ -301,33 +301,33 @@ public class ContainmentTest {
         EReference containment2sOf1Reference = container1Type.getEAllReferences().stream().filter(r -> "ContainmentMultiContainment2".equals(r.getName())).findAny().get();
         EReference containment1Of2Reference = container2Type.getEAllReferences().stream().filter(r -> "ContainmentContainment1".equals(r.getName())).findAny().get();
         EReference containment1sOf2Reference = container2Type.getEAllReferences().stream().filter(r -> "ContainmentMultiContainment1".equals(r.getName())).findAny().get();
-        UUID container1Id = create(daoFixture, container1Type, "Container1", REFERENCE_ID, "Container1");
-        UUID container2Id = create(daoFixture, container2Type, "Container2");
-        UUID containment1Id = createNavigation(daoFixture, container1Id, containment1Of1Reference, "C1");
-        UUID containment5Id = createNavigation(daoFixture, container1Id, containment1sOf1Reference, "C5");
-        UUID containment6Id = createNavigation(daoFixture, container1Id, containment1sOf1Reference, "C6");
+        UUID container1Id = create(runtimeFixture, container1Type, "Container1", REFERENCE_ID, "Container1");
+        UUID container2Id = create(runtimeFixture, container2Type, "Container2");
+        UUID containment1Id = createNavigation(runtimeFixture, container1Id, containment1Of1Reference, "C1");
+        UUID containment5Id = createNavigation(runtimeFixture, container1Id, containment1sOf1Reference, "C5");
+        UUID containment6Id = createNavigation(runtimeFixture, container1Id, containment1sOf1Reference, "C6");
 
-        UUID containment2Id = createNavigation(daoFixture, container1Id, containment2Of1Reference, "C2");
-        UUID containment7Id = createNavigation(daoFixture, container1Id, containment2sOf1Reference, "C7");
+        UUID containment2Id = createNavigation(runtimeFixture, container1Id, containment2Of1Reference, "C2");
+        UUID containment7Id = createNavigation(runtimeFixture, container1Id, containment2sOf1Reference, "C7");
 
-        UUID containment3Id = createNavigation(daoFixture, container2Id, containment1Of2Reference, "C3");
-        UUID containment8Id = createNavigation(daoFixture, container2Id, containment1sOf2Reference, "C8");
-        UUID containment4Id = create(daoFixture, containmentType, "C4");
+        UUID containment3Id = createNavigation(runtimeFixture, container2Id, containment1Of2Reference, "C3");
+        UUID containment8Id = createNavigation(runtimeFixture, container2Id, containment1sOf2Reference, "C8");
+        UUID containment4Id = create(runtimeFixture, containmentType, "C4");
 
         log.debug("Running query to get list of containments...");
 
-        final List<Payload> containments = daoFixture.getDao().getAllOf(containmentType);
+        final List<Payload> containments = runtimeFixture.getDao().getAllOf(containmentType);
 
         log.debug("Containments: {}", containments);
 
-        final Optional<Payload> containment1Loaded = containments.stream().filter(c -> containment1Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
-        final Optional<Payload> containment2Loaded = containments.stream().filter(c -> containment2Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
-        final Optional<Payload> containment3Loaded = containments.stream().filter(c -> containment3Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
-        final Optional<Payload> containment4Loaded = containments.stream().filter(c -> containment4Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
-        final Optional<Payload> containment5Loaded = containments.stream().filter(c -> containment5Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
-        final Optional<Payload> containment6Loaded = containments.stream().filter(c -> containment6Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
-        final Optional<Payload> containment7Loaded = containments.stream().filter(c -> containment7Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
-        final Optional<Payload> containment8Loaded = containments.stream().filter(c -> containment8Id.equals(c.getAs(UUID.class, daoFixture.getUuid().getName()))).findAny();
+        final Optional<Payload> containment1Loaded = containments.stream().filter(c -> containment1Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
+        final Optional<Payload> containment2Loaded = containments.stream().filter(c -> containment2Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
+        final Optional<Payload> containment3Loaded = containments.stream().filter(c -> containment3Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
+        final Optional<Payload> containment4Loaded = containments.stream().filter(c -> containment4Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
+        final Optional<Payload> containment5Loaded = containments.stream().filter(c -> containment5Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
+        final Optional<Payload> containment6Loaded = containments.stream().filter(c -> containment6Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
+        final Optional<Payload> containment7Loaded = containments.stream().filter(c -> containment7Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
+        final Optional<Payload> containment8Loaded = containments.stream().filter(c -> containment8Id.equals(c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))).findAny();
 
         assertThat(containment1Loaded.get().getAs(String.class, "ContainmentName"), equalTo("C1"));
         assertThat(containment1Loaded.get().getAs(String.class, "container1Name"), equalTo("Container1"));

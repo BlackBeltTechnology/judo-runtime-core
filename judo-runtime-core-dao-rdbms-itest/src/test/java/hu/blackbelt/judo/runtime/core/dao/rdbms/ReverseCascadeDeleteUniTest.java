@@ -6,10 +6,10 @@ import hu.blackbelt.judo.meta.esm.namespace.Model;
 import hu.blackbelt.judo.meta.esm.structure.EntityType;
 import hu.blackbelt.judo.meta.esm.structure.MemberType;
 import hu.blackbelt.judo.meta.esm.structure.RelationKind;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -32,26 +32,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class ReverseCascadeDeleteUniTest {
 
     private static final String MODEL_NAME = "M";
     private static final String DTO = MODEL_NAME + "._default_transferobjecttypes.";
 
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
-
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        idProviderClass = daoFixture.getIdProvider().getType();
-        idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     private Model getModel(int associationLowerCardinality) {
@@ -80,69 +71,69 @@ public class ReverseCascadeDeleteUniTest {
 
     @Test
     @DisplayName("Test A X--> [0..1] B")
-    public void testOptionalAssociation(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testOptionalAssociation(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Model model = getModel(0);
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized());
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized());
 
-        final EClass aEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
-        final EClass bEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
-        final EReference reference = daoFixture.getAsmUtils().resolveReference(DTO + "A#b").get();
+        final EClass aEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
+        final EClass bEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
+        final EReference reference = runtimeFixture.getAsmUtils().resolveReference(DTO + "A#b").get();
 
-        final UUID aID = daoFixture.getDao()
+        final UUID aID = runtimeFixture.getDao()
                 .create(aEClass, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("A entity created with id {}", aID);
 
-        final UUID bID = daoFixture.getDao()
+        final UUID bID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(aID, reference, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("B entity created with id {}", bID);
 
-        assertTrue(daoFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
-        assertTrue(daoFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
 
-        daoFixture.getDao().delete(bEClass, bID);
+        runtimeFixture.getDao().delete(bEClass, bID);
 
-        assertFalse(daoFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
-        assertFalse(daoFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
+        assertFalse(runtimeFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
+        assertFalse(runtimeFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
     }
 
     @Test
     @DisplayName("Test A X--> [1..1] B")
-    public void testRequiredAssociation(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testRequiredAssociation(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Model model = getModel(1);
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized());
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized());
 
-        final EClass aEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
-        final EClass bEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
+        final EClass aEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
+        final EClass bEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
 
-        final UUID bID = daoFixture.getDao()
+        final UUID bID = runtimeFixture.getDao()
                 .create(bEClass, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("B created with id {}", bID);
 
-        final UUID aID = daoFixture.getDao()
-                .create(aEClass, Payload.map("b", Payload.map(idProviderName, bID)),
+        final UUID aID = runtimeFixture.getDao()
+                .create(aEClass, Payload.map("b", Payload.map(runtimeFixture.getIdProvider().getName(), bID)),
                         QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("A created with id {}", aID);
 
-        assertTrue(daoFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
-        assertTrue(daoFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
 
-        daoFixture.getDao().delete(bEClass, bID);
+        runtimeFixture.getDao().delete(bEClass, bID);
 
-        assertFalse(daoFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
-        assertFalse(daoFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
+        assertFalse(runtimeFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
+        assertFalse(runtimeFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
     }
 
     @Test
     @DisplayName("Test A --> [1..1] B X--> [0..1] C")
-    public void testChainAssociation(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testChainAssociation(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final EntityType aEntity = newEntityTypeBuilder().withName("A").build();
         aEntity.setMapping(newMappingBuilder().withTarget(aEntity).build());
         final EntityType bEntity = newEntityTypeBuilder().withName("B").build();
@@ -175,43 +166,43 @@ public class ReverseCascadeDeleteUniTest {
                 .withElements(aEntity, bEntity, cEntity)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized());
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized());
 
-        final EClass aEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
-        final EClass bEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
-        final EClass cEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "C").get();
-        final EReference referenceC = daoFixture.getAsmUtils().resolveReference(DTO + "B#c").get();
+        final EClass aEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
+        final EClass bEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
+        final EClass cEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "C").get();
+        final EReference referenceC = runtimeFixture.getAsmUtils().resolveReference(DTO + "B#c").get();
 
-        final UUID bID = daoFixture.getDao()
+        final UUID bID = runtimeFixture.getDao()
                 .create(bEClass, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("B created with id {}", bID);
 
-        final UUID aID = daoFixture.getDao()
-                .create(aEClass, Payload.map("b", Payload.map(idProviderName, bID)),
+        final UUID aID = runtimeFixture.getDao()
+                .create(aEClass, Payload.map("b", Payload.map(runtimeFixture.getIdProvider().getName(), bID)),
                         QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("A created with id {}", aID);
 
-        final UUID cID = daoFixture.getDao()
+        final UUID cID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(bID, referenceC, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("C created with id {}", cID);
 
-        assertTrue(daoFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
-        assertTrue(daoFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
-        assertTrue(daoFixture.getDao().getByIdentifier(cEClass, cID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(cEClass, cID).isPresent());
 
-        assertThrows(IllegalStateException.class, () -> daoFixture.getDao().delete(cEClass, cID));
+        assertThrows(IllegalStateException.class, () -> runtimeFixture.getDao().delete(cEClass, cID));
 
-        assertTrue(daoFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
-        assertTrue(daoFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
-        assertTrue(daoFixture.getDao().getByIdentifier(cEClass, cID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
+        assertTrue(runtimeFixture.getDao().getByIdentifier(cEClass, cID).isPresent());
     }
 
     @Test
-    public void testCircularDependencies(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testCircularDependencies(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final EntityType aEntity = newEntityTypeBuilder().withName("A").build();
         aEntity.setMapping(newMappingBuilder().withTarget(aEntity).build());
         final EntityType bEntity = newEntityTypeBuilder().withName("B").build();
@@ -258,39 +249,39 @@ public class ReverseCascadeDeleteUniTest {
                 .withElements(aEntity, bEntity, cEntity)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized());
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized());
 
-        final EClass aEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
-        final EReference bOfAReference = daoFixture.getAsmUtils().resolveReference(DTO + "A#b").get();
-        final EClass bEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
-        final EReference cOfBReference = daoFixture.getAsmUtils().resolveReference(DTO + "B#c").get();
-        final EClass cEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "C").get();
-        final EReference aOfCReference = daoFixture.getAsmUtils().resolveReference(DTO + "C#a").get();
+        final EClass aEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "A").get();
+        final EReference bOfAReference = runtimeFixture.getAsmUtils().resolveReference(DTO + "A#b").get();
+        final EClass bEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "B").get();
+        final EReference cOfBReference = runtimeFixture.getAsmUtils().resolveReference(DTO + "B#c").get();
+        final EClass cEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "C").get();
+        final EReference aOfCReference = runtimeFixture.getAsmUtils().resolveReference(DTO + "C#a").get();
 
-        final UUID aID = daoFixture.getDao()
+        final UUID aID = runtimeFixture.getDao()
                 .create(aEClass, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("A created with id {}", aID);
 
-        final UUID bID = daoFixture.getDao()
+        final UUID bID = runtimeFixture.getDao()
                 .create(bEClass, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("B created with id {}", bID);
 
-        final UUID cID = daoFixture.getDao()
+        final UUID cID = runtimeFixture.getDao()
                 .create(cEClass, Payload.empty(), QueryCustomizer.<UUID>builder().mask(emptyMap()).build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("C created with id {}", cID);
 
-        daoFixture.getDao().setReference(bOfAReference, aID, Collections.singleton(bID));
-        daoFixture.getDao().setReference(cOfBReference, bID, Collections.singleton(cID));
-        daoFixture.getDao().setReference(aOfCReference, cID, Collections.singleton(aID));
+        runtimeFixture.getDao().setReference(bOfAReference, aID, Collections.singleton(bID));
+        runtimeFixture.getDao().setReference(cOfBReference, bID, Collections.singleton(cID));
+        runtimeFixture.getDao().setReference(aOfCReference, cID, Collections.singleton(aID));
 
-        daoFixture.getDao().delete(bEClass, bID);
+        runtimeFixture.getDao().delete(bEClass, bID);
 
-        assertFalse(daoFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
-        assertFalse(daoFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
-        assertFalse(daoFixture.getDao().getByIdentifier(cEClass, cID).isPresent());
+        assertFalse(runtimeFixture.getDao().getByIdentifier(aEClass, aID).isPresent());
+        assertFalse(runtimeFixture.getDao().getByIdentifier(bEClass, bID).isPresent());
+        assertFalse(runtimeFixture.getDao().getByIdentifier(cEClass, cID).isPresent());
     }
 }

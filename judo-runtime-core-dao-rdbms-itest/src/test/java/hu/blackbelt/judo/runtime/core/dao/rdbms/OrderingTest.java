@@ -10,10 +10,10 @@ import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
 import hu.blackbelt.judo.meta.esm.type.TimestampType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -41,8 +41,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class OrderingTest {
 
@@ -54,12 +54,12 @@ public class OrderingTest {
     }
 
     @AfterEach
-    public void teardown(final RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(final JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testComplexOrderBy(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    void testComplexOrderBy(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
 
@@ -121,57 +121,57 @@ public class OrderingTest {
                 .withElements(stringType, integerType, user, group, tester)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass userType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".User").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass groupType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Group").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass testerType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Tester").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass userType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".User").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass groupType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Group").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass testerType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Tester").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
         final EReference groupsReference = testerType.getEAllReferences().stream().filter(r -> "groups".equals(r.getName())).findAny().get();
 
 
-        final Payload user1 = daoFixture.getDao().create(userType, Payload.map(
+        final Payload user1 = runtimeFixture.getDao().create(userType, Payload.map(
                 "name", "Gipsz Jakab",
                 "age", 30
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final Payload user2 = daoFixture.getDao().create(userType, Payload.map(
+        final Payload user2 = runtimeFixture.getDao().create(userType, Payload.map(
                 "name", "Teszt Elek",
                 "age", 35
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final Payload group4 = daoFixture.getDao().create(groupType, Payload.map(
+        final Payload group4 = runtimeFixture.getDao().create(groupType, Payload.map(
                 "name", "Group4",
                 "owner", user1
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final Payload group3 = daoFixture.getDao().create(groupType, Payload.map(
+        final Payload group3 = runtimeFixture.getDao().create(groupType, Payload.map(
                 "name", "Group3"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final Payload group2 = daoFixture.getDao().create(groupType, Payload.map(
+        final Payload group2 = runtimeFixture.getDao().create(groupType, Payload.map(
                 "name", "Group2",
                 "owner", user2
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final Payload group1 = daoFixture.getDao().create(groupType, Payload.map(
+        final Payload group1 = runtimeFixture.getDao().create(groupType, Payload.map(
                 "name", "Group1",
                 "owner", user1
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final List<Payload> groups = daoFixture.getDao().getAllReferencedInstancesOf(groupsReference, groupsReference.getEReferenceType());
+        final List<Payload> groups = runtimeFixture.getDao().getAllReferencedInstancesOf(groupsReference, groupsReference.getEReferenceType());
         final List<String> groupLabels = groups.stream()
                 .map(g -> g.getAs(String.class, "label"))
                 .collect(Collectors.toList());
@@ -185,7 +185,7 @@ public class OrderingTest {
     }
 
     @Test
-    void testSeekingByDerivedContainingConstant(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    void testSeekingByDerivedContainingConstant(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
 
         final EntityType user = newEntityTypeBuilder()
@@ -261,37 +261,37 @@ public class OrderingTest {
                 .withElements(stringType, user, group, access)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass userType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".User").get();
-        final EClass groupType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Group").get();
-        final EAttribute nameOfUserAttribute = daoFixture.getAsmUtils().resolveAttribute(DTO_PACKAGE + ".User#name").get();
-        final EReference allGroupMembersReference = daoFixture.getAsmUtils().resolveReference(MODEL_NAME + ".Access#allGroupMembers").get();
+        final EClass userType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".User").get();
+        final EClass groupType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Group").get();
+        final EAttribute nameOfUserAttribute = runtimeFixture.getAsmUtils().resolveAttribute(DTO_PACKAGE + ".User#name").get();
+        final EReference allGroupMembersReference = runtimeFixture.getAsmUtils().resolveReference(MODEL_NAME + ".Access#allGroupMembers").get();
 
-        final Payload u1 = daoFixture.getDao().create(userType, Payload.map(
+        final Payload u1 = runtimeFixture.getDao().create(userType, Payload.map(
                 "firstName", "Eszter",
                 "lastName", "Vincs"
         ), null);
-        final Payload u2 = daoFixture.getDao().create(userType, Payload.map(
+        final Payload u2 = runtimeFixture.getDao().create(userType, Payload.map(
                 "firstName", "Jakab",
                 "lastName", "Gipsz"
         ), null);
-        final Payload u3 = daoFixture.getDao().create(userType, Payload.map(
+        final Payload u3 = runtimeFixture.getDao().create(userType, Payload.map(
                 "firstName", "Elek",
                 "lastName", "Teszt"
         ), null);
 
-        final Payload g1 = daoFixture.getDao().create(groupType, Payload.map(
+        final Payload g1 = runtimeFixture.getDao().create(groupType, Payload.map(
                 "name", "Manager",
                 "members", Arrays.asList(u1, u2, u3)
         ), null);
-        final Payload g2 = daoFixture.getDao().create(groupType, Payload.map(
+        final Payload g2 = runtimeFixture.getDao().create(groupType, Payload.map(
                 "name", "Employee",
                 "members", Arrays.asList(u1, u2, u3)
         ), null);
 
-        final List<String> users = daoFixture.getDao().search(userType, DAO.QueryCustomizer.<UUID>builder()
+        final List<String> users = runtimeFixture.getDao().search(userType, DAO.QueryCustomizer.<UUID>builder()
                         .mask(ImmutableMap.of("lastName", true, "firstName", true))
                         .orderBy(DAO.OrderBy.builder()
                                 .attribute(nameOfUserAttribute)
@@ -311,7 +311,7 @@ public class OrderingTest {
                 "Teszt Elek"
         )));
 
-        final List<String> allGroupMembers = daoFixture.getDao().searchReferencedInstancesOf(allGroupMembersReference, userType, DAO.QueryCustomizer.<UUID>builder()
+        final List<String> allGroupMembers = runtimeFixture.getDao().searchReferencedInstancesOf(allGroupMembersReference, userType, DAO.QueryCustomizer.<UUID>builder()
                         .mask(ImmutableMap.of("lastName", true, "firstName", true))
                         .orderBy(DAO.OrderBy.builder()
                                 .attribute(nameOfUserAttribute)
@@ -333,7 +333,7 @@ public class OrderingTest {
         )));
     }
 
-    private void createWatchSchemaAndRecords(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    private void createWatchSchemaAndRecords(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         // Create Watch schema
         StringType stringType = newStringTypeBuilder().withName("string").withMaxLength(255).build();
         TimestampType timestampType = newTimestampTypeBuilder().withName("timestampType").withBaseUnit(DurationType.SECOND).build();
@@ -375,17 +375,17 @@ public class OrderingTest {
                 .withElements(timestampType, stringType, watch, booleanType)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized());
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized());
 
         // Create Watch records
-        Class<UUID> idType = daoFixture.getIdProvider().getType();
-        String idName = daoFixture.getIdProvider().getName();
+        Class<UUID> idType = runtimeFixture.getIdProvider().getType();
+        String idName = runtimeFixture.getIdProvider().getName();
 
-        EClass watchEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
+        EClass watchEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
 
         var rolexName = "rolex";
-        UUID rolexId = daoFixture.getDao()
+        UUID rolexId = runtimeFixture.getDao()
                 .create(watchEClass,
                         Payload.map(
                             "name", rolexName,
@@ -397,7 +397,7 @@ public class OrderingTest {
         log.debug("Watch '{}' created with id {}", rolexName, rolexId);
 
         var omegaName = "omega";
-        UUID omegaId = daoFixture.getDao()
+        UUID omegaId = runtimeFixture.getDao()
                 .create(watchEClass,
                         Payload.map(
                             "name", omegaName,
@@ -409,7 +409,7 @@ public class OrderingTest {
         log.debug("Watch '{}' created with id {}", omegaName, omegaId);
 
         var bulgariName = "bulgari";
-        UUID bulgariId = daoFixture.getDao()
+        UUID bulgariId = runtimeFixture.getDao()
                 .create(watchEClass,
                         Payload.map(
                             "name", bulgariName,
@@ -421,7 +421,7 @@ public class OrderingTest {
         log.debug("Watch '{}' created with id {}", bulgariName, bulgariId);
 
         var hamiltonName = "hamilton";
-        UUID hamiltonId = daoFixture.getDao()
+        UUID hamiltonId = runtimeFixture.getDao()
                 .create(watchEClass,
                         Payload.map(
                             "name", hamiltonName,
@@ -435,13 +435,13 @@ public class OrderingTest {
 
     @Test
     @DisplayName("Test TimestampOrder")
-    public void testTimestampOrder(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
-        createWatchSchemaAndRecords(daoFixture, datasourceFixture);
+    public void testTimestampOrder(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
+        createWatchSchemaAndRecords(runtimeFixture, datasourceFixture);
 
-        EClass watchEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
+        EClass watchEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
         EAttribute time = watchEClass.getEAllAttributes().stream().filter(a -> "time".equals(a.getName())).collect(Collectors.toList()).get(0);
 
-        List<Payload> watches = daoFixture.getDao()
+        List<Payload> watches = runtimeFixture.getDao()
                 .search(watchEClass,
                         DAO.QueryCustomizer.<UUID>builder()
                                 .orderBy(DAO.OrderBy.builder()
@@ -463,14 +463,14 @@ public class OrderingTest {
 
     @Test
     @DisplayName("testBooleanOrder")
-    public void testBooleanOrder(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
-        createWatchSchemaAndRecords(daoFixture, datasourceFixture);
+    public void testBooleanOrder(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
+        createWatchSchemaAndRecords(runtimeFixture, datasourceFixture);
 
-        EClass watchEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
+        EClass watchEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
         EAttribute isGolden = watchEClass.getEAllAttributes().stream().filter(a -> "isGolden".equals(a.getName())).collect(Collectors.toList()).get(0);
 
         // ascending order
-        List<Payload> watchesAsc = daoFixture.getDao()
+        List<Payload> watchesAsc = runtimeFixture.getDao()
                 .search(watchEClass,
                         DAO.QueryCustomizer.<UUID>builder()
                                 .orderBy(DAO.OrderBy.builder()
@@ -484,7 +484,7 @@ public class OrderingTest {
         );
 
         // descending order
-        List<Payload> watchesDesc = daoFixture.getDao()
+        List<Payload> watchesDesc = runtimeFixture.getDao()
                 .search(watchEClass,
                         DAO.QueryCustomizer.<UUID>builder()
                                 .orderBy(DAO.OrderBy.builder()
@@ -500,13 +500,13 @@ public class OrderingTest {
 
     @Test
     @DisplayName("Test TimestampPaging")
-    public void testTimestampPaging(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
-        createWatchSchemaAndRecords(daoFixture, datasourceFixture);
+    public void testTimestampPaging(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
+        createWatchSchemaAndRecords(runtimeFixture, datasourceFixture);
 
-        EClass watchEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
+        EClass watchEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Watch").get();
         EAttribute time = watchEClass.getEAllAttributes().stream().filter(a -> "time".equals(a.getName())).collect(Collectors.toList()).get(0);
 
-        List<Payload> watches1to2 = daoFixture.getDao()
+        List<Payload> watches1to2 = runtimeFixture.getDao()
                 .search(watchEClass,
                         DAO.QueryCustomizer.<UUID>builder()
                                 .orderBy(DAO.OrderBy.builder()
@@ -523,7 +523,7 @@ public class OrderingTest {
             return "[" + p.getAs(String.class, "name") + " - " + offsetDateTime + " (nano: " + offsetDateTime.getNano() + ")]";
         }).collect(Collectors.joining(", ")));
 
-        List<Payload> watches3to4 = daoFixture.getDao()
+        List<Payload> watches3to4 = runtimeFixture.getDao()
                 .search(watchEClass,
                         DAO.QueryCustomizer.<UUID>builder()
                                 .orderBy(DAO.OrderBy.builder()

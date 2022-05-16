@@ -12,10 +12,10 @@ import hu.blackbelt.judo.meta.esm.structure.TransferObjectType;
 import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
@@ -39,8 +39,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class TenderTest {
 
@@ -245,31 +245,31 @@ public class TenderTest {
         return model;
     }
 
-    RdbmsDaoFixture daoFixture;
+    JudoRuntimeFixture runtimeFixture;
 
     @BeforeEach
-    public void initFixture(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        this.daoFixture = daoFixture;
-        this.daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void initFixture(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        this.runtimeFixture = runtimeFixture;
+        this.runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     private UUID createCompany(final String name) {
-        final EClass companyType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Company").get();
+        final EClass companyType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Company").get();
 
-        final Payload company = daoFixture.getDao().create(companyType, map(
+        final Payload company = runtimeFixture.getDao().create(companyType, map(
                 "name", name
                 ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build()
         );
 
-        final UUID companyId = company.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID companyId = company.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Company {} created with ID: {}", name, companyId);
 
@@ -277,16 +277,16 @@ public class TenderTest {
     }
 
     private UUID createTender(final String subject) {
-        final EClass tenderType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tender").get();
+        final EClass tenderType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tender").get();
 
-        final Payload tender = daoFixture.getDao().create(tenderType, map(
+        final Payload tender = runtimeFixture.getDao().create(tenderType, map(
                 "subject", subject
                 ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build()
         );
 
-        final UUID tenderId = tender.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID tenderId = tender.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Tender {} created with ID: {}", subject, tenderId);
 
@@ -294,18 +294,18 @@ public class TenderTest {
     }
 
     private UUID createParticipant(final UUID tender, final UUID company, final int score) {
-        final EClass tenderType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tender").get();
+        final EClass tenderType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tender").get();
         final EReference participantsOfTender = tenderType.getEAllReferences().stream().filter(r -> "participants".equals(r.getName())).findAny().get();
 
-        final Payload participant = daoFixture.getDao().createNavigationInstanceAt(tender, participantsOfTender, map(
-                "company", map(daoFixture.getUuid().getName(), company),
+        final Payload participant = runtimeFixture.getDao().createNavigationInstanceAt(tender, participantsOfTender, map(
+                "company", map(runtimeFixture.getIdProvider().getName(), company),
                 "score", score
                 ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build()
         );
 
-        final UUID participantId = participant.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID participantId = participant.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Participant {} of tender {} with score {} created with ID: {}", new Object[]{company, tender, score, participantId});
 
@@ -322,9 +322,9 @@ public class TenderTest {
 
     @Test
     public void testWindowing() {
-        final EClass tenderType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tender").get();
-        final EClass companyType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Company").get();
-        final EClass apType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AP").get();
+        final EClass tenderType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Tender").get();
+        final EClass companyType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Company").get();
+        final EClass apType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AP").get();
 
         final EReference winnerReference = tenderType.getEAllReferences().stream().filter(r -> "winner".equals(r.getName())).findAny().get();
         final EReference winnersReference = tenderType.getEAllReferences().stream().filter(r -> "winners".equals(r.getName())).findAny().get();
@@ -339,7 +339,7 @@ public class TenderTest {
         final EAttribute t1t3ExistsAttribute = apType.getEAllAttributes().stream().filter(r -> "t1t3Exist".equals(r.getName())).findAny().get();
         final EAttribute tenderWinnerListCountAttribute = apType.getEAllAttributes().stream().filter(r -> "tenderWinnerListCount".equals(r.getName())).findAny().get();
 
-        daoFixture.addCustomJoinDefinition(customWinnersReference, CustomJoinDefinition.builder()
+        runtimeFixture.addCustomJoinDefinition(customWinnersReference, CustomJoinDefinition.builder()
                 .sourceIdParameterName("source_id")
                 .sourceIdSetParameterName("source_id_set")
                 .navigationSql("SELECT DISTINCT p.`M.Participant#company` AS ID, p.`M.Tender#participants` AS source_id\n" +
@@ -348,7 +348,7 @@ public class TenderTest {
                         "      FROM `M.Participant` p2\n" +
                         "      GROUP BY p2.`M.Tender#participants`) AS max_scores ON (p.`M.Participant#score` = max_scores.max_score AND max_scores.tender_id = p.`M.Tender#participants`)")
                 .build());
-        daoFixture.addCustomJoinDefinition(customWinnerReference, CustomJoinDefinition.builder()
+        runtimeFixture.addCustomJoinDefinition(customWinnerReference, CustomJoinDefinition.builder()
                 .sourceIdParameterName("source_id")
                 .sourceIdSetParameterName("source_id_set")
                 .navigationSql("SELECT p0.`M.Participant#company` AS ID, p0.`M.Tender#participants` AS source_id\n" +
@@ -388,29 +388,29 @@ public class TenderTest {
 
         log.debug("Checking query results...");
 
-        final Optional<Payload> tender1 = daoFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T1));
+        final Optional<Payload> tender1 = runtimeFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T1));
         assertTrue(tender1.isPresent());
 
         log.debug("Tender1: {}", tender1.get());
 
         final long start1 = System.currentTimeMillis();
-        final Optional<Payload> winnerOfTender1 = daoFixture.getDao().getNavigationResultAt(tender1.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), winnerReference).stream().findAny();
+        final Optional<Payload> winnerOfTender1 = runtimeFixture.getDao().getNavigationResultAt(tender1.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), winnerReference).stream().findAny();
         final long end1 = System.currentTimeMillis();
-        final Optional<UUID> winnerIdOfTender1 = winnerOfTender1.map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()));
+        final Optional<UUID> winnerIdOfTender1 = winnerOfTender1.map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()));
         assertThat(winnerOfTender1.isPresent(), equalTo(Boolean.TRUE));
         assertThat(winnerIdOfTender1.get(), equalTo(companies.get(Company.COMPANY2)));
 
         final long start2 = System.currentTimeMillis();
-        final Optional<Payload> customWinnerOfTender1 = daoFixture.getDao().getNavigationResultAt(tender1.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), customWinnerReference).stream().findAny();
+        final Optional<Payload> customWinnerOfTender1 = runtimeFixture.getDao().getNavigationResultAt(tender1.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), customWinnerReference).stream().findAny();
         final long end2 = System.currentTimeMillis();
-        final Optional<UUID> customWinnerIdOfTender1 = customWinnerOfTender1.map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()));
+        final Optional<UUID> customWinnerIdOfTender1 = customWinnerOfTender1.map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()));
         assertThat(customWinnerOfTender1.isPresent(), equalTo(Boolean.TRUE));
         assertThat(customWinnerIdOfTender1.get(), equalTo(companies.get(Company.COMPANY2)));
 
         if (TEST_AGGREGATIONS) {
             final Set<UUID> winnersIdsOfTender1 = tender1.filter(t -> t.get("winners") != null)
                     .map(t -> t.getAsCollectionPayload("winners").stream()
-                            .map(w -> w.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()))
+                            .map(w -> w.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                             .collect(Collectors.toSet()))
                     .orElse(Collections.emptySet());
             assertThat(winnersIdsOfTender1, equalTo(ImmutableSet.of(
@@ -418,12 +418,12 @@ public class TenderTest {
             )));
             final Optional<UUID> lastIdOfTender1 = tender1
                     .filter(t -> t.get("last") != null)
-                    .map(t -> t.getAsPayload("last").getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()));
+                    .map(t -> t.getAsPayload("last").getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()));
             assertThat(lastIdOfTender1.isPresent(), equalTo(Boolean.TRUE));
             assertThat(lastIdOfTender1.get(), equalTo(companies.get(Company.COMPANY3)));
             final Set<UUID> lastsIdsOfTender1 = tender1.filter(t -> t.get("lasts") != null)
                     .map(t -> t.getAsCollectionPayload("lasts").stream()
-                            .map(l -> l.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()))
+                            .map(l -> l.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                             .collect(Collectors.toSet()))
                     .orElse(Collections.emptySet());
             assertThat(lastsIdsOfTender1, equalTo(ImmutableSet.of(
@@ -431,25 +431,25 @@ public class TenderTest {
             )));
         }
 
-        final Optional<Payload> tender2 = daoFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T2));
+        final Optional<Payload> tender2 = runtimeFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T2));
         assertTrue(tender2.isPresent());
 
         log.debug("Tender2: {}", tender2.get());
 
-        final Optional<Payload> winnerOfTender2 = daoFixture.getDao().getNavigationResultAt(tender2.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), winnerReference).stream().findAny();
-        final Optional<UUID> winnerIdOfTender2 = winnerOfTender2.map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()));
+        final Optional<Payload> winnerOfTender2 = runtimeFixture.getDao().getNavigationResultAt(tender2.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), winnerReference).stream().findAny();
+        final Optional<UUID> winnerIdOfTender2 = winnerOfTender2.map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()));
         assertThat(winnerOfTender2.isPresent(), equalTo(Boolean.TRUE));
         assertThat(winnerIdOfTender2.get(), equalTo(companies.get(Company.COMPANY3)));
 
-        final Optional<Payload> tender3 = daoFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T3));
+        final Optional<Payload> tender3 = runtimeFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T3));
         assertTrue(tender3.isPresent());
 
         log.debug("Tender3: {}", tender3.get());
 
         final long start3 = System.currentTimeMillis();
-        final Optional<Payload> winnerOfTender3 = daoFixture.getDao().getNavigationResultAt(tender3.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), winnerReference).stream().findAny();
+        final Optional<Payload> winnerOfTender3 = runtimeFixture.getDao().getNavigationResultAt(tender3.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), winnerReference).stream().findAny();
         final long end3 = System.currentTimeMillis();
-        final Optional<UUID> winnerIdOfTender3 = winnerOfTender3.map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()));
+        final Optional<UUID> winnerIdOfTender3 = winnerOfTender3.map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()));
         assertThat(winnerOfTender3.isPresent(), equalTo(Boolean.TRUE));
         assertThat(winnerIdOfTender3.get(), anyOf(
                 equalTo(companies.get(Company.COMPANY3)),
@@ -457,9 +457,9 @@ public class TenderTest {
         ));
 
         final long start4 = System.currentTimeMillis();
-        final Optional<Payload> customWinnerOfTender3 = daoFixture.getDao().getNavigationResultAt(tender3.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), customWinnerReference).stream().findAny();
+        final Optional<Payload> customWinnerOfTender3 = runtimeFixture.getDao().getNavigationResultAt(tender3.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), customWinnerReference).stream().findAny();
         final long end4 = System.currentTimeMillis();
-        final Optional<UUID> customWinnerIdOfTender3 = customWinnerOfTender3.map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()));
+        final Optional<UUID> customWinnerIdOfTender3 = customWinnerOfTender3.map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()));
         assertThat(customWinnerOfTender3.isPresent(), equalTo(Boolean.TRUE));
         assertThat(customWinnerIdOfTender3.get(), anyOf(
                 equalTo(companies.get(Company.COMPANY3)),
@@ -467,18 +467,18 @@ public class TenderTest {
         ));
 
         final long start5 = System.currentTimeMillis();
-        final List<Payload> winnersOfTender3 = daoFixture.getDao().getNavigationResultAt(tender3.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), winnersReference);
+        final List<Payload> winnersOfTender3 = runtimeFixture.getDao().getNavigationResultAt(tender3.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), winnersReference);
         final long end5 = System.currentTimeMillis();
-        final Set<UUID> winnerIdsOfTender3 = winnersOfTender3.stream().map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName())).collect(Collectors.toSet());
+        final Set<UUID> winnerIdsOfTender3 = winnersOfTender3.stream().map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
         assertThat(winnerIdsOfTender3, equalTo(ImmutableSet.of(
                 companies.get(Company.COMPANY3),
                 companies.get(Company.COMPANY7)
         )));
 
         final long start6 = System.currentTimeMillis();
-        final List<Payload> customWinnersOfTender3 = daoFixture.getDao().getNavigationResultAt(tender3.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), customWinnersReference);
+        final List<Payload> customWinnersOfTender3 = runtimeFixture.getDao().getNavigationResultAt(tender3.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), customWinnersReference);
         final long end6 = System.currentTimeMillis();
-        final Set<UUID> customWinnerIdsOfTender3 = customWinnersOfTender3.stream().map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName())).collect(Collectors.toSet());
+        final Set<UUID> customWinnerIdsOfTender3 = customWinnersOfTender3.stream().map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
         assertThat(customWinnerIdsOfTender3, equalTo(ImmutableSet.of(
                 companies.get(Company.COMPANY3),
                 companies.get(Company.COMPANY7)
@@ -487,7 +487,7 @@ public class TenderTest {
         if (TEST_AGGREGATIONS) {
             final Set<UUID> winnersIdsOfTender3 = tender3.filter(t -> t.get("winners") != null)
                     .map(t -> t.getAsCollectionPayload("winners").stream()
-                            .map(w -> w.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()))
+                            .map(w -> w.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                             .collect(Collectors.toSet()))
                     .orElse(Collections.emptySet());
             assertThat(winnersIdsOfTender3, equalTo(ImmutableSet.of(
@@ -497,7 +497,7 @@ public class TenderTest {
 
             final Set<UUID> customWinnersIdsOfTender3 = tender3.filter(t -> t.get("customWinners") != null)
                     .map(t -> t.getAsCollectionPayload("customWinners").stream()
-                            .map(w -> w.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()))
+                            .map(w -> w.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                             .collect(Collectors.toSet()))
                     .orElse(Collections.emptySet());
             assertThat(customWinnersIdsOfTender3, equalTo(ImmutableSet.of(
@@ -506,27 +506,27 @@ public class TenderTest {
             )));
         }
 
-        final Optional<Payload> tender4 = daoFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T4));
+        final Optional<Payload> tender4 = runtimeFixture.getDao().getByIdentifier(tenderType, tenders.get(Tender.T4));
         assertTrue(tender4.isPresent());
 
-        final Optional<Payload> topWinner = daoFixture.getDao().getAllReferencedInstancesOf(topWinnerReference, companyType).stream()
+        final Optional<Payload> topWinner = runtimeFixture.getDao().getAllReferencedInstancesOf(topWinnerReference, companyType).stream()
                 .findAny();
         log.debug("Top winner: {}", topWinner);
-        final Optional<UUID> topWinnerId = topWinner.map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()));
+        final Optional<UUID> topWinnerId = topWinner.map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()));
         assertThat(topWinner.isPresent(), equalTo(Boolean.TRUE));
         assertThat(topWinnerId.get(), equalTo(companies.get(Company.COMPANY3)));
 
-        final List<Payload> topWinners = daoFixture.getDao().getAllReferencedInstancesOf(topWinnersReference, companyType);
+        final List<Payload> topWinners = runtimeFixture.getDao().getAllReferencedInstancesOf(topWinnersReference, companyType);
         log.debug("Top winners: {}", topWinners);
-        final Set<UUID> topWinnerIds = topWinners.stream().map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName())).collect(Collectors.toSet());
+        final Set<UUID> topWinnerIds = topWinners.stream().map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
         assertThat(topWinnerIds, equalTo(ImmutableSet.of(
                 companies.get(Company.COMPANY3))
         ));
 
-        final Collection<Payload> allWinners = daoFixture.getDao().getAllReferencedInstancesOf(allWinnersReference, companyType);
+        final Collection<Payload> allWinners = runtimeFixture.getDao().getAllReferencedInstancesOf(allWinnersReference, companyType);
         log.debug("All winners: {}", allWinners);
         final Set<UUID> allWinnerIds = allWinners.stream()
-                .map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()))
+                .map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
         assertThat(allWinnerIds, equalTo(ImmutableSet.of(
                 companies.get(Company.COMPANY2),
@@ -534,10 +534,10 @@ public class TenderTest {
                 companies.get(Company.COMPANY7)
         )));
 
-        final Collection<Payload> tenderWinnerList = daoFixture.getDao().getAllReferencedInstancesOf(tenderWinnerListReference, companyType);
+        final Collection<Payload> tenderWinnerList = runtimeFixture.getDao().getAllReferencedInstancesOf(tenderWinnerListReference, companyType);
         log.debug("Tender winners: {}", tenderWinnerList);
         final Set<UUID> tenderWinnerIds = tenderWinnerList.stream()
-                .map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()))
+                .map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
         assertThat(tenderWinnerIds, equalTo(ImmutableSet.of(
                 companies.get(Company.COMPANY2),
@@ -545,14 +545,14 @@ public class TenderTest {
                 winnerIdOfTender3.get()
         )));
 
-        final Payload tenderWinnerListCount = daoFixture.getDao().getStaticData(tenderWinnerListCountAttribute);
+        final Payload tenderWinnerListCount = runtimeFixture.getDao().getStaticData(tenderWinnerListCountAttribute);
         log.debug("Tender winner list count: {}", tenderWinnerListCount);
         assertThat(tenderWinnerListCount.getAs(Integer.class, "tenderWinnerListCount"), equalTo(tenderWinnerIds.size()));
 
-        final Collection<Payload> lastCompanies = daoFixture.getDao().getAllReferencedInstancesOf(lastCompaniesReference, companyType);
+        final Collection<Payload> lastCompanies = runtimeFixture.getDao().getAllReferencedInstancesOf(lastCompaniesReference, companyType);
         log.debug("Last companies: {}", lastCompanies);
         final Set<UUID> lastCompaniesIds = lastCompanies.stream()
-                .map(last -> last.getAs(UUID.class, daoFixture.getUuid().getName()))
+                .map(last -> last.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
         assertThat(lastCompaniesIds, equalTo(ImmutableSet.of(
                 companies.get(Company.COMPANY3),
@@ -560,13 +560,13 @@ public class TenderTest {
                 companies.get(Company.COMPANY7)
         )));
 
-        final Payload t1t3Exist = daoFixture.getDao().getStaticData(t1t3ExistsAttribute);
+        final Payload t1t3Exist = runtimeFixture.getDao().getStaticData(t1t3ExistsAttribute);
         log.debug("T1 & T3 exist: {}", t1t3Exist);
 
-        final Collection<Payload> t1t3Winners = daoFixture.getDao().getAllReferencedInstancesOf(t1t3WinnersReference, companyType);
+        final Collection<Payload> t1t3Winners = runtimeFixture.getDao().getAllReferencedInstancesOf(t1t3WinnersReference, companyType);
         log.debug("T1 & T3 winners: {}", t1t3Winners);
         final Set<UUID> t1t3WinnerIds = t1t3Winners.stream()
-                .map(winner -> winner.getAs(UUID.class, daoFixture.getUuid().getName()))
+                .map(winner -> winner.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
         assertThat(t1t3WinnerIds, hasItems(
                 equalTo(companies.get(Company.COMPANY2)),

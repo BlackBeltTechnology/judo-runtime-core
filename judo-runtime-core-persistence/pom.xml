@@ -37,12 +37,13 @@
             <version>${judo-framework-version}</version>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>hu.blackbelt.osgi.liquibase</groupId>
             <artifactId>osgi-liquibase</artifactId>
             <version>${osgi-liquibase-version}</version>
         </dependency>
-
+        -->
         <dependency>
             <groupId>org.ops4j.pax.jdbc</groupId>
             <artifactId>pax-jdbc-pool-common</artifactId>

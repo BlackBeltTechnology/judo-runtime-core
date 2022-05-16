@@ -16,10 +16,10 @@ import hu.blackbelt.judo.meta.esm.structure.util.builder.MappingBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.TransferObjectTypeBuilder;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.util.builder.NumericTypeBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.AfterEach;
@@ -42,8 +42,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class ParameterizedOperationTest {
     public static final String MODEL_NAME = "M";
@@ -53,19 +53,19 @@ public class ParameterizedOperationTest {
     private String idProviderName;
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        idProviderClass = daoFixture.getIdProvider().getType();
-        idProviderName = daoFixture.getIdProvider().getName();
+    public void setup(JudoRuntimeFixture runtimeFixture) {
+        idProviderClass = runtimeFixture.getIdProvider().getType();
+        idProviderName = runtimeFixture.getIdProvider().getName();
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
     @Disabled // TODO: JNG-1889
-    public void testParameterizedOperation(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testParameterizedOperation(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final String MODEL_NAME = "M";
 
         final NumericType integer = NumericTypeBuilder.create().withName("integerType").withPrecision(7).withScale(0).build();
@@ -115,17 +115,17 @@ public class ParameterizedOperationTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        Assertions.assertTrue(daoFixture.isInitialized());
+        runtimeFixture.init(model, datasourceFixture);
+        Assertions.assertTrue(runtimeFixture.isInitialized());
 
-        final EClass aEClass = daoFixture.getAsmUtils().getClassByFQName("M._default_transferobjecttypes.A").get();
+        final EClass aEClass = runtimeFixture.getAsmUtils().getClassByFQName("M._default_transferobjecttypes.A").get();
 
         final Payload aInstance =
-                daoFixture.getDao().create(aEClass, Payload.map("required", 999), DAO.QueryCustomizer.<UUID>builder().build());
+                runtimeFixture.getDao().create(aEClass, Payload.map("required", 999), DAO.QueryCustomizer.<UUID>builder().build());
         log.debug("Instance of A (entity) created:\n" + aInstance);
         final UUID aID = aInstance.getAs(idProviderClass, idProviderName);
 
-        final Payload operationCalledWithInstance = daoFixture.getOperationImplementations()
+        final Payload operationCalledWithInstance = runtimeFixture.getOperationImplementations()
                 .get("increase_non_required_parameter")
                 .apply(Payload.map("input", Payload.map(idProviderName, aID, "required", 999)));
         log.debug("OPERATION RESULT:\n" + operationCalledWithInstance.toString());
@@ -136,7 +136,7 @@ public class ParameterizedOperationTest {
         assertThat(output.getAs(Integer.class, "required"), equalTo(999));
         assertThat(output.getAs(Integer.class, "non_required"), nullValue());
 
-        final Payload operationCalledWithNonExistent = daoFixture.getOperationImplementations()
+        final Payload operationCalledWithNonExistent = runtimeFixture.getOperationImplementations()
                 .get("increase_non_required_parameter")
                 .apply(Payload.map("input", Payload.map("required", 348623)));
         log.debug("OPERATION RESULT:\n" + operationCalledWithNonExistent.toString());

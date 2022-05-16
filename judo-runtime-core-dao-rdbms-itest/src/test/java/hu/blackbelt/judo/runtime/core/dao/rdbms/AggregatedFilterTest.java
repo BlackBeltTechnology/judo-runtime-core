@@ -10,10 +10,10 @@ import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.structure.TwoWayRelationMember;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -37,8 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class AggregatedFilterTest {
     public static final String MODEL_NAME = "AggregatedFilterTest";
@@ -119,29 +119,29 @@ public class AggregatedFilterTest {
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testAggregatedFilter(RdbmsDaoFixture daoFixture) {
-        final EClass customerType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Customer").get();
-        final EClass orderType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Order").get();
+    public void testAggregatedFilter(JudoRuntimeFixture runtimeFixture) {
+        final EClass customerType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Customer").get();
+        final EClass orderType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Order").get();
 
         final EReference ordersOfCustomer = customerType.getEAllReferences().stream().filter(r -> "orders".equals(r.getName())).findAny().get();
         final EReference ordersWithMultipleItemsOfCustomer = customerType.getEAllReferences().stream().filter(r -> "ordersWithMultipleItems".equals(r.getName())).findAny().get();
 
-        final Payload customer = daoFixture.getDao().create(customerType, empty(), DAO.QueryCustomizer.<UUID>builder()
+        final Payload customer = runtimeFixture.getDao().create(customerType, empty(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID customerId = customer.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final Payload order1 = daoFixture.getDao().create(orderType, map(
+        final UUID customerId = customer.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final Payload order1 = runtimeFixture.getDao().create(orderType, map(
                 "items", Arrays.asList(map(
                         "product", "P1",
                         "quantity", 2
@@ -152,8 +152,8 @@ public class AggregatedFilterTest {
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID order1Id = order1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final Payload order2 = daoFixture.getDao().create(orderType, map(
+        final UUID order1Id = order1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final Payload order2 = runtimeFixture.getDao().create(orderType, map(
                 "items", Arrays.asList(map(
                         "product", "P3",
                         "quantity", 5
@@ -161,13 +161,13 @@ public class AggregatedFilterTest {
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID order2Id = order2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID order2Id = order2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        daoFixture.getDao().addReferences(ordersOfCustomer, customerId, Arrays.asList(order1Id, order2Id));
+        runtimeFixture.getDao().addReferences(ordersOfCustomer, customerId, Arrays.asList(order1Id, order2Id));
 
         log.debug("Running query...");
 
-        final List<Payload> result = daoFixture.getDao().getNavigationResultAt(customerId, ordersWithMultipleItemsOfCustomer);
+        final List<Payload> result = runtimeFixture.getDao().getNavigationResultAt(customerId, ordersWithMultipleItemsOfCustomer);
 
         log.debug("Result: {}", result);
 

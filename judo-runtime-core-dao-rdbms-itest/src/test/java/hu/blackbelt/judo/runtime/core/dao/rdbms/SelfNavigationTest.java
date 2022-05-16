@@ -6,10 +6,10 @@ import hu.blackbelt.judo.meta.esm.namespace.util.builder.NamespaceBuilders;
 import hu.blackbelt.judo.meta.esm.structure.*;
 import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -34,8 +34,8 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class SelfNavigationTest {
 
@@ -118,45 +118,45 @@ public class SelfNavigationTest {
         return model;
     }
 
-    RdbmsDaoFixture daoFixture;
+    JudoRuntimeFixture runtimeFixture;
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        this.daoFixture = daoFixture;
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        this.runtimeFixture = runtimeFixture;
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
     public void testSelfNavigation() {
-        final EClass entityType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".E").get();
+        final EClass entityType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".E").get();
         final EReference selfOfE = entityType.getEAllReferences().stream().filter(r -> "self".equals(r.getName())).findAny().get();
-        final EClass transferObjectType1 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".T1").get();
+        final EClass transferObjectType1 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".T1").get();
 
-        final Payload entity1 = daoFixture.getDao().create(entityType, map("name", "Entity1"), null);
+        final Payload entity1 = runtimeFixture.getDao().create(entityType, map("name", "Entity1"), null);
         log.debug("Saved entity #1: {}", entity1);
-        final UUID entity1Id = entity1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID entity1Id = entity1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload entity2 = daoFixture.getDao().create(entityType, map("name", "Entity2"), null);
+        final Payload entity2 = runtimeFixture.getDao().create(entityType, map("name", "Entity2"), null);
         log.debug("Saved entity #2: {}", entity2);
-        final UUID entity2Id = entity2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID entity2Id = entity2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final List<Payload> selfOfEntity1 = daoFixture.getDao().getNavigationResultAt(entity1Id, selfOfE);
+        final List<Payload> selfOfEntity1 = runtimeFixture.getDao().getNavigationResultAt(entity1Id, selfOfE);
         log.debug("Self of E #1: {}", selfOfEntity1);
         assertThat(selfOfEntity1, hasSize(1));
         assertThat(selfOfEntity1.get(0), equalTo(entity1));
 
-        final List<Payload> selfOfEntity2 = daoFixture.getDao().getNavigationResultAt(entity2Id, selfOfE);
+        final List<Payload> selfOfEntity2 = runtimeFixture.getDao().getNavigationResultAt(entity2Id, selfOfE);
         log.debug("Self of E #2: {}", selfOfEntity2);
         assertThat(selfOfEntity2, hasSize(1));
         assertThat(selfOfEntity2.get(0), equalTo(entity2));
 
-        final Optional<Payload> transferObject1 = daoFixture.getDao().getByIdentifier(transferObjectType1, entity1Id);
+        final Optional<Payload> transferObject1 = runtimeFixture.getDao().getByIdentifier(transferObjectType1, entity1Id);
         log.debug("TransferObject1 of E #1: {}", transferObject1);
         assertThat(transferObject1.isPresent(), equalTo(Boolean.TRUE));
         final Payload expected1T1 = Payload.asPayload(entity1);
@@ -164,7 +164,7 @@ public class SelfNavigationTest {
         expected1T1.put("self", expected1T2);
         assertThat(transferObject1.get(), equalTo(expected1T1));
 
-        final Optional<Payload> transferObject2 = daoFixture.getDao().getByIdentifier(transferObjectType1, entity2Id);
+        final Optional<Payload> transferObject2 = runtimeFixture.getDao().getByIdentifier(transferObjectType1, entity2Id);
         log.debug("TransferObject1 of E #2: {}", transferObject2);
         assertThat(transferObject2.isPresent(), equalTo(Boolean.TRUE));
         final Payload expected2T1 = Payload.asPayload(entity2);

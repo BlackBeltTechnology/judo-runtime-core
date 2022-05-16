@@ -9,10 +9,10 @@ import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.structure.TwoWayRelationMember;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -33,8 +33,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class DoorsTest {
 
@@ -48,8 +48,8 @@ public class DoorsTest {
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     public Model getDefaultModel() {
@@ -148,47 +148,47 @@ public class DoorsTest {
     }
 
     @Test
-    public void testDefaultValues(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getDefaultModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testDefaultValues(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getDefaultModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass division = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".entities.Division").get();
-        final EClass position = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".entities.Position").get();
-        final EClass employee = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".entities.Employee").get();
-        final EReference rangeOfDivisionsOfEmployee = daoFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".entities.Employee#rangeOfDivisions").get();
-        final EAttribute nameOfDivision = daoFixture.getAsmUtils().resolveAttribute(DTO_PACKAGE + ".entities.Division#name").get();
+        final EClass division = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".entities.Division").get();
+        final EClass position = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".entities.Position").get();
+        final EClass employee = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".entities.Employee").get();
+        final EReference rangeOfDivisionsOfEmployee = runtimeFixture.getAsmUtils().resolveReference(DTO_PACKAGE + ".entities.Employee#rangeOfDivisions").get();
+        final EAttribute nameOfDivision = runtimeFixture.getAsmUtils().resolveAttribute(DTO_PACKAGE + ".entities.Division#name").get();
 
-        final Payload d1 = daoFixture.getDao().create(division, Payload.map(
+        final Payload d1 = runtimeFixture.getDao().create(division, Payload.map(
                 "name", "D1"
         ), null);
-        final Payload d2 = daoFixture.getDao().create(division, Payload.map(
+        final Payload d2 = runtimeFixture.getDao().create(division, Payload.map(
                 "name", "D2"
         ), null);
-        final Payload d3 = daoFixture.getDao().create(division, Payload.map(
+        final Payload d3 = runtimeFixture.getDao().create(division, Payload.map(
                 "name", "D3"
         ), null);
 
-        final Payload p1 = daoFixture.getDao().create(position, Payload.map(
+        final Payload p1 = runtimeFixture.getDao().create(position, Payload.map(
                 "name", "P1",
                 "division", d1
         ), null);
-        final Payload p2 = daoFixture.getDao().create(position, Payload.map(
+        final Payload p2 = runtimeFixture.getDao().create(position, Payload.map(
                 "name", "P2",
                 "division", d2
         ), null);
-        daoFixture.getDao().create(position, Payload.map(
+        runtimeFixture.getDao().create(position, Payload.map(
                 "name", "P3",
                 "division", d3
         ), null);
 
-        final Payload testEmployee = daoFixture.getDao().create(employee, Payload.map(
+        final Payload testEmployee = runtimeFixture.getDao().create(employee, Payload.map(
                 "email", "test@employee",
                 "positions", Arrays.asList(p1, p2)
         ), null);
-        final UUID testEmployeeId = testEmployee.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID testEmployeeId = testEmployee.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Set<Payload> set1 = new HashSet<>(daoFixture.getDao().getNavigationResultAt(testEmployeeId, rangeOfDivisionsOfEmployee));
-        final Set<Payload> set2 = new HashSet<>(daoFixture.getDao().searchNavigationResultAt(testEmployeeId, rangeOfDivisionsOfEmployee, DAO.QueryCustomizer.<UUID>builder()
+        final Set<Payload> set1 = new HashSet<>(runtimeFixture.getDao().getNavigationResultAt(testEmployeeId, rangeOfDivisionsOfEmployee));
+        final Set<Payload> set2 = new HashSet<>(runtimeFixture.getDao().searchNavigationResultAt(testEmployeeId, rangeOfDivisionsOfEmployee, DAO.QueryCustomizer.<UUID>builder()
                 .seek(DAO.Seek.builder()
                         .limit(5)
                         .build())

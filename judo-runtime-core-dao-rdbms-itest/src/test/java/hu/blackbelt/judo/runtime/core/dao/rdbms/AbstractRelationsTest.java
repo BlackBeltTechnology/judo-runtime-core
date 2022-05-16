@@ -15,8 +15,8 @@ import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.service.UnmappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -459,89 +459,90 @@ public abstract class AbstractRelationsTest {
         }
     }
 
-    protected RdbmsDaoFixture daoFixture;
+    protected JudoRuntimeFixture runtimeFixture;
     protected IdentifierProvider<UUID> uuid;
-    protected RdbmsDatasourceFixture datasourceFixture;
+    protected JudoDatasourceFixture datasourceFixture;
 
-    void init(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        this.daoFixture = daoFixture;
-        this.uuid = daoFixture.getUuid();
+    void init(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        this.runtimeFixture = runtimeFixture;
         this.datasourceFixture = datasourceFixture;
-        daoFixture.init(getPsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(getPsmModel(), datasourceFixture);
+        this.uuid = runtimeFixture.getIdProvider();
 
-        a = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A").get();
-        b = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B").get();
-        c = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".C").get();
-        d = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".D").get();
-        e = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".E").get();
-        f = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".F").get();
-        g = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".G").get();
-        h = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".H").get();
-        i = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".I").get();
-        j = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".J").get();
-        k = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".K").get();
-        l = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".L").get();
-        m = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".M").get();
-        n = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".N").get();
-        o = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".O").get();
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        a1 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A1").get();
-        a2 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A2").get();
-        a3 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A3").get();
-        a4 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A4").get();
-        a5 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A5").get();
-        a6 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A6").get();
-        a7 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A7").get();
+        a = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A").get();
+        b = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B").get();
+        c = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".C").get();
+        d = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".D").get();
+        e = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".E").get();
+        f = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".F").get();
+        g = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".G").get();
+        h = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".H").get();
+        i = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".I").get();
+        j = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".J").get();
+        k = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".K").get();
+        l = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".L").get();
+        m = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".M").get();
+        n = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".N").get();
+        o = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".O").get();
+
+        a1 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A1").get();
+        a2 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A2").get();
+        a3 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A3").get();
+        a4 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A4").get();
+        a5 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A5").get();
+        a6 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A6").get();
+        a7 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A7").get();
 
         a1s = (EReference) a.getEStructuralFeature(ASSOC_A1S);
         as = (EReference) a2.getEStructuralFeature(ASSOC_AS);
         a3s = (EReference) a.getEStructuralFeature(ASSOC_A3MM);
 
-        b1 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B1").get();
-        b2 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B2").get();
-        b3 = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B3").get();
+        b1 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B1").get();
+        b2 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B2").get();
+        b3 = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B3").get();
 
         b1s = (EReference) b.getEStructuralFeature(ASSOC_B1S);
         bs = (EReference) b2.getEStructuralFeature(ASSOC_BS);
         b3s = (EReference) b.getEStructuralFeature(ASSOC_B3MM);
 
-        aM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AM").get();
-        bM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".BM").get();
-        cM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".CM").get();
-        dM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".DM").get();
-        eM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".EM").get();
-        fM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".FM").get();
-        gM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".GM").get();
-        hM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".HM").get();
-        iM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".IM").get();
-        jM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".JM").get();
-        kM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".KM").get();
-        lM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".LM").get();
-        mM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".MM").get();
-        nM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".NM").get();
-        oM = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".OM").get();
+        aM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".AM").get();
+        bM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".BM").get();
+        cM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".CM").get();
+        dM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".DM").get();
+        eM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".EM").get();
+        fM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".FM").get();
+        gM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".GM").get();
+        hM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".HM").get();
+        iM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".IM").get();
+        jM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".JM").get();
+        kM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".KM").get();
+        lM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".LM").get();
+        mM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".MM").get();
+        nM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".NM").get();
+        oM = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".OM").get();
 
-        a1M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A1M").get();
-        a2M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A2M").get();
-        a2M_Insert = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A2M_INS").get();
+        a1M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A1M").get();
+        a2M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A2M").get();
+        a2M_Insert = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A2M_INS").get();
 
-        a3M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A3M").get();
-        a3M_Insert = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A3M_INS").get();
-        a4M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A4M").get();
+        a3M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A3M").get();
+        a3M_Insert = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A3M_INS").get();
+        a4M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A4M").get();
 
-        a5M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A5M").get();
-        a5M_Insert = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A5M_INS").get();
-        a6M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A6M").get();
-        a6M_Insert = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A6M_INS").get();
-        a7M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A7M").get();
-        a7M_Insert = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A7M_INS").get();
+        a5M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A5M").get();
+        a5M_Insert = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A5M_INS").get();
+        a6M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A6M").get();
+        a6M_Insert = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A6M_INS").get();
+        a7M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A7M").get();
+        a7M_Insert = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".A7M_INS").get();
 
-        b1M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B1M").get();
-        b2M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B2M").get();
-        b2M_Insert = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B2M_INS").get();
-        b3M = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B3M").get();
-        b3M_Insert = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B3M_INS").get();
+        b1M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B1M").get();
+        b2M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B2M").get();
+        b2M_Insert = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B2M_INS").get();
+        b3M = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B3M").get();
+        b3M_Insert = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".B3M_INS").get();
 
         a1sMR = (EReference) aM.getEStructuralFeature(ASSOC_A1S);
         asMR = (EReference) a2M.getEStructuralFeature(ASSOC_AS);
@@ -553,7 +554,7 @@ public abstract class AbstractRelationsTest {
         b3ooMR = (EReference) bM.getEStructuralFeature(ASSOC_B3OO);
         isMR = (EReference) dM.getEStructuralFeature(CON_IS);
 
-        dummy = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + DUMMY_ACCESS_POINT_NAME).get();
+        dummy = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + DUMMY_ACCESS_POINT_NAME).get();
         allMsInDummy = (EReference) dummy.getEStructuralFeature(DUMMY_ALL_MS);
 
         aRefMR = (EReference) a2M.getEStructuralFeature(ASSOC_A);
@@ -1233,10 +1234,10 @@ public abstract class AbstractRelationsTest {
     public UUID getUuidByName(String name, EClass clazz) {
         final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource());
         String tableName;
-        if (daoFixture.getAsmUtils().isMappedTransferObjectType(clazz)) {
-            tableName = daoFixture.getRdbmsResolver().rdbmsTable(daoFixture.getAsmUtils().getMappedEntityType(clazz).get()).getSqlName();
+        if (runtimeFixture.getAsmUtils().isMappedTransferObjectType(clazz)) {
+            tableName = runtimeFixture.getRdbmsResolver().rdbmsTable(runtimeFixture.getAsmUtils().getMappedEntityType(clazz).get()).getSqlName();
         } else {
-            tableName = daoFixture.getRdbmsResolver().rdbmsTable(clazz).getSqlName();
+            tableName = runtimeFixture.getRdbmsResolver().rdbmsTable(clazz).getSqlName();
         }
 
         String sql = "SELECT ID FROM " + tableName + " WHERE " + NAME_COLUMN_NAME + "= :name";
@@ -1248,17 +1249,17 @@ public abstract class AbstractRelationsTest {
 
         final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource());
         String tableName;
-        if (daoFixture.getAsmUtils().isMappedTransferObjectType(clazz)) {
-            tableName = daoFixture.getRdbmsResolver().rdbmsTable(daoFixture.getAsmUtils().getMappedEntityType(clazz).get()).getSqlName();
+        if (runtimeFixture.getAsmUtils().isMappedTransferObjectType(clazz)) {
+            tableName = runtimeFixture.getRdbmsResolver().rdbmsTable(runtimeFixture.getAsmUtils().getMappedEntityType(clazz).get()).getSqlName();
         } else {
-            tableName = daoFixture.getRdbmsResolver().rdbmsTable(clazz).getSqlName();
+            tableName = runtimeFixture.getRdbmsResolver().rdbmsTable(clazz).getSqlName();
         }
 
         String sql = "SELECT COUNT(1) FROM " + tableName + " WHERE " + ID_COLUMN_NAME + "= :" + uuid.getName();
         return jdbcTemplate.queryForObject(sql, new MapSqlParameterSource()
-                .addValue(uuid.getName(), RdbmsDaoFixture.DATA_TYPE_MANAGER.
-                                getCoercer().coerce(id, daoFixture.getRdbmsParameterMapper().getIdClassName()),
-                        daoFixture.getRdbmsParameterMapper().getIdSqlType()), Integer.class) == 1;
+                .addValue(uuid.getName(), runtimeFixture.getDataTypeManager().
+                                getCoercer().coerce(id, runtimeFixture.getRdbmsParameterMapper().getIdClassName()),
+                        runtimeFixture.getRdbmsParameterMapper().getIdSqlType()), Integer.class) == 1;
     }
 
 }

@@ -9,10 +9,10 @@ import hu.blackbelt.judo.meta.esm.structure.MemberType;
 import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -37,8 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class PartialUpdateTest {
 
@@ -123,128 +123,128 @@ public class PartialUpdateTest {
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testPartialUpdate(RdbmsDaoFixture daoFixture) {
-        final EClass personType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + PERSON).get();
-        final EClass petType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + PET).get();
+    public void testPartialUpdate(JudoRuntimeFixture runtimeFixture) {
+        final EClass personType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + PERSON).get();
+        final EClass petType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + "." + PET).get();
         final EReference petsReference = personType.getEAllReferences().stream().filter(r -> PETS.equals(r.getName())).findAny().get();
 
-        final Payload father1 = daoFixture.getDao().create(personType, map(
+        final Payload father1 = runtimeFixture.getDao().create(personType, map(
                 NAME, FATHER1_NAME
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved father1: {}", father1);
-        final UUID father1Id = father1.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID father1Id = father1.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload father2 = daoFixture.getDao().create(personType, map(
+        final Payload father2 = runtimeFixture.getDao().create(personType, map(
                 NAME, FATHER2_NAME
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved father2: {}", father2);
-        final UUID father2Id = father2.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID father2Id = father2.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload cat = daoFixture.getDao().create(petType, map(
+        final Payload cat = runtimeFixture.getDao().create(petType, map(
                 NAME, "cat"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved cat: {}", cat);
-        final UUID catId = cat.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID catId = cat.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload dog = daoFixture.getDao().create(petType, map(
+        final Payload dog = runtimeFixture.getDao().create(petType, map(
                 NAME, "dog"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved dog: {}", dog);
-        final UUID dogId = dog.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID dogId = dog.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload bunny = daoFixture.getDao().create(petType, map(
+        final Payload bunny = runtimeFixture.getDao().create(petType, map(
                 NAME, "bunny"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved bunny: {}", bunny);
-        final UUID bunnyId = bunny.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID bunnyId = bunny.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
-        final Payload original = daoFixture.getDao().create(personType, map(
+        final Payload original = runtimeFixture.getDao().create(personType, map(
                 NAME, ORIGINAL_NAME,
                 YEAR_OF_BIRTH, ORIGINAL_YEAR_OF_BIRTH,
                 FATHER, map(
-                        daoFixture.getIdProvider().getName(), father1Id
+                        runtimeFixture.getIdProvider().getName(), father1Id
                 ),
                 PETS, Arrays.asList(
                         map(
-                                daoFixture.getIdProvider().getName(), catId
+                                runtimeFixture.getIdProvider().getName(), catId
                         )
                 )
         ), null);
-        final UUID personId = original.getAs(UUID.class, daoFixture.getUuid().getName());
+        final UUID personId = original.getAs(UUID.class, runtimeFixture.getIdProvider().getName());
 
         log.debug("Original person: {}", original);
-        check(daoFixture, original, ORIGINAL_NAME, ORIGINAL_YEAR_OF_BIRTH, father1Id, Arrays.asList(catId));
+        check(runtimeFixture, original, ORIGINAL_NAME, ORIGINAL_YEAR_OF_BIRTH, father1Id, Arrays.asList(catId));
 
-        final Payload missingCollectionReference = daoFixture.getDao().update(personType, map(
-                daoFixture.getIdProvider().getName(), personId,
+        final Payload missingCollectionReference = runtimeFixture.getDao().update(personType, map(
+                runtimeFixture.getIdProvider().getName(), personId,
                 NAME, ORIGINAL_NAME,
                 YEAR_OF_BIRTH, ORIGINAL_YEAR_OF_BIRTH,
                 FATHER, map(
-                        daoFixture.getIdProvider().getName(), father2Id
+                        runtimeFixture.getIdProvider().getName(), father2Id
                 )
         ), null);
         log.debug("Missing collection reference: {}", missingCollectionReference);
-        check(daoFixture, missingCollectionReference, ORIGINAL_NAME, ORIGINAL_YEAR_OF_BIRTH, father2Id, Arrays.asList(catId));
+        check(runtimeFixture, missingCollectionReference, ORIGINAL_NAME, ORIGINAL_YEAR_OF_BIRTH, father2Id, Arrays.asList(catId));
 
-        final Payload missingSingleReference = daoFixture.getDao().update(personType, map(
-                daoFixture.getIdProvider().getName(), personId,
+        final Payload missingSingleReference = runtimeFixture.getDao().update(personType, map(
+                runtimeFixture.getIdProvider().getName(), personId,
                 NAME, ORIGINAL_NAME,
                 YEAR_OF_BIRTH, ORIGINAL_YEAR_OF_BIRTH,
                 PETS, Arrays.asList(
                         map(
-                                daoFixture.getIdProvider().getName(), dogId
+                                runtimeFixture.getIdProvider().getName(), dogId
                         ),
                         map(
-                                daoFixture.getIdProvider().getName(), catId
+                                runtimeFixture.getIdProvider().getName(), catId
                         )
                 )
         ), null);
         log.debug("Missing single reference: {}", missingSingleReference);
-        check(daoFixture, missingSingleReference, ORIGINAL_NAME, ORIGINAL_YEAR_OF_BIRTH, father2Id, Arrays.asList(dogId, catId));
+        check(runtimeFixture, missingSingleReference, ORIGINAL_NAME, ORIGINAL_YEAR_OF_BIRTH, father2Id, Arrays.asList(dogId, catId));
 
-        daoFixture.getDao().setReference(petsReference, personId, Arrays.asList(dogId, bunnyId));
+        runtimeFixture.getDao().setReference(petsReference, personId, Arrays.asList(dogId, bunnyId));
 
-        final Payload missingOptionalAttribute = daoFixture.getDao().update(personType, map(
-                daoFixture.getIdProvider().getName(), personId,
+        final Payload missingOptionalAttribute = runtimeFixture.getDao().update(personType, map(
+                runtimeFixture.getIdProvider().getName(), personId,
                 NAME, UPDATED_NAME
         ), null);
         log.debug("Missing optional attribute: {}", missingOptionalAttribute);
-        check(daoFixture, missingOptionalAttribute, UPDATED_NAME, ORIGINAL_YEAR_OF_BIRTH, father2Id, Arrays.asList(dogId, bunnyId));
+        check(runtimeFixture, missingOptionalAttribute, UPDATED_NAME, ORIGINAL_YEAR_OF_BIRTH, father2Id, Arrays.asList(dogId, bunnyId));
 
-        final Payload missingRequiredAttribute = daoFixture.getDao().update(personType, map(
-                daoFixture.getIdProvider().getName(), personId,
+        final Payload missingRequiredAttribute = runtimeFixture.getDao().update(personType, map(
+                runtimeFixture.getIdProvider().getName(), personId,
                 YEAR_OF_BIRTH, UPDATED_YEAR_OF_BIRTH
         ), null);
         log.debug("Missing required attribute: {}", missingRequiredAttribute);
-        check(daoFixture, missingRequiredAttribute, UPDATED_NAME, UPDATED_YEAR_OF_BIRTH, father2Id, Arrays.asList(dogId, bunnyId));
+        check(runtimeFixture, missingRequiredAttribute, UPDATED_NAME, UPDATED_YEAR_OF_BIRTH, father2Id, Arrays.asList(dogId, bunnyId));
     }
 
-    private void check(final RdbmsDaoFixture daoFixture, final Payload person, final String expectedName, final Integer expectedYearOfBirth, final UUID expectedFatherId, final Collection<UUID> expectedPetIds) {
+    private void check(final JudoRuntimeFixture runtimeFixture, final Payload person, final String expectedName, final Integer expectedYearOfBirth, final UUID expectedFatherId, final Collection<UUID> expectedPetIds) {
         assertThat(person, hasEntry(equalTo(NAME), equalTo(expectedName)));
         assertThat(person, hasEntry(equalTo(YEAR_OF_BIRTH), equalTo(expectedYearOfBirth)));
         if (expectedFatherId != null) {
-            assertThat(person.getAsPayload(FATHER), hasEntry(equalTo(daoFixture.getIdProvider().getName()), equalTo(expectedFatherId)));
+            assertThat(person.getAsPayload(FATHER), hasEntry(equalTo(runtimeFixture.getIdProvider().getName()), equalTo(expectedFatherId)));
         } else {
             assertNull(person.getAsPayload(FATHER));
         }
@@ -253,7 +253,7 @@ public class PartialUpdateTest {
         if (expectedPetIds != null) {
 	        expectedPetIds.forEach(expectedPetId -> {
 	        	Collection<Map<String, Object>> pets = person.getAsCollectionPayload(PETS).stream().collect(Collectors.toList());
-	        	assertThat(pets,  hasItem(hasEntry(equalTo(daoFixture.getIdProvider().getName()), equalTo((Object) expectedPetId))));
+	        	assertThat(pets,  hasItem(hasEntry(equalTo(runtimeFixture.getIdProvider().getName()), equalTo((Object) expectedPetId))));
 	        });
             assertTrue(person.getAsCollectionPayload(PETS).size() == expectedPetIds.size());
         }

@@ -14,10 +14,10 @@ import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.DateType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -40,8 +40,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class ParameterizedQueryTest {
 
@@ -54,13 +54,13 @@ public class ParameterizedQueryTest {
     }
 
     @AfterEach
-    public void teardown(final RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(final JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testParameterizedQuery(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.setIgnoreSdk(false);
+    public void testParameterizedQuery(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.setIgnoreSdk(false);
         final Measure time = newMeasureBuilder().withName("Time").withSymbol("t").build();
         final DurationUnit day = newDurationUnitBuilder().withName("day").withSymbol("d").withRateDividend(86400).withRateDivisor(1).withUnitType(DurationType.DAY).build();
         useMeasure(time).withUnits(Arrays.asList(day)).build();
@@ -229,12 +229,12 @@ public class ParameterizedQueryTest {
                 .withElements(stringType, integerType, booleanType, dateType, time, dayDurationType, person, exam, access, queryParameter, queryParameter2, durationQueryParameter)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass personType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Person").get();
-        final EClass examType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Exam").get();
-        final EClass accessType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Access").get();
+        final EClass personType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Person").get();
+        final EClass examType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Exam").get();
+        final EClass accessType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Access").get();
         final EReference peopleReference = accessType.getEAllReferences().stream().filter(r -> "people".equals(r.getName())).findAny().get();
         final EReference lastExamsReference = personType.getEAllReferences().stream().filter(r -> "lastExams".equals(r.getName())).findAny().get();
         final EReference peopleWithOldParentReference = accessType.getEAllReferences().stream().filter(r -> "peopleWithOldParent".equals(r.getName())).findAny().get();
@@ -242,21 +242,21 @@ public class ParameterizedQueryTest {
         final EReference motherReference = personType.getEAllReferences().stream().filter(r -> "mother".equals(r.getName())).findAny().get();
         final EReference fatherReference = personType.getEAllReferences().stream().filter(r -> "father".equals(r.getName())).findAny().get();
 
-        final Function<Payload, UUID> idExtractor = p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final Function<Payload, UUID> idExtractor = p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload exam1 = daoFixture.getDao().create(examType, Payload.map(
+        final Payload exam1 = runtimeFixture.getDao().create(examType, Payload.map(
                 "name", "Oracle Certified Professional, Java SE 11 Developer",
                 "code", "1Z0-819",
                 "date", LocalDate.now().minus(400, ChronoUnit.DAYS)
         ), null);
 
-        final Payload exam2 = daoFixture.getDao().create(examType, Payload.map(
+        final Payload exam2 = runtimeFixture.getDao().create(examType, Payload.map(
                 "name", "Oracle Certified Master, Java EE 6 Enterprise Architect",
                 "code", "1Z0-807",
                 "date", LocalDate.now().minus(1, ChronoUnit.MONTHS)
         ), null);
 
-        final Payload p1 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p1 = runtimeFixture.getDao().create(personType, Payload.map(
                 "name", "Gipsz Jakab",
                 "age", 20,
                 "city", "Budapest",
@@ -264,7 +264,7 @@ public class ParameterizedQueryTest {
         ), null);
         final UUID p1Id = idExtractor.apply(p1);
         assertThat(p1.get("overage"), nullValue());
-        final Optional<Boolean> p1Overage = daoFixture.getDao().search(personType, DAO.QueryCustomizer.<UUID>builder()
+        final Optional<Boolean> p1Overage = runtimeFixture.getDao().search(personType, DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.singletonMap("overage", true))
                         .instanceIds(Collections.singleton(p1Id))
                         .parameters(Collections.singletonMap("age", 21))
@@ -273,11 +273,11 @@ public class ParameterizedQueryTest {
                 .map(p -> p.getAs(Boolean.class, "overage"))
                 .findAny();
         assertThat(p1Overage.get(), equalTo(Boolean.FALSE));
-        final List<Payload> lastExamsOfP1 = daoFixture.getDao().searchNavigationResultAt(p1Id, lastExamsReference, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> lastExamsOfP1 = runtimeFixture.getDao().searchNavigationResultAt(p1Id, lastExamsReference, DAO.QueryCustomizer.<UUID>builder()
                 .parameters(Collections.singletonMap("duration", 365))
                 .build());
         assertThat(lastExamsOfP1, equalTo(Collections.singletonList(exam2)));
-        final Payload p2 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p2 = runtimeFixture.getDao().create(personType, Payload.map(
                 "name", "Teszt Elek",
                 "age", 16,
                 "city", "Debrecen"
@@ -285,14 +285,14 @@ public class ParameterizedQueryTest {
                 .mask(Collections.emptyMap())
                 .build());
         final UUID p2Id = idExtractor.apply(p2);
-        final Boolean p2Overage = daoFixture.getDao().search(personType, DAO.QueryCustomizer.<UUID>builder()
+        final Boolean p2Overage = runtimeFixture.getDao().search(personType, DAO.QueryCustomizer.<UUID>builder()
                         .instanceIds(Collections.singleton(p2Id))
                         .parameters(Collections.singletonMap("age", 21))
                         .build())
                 .get(0).getAs(Boolean.class, "overage");
         assertThat(p2Overage, nullValue());
 
-        final Payload p3 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p3 = runtimeFixture.getDao().create(personType, Payload.map(
                 "name", "Nagy Piroska",
                 "age", 50,
                 "city", "Miskolc"
@@ -300,7 +300,7 @@ public class ParameterizedQueryTest {
                 .mask(Collections.emptyMap())
                 .build());
         final UUID p3Id = idExtractor.apply(p3);
-        final Payload p4 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p4 = runtimeFixture.getDao().create(personType, Payload.map(
                 "name", "Kiss Péter",
                 "age", 56,
                 "city", "Debrecen"
@@ -309,39 +309,39 @@ public class ParameterizedQueryTest {
                 .build());
         final UUID p4Id = idExtractor.apply(p4);
 
-        daoFixture.getDao().setReference(motherReference, p1Id, ImmutableSet.of(p3Id));
-        daoFixture.getDao().setReference(fatherReference, p1Id, ImmutableSet.of(p4Id));
-        daoFixture.getDao().setReference(motherReference, p2Id, ImmutableSet.of(p3Id));
+        runtimeFixture.getDao().setReference(motherReference, p1Id, ImmutableSet.of(p3Id));
+        runtimeFixture.getDao().setReference(fatherReference, p1Id, ImmutableSet.of(p4Id));
+        runtimeFixture.getDao().setReference(motherReference, p2Id, ImmutableSet.of(p3Id));
 
-        final List<Payload> over18 = daoFixture.getDao().searchReferencedInstancesOf(peopleReference, personType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> over18 = runtimeFixture.getDao().searchReferencedInstancesOf(peopleReference, personType, DAO.QueryCustomizer.<UUID>builder()
                 .parameters(ImmutableMap.of(
                         "age", 18
                 )).build());
         final Set<UUID> over18Ids = over18.stream().map(idExtractor).collect(Collectors.toSet());
         assertThat(over18Ids, equalTo(ImmutableSet.of(p1Id, p3Id, p4Id)));
 
-        final List<Payload> over12 = daoFixture.getDao().searchReferencedInstancesOf(peopleReference, personType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> over12 = runtimeFixture.getDao().searchReferencedInstancesOf(peopleReference, personType, DAO.QueryCustomizer.<UUID>builder()
                 .parameters(ImmutableMap.of(
                         "age", 12
                 )).build());
         final Set<UUID> over12Ids = over12.stream().map(idExtractor).collect(Collectors.toSet());
         assertThat(over12Ids, equalTo(ImmutableSet.of(p1Id, p2Id, p3Id, p4Id)));
 
-        final List<Payload> peopleWithOldParentRes = daoFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentReference, personType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleWithOldParentRes = runtimeFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentReference, personType, DAO.QueryCustomizer.<UUID>builder()
                 .parameters(ImmutableMap.of(
                         "age", 55
                 )).build());
         final Set<UUID> peopleWithOldParentIds = peopleWithOldParentRes.stream().map(idExtractor).collect(Collectors.toSet());
         assertThat(peopleWithOldParentIds, equalTo(ImmutableSet.of(p1Id)));
 
-        final List<Payload> peopleWithOldParent2 = daoFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentReference, personType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleWithOldParent2 = runtimeFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentReference, personType, DAO.QueryCustomizer.<UUID>builder()
                 .parameters(ImmutableMap.of(
                         "age", 40
                 )).build());
         final Set<UUID> peopleWithOldParent2Ids = peopleWithOldParent2.stream().map(idExtractor).collect(Collectors.toSet());
         assertThat(peopleWithOldParent2Ids, equalTo(ImmutableSet.of(p1Id, p2Id)));
 
-        final List<Payload> peopleWithOldParentLivingAtDebrecen = daoFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentLivingAtReference, personType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleWithOldParentLivingAtDebrecen = runtimeFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentLivingAtReference, personType, DAO.QueryCustomizer.<UUID>builder()
                 .parameters(ImmutableMap.of(
                         "age", 40,
                         "location", "Debrecen"
@@ -349,7 +349,7 @@ public class ParameterizedQueryTest {
         final Set<UUID> peopleWithOldParentLivingAtDebrecenIds = peopleWithOldParentLivingAtDebrecen.stream().map(idExtractor).collect(Collectors.toSet());
         assertThat(peopleWithOldParentLivingAtDebrecenIds, equalTo(ImmutableSet.of(p1Id)));
 
-        final List<Payload> peopleWithOldParentLivingAtMiskolc = daoFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentLivingAtReference, personType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleWithOldParentLivingAtMiskolc = runtimeFixture.getDao().searchReferencedInstancesOf(peopleWithOldParentLivingAtReference, personType, DAO.QueryCustomizer.<UUID>builder()
                 .parameters(ImmutableMap.of(
                         "age", 55,
                         "location", "Miskolc"

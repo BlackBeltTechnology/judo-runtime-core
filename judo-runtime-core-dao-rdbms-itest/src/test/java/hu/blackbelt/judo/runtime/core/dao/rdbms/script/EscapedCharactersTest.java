@@ -15,8 +15,8 @@ import java.util.stream.Stream;
 import static hu.blackbelt.judo.meta.psm.PsmTestModelBuilder.Cardinality.cardinality;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class EscapedCharactersTest {
 
@@ -24,7 +24,7 @@ public class EscapedCharactersTest {
     public static final String OUTPUT = "output";
     public static final String ID_KEY = "__identifier";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -37,14 +37,14 @@ public class EscapedCharactersTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
@@ -54,7 +54,7 @@ public class EscapedCharactersTest {
 
     @ParameterizedTest
     @MethodSource("testEscapeCharacterSource")
-    public void testEscapeCharacter(String string, RdbmsDaoFixture fixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testEscapeCharacter(String string, JudoRuntimeFixture fixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Tester")

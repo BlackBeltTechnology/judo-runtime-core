@@ -10,10 +10,10 @@ import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.structure.TransferObjectType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -33,8 +33,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class EmbeddedFilterTest {
 
@@ -195,33 +195,33 @@ public class EmbeddedFilterTest {
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testVariableInEmbeddedQuery(RdbmsDaoFixture daoFixture) {
-        final EClass bucketType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Bucket").get();
-        final EClass itemType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Item").get();
-        final EClass productType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Product").get();
-        final EClass testerType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Tester").get();
+    public void testVariableInEmbeddedQuery(JudoRuntimeFixture runtimeFixture) {
+        final EClass bucketType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Bucket").get();
+        final EClass itemType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Item").get();
+        final EClass productType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Product").get();
+        final EClass testerType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Tester").get();
         final EReference otherItemsReference = itemType.getEReferences().stream().filter(r -> "otherItems".equals(r.getName())).findAny().get();
         final EReference bucketsWithProduct1OfTester = testerType.getEReferences().stream().filter(r -> "bucketsWithProduct1".equals(r.getName())).findAny().get();
         final EReference bucketsWithMainProduct1OfTester = testerType.getEReferences().stream().filter(r -> "bucketsWithMainProduct1".equals(r.getName())).findAny().get();
 
-        final Payload product1 = daoFixture.getDao().create(productType, map(
+        final Payload product1 = runtimeFixture.getDao().create(productType, map(
                 "name", "Product1"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final Payload bucket1 = daoFixture.getDao().create(bucketType, map(
+        final Payload bucket1 = runtimeFixture.getDao().create(bucketType, map(
                 "items", Arrays.asList(
                         map(
                                 "name", "i1",
@@ -240,9 +240,9 @@ public class EmbeddedFilterTest {
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID bucket1Id = bucket1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID bucket1Id = bucket1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload bucket2 = daoFixture.getDao().create(bucketType, map(
+        final Payload bucket2 = runtimeFixture.getDao().create(bucketType, map(
                 "items", Arrays.asList(
                         map(
                                 "name", "i1",
@@ -260,11 +260,11 @@ public class EmbeddedFilterTest {
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID bucket2Id = bucket2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID bucket2Id = bucket2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Running query...");
 
-        final Optional<Payload> result1 = daoFixture.getDao().getByIdentifier(bucketType, bucket1Id);
+        final Optional<Payload> result1 = runtimeFixture.getDao().getByIdentifier(bucketType, bucket1Id);
         log.debug("Bucket #1: {}", result1);
 
         // TODO: add assertion
@@ -276,11 +276,11 @@ public class EmbeddedFilterTest {
 //        assertThat(result1.get().getAsCollectionPayload("itemsHeavierThanAvgOfOthers1"), hasSize(1));
 //        assertThat(result1.get().getAsCollectionPayload("itemsHeavierThanAvgOfOthers2"), hasSize(1));
 
-        final UUID item1Of1Id = result1.get().getAsCollectionPayload("items").iterator().next().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final List<Payload> otherItems1 = daoFixture.getDao().getNavigationResultAt(item1Of1Id, otherItemsReference);
+        final UUID item1Of1Id = result1.get().getAsCollectionPayload("items").iterator().next().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final List<Payload> otherItems1 = runtimeFixture.getDao().getNavigationResultAt(item1Of1Id, otherItemsReference);
         log.debug("Other items of item #1 / bucket #1: {}", otherItems1);
 
-        final Optional<Payload> result2 = daoFixture.getDao().getByIdentifier(bucketType, bucket2Id);
+        final Optional<Payload> result2 = runtimeFixture.getDao().getByIdentifier(bucketType, bucket2Id);
         log.debug("Bucket #2: {}", result2);
 
         // TODO: add assertion
@@ -292,11 +292,11 @@ public class EmbeddedFilterTest {
 //        assertThat(result2.get().getAsCollectionPayload("itemsHeavierThanAvgOfOthers1"), hasSize(1));
 //        assertThat(result2.get().getAsCollectionPayload("itemsHeavierThanAvgOfOthers2"), hasSize(1));
 
-        final List<Payload> bucketsWithProduct1Result = daoFixture.getDao().getAllReferencedInstancesOf(bucketsWithProduct1OfTester, bucketsWithProduct1OfTester.getEReferenceType());
+        final List<Payload> bucketsWithProduct1Result = runtimeFixture.getDao().getAllReferencedInstancesOf(bucketsWithProduct1OfTester, bucketsWithProduct1OfTester.getEReferenceType());
         log.debug("Buckets with Product1: {}", bucketsWithProduct1Result);
         assertThat(bucketsWithProduct1Result, hasSize(1));
 
-        final List<Payload> bucketsWithMainProduct1Result = daoFixture.getDao().getAllReferencedInstancesOf(bucketsWithMainProduct1OfTester, bucketsWithMainProduct1OfTester.getEReferenceType());
+        final List<Payload> bucketsWithMainProduct1Result = runtimeFixture.getDao().getAllReferencedInstancesOf(bucketsWithMainProduct1OfTester, bucketsWithMainProduct1OfTester.getEReferenceType());
         log.debug("Buckets with main item of Product1: {}", bucketsWithMainProduct1Result);
         assertThat(bucketsWithMainProduct1Result, hasSize(1));
     }

@@ -5,12 +5,13 @@ import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceGraph;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceReference;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
@@ -37,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class RelationsTest extends AbstractRelationsTest {
 
@@ -52,13 +53,13 @@ public class RelationsTest extends AbstractRelationsTest {
 
 
     private UUID create(EClass type, Payload payload) {
-        return (UUID) daoFixture.getDao().create(type, payload, null).get(daoFixture.getIdProvider().getName());
+        return (UUID) runtimeFixture.getDao().create(type, payload, null).get(runtimeFixture.getIdProvider().getName());
     }
 
     private void insertPayloads() {
         // Insert associated entities for B 1
 
-        Payload payload = daoFixture.getDao().create(aM,
+        Payload payload = runtimeFixture.getDao().create(aM,
                 map(
                         NAME, A_1,
                         REF_ID, A_1,
@@ -360,7 +361,7 @@ public class RelationsTest extends AbstractRelationsTest {
                 .filter(p -> C_2.equals(p.getAs(String.class, REF_ID))).findFirst().get().getAsCollectionPayload(CON_GS).stream()
                 .filter(p -> G_4.equals(p.getAs(String.class, REF_ID))).findFirst().get().getAsPayload(CON_N).get(REF_ID)));
 
-        a_1_id = (UUID) payload.get(daoFixture.getIdProvider().getName());
+        a_1_id = (UUID) payload.get(runtimeFixture.getIdProvider().getName());
 
         // Associations
         b1_1_id = getUuidByName(B1_1, b1);
@@ -671,20 +672,20 @@ public class RelationsTest extends AbstractRelationsTest {
     }
 
     public DAO<UUID> dao() {
-        return daoFixture.getDao();
+        return runtimeFixture.getDao();
     }
 
     @BeforeEach
-    public void insertDb(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        this.daoFixture = daoFixture;
-        this.uuid = daoFixture.getUuid();
-        init(daoFixture, datasourceFixture);
+    public void insertDb(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        this.runtimeFixture = runtimeFixture;
+        init(runtimeFixture, datasourceFixture);
+        this.uuid = runtimeFixture.getIdProvider();
         insertPayloads();
     }
 
     @AfterEach
-    public void purgeDb(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void purgeDb(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
@@ -1175,20 +1176,10 @@ public class RelationsTest extends AbstractRelationsTest {
     }
 
     @Test
-    void testInstanceCollector(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testInstanceCollector(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final long startTs = System.currentTimeMillis();
-        final RdbmsInstanceCollector instanceCollector = RdbmsInstanceCollector.<UUID>builder()
-                .asmUtils(daoFixture.getAsmUtils())
-                .jdbcTemplate(new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource()))
-                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
-                .rdbmsResolver(daoFixture.getRdbmsResolver())
-                .coercer(RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer())
-                .identifierProvider(daoFixture.getIdProvider())
-                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
-                .rdbmsModel(daoFixture.getRdbmsModel())
-                .build();
+        final InstanceCollector instanceCollector = runtimeFixture.getInstanceCollector();
 
-        instanceCollector.createSelects();
         final long modelCreated = System.currentTimeMillis();
         log.debug("Instance collector created in {} ms:", (modelCreated - startTs));
 

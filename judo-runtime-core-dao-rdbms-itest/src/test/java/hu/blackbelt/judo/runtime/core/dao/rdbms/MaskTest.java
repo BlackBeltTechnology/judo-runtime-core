@@ -10,10 +10,10 @@ import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.structure.TransferObjectType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -38,8 +38,8 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class MaskTest {
 
@@ -51,12 +51,12 @@ public class MaskTest {
     }
 
     @AfterEach
-    public void teardown(final RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(final JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testSimpleFilter(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    void testSimpleFilter(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
 
@@ -175,33 +175,33 @@ public class MaskTest {
                 .withElements(stringType, integerType, entity, containment, reference, tester)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass entityType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Entity").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass referenceType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Reference").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass testerType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Tester").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass entityType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Entity").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass referenceType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Reference").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass testerType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Tester").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
         final EReference entitiesReference = testerType.getEAllReferences().stream().filter(r -> "entities".equals(r.getName())).findAny().get();
 
-        final Payload r1 = daoFixture.getDao().create(referenceType, Payload.map(
+        final Payload r1 = runtimeFixture.getDao().create(referenceType, Payload.map(
                 "name", "Reference1",
                 "number", 100
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload r2 = daoFixture.getDao().create(referenceType, Payload.map(
+        final Payload r2 = runtimeFixture.getDao().create(referenceType, Payload.map(
                 "name", "Reference2",
                 "number", 200
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload r3 = daoFixture.getDao().create(referenceType, Payload.map(
+        final Payload r3 = runtimeFixture.getDao().create(referenceType, Payload.map(
                 "name", "Reference3",
                 "number", 300
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload e1 = daoFixture.getDao().create(entityType, Payload.map(
+        final Payload e1 = runtimeFixture.getDao().create(entityType, Payload.map(
                 "name", "Entity1",
                 "singleContainment", Payload.map(
                         "name", "SingleContainment",
@@ -224,15 +224,15 @@ public class MaskTest {
         e1.getAsPayload("singleContainment").remove("__$created");
         e1.getAsCollectionPayload("manyContainment").stream().forEach(p -> p.remove("__$created"));
 
-        final UUID e1Id = e1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID e1Id = e1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final List<Payload> result0 = daoFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> result0 = runtimeFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .build());
         log.debug("Result0: {}", result0);
         assertThat(result0, hasSize(1));
         assertThat(result0.get(0), equalTo(e1));
 
-        final List<Payload> result1 = daoFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> result1 = runtimeFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .withoutFeatures(true)
                 .build());
         log.debug("Result1: {}", result1);
@@ -241,7 +241,7 @@ public class MaskTest {
         assertThat(result1, hasSize(1));
         assertThat(result1.get(0), equalTo(expected1));
 
-        final List<Payload> result2 = daoFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> result2 = runtimeFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Result2: {}", result2);
@@ -250,7 +250,7 @@ public class MaskTest {
         assertThat(result2, hasSize(1));
         assertThat(result2.get(0), equalTo(expected2));
 
-        final List<Payload> result3 = daoFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> result3 = runtimeFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(ImmutableMap.of(
                         "name", true,
                         "upperName", true
@@ -264,7 +264,7 @@ public class MaskTest {
         assertThat(result3, hasSize(1));
         assertThat(result3.get(0), equalTo(expected3));
 
-        final List<Payload> result4 = daoFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> result4 = runtimeFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(ImmutableMap.<String, Object>builder()
                         .put("name", true)
                         .put("upperName", true)
@@ -286,7 +286,7 @@ public class MaskTest {
         assertThat(result4, hasSize(1));
         assertThat(result4.get(0), equalTo(e1));
 
-        final List<Payload> result5 = daoFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> result5 = runtimeFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(ImmutableMap.<String, Object>builder()
                         .put("name", true)
                         .put("singleContainment", Collections.emptyMap())
@@ -301,7 +301,7 @@ public class MaskTest {
         assertThat(result5, hasSize(1));
         assertThat(result5.get(0), equalTo(expected5));
 
-        final List<Payload> result6 = daoFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> result6 = runtimeFixture.getDao().searchReferencedInstancesOf(entitiesReference, entitiesReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(ImmutableMap.<String, Object>builder()
                         .put("singleContainment", Collections.singletonMap("name", true))
                         .build())

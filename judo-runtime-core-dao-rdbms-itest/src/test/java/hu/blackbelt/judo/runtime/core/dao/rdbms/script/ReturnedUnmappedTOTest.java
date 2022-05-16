@@ -20,8 +20,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class ReturnedUnmappedTOTest {
 
@@ -29,7 +29,7 @@ public class ReturnedUnmappedTOTest {
     public static final String OUTPUT = "output";
     public static final String ID_KEY = "__identifier";
 
-    public static Payload run(RdbmsDaoFixture fixture, String operationName, Payload exchange) {
+    public static Payload run(JudoRuntimeFixture fixture, String operationName, Payload exchange) {
         Function<Payload, Payload> operationImplementation =
                 operationName != null ? fixture.getOperationImplementations().get(operationName) :
                         fixture.getOperationImplementations().values().iterator().next();
@@ -42,20 +42,20 @@ public class ReturnedUnmappedTOTest {
         return result;
     }
 
-    public static Payload run(RdbmsDaoFixture fixture) {
+    public static Payload run(JudoRuntimeFixture fixture) {
         return run(fixture, null, null);
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        if (daoFixture.isInitialized()) {
-            daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        if (runtimeFixture.isInitialized()) {
+            runtimeFixture.dropDatabase();
         }
     }
 
 
     @Test
-    public void test(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void test(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder builder = new PsmTestModelBuilder();
 
         builder.addEntity("Target")
@@ -71,19 +71,19 @@ public class ReturnedUnmappedTOTest {
                           "return t")
                 .withOutput("Tester", cardinality(1, 1));
 
-        daoFixture.init(builder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(builder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        EClass targetEClass = daoFixture.getAsmUtils().getClassByFQName(DTO + "Target").orElseThrow();
+        EClass targetEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO + "Target").orElseThrow();
 
-        DAO<UUID> dao = daoFixture.getDao();
+        DAO<UUID> dao = runtimeFixture.getDao();
 
-        testData(targetEClass, dao, run(daoFixture, "operation", Payload.empty()).getAsPayload(OUTPUT), 2);
+        testData(targetEClass, dao, run(runtimeFixture, "operation", Payload.empty()).getAsPayload(OUTPUT), 2);
 
         dao.create(targetEClass, Payload.map("name", "target"), DAO.QueryCustomizer.<UUID>builder().build());
         dao.create(targetEClass, Payload.map("name", "target1"), DAO.QueryCustomizer.<UUID>builder().build());
 
-        testData(targetEClass, dao, run(daoFixture, "operation", Payload.empty()).getAsPayload(OUTPUT), 6);
+        testData(targetEClass, dao, run(runtimeFixture, "operation", Payload.empty()).getAsPayload(OUTPUT), 6);
     }
 
     private void testData(EClass targetEClass, DAO<UUID> dao, Payload result, int size) {

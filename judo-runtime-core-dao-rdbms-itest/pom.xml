@@ -14,6 +14,11 @@
     <dependencies>
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
+		    <artifactId>judo-runtime-core-bootstrap</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dao-rdbms</artifactId>
         </dependency>
         <dependency>
@@ -205,10 +210,29 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>hu.blackbelt.osgi.liquibase</groupId>
             <artifactId>osgi-liquibase</artifactId>
             <version>${osgi-liquibase-version}</version>
+        </dependency>
+        -->
+        <dependency>
+            <groupId>com.mattbertolini</groupId>
+            <artifactId>liquibase-slf4j</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>${slf4j-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.org.lidalia</groupId>
+            <artifactId>sysout-over-slf4j</artifactId>
+            <version>1.0.2</version>
         </dependency>
 
         <dependency>
@@ -274,5 +298,6 @@
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
         </dependency>
+
     </dependencies>
 </project>

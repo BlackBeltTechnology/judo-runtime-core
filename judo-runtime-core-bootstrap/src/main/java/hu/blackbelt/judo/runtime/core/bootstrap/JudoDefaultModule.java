@@ -7,7 +7,6 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
-import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
@@ -17,21 +16,12 @@ import hu.blackbelt.judo.runtime.core.bootstrap.accessmanager.DefaultAccessManag
 import hu.blackbelt.judo.runtime.core.bootstrap.core.DataTypeManagerProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.core.UUIDIdentifierProviderProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.*;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbAtomikosDataSourceProvider;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbMapperFactoryProvider;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbRdbmsParameterMapperProvider;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbRdbmsSequenceProvider;
 import hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.*;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
@@ -39,11 +29,8 @@ import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
-import org.hsqldb.server.Server;
 
-import javax.sql.DataSource;
 import javax.transaction.TransactionManager;
-import java.io.File;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -51,8 +38,6 @@ import java.util.function.Consumer;
 
 import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED;
-import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbRdbmsSequenceProvider.*;
-import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider.*;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultDispatcherProvider.*;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultIdentifierSignerProvider.IDENTIFIER_SIGNER_SECRET;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultMetricsCollectorProvider.*;
@@ -66,7 +51,7 @@ public class JudoDefaultModule extends AbstractModule {
     private final Object injectModulesTo;
     private final JudoModelHolder models;
 
-    JudoDefaultModule(Object injectModulesTo, JudoModelHolder models) {
+    public JudoDefaultModule(Object injectModulesTo, JudoModelHolder models) {
         this.injectModulesTo = injectModulesTo;
         this.models = models;
     }
@@ -89,22 +74,7 @@ public class JudoDefaultModule extends AbstractModule {
 
         // Model
         bind(JudoModelHolder.class).toInstance(models);
-
-        // HSQLDB
-        bind(Dialect.class).toInstance(new HsqldbDialect());
-        bind(Server.class).toProvider(HsqldbServerProvider.class).in(Singleton.class);
-        bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance("judo");
-        bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(new File(".", "judo.db"));
-        bind(Integer.class).annotatedWith(Names.named(HSQLDB_SERVER_PORT)).toInstance(31001);
-
-        bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);
-        bind(RdbmsParameterMapper.class).toProvider(HsqldbRdbmsParameterMapperProvider.class).in(Singleton.class);
-
-        // Datasource        
-        bind(DataSource.class).toProvider(HsqldbAtomikosDataSourceProvider.class).in(Singleton.class);
-
         
-        bind(TransactionManager.class).toProvider(AtomikosUserTransactionManagerProvider.class).in(Singleton.class);
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
         bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
         bind(RdbmsBuilder.class).toProvider(RdbmsBuilderProvider.class).in(Singleton.class);
@@ -118,11 +88,6 @@ public class JudoDefaultModule extends AbstractModule {
         
         bind(IdentifierSigner.class).toProvider(DefaultIdentifierSignerProvider.class).in(Singleton.class);
         bind(String.class).annotatedWith(Names.named(IDENTIFIER_SIGNER_SECRET)).toInstance(generateNewSecret());
-
-        bind(Sequence.class).toProvider(HsqldbRdbmsSequenceProvider.class).in(Singleton.class);
-        bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_START)).toInstance(1L);
-        bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_INCREMENT)).toInstance(1L);
-        bind(Boolean.class).annotatedWith(Names.named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)).toInstance(true);
 
         // Access manager
         bind(AccessManager.class).toProvider(DefaultAccessManagerProvider.class);

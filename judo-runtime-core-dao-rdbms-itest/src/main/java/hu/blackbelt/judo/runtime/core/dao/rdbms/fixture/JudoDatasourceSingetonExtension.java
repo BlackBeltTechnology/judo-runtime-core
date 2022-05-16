@@ -1,28 +1,31 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.fixture;
+	package hu.blackbelt.judo.runtime.core.dao.rdbms.fixture;
 
 import org.junit.jupiter.api.extension.*;
 
 import javax.transaction.Status;
 
-public class RdbmsDatasourceByClassExtension implements BeforeAllCallback, AfterAllCallback, AfterEachCallback, ParameterResolver {
+public class JudoDatasourceSingetonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver {
 
-    private RdbmsDatasourceFixture  rdbmsDatasourceFixture =  new RdbmsDatasourceFixture();
+    private static JudoDatasourceFixture  rdbmsDatasourceFixture =  new JudoDatasourceFixture();
+    private static boolean initialized = false;
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
-        rdbmsDatasourceFixture.setupDatasource();
-        rdbmsDatasourceFixture.prepareDatasources();
+        if (!initialized) {
+            rdbmsDatasourceFixture.setupDatabase();
+            rdbmsDatasourceFixture.prepareDatasources();
+            initialized = true;
+        }
     }
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
-        rdbmsDatasourceFixture.teardownDatasource();
+        // rdbmsDatasourceFixture.teardownDatasource();
     }
-
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return parameterContext.getParameter().getType().isAssignableFrom(RdbmsDatasourceFixture.class);
+        return parameterContext.getParameter().getType().isAssignableFrom(JudoDatasourceFixture.class);
     }
 
     @Override
@@ -37,4 +40,7 @@ public class RdbmsDatasourceByClassExtension implements BeforeAllCallback, After
         }
     }
 
+    @Override
+    public void beforeEach(ExtensionContext extensionContext) throws Exception {
+    }
 }

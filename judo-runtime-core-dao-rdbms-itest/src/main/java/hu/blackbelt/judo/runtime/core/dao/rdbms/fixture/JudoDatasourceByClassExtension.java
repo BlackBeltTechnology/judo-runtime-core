@@ -4,28 +4,25 @@ import org.junit.jupiter.api.extension.*;
 
 import javax.transaction.Status;
 
-public class RdbmsDatasourceSingetonExtension implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback, ParameterResolver {
+public class JudoDatasourceByClassExtension implements BeforeAllCallback, AfterAllCallback, AfterEachCallback, ParameterResolver {
 
-    private static RdbmsDatasourceFixture  rdbmsDatasourceFixture =  new RdbmsDatasourceFixture();
-    private static boolean initialized = false;
+    private JudoDatasourceFixture  rdbmsDatasourceFixture =  new JudoDatasourceFixture();
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
-        if (!initialized) {
-            rdbmsDatasourceFixture.setupDatasource();
-            rdbmsDatasourceFixture.prepareDatasources();
-            initialized = true;
-        }
+        rdbmsDatasourceFixture.setupDatabase();
+        rdbmsDatasourceFixture.prepareDatasources();
     }
 
     @Override
     public void afterAll(ExtensionContext context) throws Exception {
-        // rdbmsDatasourceFixture.teardownDatasource();
+        rdbmsDatasourceFixture.teardownDatasource();
     }
+
 
     @Override
     public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
-        return parameterContext.getParameter().getType().isAssignableFrom(RdbmsDatasourceFixture.class);
+        return parameterContext.getParameter().getType().isAssignableFrom(JudoDatasourceFixture.class);
     }
 
     @Override
@@ -40,7 +37,4 @@ public class RdbmsDatasourceSingetonExtension implements BeforeAllCallback, Afte
         }
     }
 
-    @Override
-    public void beforeEach(ExtensionContext extensionContext) throws Exception {
-    }
 }

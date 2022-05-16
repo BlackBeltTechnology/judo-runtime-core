@@ -8,10 +8,10 @@ import hu.blackbelt.judo.meta.esm.structure.*;
 import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -41,8 +41,8 @@ import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class StaticDataTest {
 
@@ -54,12 +54,12 @@ public class StaticDataTest {
     }
 
     @AfterEach
-    public void teardown(final RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(final JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testSimpleFilter(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    void testSimpleFilter(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
         final NumericType doubleType = newNumericTypeBuilder().withName("Double").withPrecision(15).withScale(4).build();
@@ -333,14 +333,14 @@ public class StaticDataTest {
                         .build())
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass testerType = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass testerType = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (MODEL_NAME + ".dto.Tester").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Tester type not found in ASM model"));
-        final EClass itemType = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass itemType = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (DTO_PACKAGE + ".entities.Item").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Item type not found in ASM model"));
@@ -352,7 +352,7 @@ public class StaticDataTest {
                 .filter(a -> "count".equals(a.getName()))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Attribute 'count' not found in ASM model"));
-        final EClass mapped1Type = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass mapped1Type = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (MODEL_NAME + ".dto.Mapped1").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Mapped1 type not found in ASM model"));
@@ -360,7 +360,7 @@ public class StaticDataTest {
                 .filter(a -> "name".equals(a.getName()))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Attribute 'name' not found in ASM model"));
-        final EClass mapped2Type = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass mapped2Type = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (MODEL_NAME + ".dto.Mapped2").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Mapped2 type not found in ASM model"));
@@ -368,37 +368,37 @@ public class StaticDataTest {
                 .filter(a -> "name".equals(a.getName()))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Attribute 'name' not found in ASM model"));
-        final EClass unmapped2Type = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass unmapped2Type = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (MODEL_NAME + ".dto.Unmapped2").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Unmapped2 type not found in ASM model"));
-        final EClass entityType = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass entityType = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (DTO_PACKAGE + ".entities.Entity").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Entity type not found in ASM model"));
 
-        final Payload a = daoFixture.getDao().create(itemType, Payload.map("name", "a"), null);
+        final Payload a = runtimeFixture.getDao().create(itemType, Payload.map("name", "a"), null);
         log.debug("Item A created successfully: {}", a);
-        final Payload b = daoFixture.getDao().create(itemType, Payload.map("name", "b"), null);
+        final Payload b = runtimeFixture.getDao().create(itemType, Payload.map("name", "b"), null);
         log.debug("Item B created successfully: {}", b);
-        final Payload c = daoFixture.getDao().create(itemType, Payload.map("name", "c"), null);
+        final Payload c = runtimeFixture.getDao().create(itemType, Payload.map("name", "c"), null);
         log.debug("Item C created successfully: {}", c);
-        final Payload d = daoFixture.getDao().create(itemType, Payload.map("name", "d"), null);
+        final Payload d = runtimeFixture.getDao().create(itemType, Payload.map("name", "d"), null);
         log.debug("Item D created successfully: {}", d);
 
-        final Payload simpleArithmeticResult = daoFixture.getDao().getStaticData(simpleArithmeticResultAttribute);
+        final Payload simpleArithmeticResult = runtimeFixture.getDao().getStaticData(simpleArithmeticResultAttribute);
         log.debug("simpleArithmeticResult: {}", simpleArithmeticResult);
 
         assertThat(simpleArithmeticResult.entrySet(), hasSize(1));
         assertThat(simpleArithmeticResult.get(simpleArithmeticResultAttribute.getName()), equalTo(3));
 
-        final Payload count = daoFixture.getDao().getStaticData(countAttribute);
+        final Payload count = runtimeFixture.getDao().getStaticData(countAttribute);
         log.debug("count: {}", count);
 
         assertThat(count.entrySet(), hasSize(1));
         assertThat(count.get(countAttribute.getName()), equalTo(4));
 
-        final Payload testerResult = daoFixture.getDao().getStaticFeatures(testerType);
+        final Payload testerResult = runtimeFixture.getDao().getStaticFeatures(testerType);
         log.debug("Tester: {}", testerResult);
         assertThat(testerResult.get(simpleArithmeticResultAttribute.getName()), equalTo(3));
         assertThat(testerResult.get(countAttribute.getName()), equalTo(4));
@@ -409,7 +409,7 @@ public class StaticDataTest {
         assertThat(testerResult.get("itemX"), nullValue());
         assertThat(testerResult.get("items"), equalTo(Arrays.asList(a, b, c, d)));
 
-        final List<Payload> mapped1Result = daoFixture.getDao().search(mapped1Type, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> mapped1Result = runtimeFixture.getDao().search(mapped1Type, DAO.QueryCustomizer.<UUID>builder()
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfMapped1Attribute)
                         .descending(true)
@@ -423,7 +423,7 @@ public class StaticDataTest {
         assertThat(mapped1Result.get(2).getAs(String.class, "name"), equalTo("b"));
         assertThat(mapped1Result.get(3).getAs(String.class, "name"), equalTo("a"));
 
-        final List<Payload> mapped2Result = daoFixture.getDao().search(mapped2Type, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> mapped2Result = runtimeFixture.getDao().search(mapped2Type, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.name!matches('[ad]')")
                 .orderBy(DAO.OrderBy.builder()
                         .attribute(nameOfMapped2Attribute)
@@ -436,11 +436,11 @@ public class StaticDataTest {
         assertThat(mapped2Result.get(0).getAs(String.class, "name"), equalTo("a"));
         assertThat(mapped2Result.get(1).getAs(String.class, "name"), equalTo("d"));
 
-        final Payload unmapped2Result = daoFixture.getDao().getStaticFeatures(unmapped2Type);
+        final Payload unmapped2Result = runtimeFixture.getDao().getStaticFeatures(unmapped2Type);
         log.debug("Unmapped2: {}", unmapped2Result);
         checkStaticFeatures(unmapped2Result, a, d);
 
-        final Payload entityResult = daoFixture.getDao().create(entityType, Payload.empty(), null);
+        final Payload entityResult = runtimeFixture.getDao().create(entityType, Payload.empty(), null);
         log.debug("Entity: {}", entityResult);
         assertThat(entityResult.get(simpleArithmeticResultAttribute.getName()), equalTo(3));
         assertThat(entityResult.get(countAttribute.getName()), equalTo(4));
@@ -453,7 +453,7 @@ public class StaticDataTest {
     }
 
     @Test
-    void testStaticRelationOfEntity(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    void testStaticRelationOfEntity(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
 
         final EntityType referenced = newEntityTypeBuilder()
@@ -509,24 +509,24 @@ public class StaticDataTest {
                 .withElements(stringType, referenced, referrer, tester)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass referencedType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Referenced").get();
-        final EClass referrerType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Referrer").get();
-        final EClass testerType = (EClass) daoFixture.getAsmUtils().resolve(MODEL_NAME + ".Tester").get();
+        final EClass referencedType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Referenced").get();
+        final EClass referrerType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Referrer").get();
+        final EClass testerType = (EClass) runtimeFixture.getAsmUtils().resolve(MODEL_NAME + ".Tester").get();
 
-        final Payload a = daoFixture.getDao().create(referencedType, Payload.map("name", "A"), null);
-        final UUID aId = a.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final Payload b = daoFixture.getDao().create(referencedType, Payload.map("name", "B"), null);
-        final UUID bId = b.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final Payload a = runtimeFixture.getDao().create(referencedType, Payload.map("name", "A"), null);
+        final UUID aId = a.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final Payload b = runtimeFixture.getDao().create(referencedType, Payload.map("name", "B"), null);
+        final UUID bId = b.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload x = daoFixture.getDao().create(referrerType, Payload.map("name", "X"), null);
-        final UUID xId = x.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final Payload y = daoFixture.getDao().create(referrerType, Payload.map("name", "Y"), null);
-        final UUID yId = y.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final Payload x = runtimeFixture.getDao().create(referrerType, Payload.map("name", "X"), null);
+        final UUID xId = x.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final Payload y = runtimeFixture.getDao().create(referrerType, Payload.map("name", "Y"), null);
+        final UUID yId = y.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final List<Payload> referencedList = daoFixture.getDao().search(testerType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> referencedList = runtimeFixture.getDao().search(testerType, DAO.QueryCustomizer.<UUID>builder()
                         .orderBy(DAO.OrderBy.builder()
                                 .attribute(testerType.getEAllAttributes().stream().filter(attr -> "name".equals(attr.getName())).findAny().get())
                                 .descending(true)
@@ -536,11 +536,11 @@ public class StaticDataTest {
                                 .build())
                 .build());
         log.debug("Referenced list: {}", referencedList);
-        final Set<UUID> xy = referencedList.stream().map(p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toSet());
+        final Set<UUID> xy = referencedList.stream().map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
         assertThat(xy, equalTo(ImmutableSet.of(xId, yId)));
 
         referencedList.forEach(item -> {
-            final Set<UUID> ab = item.getAsCollectionPayload("referencedList").stream().map(p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toSet());
+            final Set<UUID> ab = item.getAsCollectionPayload("referencedList").stream().map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toSet());
             assertThat(ab, equalTo(ImmutableSet.of(aId, bId)));
         });
     }

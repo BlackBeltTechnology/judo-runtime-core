@@ -12,10 +12,10 @@ import hu.blackbelt.judo.meta.esm.structure.TwoWayRelationMember;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.*;
 import hu.blackbelt.judo.meta.esm.type.NumericType;
 import hu.blackbelt.judo.meta.esm.type.util.builder.NumericTypeBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -38,8 +38,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class NavigationExpressionTest {
     private static final String MODEL_NAME = "M";
@@ -47,22 +47,13 @@ public class NavigationExpressionTest {
 
     private static final NumericType INTEGER = NumericTypeBuilder.create().withName("Integer").withPrecision(3).withScale(0).build();
 
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
-
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        idProviderClass = daoFixture.getIdProvider().getType();
-        idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testCollectionToObjectNavigationFromSelf(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testCollectionToObjectNavigationFromSelf(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityA = EntityTypeBuilder.create()
@@ -130,12 +121,12 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
 
-        final Payload entityBasePayload = daoFixture.getDao()
+        final Payload entityBasePayload = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("bs",
                         of(Payload.map("number", 1,
                                 "a", Payload.map("number", 3)),
@@ -150,7 +141,7 @@ public class NavigationExpressionTest {
     }
 
     @Test
-    public void testCollectionToObjectNavigationFromAll(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testCollectionToObjectNavigationFromAll(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityA = EntityTypeBuilder.create()
@@ -199,35 +190,35 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
-        final EAttribute testEAttribute = daoFixture.getAsmUtils().resolveAttribute(MODEL_NAME + ".DerivedAttributeCollector#testAttribute").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EAttribute testEAttribute = runtimeFixture.getAsmUtils().resolveAttribute(MODEL_NAME + ".DerivedAttributeCollector#testAttribute").get();
 
-        final Payload entityBase1 = daoFixture.getDao()
+        final Payload entityBase1 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("a", Payload.map("number", 1)), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase1);
 
-        final Payload entityBase2 = daoFixture.getDao()
+        final Payload entityBase2 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("a", Payload.map("number", 2)), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase2);
 
-        final Payload entityBase3 = daoFixture.getDao()
+        final Payload entityBase3 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("a", Payload.map("number", 3)), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase3);
 
-        assertThat(daoFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(6));
+        assertThat(runtimeFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(6));
     }
 
     @Test
-    public void testCollectionToCollectionNavigationFromAll(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testCollectionToCollectionNavigationFromAll(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityB = EntityTypeBuilder.create()
@@ -276,35 +267,35 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
-        final EAttribute testEAttribute = daoFixture.getAsmUtils().resolveAttribute(MODEL_NAME + ".DerivedAttributeCollector#testAttribute").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EAttribute testEAttribute = runtimeFixture.getAsmUtils().resolveAttribute(MODEL_NAME + ".DerivedAttributeCollector#testAttribute").get();
 
-        final Payload entityBase1 = daoFixture.getDao()
+        final Payload entityBase1 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("bs", of(Payload.map("number", 1), Payload.map("number", 2))), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase1);
 
-        final Payload entityBase2 = daoFixture.getDao()
+        final Payload entityBase2 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("bs", of(Payload.map("number", 3), Payload.map("number", 4))), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase2);
 
-        final Payload entityBase3 = daoFixture.getDao()
+        final Payload entityBase3 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("bs", of(Payload.map("number", 5), Payload.map("number", 6))), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase3);
 
-        assertThat(daoFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(21));
+        assertThat(runtimeFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(21));
     }
 
     @Test
-    public void testObjectToContainerNavigationFromSelf(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testObjectToContainerNavigationFromSelf(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityA = EntityTypeBuilder.create().withName("A").build();
@@ -345,12 +336,12 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
 
-        final Payload entityBasePayload = daoFixture.getDao()
+        final Payload entityBasePayload = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("a", Payload.empty(),
                         "number", 420), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.singletonMap("testAttribute", true))
@@ -361,7 +352,7 @@ public class NavigationExpressionTest {
     }
 
     @Test
-    public void testObjectToObjectAsTypeFromSelf(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testObjectToObjectAsTypeFromSelf(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityNativeA = EntityTypeBuilder.create()
@@ -413,21 +404,21 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
-        final EClass entityAEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EClass entityAEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
 
-        final UUID entityAID = daoFixture.getDao()
+        final UUID entityAID = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.map("number", 314), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", entityAEClass.getName(), entityAID);
 
-        final Payload entityBasePayload = daoFixture.getDao()
-                .create(entityBaseEClass, Payload.map("a", Payload.map(idProviderName, entityAID)), DAO.QueryCustomizer.<UUID>builder()
+        final Payload entityBasePayload = runtimeFixture.getDao()
+                .create(entityBaseEClass, Payload.map("a", Payload.map(runtimeFixture.getIdProvider().getName(), entityAID)), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.singletonMap("testAttribute", true))
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBasePayload);
@@ -436,7 +427,7 @@ public class NavigationExpressionTest {
     }
 
     @Test
-    public void testObjectToCollectionAsTypeFromSelf(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testObjectToCollectionAsTypeFromSelf(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityNativeB = EntityTypeBuilder.create()
@@ -488,38 +479,38 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
-        final EClass entityBEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".B").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EClass entityBEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".B").get();
 
-        final UUID entityB1ID = daoFixture.getDao()
+        final UUID entityB1ID = runtimeFixture.getDao()
                 .create(entityBEClass, Payload.map("number", 1), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", entityBEClass.getName(), entityB1ID);
 
-        final UUID entityB2ID = daoFixture.getDao()
+        final UUID entityB2ID = runtimeFixture.getDao()
                 .create(entityBEClass, Payload.map("number", 2), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", entityBEClass.getName(), entityB2ID);
 
-        final UUID entityB3ID = daoFixture.getDao()
+        final UUID entityB3ID = runtimeFixture.getDao()
                 .create(entityBEClass, Payload.map("number", 3), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", entityBEClass.getName(), entityB3ID);
 
-        final Payload entityBasePayload = daoFixture.getDao()
+        final Payload entityBasePayload = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("bs",
-                        of(Payload.map(idProviderName, entityB1ID),
-                                Payload.map(idProviderName, entityB2ID),
-                                Payload.map(idProviderName, entityB3ID))), DAO.QueryCustomizer.<UUID>builder()
+                        of(Payload.map(runtimeFixture.getIdProvider().getName(), entityB1ID),
+                                Payload.map(runtimeFixture.getIdProvider().getName(), entityB2ID),
+                                Payload.map(runtimeFixture.getIdProvider().getName(), entityB3ID))), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.singletonMap("testAttribute", true))
                         .build());
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBasePayload);
@@ -528,7 +519,7 @@ public class NavigationExpressionTest {
     }
 
     @Test
-    public void testCollectionAsTypeFromAll(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testCollectionAsTypeFromAll(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityNativeA = EntityTypeBuilder.create()
@@ -569,38 +560,38 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityAEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
-        final EAttribute testEAttribute = daoFixture.getAsmUtils().resolveAttribute(MODEL_NAME + ".DerivedAttributeCollector#testAttribute").get();
+        final EClass entityAEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
+        final EAttribute testEAttribute = runtimeFixture.getAsmUtils().resolveAttribute(MODEL_NAME + ".DerivedAttributeCollector#testAttribute").get();
 
-        final UUID entityA1ID = daoFixture.getDao()
+        final UUID entityA1ID = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.map("number", 1), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", entityAEClass.getName(), entityA1ID);
 
-        final UUID entityA2ID = daoFixture.getDao()
+        final UUID entityA2ID = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.map("number", 2), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", entityAEClass.getName(), entityA2ID);
 
-        final UUID entityA3ID = daoFixture.getDao()
+        final UUID entityA3ID = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.map("number", 3), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with id: {}", entityAEClass.getName(), entityA3ID);
 
-        assertThat(daoFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(6));
+        assertThat(runtimeFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(6));
     }
 
     @Test
-    public void testObjectFilterFromSelf(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testObjectFilterFromSelf(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityBase = EntityTypeBuilder.create()
@@ -627,16 +618,16 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
 
-        final Payload entityBasePayload1 = daoFixture.getDao()
+        final Payload entityBasePayload1 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("number", 25), null);
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBasePayload1);
 
-        final Payload entityBasePayload2 = daoFixture.getDao()
+        final Payload entityBasePayload2 = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("number", 100), null);
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBasePayload2);
 
@@ -645,7 +636,7 @@ public class NavigationExpressionTest {
     }
 
     @Test
-    public void testObjectToObjectFilterFromSelf(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testObjectToObjectFilterFromSelf(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityA = EntityTypeBuilder.create()
@@ -689,16 +680,16 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Base").get();
 
-        final Payload entityBase1Payload = daoFixture.getDao()
+        final Payload entityBase1Payload = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("a", Payload.map("number", 25)), null);
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase1Payload);
 
-        final Payload entityBase2Payload = daoFixture.getDao()
+        final Payload entityBase2Payload = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.map("a", Payload.map("number", 100)), null);
         log.debug("{} created with payload: {}", entityBaseEClass.getName(), entityBase2Payload);
 
@@ -708,7 +699,7 @@ public class NavigationExpressionTest {
     }
 
     @Test
-    public void testNavigatingBetweenTwoWayRelations(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testNavigatingBetweenTwoWayRelations(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityA = EntityTypeBuilder.create()
@@ -814,13 +805,13 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityAEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
-        final EClass entityBEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".B").get();
+        final EClass entityAEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
+        final EClass entityBEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".B").get();
 
-        final Payload entityAPayload = daoFixture.getDao()
+        final Payload entityAPayload = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.map("number", 10,
                         "bs", of(Payload.map("number", 1),
                                 Payload.map("number", 2),
@@ -834,7 +825,7 @@ public class NavigationExpressionTest {
         assertThat(entityAPayload.getAs(Integer.class, "testAttribute_from_a"), equalTo(10));
         assertThat(entityAPayload.getAs(Integer.class, "testAttribute_from_a_to_b"), equalTo(6));
 
-        final List<Payload> allOfEntityB = daoFixture.getDao().getAllOf(entityBEClass);
+        final List<Payload> allOfEntityB = runtimeFixture.getDao().getAllOf(entityBEClass);
         final Set<Integer> testAttributeResults1 = allOfEntityB.stream()
                 .map(b -> b.getAs(Integer.class, "testAttribute_from_b"))
                 .collect(Collectors.toSet());
@@ -844,16 +835,16 @@ public class NavigationExpressionTest {
         assertThat(testAttributeResults1, equalTo(of(6)));
         assertThat(testAttributeResults2, equalTo(of(10)));
 
-        final EAttribute testEAttribute1 = daoFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute_from_all_a").get();
-        final EAttribute testEAttribute2 = daoFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute_from_all_b_filtered").get();
-        final EAttribute testEAttribute3 = daoFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute_from_all_b").get();
-        assertThat(daoFixture.getDao().getStaticData(testEAttribute1).getAs(Integer.class, "testAttribute_from_all_a"), equalTo(10));
-        assertThat(daoFixture.getDao().getStaticData(testEAttribute2).getAs(Integer.class, "testAttribute_from_all_b_filtered"), equalTo(6));
-        assertThat(daoFixture.getDao().getStaticData(testEAttribute3).getAs(Integer.class, "testAttribute_from_all_b"), equalTo(6));
+        final EAttribute testEAttribute1 = runtimeFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute_from_all_a").get();
+        final EAttribute testEAttribute2 = runtimeFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute_from_all_b_filtered").get();
+        final EAttribute testEAttribute3 = runtimeFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute_from_all_b").get();
+        assertThat(runtimeFixture.getDao().getStaticData(testEAttribute1).getAs(Integer.class, "testAttribute_from_all_a"), equalTo(10));
+        assertThat(runtimeFixture.getDao().getStaticData(testEAttribute2).getAs(Integer.class, "testAttribute_from_all_b_filtered"), equalTo(6));
+        assertThat(runtimeFixture.getDao().getStaticData(testEAttribute3).getAs(Integer.class, "testAttribute_from_all_b"), equalTo(6));
     }
 
     @Test
-    public void testTwoWayNavigationLinkedToSort(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testTwoWayNavigationLinkedToSort(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         final Set<NamespaceElement> namespaceElements = new HashSet<>(Collections.singleton(INTEGER));
 
         final EntityType entityA = EntityTypeBuilder.create()
@@ -923,12 +914,12 @@ public class NavigationExpressionTest {
                 .withElements(namespaceElements)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "Dao is not initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "Dao is not initialized");
 
-        final EClass entityAEClass = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
+        final EClass entityAEClass = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".A").get();
 
-        final Payload entityAPayload = daoFixture.getDao()
+        final Payload entityAPayload = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.map("number", 10,
                         "bs", of(Payload.map("number", 1),
                                 Payload.map("number", 2),
@@ -937,8 +928,8 @@ public class NavigationExpressionTest {
                         .build());
         log.debug("{} created with payload: {}", entityAEClass.getName(), entityAPayload);
 
-        final EAttribute testEAttribute = daoFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute").get();
-        assertThat(daoFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(10));
+        final EAttribute testEAttribute = runtimeFixture.getAsmUtils().resolveAttribute("M.DerivedAttributeCollector#testAttribute").get();
+        assertThat(runtimeFixture.getDao().getStaticData(testEAttribute).getAs(Integer.class, "testAttribute"), equalTo(10));
     }
 
 }

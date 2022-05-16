@@ -6,10 +6,10 @@ import hu.blackbelt.judo.meta.esm.structure.EntityType;
 import hu.blackbelt.judo.meta.esm.structure.MemberType;
 import hu.blackbelt.judo.meta.esm.structure.RelationKind;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.AfterEach;
@@ -25,8 +25,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class InheritanceTest {
 
@@ -38,12 +38,12 @@ public class InheritanceTest {
     }
 
     @AfterEach
-    public void teardown(final RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(final JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testCar(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    void testCar(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
 
         final EntityType entity = newEntityTypeBuilder()
@@ -111,26 +111,26 @@ public class InheritanceTest {
                 .withElements(stringType, entity, company, vehicle, car, person)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass companyType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Company").get();
-        final EClass carType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Car").get();
-        final EClass personType = (EClass) daoFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Person").get();
+        final EClass companyType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Company").get();
+        final EClass carType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Car").get();
+        final EClass personType = (EClass) runtimeFixture.getAsmUtils().resolve(DTO_PACKAGE + ".Person").get();
 
-        final Payload bmw = daoFixture.getDao().create(companyType, Payload.map(
+        final Payload bmw = runtimeFixture.getDao().create(companyType, Payload.map(
                 "name", "BMW"
         ), null);
-        final Payload vw = daoFixture.getDao().create(companyType, Payload.map(
+        final Payload vw = runtimeFixture.getDao().create(companyType, Payload.map(
                 "name", "VW"
         ), null);
 
-        final Payload car1 = daoFixture.getDao().create(carType, Payload.map(
+        final Payload car1 = runtimeFixture.getDao().create(carType, Payload.map(
                 "licensePlate", "ABC-123",
                 "manufacturer", bmw
         ), null);
 
-        final Payload person1 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload person1 = runtimeFixture.getDao().create(personType, Payload.map(
                 "name", "Gipsz Jakab",
                 "car", car1
         ), null);

@@ -12,10 +12,10 @@ import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.meta.psm.service.MappedTransferObjectType;
 import hu.blackbelt.judo.meta.psm.type.NumericType;
 import hu.blackbelt.judo.meta.psm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.AfterEach;
@@ -37,8 +37,8 @@ import static hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class CountTest {
     public static final String MODEL_NAME = "CountTest";
@@ -231,18 +231,18 @@ public class CountTest {
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getPsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getPsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testCount(RdbmsDaoFixture daoFixture) {
+    void testCount(JudoRuntimeFixture runtimeFixture) {
 
         final Payload a1 = map(
                 NAME, "a1",
@@ -257,13 +257,13 @@ public class CountTest {
                         )
                 ));
 
-        final EClass aDto = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + A_DTO).get();
+        final EClass aDto = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + A_DTO).get();
 
-        final Payload saved1 = daoFixture.getDao().create(aDto, a1, null);
-        final Payload saved2 = daoFixture.getDao().create(aDto, a2, null);
+        final Payload saved1 = runtimeFixture.getDao().create(aDto, a1, null);
+        final Payload saved2 = runtimeFixture.getDao().create(aDto, a2, null);
 
-        final UUID id1 = saved1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final UUID id2 = saved2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID id1 = saved1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final UUID id2 = saved2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Entity #1: {}", saved1);
         log.debug("Entity #2: {}", saved2);
@@ -273,12 +273,12 @@ public class CountTest {
         assertEquals(Long.valueOf(2L), saved2.getAs(Long.class, COUNT_C1));
         assertEquals(Long.valueOf(0L), saved2.getAs(Long.class, COUNT_C2));
 
-        daoFixture.getDao().delete(aDto, id1);
-        daoFixture.getDao().delete(aDto, id2);
+        runtimeFixture.getDao().delete(aDto, id1);
+        runtimeFixture.getDao().delete(aDto, id2);
     }
 
     @Test
-    void testAddingNumberToCount(RdbmsDaoFixture daoFixture) {
+    void testAddingNumberToCount(JudoRuntimeFixture runtimeFixture) {
         final Payload a1 = map(
                 NAME, "a1",
                 B1, map(NAME, "b1",
@@ -288,20 +288,20 @@ public class CountTest {
                         )
                 ));
 
-        final EClass aDto = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + A_DTO).get();
-        final EClass aAdditionDto = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + A_ADDITION_DTO).get();
+        final EClass aDto = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + A_DTO).get();
+        final EClass aAdditionDto = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + "." + A_ADDITION_DTO).get();
 
-        final Payload saved = daoFixture.getDao().create(aDto, a1, DAO.QueryCustomizer.<UUID>builder()
+        final Payload saved = runtimeFixture.getDao().create(aDto, a1, DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         log.debug("Saved: {}", saved);
-        final UUID id = saved.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID id = saved.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload loaded = daoFixture.getDao().getByIdentifier(aAdditionDto, id).get();
+        final Payload loaded = runtimeFixture.getDao().getByIdentifier(aAdditionDto, id).get();
         log.debug("Loaded: {}", loaded);
 
         assertEquals(Long.valueOf(3L), loaded.getAs(Long.class, COUNT_C1_PLUS_ONE));
 
-        daoFixture.getDao().delete(aDto, id);
+        runtimeFixture.getDao().delete(aDto, id);
     }
 }

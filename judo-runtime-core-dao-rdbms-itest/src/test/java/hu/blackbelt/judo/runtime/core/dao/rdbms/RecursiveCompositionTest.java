@@ -13,11 +13,12 @@ import hu.blackbelt.judo.meta.psm.service.TransferAttribute;
 import hu.blackbelt.judo.meta.psm.service.TransferObjectRelation;
 import hu.blackbelt.judo.meta.psm.type.StringType;
 import hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders;
+import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceGraph;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -40,8 +41,8 @@ import static hu.blackbelt.judo.meta.psm.service.util.builder.ServiceBuilders.*;
 import static hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders.newCardinalityBuilder;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class RecursiveCompositionTest {
 
@@ -287,52 +288,52 @@ public class RecursiveCompositionTest {
         return x1;
     }
 
-    private void testInsertGraph(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        final EClass x = daoFixture.getAsmUtils().getClassByFQName(ENTITY_X).get();
-        final EClass y = daoFixture.getAsmUtils().getClassByFQName(ENTITY_Y).get();
-        final EClass p = daoFixture.getAsmUtils().getClassByFQName(P).get();
+    private void testInsertGraph(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        final EClass x = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_X).get();
+        final EClass y = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_Y).get();
+        final EClass p = runtimeFixture.getAsmUtils().getClassByFQName(P).get();
 
         final EAttribute nameOfX = x.getEAllAttributes().stream().filter(r -> RecursiveCompositionTest.NAME.equals(r.getName())).findAny().get();
         final EAttribute nameOfY = y.getEAllAttributes().stream().filter(r -> RecursiveCompositionTest.NAME.equals(r.getName())).findAny().get();
 
-        daoFixture.getDao().create(p, getRecursiveContainmentSamplePayload(), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(p, getRecursiveContainmentSamplePayload(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
         jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource());
 
-        String sql = "SELECT ID, " + daoFixture.getRdbmsResolver().rdbmsField(nameOfX).getSqlName() + " FROM " + daoFixture.getRdbmsResolver().rdbmsTable(x).getSqlName();
+        String sql = "SELECT ID, " + runtimeFixture.getRdbmsResolver().rdbmsField(nameOfX).getSqlName() + " FROM " + runtimeFixture.getRdbmsResolver().rdbmsTable(x).getSqlName();
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, ImmutableMap.of());
         for (Map row : rows) {
             log.debug("Values: " + row.values());
-            UUID id = RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer().coerce(row.get(ID), UUID.class);
-            ids.put((String) row.get(daoFixture.getRdbmsResolver().rdbmsField(nameOfX).getSqlName()), id);
+            UUID id = runtimeFixture.getDataTypeManager().getCoercer().coerce(row.get(ID), UUID.class);
+            ids.put((String) row.get(runtimeFixture.getRdbmsResolver().rdbmsField(nameOfX).getSqlName()), id);
         }
 
-        sql = "SELECT ID, " + daoFixture.getRdbmsResolver().rdbmsField(nameOfY).getSqlName() + " FROM " + daoFixture.getRdbmsResolver().rdbmsTable(y).getSqlName();
+        sql = "SELECT ID, " + runtimeFixture.getRdbmsResolver().rdbmsField(nameOfY).getSqlName() + " FROM " + runtimeFixture.getRdbmsResolver().rdbmsTable(y).getSqlName();
         rows = jdbcTemplate.queryForList(sql, ImmutableMap.of());
         for (Map row : rows) {
-            UUID id = RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer().coerce(row.get(ID), UUID.class);
-            ids.put((String) row.get(daoFixture.getRdbmsResolver().rdbmsField(nameOfY).getSqlName()), id);
+            UUID id = runtimeFixture.getDataTypeManager().getCoercer().coerce(row.get(ID), UUID.class);
+            ids.put((String) row.get(runtimeFixture.getRdbmsResolver().rdbmsField(nameOfY).getSqlName()), id);
         }
     }
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getPsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getPsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testRecursiveInstanceCollector(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        testInsertGraph(daoFixture, datasourceFixture);
+    public void testRecursiveInstanceCollector(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        testInsertGraph(runtimeFixture, datasourceFixture);
 
-        final EClass x = daoFixture.getAsmUtils().getClassByFQName(ENTITY_X).get();
-        final EClass y = daoFixture.getAsmUtils().getClassByFQName(ENTITY_Y).get();
+        final EClass x = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_X).get();
+        final EClass y = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_Y).get();
 
         final EReference xOfX = x.getEAllReferences().stream().filter(r -> X.equals(r.getName())).findAny().get();
         final EReference xsOfX = x.getEAllReferences().stream().filter(r -> XS.equals(r.getName())).findAny().get();
@@ -342,18 +343,8 @@ public class RecursiveCompositionTest {
         final EReference xsOfY = y.getEAllReferences().stream().filter(r -> XS.equals(r.getName())).findAny().get();
 
         final long startTs = System.currentTimeMillis();
-        final RdbmsInstanceCollector instanceCollector = RdbmsInstanceCollector.<UUID>builder()
-                .asmUtils(daoFixture.getAsmUtils())
-                .jdbcTemplate(jdbcTemplate)
-                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
-                .rdbmsResolver(daoFixture.getRdbmsResolver())
-                .coercer(RdbmsDaoFixture.DATA_TYPE_MANAGER.getCoercer())
-                .identifierProvider(daoFixture.getIdProvider())
-                .rdbmsParameterMapper(daoFixture.getRdbmsParameterMapper())
-                .rdbmsModel(daoFixture.getRdbmsModel())
-                .build();
+        final InstanceCollector instanceCollector = runtimeFixture.getInstanceCollector();
 
-        instanceCollector.createSelects();
         final long modelCreated = System.currentTimeMillis();
         log.debug("Instance collector created in {} ms:", (modelCreated - startTs));
         final Map<UUID, InstanceGraph<UUID>> graphs = instanceCollector.collectGraph(x, Collections.singleton(ids.get(X1)));
@@ -499,31 +490,31 @@ public class RecursiveCompositionTest {
     }
 
     @Test
-    public void testRecursiveDelete(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        testInsertGraph(daoFixture, datasourceFixture);
+    public void testRecursiveDelete(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        testInsertGraph(runtimeFixture, datasourceFixture);
 
-        final EClass x = daoFixture.getAsmUtils().getClassByFQName(ENTITY_X).get();
-        final EClass y = daoFixture.getAsmUtils().getClassByFQName(ENTITY_Y).get();
+        final EClass x = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_X).get();
+        final EClass y = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_Y).get();
 
-        final EClass p = daoFixture.getAsmUtils().getClassByFQName(P).get();
-        daoFixture.getDao().delete(p, ids.get(X1));
+        final EClass p = runtimeFixture.getAsmUtils().getClassByFQName(P).get();
+        runtimeFixture.getDao().delete(p, ids.get(X1));
 
         jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getOriginalDataSource());
-        int count = jdbcTemplate.queryForObject("SELECT count(1) FROM " + daoFixture.getRdbmsResolver().rdbmsTable(x).getSqlName(), new MapSqlParameterSource(), Integer.class);
+        int count = jdbcTemplate.queryForObject("SELECT count(1) FROM " + runtimeFixture.getRdbmsResolver().rdbmsTable(x).getSqlName(), new MapSqlParameterSource(), Integer.class);
         assertEquals(0, count);
-        count = jdbcTemplate.queryForObject("SELECT count(1) FROM " + daoFixture.getRdbmsResolver().rdbmsTable(y).getSqlName(), new MapSqlParameterSource(), Integer.class);
+        count = jdbcTemplate.queryForObject("SELECT count(1) FROM " + runtimeFixture.getRdbmsResolver().rdbmsTable(y).getSqlName(), new MapSqlParameterSource(), Integer.class);
         assertEquals(0, count);
     }
 
     @Test
-    public void testRecursiveQuery(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        testInsertGraph(daoFixture, datasourceFixture);
+    public void testRecursiveQuery(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        testInsertGraph(runtimeFixture, datasourceFixture);
 
-        final EClass p = daoFixture.getAsmUtils().getClassByFQName(P).get();
-        final EClass q = daoFixture.getAsmUtils().getClassByFQName(Q).get();
+        final EClass p = runtimeFixture.getAsmUtils().getClassByFQName(P).get();
+        final EClass q = runtimeFixture.getAsmUtils().getClassByFQName(Q).get();
 
         final long queryPrepared = System.currentTimeMillis();
-        final Map<String, Object> resultX1 = daoFixture.getDao().getByIdentifier(p, ids.get(X1)).get();
+        final Map<String, Object> resultX1 = runtimeFixture.getDao().getByIdentifier(p, ids.get(X1)).get();
         final long queryCompleted = System.currentTimeMillis();
 
         log.debug("Query returned in {} ms:\n{}", (queryCompleted - queryPrepared), resultX1);
@@ -535,7 +526,7 @@ public class RecursiveCompositionTest {
         final EReference pOfQ = q.getEAllReferences().stream().filter(r -> "p".equals(r.getName())).findAny().get();
         final EReference psOfQ = q.getEAllReferences().stream().filter(r -> "ps".equals(r.getName())).findAny().get();
 
-        assertEquals(ids.get(X1), resultX1.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(X1), resultX1.get(runtimeFixture.getIdProvider().getName()));
 
         final Map<String, Object> resultX2 = (Map<String, Object>) resultX1.get(pOfP.getName());
         final Map<String, Object> resultY1 = (Map<String, Object>) resultX1.get(qOfP.getName());
@@ -543,32 +534,32 @@ public class RecursiveCompositionTest {
         final Collection<Map<String, Object>> ysOfX1 = (Collection<Map<String, Object>>) resultX1.get(qsOfP.getName());
         assertEquals(1, xsOfX1.size());
         assertEquals(2, ysOfX1.size());
-        final Map<String, Object> resultX6 = xsOfX1.stream().filter(x -> Objects.equals(x.get(daoFixture.getUuid().getName()), ids.get(X6))).findAny().orElse(null);
-        final Map<String, Object> resultY2 = ysOfX1.stream().filter(y -> Objects.equals(y.get(daoFixture.getUuid().getName()), ids.get(Y2))).findAny().orElse(null);
-        final Map<String, Object> resultY3 = ysOfX1.stream().filter(y -> Objects.equals(y.get(daoFixture.getUuid().getName()), ids.get(Y3))).findAny().orElse(null);
+        final Map<String, Object> resultX6 = xsOfX1.stream().filter(x -> Objects.equals(x.get(runtimeFixture.getIdProvider().getName()), ids.get(X6))).findAny().orElse(null);
+        final Map<String, Object> resultY2 = ysOfX1.stream().filter(y -> Objects.equals(y.get(runtimeFixture.getIdProvider().getName()), ids.get(Y2))).findAny().orElse(null);
+        final Map<String, Object> resultY3 = ysOfX1.stream().filter(y -> Objects.equals(y.get(runtimeFixture.getIdProvider().getName()), ids.get(Y3))).findAny().orElse(null);
         assertNotNull(resultY1);
         assertNotNull(resultX2);
         assertNotNull(resultX6);
         assertNotNull(resultY2);
         assertNotNull(resultY3);
 
-        assertEquals(ids.get(Y1), resultY1.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(Y1), resultY1.get(runtimeFixture.getIdProvider().getName()));
         assertNull(resultY1.get(pOfQ.getName()));
         assertEquals(Collections.emptySet(), resultY1.get(psOfQ.getName()));
 
-        assertEquals(ids.get(X2), resultX2.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(X2), resultX2.get(runtimeFixture.getIdProvider().getName()));
         final Map<String, Object> resultX5 = (Map<String, Object>) resultX2.get(pOfP.getName());
         assertNull(resultX2.get(qOfP.getName()));
         final Collection<Map<String, Object>> xsOfX2 = (Collection<Map<String, Object>>) resultX2.get(psOfP.getName());
         assertEquals(Collections.emptySet(), resultX2.get(qsOfP.getName()));
         assertEquals(2, xsOfX2.size());
-        final Map<String, Object> resultX3 = xsOfX2.stream().filter(x -> Objects.equals(x.get(daoFixture.getUuid().getName()), ids.get(X3))).findAny().orElse(null);
-        final Map<String, Object> resultX4 = xsOfX2.stream().filter(x -> Objects.equals(x.get(daoFixture.getUuid().getName()), ids.get(X4))).findAny().orElse(null);
+        final Map<String, Object> resultX3 = xsOfX2.stream().filter(x -> Objects.equals(x.get(runtimeFixture.getIdProvider().getName()), ids.get(X3))).findAny().orElse(null);
+        final Map<String, Object> resultX4 = xsOfX2.stream().filter(x -> Objects.equals(x.get(runtimeFixture.getIdProvider().getName()), ids.get(X4))).findAny().orElse(null);
         assertNotNull(resultX5);
         assertNotNull(resultX3);
         assertNotNull(resultX4);
 
-        assertEquals(ids.get(X5), resultX5.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(X5), resultX5.get(runtimeFixture.getIdProvider().getName()));
         assertNull(resultX5.get(pOfP.getName()));
         assertNull(resultX5.get(qOfP.getName()));
         assertEquals(Collections.emptySet(), resultX5.get(psOfP.getName()));
@@ -585,7 +576,7 @@ public class RecursiveCompositionTest {
         assertEquals(Collections.emptySet(), resultX4.get(qsOfP.getName()));
         assertNotNull(resultY4);
 
-        assertEquals(ids.get(Y4), resultY4.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(Y4), resultY4.get(runtimeFixture.getIdProvider().getName()));
         assertNull(resultY4.get(pOfQ.getName()));
         assertEquals(Collections.emptySet(), resultY4.get(psOfQ.getName()));
 
@@ -595,14 +586,14 @@ public class RecursiveCompositionTest {
         assertEquals(Collections.emptySet(), resultX6.get(qsOfP.getName()));
         assertNotNull(resultX7);
 
-        assertEquals(ids.get(X7), resultX7.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(X7), resultX7.get(runtimeFixture.getIdProvider().getName()));
         assertNull(resultX7.get(pOfP.getName()));
         assertNull(resultX7.get(qOfP.getName()));
         final Collection<Map<String, Object>> xsOfX7 = (Collection<Map<String, Object>>) resultX7.get(psOfP.getName());
         assertEquals(Collections.emptySet(), resultX7.get(qsOfP.getName()));
         assertEquals(2, xsOfX7.size());
-        final Map<String, Object> resultX8 = xsOfX7.stream().filter(x -> Objects.equals(x.get(daoFixture.getUuid().getName()), ids.get(X8))).findAny().orElse(null);
-        final Map<String, Object> resultX9 = xsOfX7.stream().filter(x -> Objects.equals(x.get(daoFixture.getUuid().getName()), ids.get(X9))).findAny().orElse(null);
+        final Map<String, Object> resultX8 = xsOfX7.stream().filter(x -> Objects.equals(x.get(runtimeFixture.getIdProvider().getName()), ids.get(X8))).findAny().orElse(null);
+        final Map<String, Object> resultX9 = xsOfX7.stream().filter(x -> Objects.equals(x.get(runtimeFixture.getIdProvider().getName()), ids.get(X9))).findAny().orElse(null);
         assertNotNull(resultX8);
         assertNotNull(resultX9);
 
@@ -616,8 +607,8 @@ public class RecursiveCompositionTest {
         assertEquals(Collections.emptySet(), resultX9.get(psOfP.getName()));
         final Collection<Map<String, Object>> ysOfX9 = (Collection<Map<String, Object>>) resultX9.get(qsOfP.getName());
         assertEquals(2, ysOfX9.size());
-        final Map<String, Object> resultY5 = ysOfX9.stream().filter(y -> Objects.equals(y.get(daoFixture.getUuid().getName()), ids.get(Y5))).findAny().orElse(null);
-        final Map<String, Object> resultY6 = ysOfX9.stream().filter(y -> Objects.equals(y.get(daoFixture.getUuid().getName()), ids.get(Y6))).findAny().orElse(null);
+        final Map<String, Object> resultY5 = ysOfX9.stream().filter(y -> Objects.equals(y.get(runtimeFixture.getIdProvider().getName()), ids.get(Y5))).findAny().orElse(null);
+        final Map<String, Object> resultY6 = ysOfX9.stream().filter(y -> Objects.equals(y.get(runtimeFixture.getIdProvider().getName()), ids.get(Y6))).findAny().orElse(null);
         assertNotNull(resultY5);
         assertNotNull(resultY6);
 
@@ -625,14 +616,14 @@ public class RecursiveCompositionTest {
         assertEquals(Collections.emptySet(), resultY5.get(psOfQ.getName()));
         assertNotNull(resultX10);
 
-        assertEquals(ids.get(X10), resultX10.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(X10), resultX10.get(runtimeFixture.getIdProvider().getName()));
         assertNull(resultX10.get(pOfP.getName()));
         assertNull(resultX10.get(qOfP.getName()));
         assertEquals(Collections.emptySet(), resultX10.get(psOfP.getName()));
         final Collection<Map<String, Object>> ysOfX10 = (Collection<Map<String, Object>>) resultX10.get(qsOfP.getName());
         assertEquals(2, ysOfX10.size());
-        final Map<String, Object> resultY7 = ysOfX10.stream().filter(y -> Objects.equals(y.get(daoFixture.getUuid().getName()), ids.get(Y7))).findAny().orElse(null);
-        final Map<String, Object> resultY8 = ysOfX10.stream().filter(y -> Objects.equals(y.get(daoFixture.getUuid().getName()), ids.get(Y8))).findAny().orElse(null);
+        final Map<String, Object> resultY7 = ysOfX10.stream().filter(y -> Objects.equals(y.get(runtimeFixture.getIdProvider().getName()), ids.get(Y7))).findAny().orElse(null);
+        final Map<String, Object> resultY8 = ysOfX10.stream().filter(y -> Objects.equals(y.get(runtimeFixture.getIdProvider().getName()), ids.get(Y8))).findAny().orElse(null);
         assertNotNull(resultY7);
         assertNotNull(resultY8);
 
@@ -643,7 +634,7 @@ public class RecursiveCompositionTest {
         assertEquals(Collections.emptySet(), resultY8.get(psOfQ.getName()));
         assertNotNull(resultX13);
 
-        assertEquals(ids.get(X13), resultX13.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(X13), resultX13.get(runtimeFixture.getIdProvider().getName()));
         assertNull(resultX13.get(pOfP.getName()));
         assertNull(resultX13.get(qOfP.getName()));
         assertEquals(Collections.emptySet(), resultX13.get(psOfP.getName()));
@@ -652,8 +643,8 @@ public class RecursiveCompositionTest {
         assertNull(resultY6.get(pOfQ.getName()));
         final Collection<Map<String, Object>> xsOfY6 = (Collection<Map<String, Object>>) resultY6.get(psOfP.getName());
         assertEquals(2, xsOfY6.size());
-        final Map<String, Object> resultX11 = xsOfY6.stream().filter(x -> Objects.equals(x.get(daoFixture.getUuid().getName()), ids.get(X11))).findAny().orElse(null);
-        final Map<String, Object> resultX12 = xsOfY6.stream().filter(x -> Objects.equals(x.get(daoFixture.getUuid().getName()), ids.get(X12))).findAny().orElse(null);
+        final Map<String, Object> resultX11 = xsOfY6.stream().filter(x -> Objects.equals(x.get(runtimeFixture.getIdProvider().getName()), ids.get(X11))).findAny().orElse(null);
+        final Map<String, Object> resultX12 = xsOfY6.stream().filter(x -> Objects.equals(x.get(runtimeFixture.getIdProvider().getName()), ids.get(X12))).findAny().orElse(null);
         assertNotNull(resultX11);
         assertNotNull(resultX12);
 
@@ -667,7 +658,7 @@ public class RecursiveCompositionTest {
         assertEquals(Collections.emptySet(), resultX12.get(psOfP.getName()));
         assertEquals(Collections.emptySet(), resultX12.get(qsOfP.getName()));
 
-        assertEquals(ids.get(Y9), resultY9.get(daoFixture.getUuid().getName()));
+        assertEquals(ids.get(Y9), resultY9.get(runtimeFixture.getIdProvider().getName()));
         assertNull(resultY9.get(pOfQ.getName()));
         assertEquals(Collections.emptySet(), resultY9.get(psOfQ.getName()));
 

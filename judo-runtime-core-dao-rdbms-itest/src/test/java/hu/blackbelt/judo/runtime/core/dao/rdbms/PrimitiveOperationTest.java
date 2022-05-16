@@ -4,10 +4,10 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.psm.PsmTestModelBuilder;
 import hu.blackbelt.judo.meta.psm.namespace.Model;
 import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -26,20 +26,20 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class PrimitiveOperationTest {
     public static final String ENTITY_NAME = "Entity";
     public static final String FQNAME = "demo._default_transferobjecttypes.entities." + ENTITY_NAME;
 
     @AfterEach
-    void purgeDatabase(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    void purgeDatabase(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testDateComparison(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) throws Exception {
+    void testDateComparison(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) throws Exception {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 //ATTRIBUTES
@@ -76,10 +76,10 @@ public class PrimitiveOperationTest {
                 .withProperty("Boolean", "isHigherUndefinedOrEqualUndefined", "self.date3 >= self.dateUndefined");
 
 
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "date1", LocalDate.of(2020, 1, 1),
                         "date2", LocalDate.of(2020, 2, 1),
@@ -114,7 +114,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testTimestampComparison(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) throws Exception {
+    void testTimestampComparison(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) throws Exception {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 //ATTRIBUTES
@@ -150,10 +150,10 @@ public class PrimitiveOperationTest {
                 .withProperty("Boolean", "isLowerOrEqualUndefined", "self.ts9 <= self.tsUndefined")
                 .withProperty("Boolean", "isHigherOrEqualUndefined", "self.ts10 >= self.tsUndefined");
 
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "ts8", OffsetDateTime.of(2020, 1, 1, 8, 11, 12, 0, ZoneOffset.ofHours(1)),
                         "ts9", OffsetDateTime.of(2020, 1, 1, 9, 11, 12, 0, ZoneOffset.ofHours(1)),
@@ -188,7 +188,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testLogicalOperators(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testLogicalOperators(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
 
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
@@ -245,10 +245,10 @@ public class PrimitiveOperationTest {
                 .withProperty("Boolean", "notUndefined", "not self.boolUndefined")
         ;
 
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "boolTrue", "true",
                         "boolFalse", "false"
@@ -307,7 +307,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testEnumComparison(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testEnumComparison(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("Country", "enum1")
@@ -318,10 +318,10 @@ public class PrimitiveOperationTest {
                 .withProperty("Boolean", "enumNotEquals", "self.enum2 != self.enum3")
         ;
 
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "enum1", "1", //demo::types::Countries#HU
                         "enum1_2", "1", //demo::types::Countries#HU
@@ -336,7 +336,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testStringOperations(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testStringOperations(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("String", "name")
@@ -415,10 +415,10 @@ public class PrimitiveOperationTest {
                 .withProperty("String", "trimWhitespace", "'    '!trim()")
                 .withProperty("String", "trimUndefined", "self.undefined!trim()")
         ;
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "tree", "tree",
                         "name", "apple",
@@ -499,7 +499,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testAsString(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testAsString(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("Gps", "location")
@@ -526,10 +526,10 @@ public class PrimitiveOperationTest {
                                 .build())
                         .build())
                 .build();
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.empty(),
                 null
         );
@@ -547,7 +547,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testMetricMass(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testMetricMass(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("MassStoredInKilograms", "kilograms")
@@ -558,10 +558,10 @@ public class PrimitiveOperationTest {
                 .withProperty("Boolean", "massEquals2", "self.kilograms == self.grams / 30 * 1000")
                 .withProperty("Boolean", "massEqualsLiteral", "self.kilograms * 30 == 30000[g]");
 
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "kilograms", "1", //[demo::measures::Mass#kg]
                         "grams", "30" //[demo::measures::Mass#g]
@@ -577,7 +577,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    public void testPrecedence(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void testPrecedence(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("Double", "value3")
@@ -590,11 +590,11 @@ public class PrimitiveOperationTest {
                 .withProperty("Boolean", "impliesOrXorAnd", "true implies false or false xor true and true")
         ;
 
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "value3", 3,
                         "value7", 7,
@@ -611,7 +611,7 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testNumericOperations(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testNumericOperations(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("Integer", "one")
@@ -665,10 +665,10 @@ public class PrimitiveOperationTest {
                 .withProperty("Integer", "roundDefined", "self.doubleUndefined!round()")
         ;
 
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        Payload result = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        Payload result = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "one", "1",
                         "ten", "10"
@@ -723,17 +723,17 @@ public class PrimitiveOperationTest {
     }
 
     @Test
-    void testSetNullValueRemovedFromPayload(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testSetNullValueRemovedFromPayload(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("String", "name")
                 .withAttribute("String", "description")
         ;
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        Payload savedEntity = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        Payload savedEntity = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "name", "apple",
                         "description", "10"
@@ -743,29 +743,29 @@ public class PrimitiveOperationTest {
         final UUID id = savedEntity.getAs(new UUIDIdentifierProvider().getType(), new UUIDIdentifierProvider().getName());
         savedEntity.put("description", null);
 
-        daoFixture.getDao().update(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.getDao().update(
+                runtimeFixture.getAsmClass(FQNAME),
                 savedEntity,
                 null
         );
 
-        Payload updateEntity = daoFixture.getDao().getByIdentifier(daoFixture.getAsmClass(FQNAME), id).get();
+        Payload updateEntity = runtimeFixture.getDao().getByIdentifier(runtimeFixture.getAsmClass(FQNAME), id).get();
 
         assertNull(updateEntity.getAs(String.class, "description"));
     }
 
     @Test
-    void testSetNullValueDirectly(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    void testSetNullValueDirectly(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         PsmTestModelBuilder modelBuilder = new PsmTestModelBuilder();
         modelBuilder.addEntity(ENTITY_NAME)
                 .withAttribute("String", "name")
                 .withAttribute("String", "description")
         ;
-        daoFixture.init(modelBuilder.build(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(modelBuilder.build(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        Payload savedEntity = daoFixture.getDao().create(
-                daoFixture.getAsmClass(FQNAME),
+        Payload savedEntity = runtimeFixture.getDao().create(
+                runtimeFixture.getAsmClass(FQNAME),
                 Payload.map(
                         "name", "apple",
                         "description", "10"
@@ -775,13 +775,13 @@ public class PrimitiveOperationTest {
         final UUID id = savedEntity.getAs(new UUIDIdentifierProvider().getType(), new UUIDIdentifierProvider().getName());
         savedEntity.put("description", null);
 
-        daoFixture.getDao().update(
-                daoFixture.getAsmClass(FQNAME),
+        runtimeFixture.getDao().update(
+                runtimeFixture.getAsmClass(FQNAME),
                 savedEntity,
                 null
         );
 
-        Payload updateEntity = daoFixture.getDao().getByIdentifier(daoFixture.getAsmClass(FQNAME), id).get();
+        Payload updateEntity = runtimeFixture.getDao().getByIdentifier(runtimeFixture.getAsmClass(FQNAME), id).get();
 
         assertNull(updateEntity.getAs(String.class, "description"));
     }

@@ -18,10 +18,10 @@ import hu.blackbelt.judo.meta.psm.derived.StaticNavigation;
 import hu.blackbelt.judo.meta.psm.derived.util.builder.DerivedBuilders;
 import hu.blackbelt.judo.meta.psm.namespace.util.builder.NamespaceBuilders;
 import hu.blackbelt.judo.meta.psm.type.util.builder.TypeBuilders;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -53,8 +53,8 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class FilterTest {
 
@@ -66,12 +66,12 @@ public class FilterTest {
     }
 
     @AfterEach
-    public void teardown(final RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(final JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    void testSimpleFilter(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    void testSimpleFilter(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final NumericType integerType = newNumericTypeBuilder().withName("Integer").withPrecision(9).withScale(0).build();
         final NumericType doubleType = newNumericTypeBuilder().withName("Double").withPrecision(15).withScale(4).build();
@@ -196,15 +196,15 @@ public class FilterTest {
                         .build())
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass personType = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass personType = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (DTO_PACKAGE + ".entity.Person").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Default transfer object type of Person not found in ASM model"));
 
-        final EClass accessTokenType = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass accessTokenType = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (MODEL_NAME + ".dto.PersonToken").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("PersonToken type not found in ASM model"));
@@ -223,7 +223,7 @@ public class FilterTest {
                 .orElseThrow(() -> new IllegalStateException("Lastname attribute not found"));
         ;
 
-        final Payload p1 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p1 = runtimeFixture.getDao().create(personType, Payload.map(
                 "firstName", "Jakab",
                 "lastName", "Gipsz",
                 "email", "gipsz.jakab@example.com",
@@ -231,11 +231,11 @@ public class FilterTest {
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID p1Id = p1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID p1Id = p1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Created person #1 ({}): {}", p1Id, p1);
 
-        final Payload p2 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p2 = runtimeFixture.getDao().create(personType, Payload.map(
                 "firstName", "Elek",
                 "lastName", "Teszt",
                 "email", "teszt.elek@example.com",
@@ -243,11 +243,11 @@ public class FilterTest {
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID p2Id = p2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID p2Id = p2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Created person #2 ({}): {}", p2Id, p2);
 
-        final Payload p3 = daoFixture.getDao().create(personType, Payload.map(
+        final Payload p3 = runtimeFixture.getDao().create(personType, Payload.map(
                 "firstName", "Anyó",
                 "lastName", "Nagy",
                 "email", "nagyanyo@example.com",
@@ -255,47 +255,47 @@ public class FilterTest {
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID p3Id = p3.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID p3Id = p3.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Created person #3 ({}): {}", p3Id, p3);
 
-        daoFixture.getDao().setReference(childrenOfAccessTokenReference, p3Id, Collections.singleton(p2Id));
+        runtimeFixture.getDao().setReference(childrenOfAccessTokenReference, p3Id, Collections.singleton(p2Id));
 
-        final List<Payload> peopleByEmail = daoFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleByEmail = runtimeFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.email == 'teszt.elek@example.com'")
                 .build());
         log.debug("People by email: {}", peopleByEmail);
         assertThat(peopleByEmail, hasSize(1));
-        assertThat(peopleByEmail.get(0).getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(p2Id));
+        assertThat(peopleByEmail.get(0).getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(p2Id));
 
-        final List<Payload> peopleByName = daoFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleByName = runtimeFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.fullName == 'Jakab Gipsz'")
                 .build());
         log.debug("People by name: {}", peopleByName);
         assertThat(peopleByName, hasSize(1));
-        assertThat(peopleByName.get(0).getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(p1Id));
+        assertThat(peopleByName.get(0).getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(p1Id));
 
-        final List<Payload> noChildrenByName = daoFixture.getDao().searchNavigationResultAt(p3Id, childrenOfAccessTokenReference, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> noChildrenByName = runtimeFixture.getDao().searchNavigationResultAt(p3Id, childrenOfAccessTokenReference, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.fullName == 'Teszt, Elek'")
                 .build());
         log.debug("Children by name: {}", noChildrenByName);
         assertThat(noChildrenByName, hasSize(0));
 
-        final List<Payload> childrenByName = daoFixture.getDao().searchNavigationResultAt(p3Id, childrenOfAccessTokenReference, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> childrenByName = runtimeFixture.getDao().searchNavigationResultAt(p3Id, childrenOfAccessTokenReference, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.fullName == 'Elek Teszt'")
                 .build());
         log.debug("Children by name: {}", childrenByName);
         assertThat(childrenByName, hasSize(1));
-        assertThat(childrenByName.get(0).getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(p2Id));
+        assertThat(childrenByName.get(0).getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(p2Id));
 
-        final List<Payload> peopleByBirthDate = daoFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleByBirthDate = runtimeFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.birthDate >= `2001-02-01` and this.birthDate < `2001-03-01`")
                 .build());
         log.debug("People by birth date: {}", peopleByBirthDate);
         assertThat(peopleByBirthDate, hasSize(1));
-        assertThat(peopleByBirthDate.get(0).getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(p1Id));
+        assertThat(peopleByBirthDate.get(0).getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(p1Id));
 
-        final List<Payload> peopleOver18a = daoFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> peopleOver18a = runtimeFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.ageAt2020 >= 18.0")
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder().attribute(firstNameOfPersonTokenAttribute).descending(false).build(),
@@ -303,8 +303,8 @@ public class FilterTest {
                 ))
                 .build());
         log.debug("People over 18 at 2020 (ordered): {}", peopleOver18a);
-        assertThat(peopleOver18a.stream().map(p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList()), equalTo(Arrays.asList(p3Id, p2Id, p1Id)));
-        final List<Payload> peopleOver18b = daoFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
+        assertThat(peopleOver18a.stream().map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList()), equalTo(Arrays.asList(p3Id, p2Id, p1Id)));
+        final List<Payload> peopleOver18b = runtimeFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.ageAt2020 >= 18.0")
                 .orderByList(Arrays.asList(
                         DAO.OrderBy.builder().attribute(firstNameOfPersonTokenAttribute).descending(true).build(),
@@ -312,15 +312,15 @@ public class FilterTest {
                 ))
                 .build());
         log.debug("People over 18 at 2020 (reverse ordered): {}", peopleOver18b);
-        assertThat(peopleOver18b.stream().map(p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName())).collect(Collectors.toList()), equalTo(Arrays.asList(p1Id, p2Id, p3Id)));
+        assertThat(peopleOver18b.stream().map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName())).collect(Collectors.toList()), equalTo(Arrays.asList(p1Id, p2Id, p3Id)));
 
-        final List<Payload> examplePeople = daoFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> examplePeople = runtimeFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.email!matches('.*@example.com')")
                 .build());
         log.debug("Example people: {}", examplePeople);
         assertThat(examplePeople, hasSize(3));
 
-        final List<Payload> kPeople = daoFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
+        final List<Payload> kPeople = runtimeFixture.getDao().search(accessTokenType, DAO.QueryCustomizer.<UUID>builder()
                 .filter("this.fullName!matches('.*k.*')")
                 .build());
         log.debug("People with name containing k: {}", kPeople);
@@ -328,7 +328,7 @@ public class FilterTest {
     }
 
     @Test
-    public void testFilteredAccess(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    public void testFilteredAccess(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final hu.blackbelt.judo.meta.psm.type.StringType stringType = TypeBuilders.newStringTypeBuilder().withName("String").withMaxLength(255).build();
 
         final Attribute colorOfBall = DataBuilders.newAttributeBuilder()
@@ -390,15 +390,15 @@ public class FilterTest {
                 .withElements(actor)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass ballType = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass ballType = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (MODEL_NAME + ".dto.BallDTO").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Default transfer object type of Ball not found in ASM model"));
 
-        final EClass actorType = daoFixture.getAsmUtils().all(EClass.class)
+        final EClass actorType = runtimeFixture.getAsmUtils().all(EClass.class)
                 .filter(c -> (MODEL_NAME + ".Actor").equals(AsmUtils.getClassifierFQName(c)))
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Actor type not found in ASM model"));
@@ -407,36 +407,36 @@ public class FilterTest {
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("RedBalls reference of actor not found in ASM model"));
 
-        daoFixture.getDao().create(ballType, Payload.map("color", "red"), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(ballType, Payload.map("color", "red"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        daoFixture.getDao().create(ballType, Payload.map("color", "blue"), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(ballType, Payload.map("color", "blue"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        daoFixture.getDao().create(ballType, Payload.map("color", "yellow"), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(ballType, Payload.map("color", "yellow"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        daoFixture.getDao().create(ballType, Payload.map("color", "green"), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(ballType, Payload.map("color", "green"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        daoFixture.getDao().create(ballType, Payload.map("color", "yellow"), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(ballType, Payload.map("color", "yellow"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        daoFixture.getDao().create(ballType, Payload.map("color", "red"), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(ballType, Payload.map("color", "red"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        daoFixture.getDao().create(ballType, Payload.map("color", "yellow"), DAO.QueryCustomizer.<UUID>builder()
+        runtimeFixture.getDao().create(ballType, Payload.map("color", "yellow"), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
 
-        final List<Payload> results = daoFixture.getDao().getAllReferencedInstancesOf(redBallsOfActor, ballType);
+        final List<Payload> results = runtimeFixture.getDao().getAllReferencedInstancesOf(redBallsOfActor, ballType);
         log.debug("Results: {}", results);
 
         assertThat(results, hasSize(2));
     }
 
     @Test
-    public void testFilteredAccessWithNavigationInside(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    public void testFilteredAccessWithNavigationInside(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
 
         final EnumerationType continent = newEnumerationTypeBuilder()
@@ -574,58 +574,58 @@ public class FilterTest {
                 .withElements(stringType, continent, country, city, person, car, tester)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass countryType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Country").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass cityType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".City").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass personType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Person").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass carType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Car").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass testerType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Tester").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass countryType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Country").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass cityType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".City").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass personType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Person").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass carType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Car").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass testerType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Tester").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
         final EReference carsOfTesztElekReference = testerType.getEAllReferences().stream().filter(r -> "carsOfTesztElek".equals(r.getName())).findAny().get();
         final EReference carsInBudapestReference = testerType.getEAllReferences().stream().filter(r -> "carsInBudapest".equals(r.getName())).findAny().get();
         final EReference carsInHungaryReference = testerType.getEAllReferences().stream().filter(r -> "carsInHungary".equals(r.getName())).findAny().get();
         final EReference carsOfKnownContinentsReference = testerType.getEAllReferences().stream().filter(r -> "carsOfKnownContinents".equals(r.getName())).findAny().get();
 
-        final Payload country1 = daoFixture.getDao().create(countryType, Payload.map("name", "Hungary", "continent", 2), DAO.QueryCustomizer.<UUID>builder()
+        final Payload country1 = runtimeFixture.getDao().create(countryType, Payload.map("name", "Hungary", "continent", 2), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload city1 = daoFixture.getDao().create(cityType, Payload.map("name", "Budapest", "country", country1), DAO.QueryCustomizer.<UUID>builder()
+        final Payload city1 = runtimeFixture.getDao().create(cityType, Payload.map("name", "Budapest", "country", country1), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload city2 = daoFixture.getDao().create(cityType, Payload.map("name", "Debrecen", "country", country1), DAO.QueryCustomizer.<UUID>builder()
+        final Payload city2 = runtimeFixture.getDao().create(cityType, Payload.map("name", "Debrecen", "country", country1), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload p1 = daoFixture.getDao().create(personType, Payload.map("name", "Gipsz Jakab", "city", city1), DAO.QueryCustomizer.<UUID>builder()
+        final Payload p1 = runtimeFixture.getDao().create(personType, Payload.map("name", "Gipsz Jakab", "city", city1), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload p2 = daoFixture.getDao().create(personType, Payload.map("name", "Teszt Elek", "city", city2), DAO.QueryCustomizer.<UUID>builder()
+        final Payload p2 = runtimeFixture.getDao().create(personType, Payload.map("name", "Teszt Elek", "city", city2), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final Payload c1 = daoFixture.getDao().create(carType, Payload.map("licensePlate", "ABC-123", "owner", p1), null);
+        final Payload c1 = runtimeFixture.getDao().create(carType, Payload.map("licensePlate", "ABC-123", "owner", p1), null);
         c1.remove("__$created");
-        final Payload c2 = daoFixture.getDao().create(carType, Payload.map("licensePlate", "ABC-124", "owner", p2), null);
+        final Payload c2 = runtimeFixture.getDao().create(carType, Payload.map("licensePlate", "ABC-124", "owner", p2), null);
         c2.remove("__$created");
 
-        final List<Payload> carsOfTesztElek = daoFixture.getDao().getAllReferencedInstancesOf(carsOfTesztElekReference, carsOfTesztElekReference.getEReferenceType());
+        final List<Payload> carsOfTesztElek = runtimeFixture.getDao().getAllReferencedInstancesOf(carsOfTesztElekReference, carsOfTesztElekReference.getEReferenceType());
         log.debug("Cars of Teszt Elek: {}", carsOfTesztElek);
 
         assertThat(carsOfTesztElek, hasSize(1));
         assertThat(carsOfTesztElek.get(0), equalTo(c2));
 
-        final List<Payload> carsInBudapest = daoFixture.getDao().getAllReferencedInstancesOf(carsInBudapestReference, carsInBudapestReference.getEReferenceType());
+        final List<Payload> carsInBudapest = runtimeFixture.getDao().getAllReferencedInstancesOf(carsInBudapestReference, carsInBudapestReference.getEReferenceType());
         log.debug("Cars in Budapest: {}", carsInBudapest);
 
         assertThat(carsInBudapest, hasSize(1));
         assertThat(carsInBudapest.get(0), equalTo(c1));
 
-        final Set<Payload> carsInHungary = new HashSet<>(daoFixture.getDao().getAllReferencedInstancesOf(carsInHungaryReference, carsInHungaryReference.getEReferenceType()));
+        final Set<Payload> carsInHungary = new HashSet<>(runtimeFixture.getDao().getAllReferencedInstancesOf(carsInHungaryReference, carsInHungaryReference.getEReferenceType()));
         log.debug("Cars in Hungary: {}", carsInHungary);
 
         assertThat(carsInHungary, hasSize(2));
         assertThat(carsInHungary, equalTo(ImmutableSet.of(c1, c2)));
 
-        final Set<Payload> carsOfKnownContinents = new HashSet<>(daoFixture.getDao().getAllReferencedInstancesOf(carsOfKnownContinentsReference, carsOfKnownContinentsReference.getEReferenceType()));
+        final Set<Payload> carsOfKnownContinents = new HashSet<>(runtimeFixture.getDao().getAllReferencedInstancesOf(carsOfKnownContinentsReference, carsOfKnownContinentsReference.getEReferenceType()));
         log.debug("Cars of known continents: {}", carsOfKnownContinents);
 
         assertThat(carsOfKnownContinents, hasSize(2));
@@ -633,7 +633,7 @@ public class FilterTest {
     }
 
     @Test
-    public void testSingleFilter(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    public void testSingleFilter(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final BooleanType booleanType = newBooleanTypeBuilder().withName("Boolean").build();
 
@@ -684,50 +684,50 @@ public class FilterTest {
                 .withElements(stringType, booleanType, system, access)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass systemType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".System").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass accessType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Access").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass systemType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".System").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass accessType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Access").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
         final EAttribute productionUrlOfAccessAttribute = accessType.getEAllAttributes().stream().filter(a -> "productionUrl".equals(a.getName())).findAny().get();
         final EAttribute developmentUrlOfAccessAttribute = accessType.getEAllAttributes().stream().filter(a -> "developmentUrl".equals(a.getName())).findAny().get();
         final EReference systemsOfAccessReference = accessType.getEAllReferences().stream().filter(r -> "systems".equals(r.getName())).findAny().get();
 
-        final Payload system1 = daoFixture.getDao().create(systemType, Payload.map(
+        final Payload system1 = runtimeFixture.getDao().create(systemType, Payload.map(
                 "production", true,
                 "url", "http://www.store.com"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID system1Id = system1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID system1Id = system1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload productionUrlHolder = daoFixture.getDao().getStaticData(productionUrlOfAccessAttribute);
+        final Payload productionUrlHolder = runtimeFixture.getDao().getStaticData(productionUrlOfAccessAttribute);
         assertThat(productionUrlHolder.getAs(String.class, productionUrlOfAccessAttribute.getName()), equalTo("http://www.store.com"));
 
-        final Payload developmentUrlHolder = daoFixture.getDao().getStaticData(developmentUrlOfAccessAttribute);
+        final Payload developmentUrlHolder = runtimeFixture.getDao().getStaticData(developmentUrlOfAccessAttribute);
         assertThat(developmentUrlHolder.getAs(String.class, developmentUrlOfAccessAttribute.getName()), nullValue());
 
-        final Function<Payload, UUID> extractor = p -> p.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
-        final Set<UUID> allSystems1 = daoFixture.getDao().search(systemType, DAO.QueryCustomizer.<UUID>builder()
+        final Function<Payload, UUID> extractor = p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
+        final Set<UUID> allSystems1 = runtimeFixture.getDao().search(systemType, DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
                 .stream().map(extractor).collect(Collectors.toSet());
-        final Set<UUID> system1Only1 = daoFixture.getDao().search(systemType, DAO.QueryCustomizer.<UUID>builder()
+        final Set<UUID> system1Only1 = runtimeFixture.getDao().search(systemType, DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .instanceIds(Collections.singleton(system1Id))
                         .build())
                 .stream().map(extractor).collect(Collectors.toSet());
-        final Set<UUID> noSystem1 = daoFixture.getDao().search(systemType, DAO.QueryCustomizer.<UUID>builder()
+        final Set<UUID> noSystem1 = runtimeFixture.getDao().search(systemType, DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .instanceIds(Collections.singleton(UUID.randomUUID()))
                         .build())
                 .stream().map(extractor).collect(Collectors.toSet());
 
-        final Set<UUID> system1Only2 = daoFixture.getDao().searchReferencedInstancesOf(systemsOfAccessReference, systemsOfAccessReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final Set<UUID> system1Only2 = runtimeFixture.getDao().searchReferencedInstancesOf(systemsOfAccessReference, systemsOfAccessReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
                 .stream().map(extractor).collect(Collectors.toSet());
-        final Set<UUID> noSystem2 = daoFixture.getDao().searchReferencedInstancesOf(systemsOfAccessReference, systemsOfAccessReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
+        final Set<UUID> noSystem2 = runtimeFixture.getDao().searchReferencedInstancesOf(systemsOfAccessReference, systemsOfAccessReference.getEReferenceType(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .instanceIds(Collections.singleton(UUID.randomUUID()))
                         .build())
@@ -741,7 +741,7 @@ public class FilterTest {
     }
 
     @Test
-    public void testExists(final RdbmsDaoFixture daoFixture, final RdbmsDatasourceFixture datasourceFixture) {
+    public void testExists(final JudoRuntimeFixture runtimeFixture, final JudoDatasourceFixture datasourceFixture) {
         final StringType stringType = newStringTypeBuilder().withName("String").withMaxLength(255).build();
         final BooleanType booleanType = newBooleanTypeBuilder().withName("Boolean").build();
 
@@ -840,15 +840,15 @@ public class FilterTest {
                 .withElements(stringType, booleanType, box, ball, access)
                 .build();
 
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass boxType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Box").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass boxType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Box").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
         final EReference ballsOfBoxReference = boxType.getEAllReferences().stream().filter(r -> "balls".equals(r.getName())).findAny().get();
-        final EClass ballType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Ball").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
-        final EClass accessType = daoFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Access").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass ballType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (DTO_PACKAGE + ".Ball").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
+        final EClass accessType = runtimeFixture.getAsmUtils().all(EClass.class).filter(c -> (MODEL_NAME + ".Access").equals(AsmUtils.getClassifierFQName(c))).findAny().get();
 
-        final Payload info1 = daoFixture.getDao().getStaticFeatures(accessType);
+        final Payload info1 = runtimeFixture.getDao().getStaticFeatures(accessType);
         log.debug("info #1: {}", info1);
         assertThat(info1, equalTo(ImmutableMap.of(
                 "existsAnyBall", false,
@@ -857,14 +857,14 @@ public class FilterTest {
                 "noRedBall", true
         )));
 
-        final Payload ball1 = daoFixture.getDao().create(ballType, Payload.map(
+        final Payload ball1 = runtimeFixture.getDao().create(ballType, Payload.map(
                 "color", "BLUE"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID ball1Id = ball1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID ball1Id = ball1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload info2 = daoFixture.getDao().getStaticFeatures(accessType);
+        final Payload info2 = runtimeFixture.getDao().getStaticFeatures(accessType);
         log.debug("info #2: {}", info2);
         assertThat(info2, equalTo(ImmutableMap.of(
                 "existsAnyBall", true,
@@ -873,14 +873,14 @@ public class FilterTest {
                 "noRedBall", true
         )));
 
-        final Payload ball2 = daoFixture.getDao().create(ballType, Payload.map(
+        final Payload ball2 = runtimeFixture.getDao().create(ballType, Payload.map(
                 "color", "RED"
         ), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        final UUID ball2Id = ball2.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID ball2Id = ball2.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
-        final Payload info3 = daoFixture.getDao().getStaticFeatures(accessType);
+        final Payload info3 = runtimeFixture.getDao().getStaticFeatures(accessType);
         log.debug("info #3: {}", info3);
         assertThat(info3, equalTo(ImmutableMap.of(
                 "existsAnyBall", true,
@@ -889,17 +889,17 @@ public class FilterTest {
                 "noRedBall", false
         )));
 
-        final Payload box1 = daoFixture.getDao().create(boxType, Payload.empty(), null);
+        final Payload box1 = runtimeFixture.getDao().create(boxType, Payload.empty(), null);
         log.debug("Box1: {}", box1);
-        final UUID box1Id = box1.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID box1Id = box1.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         assertThat(box1.get("hasBalls1"), equalTo(false));
         assertThat(box1.get("hasBalls2"), equalTo(false));
         assertThat(box1.get("hasNoBalls1"), equalTo(true));
         assertThat(box1.get("hasNoBalls2"), equalTo(true));
         assertThat(box1.get("hasNoBalls3"), equalTo(true));
 
-        daoFixture.getDao().setReference(ballsOfBoxReference, box1Id, Collections.singleton(ball1Id));
-        final Payload box1Reloaded = daoFixture.getDao().getByIdentifier(boxType, box1Id).get();
+        runtimeFixture.getDao().setReference(ballsOfBoxReference, box1Id, Collections.singleton(ball1Id));
+        final Payload box1Reloaded = runtimeFixture.getDao().getByIdentifier(boxType, box1Id).get();
         log.debug("Box1 with balls: {}", box1Reloaded);
         assertThat(box1Reloaded.get("hasBalls1"), equalTo(true));
         assertThat(box1Reloaded.get("hasBalls2"), equalTo(true));
@@ -907,7 +907,7 @@ public class FilterTest {
         assertThat(box1Reloaded.get("hasNoBalls2"), equalTo(false));
         assertThat(box1Reloaded.get("hasNoBalls3"), equalTo(false));
 
-        final Payload box2 = daoFixture.getDao().create(boxType, Payload.empty(), null);
+        final Payload box2 = runtimeFixture.getDao().create(boxType, Payload.empty(), null);
         log.debug("Box2: {}", box2);
         assertThat(box2.get("hasBalls1"), equalTo(false));
         assertThat(box2.get("hasBalls2"), equalTo(false));

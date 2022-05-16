@@ -9,10 +9,10 @@ import hu.blackbelt.judo.meta.esm.structure.EntityType;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.EntityTypeBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.MappingBuilder;
 import hu.blackbelt.judo.meta.esm.structure.util.builder.OneWayRelationMemberBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -37,8 +37,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class RemoveOperationTest {
     public static final String MODEL_NAME = "M";
@@ -48,9 +48,6 @@ public class RemoveOperationTest {
     private static final String ENTITY_A_FQ_NAME = DTO_PACKAGE + ".Entity_A";
     private static final String ENTITY_A_RELATION_NAME = "entity_A";
     private static final String ENTITY_A_RELATION_FQ_NAME = ENTITY_BASE_FQ_NAME + "#entity_A";
-
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
 
     private static Model MODEL;
 
@@ -83,61 +80,55 @@ public class RemoveOperationTest {
                 .build();
     }
 
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture) {
-        this.idProviderClass = daoFixture.getIdProvider().getType();
-        this.idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void testCreateNavigationInstanceAt(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(MODEL, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testCreateNavigationInstanceAt(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(MODEL, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(ENTITY_BASE_FQ_NAME)
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_BASE_FQ_NAME)
                 .orElseThrow(() -> new RuntimeException(ENTITY_BASE_FQ_NAME + " cannot be found"));
-        final EClass entityAEClass = daoFixture.getAsmUtils().getClassByFQName(ENTITY_A_FQ_NAME)
+        final EClass entityAEClass = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_A_FQ_NAME)
                 .orElseThrow(() -> new RuntimeException(ENTITY_A_FQ_NAME + " cannot be found"));
 
-        final EReference entityAEReference = daoFixture.getAsmUtils().resolveReference(ENTITY_A_RELATION_FQ_NAME)
+        final EReference entityAEReference = runtimeFixture.getAsmUtils().resolveReference(ENTITY_A_RELATION_FQ_NAME)
                 .orElseThrow(() -> new RuntimeException(ENTITY_A_RELATION_FQ_NAME + " cannot be found"));
 
         // init
-        final UUID entityBaseEClassID = daoFixture.getDao()
+        final UUID entityBaseEClassID = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", entityBaseEClass.getName(), entityBaseEClassID);
 
-        final UUID entityA1EClassID = daoFixture.getDao()
+        final UUID entityA1EClassID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(entityBaseEClassID, entityAEReference, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", entityAEClass.getName(), entityA1EClassID);
 
-        final UUID entityA2EClassID = daoFixture.getDao()
+        final UUID entityA2EClassID = runtimeFixture.getDao()
                 .createNavigationInstanceAt(entityBaseEClassID, entityAEReference, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", entityAEClass.getName(), entityA2EClassID);
 
-        Set<UUID> actualEntityAEReferenceContentIDs = getEReferenceContentIDs(daoFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
+        Set<UUID> actualEntityAEReferenceContentIDs = getEReferenceContentIDs(runtimeFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
         Set<UUID> expectedEntityAEReferenceContentIDs = ImmutableSet.of(entityA1EClassID, entityA2EClassID);
 
         assertThat(actualEntityAEReferenceContentIDs, equalTo(expectedEntityAEReferenceContentIDs));
 
         // remove: before: 1;2 - after: 1
-        daoFixture.getDao().removeReferences(entityAEReference, entityBaseEClassID, singleton(entityA2EClassID));
+        runtimeFixture.getDao().removeReferences(entityAEReference, entityBaseEClassID, singleton(entityA2EClassID));
 
-        actualEntityAEReferenceContentIDs = getEReferenceContentIDs(daoFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
+        actualEntityAEReferenceContentIDs = getEReferenceContentIDs(runtimeFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
         expectedEntityAEReferenceContentIDs = ImmutableSet.of(entityA1EClassID);
 
         assertThat(actualEntityAEReferenceContentIDs, equalTo(expectedEntityAEReferenceContentIDs));
@@ -145,63 +136,63 @@ public class RemoveOperationTest {
     }
 
     @Test
-    public void testWithSetReference(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(MODEL, datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
+    public void testWithSetReference(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(MODEL, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
 
-        final EClass entityBaseEClass = daoFixture.getAsmUtils().getClassByFQName(ENTITY_BASE_FQ_NAME)
+        final EClass entityBaseEClass = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_BASE_FQ_NAME)
                 .orElseThrow(() -> new RuntimeException(ENTITY_BASE_FQ_NAME + " cannot be found"));
-        final EClass entityAEClass = daoFixture.getAsmUtils().getClassByFQName(ENTITY_A_FQ_NAME)
+        final EClass entityAEClass = runtimeFixture.getAsmUtils().getClassByFQName(ENTITY_A_FQ_NAME)
                 .orElseThrow(() -> new RuntimeException(ENTITY_A_FQ_NAME + " cannot be found"));
 
-        final EReference entityAEReference = daoFixture.getAsmUtils().resolveReference(ENTITY_A_RELATION_FQ_NAME)
+        final EReference entityAEReference = runtimeFixture.getAsmUtils().resolveReference(ENTITY_A_RELATION_FQ_NAME)
                 .orElseThrow(() -> new RuntimeException(ENTITY_A_RELATION_FQ_NAME + " cannot be found"));
 
         // init
-        final UUID entityBaseEClassID = daoFixture.getDao()
+        final UUID entityBaseEClassID = runtimeFixture.getDao()
                 .create(entityBaseEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", entityBaseEClass.getName(), entityBaseEClassID);
 
-        final UUID entityA1EClassID = daoFixture.getDao()
+        final UUID entityA1EClassID = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", entityAEClass.getName(), entityA1EClassID);
 
-        final UUID entityA2EClassID = daoFixture.getDao()
+        final UUID entityA2EClassID = runtimeFixture.getDao()
                 .create(entityAEClass, Payload.empty(), DAO.QueryCustomizer.<UUID>builder()
                         .mask(Collections.emptyMap())
                         .build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("{} created with ID: {}", entityAEClass.getName(), entityA2EClassID);
 
-        daoFixture.getDao().setReference(entityAEReference, entityBaseEClassID, asList(entityA1EClassID, entityA2EClassID));
+        runtimeFixture.getDao().setReference(entityAEReference, entityBaseEClassID, asList(entityA1EClassID, entityA2EClassID));
 
-        Set<UUID> actualEntityAEReferenceContentIDs = getEReferenceContentIDs(daoFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
+        Set<UUID> actualEntityAEReferenceContentIDs = getEReferenceContentIDs(runtimeFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
         Set<UUID> expectedEntityAEReferenceContentIDs = ImmutableSet.of(entityA1EClassID, entityA2EClassID);
 
         assertThat(actualEntityAEReferenceContentIDs, equalTo(expectedEntityAEReferenceContentIDs));
 
         // remove: before: 1;2 - after: NA
-        daoFixture.getDao().removeReferences(entityAEReference, entityBaseEClassID, asList(entityA1EClassID, entityA2EClassID));
+        runtimeFixture.getDao().removeReferences(entityAEReference, entityBaseEClassID, asList(entityA1EClassID, entityA2EClassID));
 
-        actualEntityAEReferenceContentIDs = getEReferenceContentIDs(daoFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
+        actualEntityAEReferenceContentIDs = getEReferenceContentIDs(runtimeFixture, entityBaseEClass, entityBaseEClassID, ENTITY_A_RELATION_NAME);
         expectedEntityAEReferenceContentIDs = ImmutableSet.of();
 
         assertThat(actualEntityAEReferenceContentIDs, equalTo(expectedEntityAEReferenceContentIDs));
 
     }
 
-    private Set<UUID> getEReferenceContentIDs(RdbmsDaoFixture daoFixture, EClass ownerEClass, UUID ownerEClassID, String eReferenceName) {
-        return daoFixture.getDao()
+    private Set<UUID> getEReferenceContentIDs(JudoRuntimeFixture runtimeFixture, EClass ownerEClass, UUID ownerEClassID, String eReferenceName) {
+        return runtimeFixture.getDao()
                 .getByIdentifier(ownerEClass, ownerEClassID)
                 .orElseThrow(() -> new RuntimeException(ownerEClass.getName() + " cannot be found"))
                 .getAsCollectionPayload(eReferenceName).stream()
-                .map(e -> e.getAs(idProviderClass, idProviderName))
+                .map(e -> e.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
     }
 

@@ -11,10 +11,10 @@ import hu.blackbelt.judo.meta.esm.structure.OneWayRelationMember;
 import hu.blackbelt.judo.meta.esm.structure.TransferObjectType;
 import hu.blackbelt.judo.meta.esm.structure.TwoWayRelationMember;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -49,8 +49,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class TwoWayAssociationAlongWithCompositionTest {
 
@@ -58,22 +58,13 @@ public class TwoWayAssociationAlongWithCompositionTest {
     public static final String DTO_PACKAGE = MODEL_NAME + "._default_transferobjecttypes.entities";
     public static final String ADMIN_PACKAGE = MODEL_NAME + ".admin";
 
-    private Class<UUID> idProviderClass;
-    private String idProviderName;
-
-    @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        this.idProviderClass = daoFixture.getIdProvider().getType();
-        this.idProviderName = daoFixture.getIdProvider().getName();
-    }
-
     @AfterEach
-    public void dropDatabase(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.dropDatabase();
+    public void dropDatabase(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.dropDatabase();
     }
 
     @Test
-    public void test(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
+    public void test(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
         // packages
         Package measures = newPackageBuilder().withName("measures").build();
         Package admin = newPackageBuilder().withName("admin").build();
@@ -206,10 +197,10 @@ public class TwoWayAssociationAlongWithCompositionTest {
                 .build();
 
         // init dao
-        daoFixture.init(model, datasourceFixture);
-        assertTrue(daoFixture.isInitialized());
+        runtimeFixture.init(model, datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized());
 
-        AsmUtils asmUtils = daoFixture.getAsmUtils();
+        AsmUtils asmUtils = runtimeFixture.getAsmUtils();
 
         EClass bankAccountClass = asmUtils.getClassByFQName(DTO_PACKAGE + ".BankAccount").get();
         EReference mainBankAccountReference = asmUtils.resolveReference(DTO_PACKAGE + ".Company#mainBankAccount").get();
@@ -218,29 +209,29 @@ public class TwoWayAssociationAlongWithCompositionTest {
         EClass mappedCompanyClass = asmUtils.getClassByFQName(ADMIN_PACKAGE + ".Company").get();
         EReference mappedBankAccountsReference = asmUtils.resolveReference(ADMIN_PACKAGE + ".Company#bankAccounts").get();
 
-        check(daoFixture, bankAccountClass, companyReference, mainBankAccountReference, new HashMap<>());
+        check(runtimeFixture, bankAccountClass, companyReference, mainBankAccountReference, new HashMap<>());
 
-        UUID myCompanyId = daoFixture.getDao()
+        UUID myCompanyId = runtimeFixture.getDao()
                 .create(mappedCompanyClass, Payload.map("name", "MyCompany"),
                         DAO.QueryCustomizer.<UUID>builder().build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("Company created: [id={}, name={}]", myCompanyId, "MyCompany");
 
-        UUID bankAccountId = daoFixture.getDao()
+        UUID bankAccountId = runtimeFixture.getDao()
                 .createNavigationInstanceAt(myCompanyId, mappedBankAccountsReference,
                                             Payload.map("accountNumber", "99999999"),
                                             DAO.QueryCustomizer.<UUID>builder().build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("BankAccount created: [id={}, accountNumber={}]", bankAccountId, "99999999");
 
-        UUID bankAccount2Id = daoFixture.getDao()
+        UUID bankAccount2Id = runtimeFixture.getDao()
                 .createNavigationInstanceAt(myCompanyId, mappedBankAccountsReference,
                                             Payload.map("accountNumber", "00000000"),
                                             DAO.QueryCustomizer.<UUID>builder().build())
-                .getAs(idProviderClass, idProviderName);
+                .getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("BankAccount created: [id={}, accountNumber={}]", bankAccount2Id, "00000000");
 
-        check(daoFixture,
+        check(runtimeFixture,
               bankAccountClass, companyReference, mainBankAccountReference,
               new HashMap<>() {{
                   put(bankAccountId, null);
@@ -248,12 +239,12 @@ public class TwoWayAssociationAlongWithCompositionTest {
               }}
         );
 
-        Payload companyPayload = daoFixture.getDao().getByIdentifier(mappedCompanyClass, myCompanyId).get();
+        Payload companyPayload = runtimeFixture.getDao().getByIdentifier(mappedCompanyClass, myCompanyId).get();
         companyPayload.remove("mainBankAccount");
-        companyPayload.put("mainBankAccount", Payload.map(idProviderName, bankAccountId));
-        daoFixture.getDao().update(mappedCompanyClass, companyPayload, DAO.QueryCustomizer.<UUID>builder().build());
+        companyPayload.put("mainBankAccount", Payload.map(runtimeFixture.getIdProvider().getName(), bankAccountId));
+        runtimeFixture.getDao().update(mappedCompanyClass, companyPayload, DAO.QueryCustomizer.<UUID>builder().build());
 
-        check(daoFixture,
+        check(runtimeFixture,
               bankAccountClass, companyReference, mainBankAccountReference,
               new HashMap<>() {{
                   put(bankAccountId, myCompanyId);
@@ -261,12 +252,12 @@ public class TwoWayAssociationAlongWithCompositionTest {
               }}
         );
 
-        Payload companyPayload2 = daoFixture.getDao().getByIdentifier(mappedCompanyClass, myCompanyId).get();
+        Payload companyPayload2 = runtimeFixture.getDao().getByIdentifier(mappedCompanyClass, myCompanyId).get();
         companyPayload2.remove("mainBankAccount");
-        companyPayload2.put("mainBankAccount", Payload.map(idProviderName, bankAccount2Id));
-        daoFixture.getDao().update(mappedCompanyClass, companyPayload2, DAO.QueryCustomizer.<UUID>builder().build());
+        companyPayload2.put("mainBankAccount", Payload.map(runtimeFixture.getIdProvider().getName(), bankAccount2Id));
+        runtimeFixture.getDao().update(mappedCompanyClass, companyPayload2, DAO.QueryCustomizer.<UUID>builder().build());
 
-        check(daoFixture,
+        check(runtimeFixture,
               bankAccountClass, companyReference, mainBankAccountReference,
               new HashMap<>() {{
                   put(bankAccountId, null);
@@ -278,33 +269,33 @@ public class TwoWayAssociationAlongWithCompositionTest {
     /**
      * Checks if two way references have valid values
      *
-     * @param daoFixture
+     * @param runtimeFixture
      * @param referenceOwner         actual {@link EReference}'s owner
      * @param reference              {@link EReference} from actual reference owner's point of view
      * @param backReference          {@link EReference} from actual reference target's point of view
      * @param expectedReferencePairs {@link Map} of {@link UUID} pairs in which key is the actual reference owner and
      *                               value is the actual reference target
      */
-    private void check(RdbmsDaoFixture daoFixture,
+    private void check(JudoRuntimeFixture runtimeFixture,
                        EClass referenceOwner, EReference reference, EReference backReference,
                        Map<UUID, UUID> expectedReferencePairs) {
-        assertThat(daoFixture.getDao().getAllOf(referenceOwner).stream()
-                           .map(p -> p.getAs(idProviderClass, idProviderName))
+        assertThat(runtimeFixture.getDao().getAllOf(referenceOwner).stream()
+                           .map(p -> p.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()))
                            .collect(Collectors.toSet()),
                    equalTo(expectedReferencePairs.keySet()));
         expectedReferencePairs.forEach((ownerId, targetId) -> {
-            List<Payload> referenceResult = daoFixture.getDao().getNavigationResultAt(ownerId, reference);
+            List<Payload> referenceResult = runtimeFixture.getDao().getNavigationResultAt(ownerId, reference);
             if (targetId != null) {
                 assertThat(referenceResult.size(), equalTo(1)); // single reference
                 Payload referencePayload = referenceResult.get(0);
                 assertThat(referencePayload, notNullValue());
-                assertThat(referencePayload.getAs(idProviderClass, idProviderName), equalTo(targetId));
+                assertThat(referencePayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(targetId));
 
-                List<Payload> backReferenceResult = daoFixture.getDao().getNavigationResultAt(targetId, backReference);
+                List<Payload> backReferenceResult = runtimeFixture.getDao().getNavigationResultAt(targetId, backReference);
                 assertThat(backReferenceResult.size(), equalTo(1)); // single reference
                 Payload backReferencePayload = backReferenceResult.get(0);
                 assertThat(backReferencePayload, notNullValue());
-                assertThat(backReferencePayload.getAs(idProviderClass, idProviderName), equalTo(ownerId));
+                assertThat(backReferencePayload.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(ownerId));
             } else {
                 assertThat(referenceResult.size(), equalTo(0));
             }

@@ -10,7 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-public class HsqldbAtomikosDataSourceProvider implements Provider<DataSource> {
+public class HsqldbAtomikosNonXADataSourceProvider implements Provider<DataSource> {
 
     @Inject(optional = true)
     private Server server;

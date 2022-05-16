@@ -12,10 +12,10 @@ import hu.blackbelt.judo.meta.esm.structure.*;
 import hu.blackbelt.judo.meta.esm.type.BooleanType;
 import hu.blackbelt.judo.meta.esm.type.EnumerationType;
 import hu.blackbelt.judo.meta.esm.type.StringType;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoExtension;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDaoFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceFixture;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.RdbmsDatasourceSingetonExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeExtension;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoRuntimeFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceFixture;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.fixture.JudoDatasourceSingetonExtension;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
@@ -38,8 +38,8 @@ import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class)
-@ExtendWith(RdbmsDatasourceSingetonExtension.class)
-@ExtendWith(RdbmsDaoExtension.class)
+@ExtendWith(JudoDatasourceSingetonExtension.class)
+@ExtendWith(JudoRuntimeExtension.class)
 @Slf4j
 public class CastTest {
 
@@ -262,18 +262,18 @@ public class CastTest {
         return model;
     }
 
-    RdbmsDaoFixture daoFixture;
+    JudoRuntimeFixture runtimeFixture;
 
     @BeforeEach
-    public void setup(RdbmsDaoFixture daoFixture, RdbmsDatasourceFixture datasourceFixture) {
-        daoFixture.init(getEsmModel(), datasourceFixture);
-        assertTrue(daoFixture.isInitialized(), "DAO initialized");
-        this.daoFixture = daoFixture;
+    public void setup(JudoRuntimeFixture runtimeFixture, JudoDatasourceFixture datasourceFixture) {
+        runtimeFixture.init(getEsmModel(), datasourceFixture);
+        assertTrue(runtimeFixture.isInitialized(), "DAO initialized");
+        this.runtimeFixture = runtimeFixture;
     }
 
     @AfterEach
-    public void teardown(RdbmsDaoFixture daoFixture) {
-        daoFixture.dropDatabase();
+    public void teardown(JudoRuntimeFixture runtimeFixture) {
+        runtimeFixture.dropDatabase();
     }
 
 
@@ -286,9 +286,9 @@ public class CastTest {
     }
 
     private UUID createApple(final AppleVariety appleVariety) {
-        final EClass appleType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
+        final EClass appleType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
 
-        final Payload apple = daoFixture.getDao().create(appleType, map(
+        final Payload apple = runtimeFixture.getDao().create(appleType, map(
                 "name", "Apple",
                 "variety", appleVariety.ordinal()
                 ),
@@ -297,22 +297,22 @@ public class CastTest {
                         .build()
         );
 
-        final UUID appleId = apple.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID appleId = apple.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Apple {} created with ID: {}", appleVariety, appleId);
 
-        final Optional<Payload> metadata = daoFixture.getDao().getMetadata(appleType, appleId);
+        final Optional<Payload> metadata = runtimeFixture.getDao().getMetadata(appleType, appleId);
         assertTrue(metadata.isPresent());
-        assertThat(metadata.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(appleId));
-        assertThat(metadata.get().getAs(String.class, StatementExecutor.ENTITY_TYPE_MAP_KEY), equalTo(AsmUtils.getClassifierFQName(daoFixture.getAsmUtils().getMappedEntityType(appleType).get())));
+        assertThat(metadata.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(appleId));
+        assertThat(metadata.get().getAs(String.class, StatementExecutor.ENTITY_TYPE_MAP_KEY), equalTo(AsmUtils.getClassifierFQName(runtimeFixture.getAsmUtils().getMappedEntityType(appleType).get())));
 
         return appleId;
     }
 
     private UUID createPear(final PearVariety pearVariety) {
-        final EClass pearType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Pear").get();
+        final EClass pearType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Pear").get();
 
-        final Payload pear = daoFixture.getDao().create(pearType, map(
+        final Payload pear = runtimeFixture.getDao().create(pearType, map(
                 "name", "Pear",
                 "variety", pearVariety.ordinal()
                 ),
@@ -321,14 +321,14 @@ public class CastTest {
                         .build()
         );
 
-        final UUID pearId = pear.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID pearId = pear.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
 
         log.debug("Pear {} created with ID: {}", pearVariety, pearId);
 
-        final Optional<Payload> metadata = daoFixture.getDao().getMetadata(pearType, pearId);
+        final Optional<Payload> metadata = runtimeFixture.getDao().getMetadata(pearType, pearId);
         assertTrue(metadata.isPresent());
-        assertThat(metadata.get().getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName()), equalTo(pearId));
-        assertThat(metadata.get().getAs(String.class, StatementExecutor.ENTITY_TYPE_MAP_KEY), equalTo(AsmUtils.getClassifierFQName(daoFixture.getAsmUtils().getMappedEntityType(pearType).get())));
+        assertThat(metadata.get().getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName()), equalTo(pearId));
+        assertThat(metadata.get().getAs(String.class, StatementExecutor.ENTITY_TYPE_MAP_KEY), equalTo(AsmUtils.getClassifierFQName(runtimeFixture.getAsmUtils().getMappedEntityType(pearType).get())));
 
         return pearId;
     }
@@ -348,11 +348,11 @@ public class CastTest {
 
     @Test
     public void testCasting() {
-        daoFixture.beginTransaction();
-        final EClass fruitType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Fruit").get();
-        final EClass appleType = daoFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
-        final EClass pinkLadyAppleType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".PinkLadyApple").get();
-        final EClass storeType = daoFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Store").get();
+        runtimeFixture.beginTransaction();
+        final EClass fruitType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Fruit").get();
+        final EClass appleType = runtimeFixture.getAsmUtils().getClassByFQName(DTO_PACKAGE + ".Apple").get();
+        final EClass pinkLadyAppleType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".PinkLadyApple").get();
+        final EClass storeType = runtimeFixture.getAsmUtils().getClassByFQName(MODEL_NAME + ".Store").get();
         final EReference allGalaApplesRelation = storeType.getEAllReferences().stream().filter(r -> "allGalaApples".equals(r.getName())).findAny().get();
         final EReference allWilliamsPearRelation = storeType.getEAllReferences().stream().filter(r -> "allWilliamsPears".equals(r.getName())).findAny().get();
         final EReference pinkLadyApplesRelation = storeType.getEAllReferences().stream().filter(r -> "pinkLadyApples".equals(r.getName())).findAny().get();
@@ -366,7 +366,7 @@ public class CastTest {
             }
         });
 
-        final Optional<Payload> notExistingAppleMetadata = daoFixture.getDao().getMetadata(appleType, UUID.randomUUID());
+        final Optional<Payload> notExistingAppleMetadata = runtimeFixture.getDao().getMetadata(appleType, UUID.randomUUID());
         assertFalse(notExistingAppleMetadata.isPresent());
 
         numberOfPearsByVarieties.forEach((variety, count) -> {
@@ -375,7 +375,7 @@ public class CastTest {
             }
         });
 
-        final List<Payload> allGalaApples = daoFixture.getDao().getAllReferencedInstancesOf(allGalaApplesRelation, appleType);
+        final List<Payload> allGalaApples = runtimeFixture.getDao().getAllReferencedInstancesOf(allGalaApplesRelation, appleType);
         log.debug("All Gala apples: {}", allGalaApples);
         allGalaApples.forEach(galaApple -> {
             assertThat(galaApple.getAs(Boolean.class, "appleType"), equalTo(Boolean.TRUE));
@@ -390,11 +390,11 @@ public class CastTest {
             assertThat(galaApple.getAs(Integer.class, "variety"), equalTo(AppleVariety.GALA.ordinal()));
         });
         final Set<UUID> allGalaApplesIds = allGalaApples.stream()
-                .map(c -> c.getAs(UUID.class, daoFixture.getUuid().getName()))
+                .map(c -> c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
         assertThat(allGalaApplesIds, equalTo(applesByVarieties.get(AppleVariety.GALA)));
 
-        final List<Payload> allWilliamsPears = daoFixture.getDao().getAllReferencedInstancesOf(allWilliamsPearRelation, fruitType);
+        final List<Payload> allWilliamsPears = runtimeFixture.getDao().getAllReferencedInstancesOf(allWilliamsPearRelation, fruitType);
         log.debug("All Williams pears: {}", allWilliamsPears);
         allWilliamsPears.forEach(williamsPear -> {
             assertThat(williamsPear.getAs(Boolean.class, "appleType"), equalTo(Boolean.FALSE));
@@ -409,18 +409,18 @@ public class CastTest {
             assertThat(williamsPear.getAs(Integer.class, "variety"), nullValue());
         });
         final Set<UUID> allWilliamsPearIds = allWilliamsPears.stream()
-                .map(c -> c.getAs(UUID.class, daoFixture.getUuid().getName()))
+                .map(c -> c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
         assertThat(allWilliamsPearIds, equalTo(pearsByVarieties.get(PearVariety.WILLIAMS)));
 
-        final List<Payload> allPinkLadyApples = daoFixture.getDao().getAllOf(pinkLadyAppleType);
+        final List<Payload> allPinkLadyApples = runtimeFixture.getDao().getAllOf(pinkLadyAppleType);
         log.debug("All Pink Lady apples: {}", allPinkLadyApples);
         final Set<UUID> allPinkLadyAppleIds = allPinkLadyApples.stream()
-                .map(c -> c.getAs(UUID.class, daoFixture.getUuid().getName()))
+                .map(c -> c.getAs(UUID.class, runtimeFixture.getIdProvider().getName()))
                 .collect(Collectors.toSet());
         assertThat(allPinkLadyAppleIds, equalTo(applesByVarieties.get(AppleVariety.PINK_LADY)));
 
-        final Payload newPinkLadyApple = daoFixture.getDao().create(pinkLadyAppleType, map(
+        final Payload newPinkLadyApple = runtimeFixture.getDao().create(pinkLadyAppleType, map(
                 "name", "Apple",
                 "variety", AppleVariety.PINK_LADY.ordinal(),
                 "color", "red"
@@ -430,14 +430,14 @@ public class CastTest {
                         .build()
         );
 
-        final UUID newPinkLadyAppleId = newPinkLadyApple.getAs(daoFixture.getIdProvider().getType(), daoFixture.getIdProvider().getName());
+        final UUID newPinkLadyAppleId = newPinkLadyApple.getAs(runtimeFixture.getIdProvider().getType(), runtimeFixture.getIdProvider().getName());
         log.debug("New Pink Lady Apple created with ID: {}", newPinkLadyAppleId);
         applesByVarieties.put(AppleVariety.PINK_LADY, newPinkLadyAppleId);
 
-        final List<Payload> pinkLadyApples = daoFixture.getDao().getAllReferencedInstancesOf(pinkLadyApplesRelation, pinkLadyAppleType);
+        final List<Payload> pinkLadyApples = runtimeFixture.getDao().getAllReferencedInstancesOf(pinkLadyApplesRelation, pinkLadyAppleType);
         log.debug("Pink Lady apples: {}", pinkLadyApples);
 
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().create(pinkLadyAppleType, map(
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().create(pinkLadyAppleType, map(
                 "name", "Apple",
                 "variety", AppleVariety.GALA.ordinal()
                 ),
@@ -446,8 +446,8 @@ public class CastTest {
                         .build()
         ));
 
-        final Payload updatedPinkLadyApple = daoFixture.getDao().update(pinkLadyAppleType, map(
-                daoFixture.getIdProvider().getName(), newPinkLadyAppleId,
+        final Payload updatedPinkLadyApple = runtimeFixture.getDao().update(pinkLadyAppleType, map(
+                runtimeFixture.getIdProvider().getName(), newPinkLadyAppleId,
                 "name", "Apple",
                 "variety", AppleVariety.PINK_LADY.ordinal(),
                 "color", "pink"
@@ -456,20 +456,20 @@ public class CastTest {
         log.debug("Updated Pink Lady apple: {}", updatedPinkLadyApple);
         assertThat(updatedPinkLadyApple.getAs(String.class, "color"), equalTo("pink"));
 
-        daoFixture.commitTransaction();
+        runtimeFixture.commitTransaction();
 
-        daoFixture.beginTransaction();
-        assertThrows(IllegalArgumentException.class, () -> daoFixture.getDao().update(pinkLadyAppleType, map(
-                daoFixture.getIdProvider().getName(), newPinkLadyAppleId,
+        runtimeFixture.beginTransaction();
+        assertThrows(IllegalArgumentException.class, () -> runtimeFixture.getDao().update(pinkLadyAppleType, map(
+                runtimeFixture.getIdProvider().getName(), newPinkLadyAppleId,
                 "name", "Apple",
                 "variety", AppleVariety.GALA.ordinal(),
                 "color", "pink"
                 ), null
         ));
-        daoFixture.rollbackTransaction();
+        runtimeFixture.rollbackTransaction();
 
 
-        final Optional<Payload> unchangedPinkLadyApple = daoFixture.getDao().getByIdentifier(pinkLadyAppleType, newPinkLadyAppleId);
+        final Optional<Payload> unchangedPinkLadyApple = runtimeFixture.getDao().getByIdentifier(pinkLadyAppleType, newPinkLadyAppleId);
         assertTrue(unchangedPinkLadyApple.isPresent());
         assertThat(unchangedPinkLadyApple.get(), equalTo(updatedPinkLadyApple));
     }
