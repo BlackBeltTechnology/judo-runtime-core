@@ -81,7 +81,7 @@
 
         <judo-meta-script-version>1.0.1.20220405_163241_c9ac58dd_develop</judo-meta-script-version>
         <judo-meta-asm-version>1.1.0.20220405_162156_c69f1a74_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220516_150424_eb20ad0c_feature_JNG_3763_SupressModelNotFound</judo-meta-expression-version>
+        <judo-meta-expression-version>1.0.1.20220517_145508_fb211854_develop</judo-meta-expression-version>
         <judo-meta-measure-version>1.0.0.20220405_162220_28539f03_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220405_162206_0ac0daa1_develop</judo-meta-liquibase-version>
         <judo-meta-openapi-version>1.0.0.20220405_162229_f202387c_develop</judo-meta-openapi-version>
@@ -484,6 +484,12 @@
             </dependency>
 
             <dependency>
+                <groupId>hu.blackbelt.judo.tatami</groupId>
+                <artifactId>judo-tatami-asm2script</artifactId>
+                <version>${judo-tatami-version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>hu.blackbelt.judo.framework</groupId>
                 <artifactId>compiler-api</artifactId>
                 <version>${judo-framework-version}</version>
@@ -646,6 +652,11 @@
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-dao-rdbms-liquibase</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
                 <artifactId>judo-runtime-core-dao-rdbms-postgresql</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -749,6 +760,7 @@
                 <module>judo-runtime-core-dao-rdbms</module>
                 <module>judo-runtime-core-dao-rdbms-hsqldb</module>
                 <module>judo-runtime-core-dao-rdbms-postgresql</module>
+                <module>judo-runtime-core-dao-rdbms-liquibase</module>
                 <module>judo-runtime-core-dao-rdbms-itest</module>
                 <module>judo-runtime-core-expression</module>
                 <module>judo-runtime-core-query</module>

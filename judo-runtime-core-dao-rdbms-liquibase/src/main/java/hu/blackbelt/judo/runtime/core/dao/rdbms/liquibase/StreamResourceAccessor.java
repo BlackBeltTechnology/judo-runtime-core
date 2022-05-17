@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.fixture;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase;
 
 import liquibase.resource.AbstractResourceAccessor;
 import liquibase.resource.InputStreamList;

@@ -30,6 +30,9 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
 import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.StreamResourceAccessor;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.script.codegen.generator.Script2JavaGenerator;
@@ -133,8 +136,14 @@ public class JudoRuntimeFixture {
     @Setter
     private boolean validateModels = Boolean.parseBoolean(System.getProperty("validateModels", "false"));
 
+    @Setter
+    private boolean saveAndReloadModels = Boolean.parseBoolean(System.getProperty("saveAndReloadModels", "true"));
+
     @Getter
     private JudoDatasourceFixture rdbmsDatasourceFixture;
+
+    @Getter
+    private Dialect dialect;
         
     @Inject
     DAO dao;
@@ -187,7 +196,7 @@ public class JudoRuntimeFixture {
     DispatcherFunctionProvider dispatcherFunctionProvider;
 
     public JudoRuntimeFixture(String modelName) {
-        this.modelName = modelName;
+        this.modelName = modelName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
     }
 
     public void init(hu.blackbelt.judo.meta.esm.namespace.Model model, JudoDatasourceFixture datasourceFixture) {
@@ -251,21 +260,27 @@ public class JudoRuntimeFixture {
                             .validateModels(validateModels)
                             .runInParallel(false)
                             .dialectList(Collections.singletonList(rdbmsDatasourceFixture.getDialect())));
+
             Asm2ExpressionConfiguration asm2ExpressionConfiguration = new Asm2ExpressionConfiguration();
-            // relax validation of lambda variables in tests
             asm2ExpressionConfiguration.setResolveOnlyCurrentLambdaScope(false);
             defaultWorkflow.getTransformationContext().put(asm2ExpressionConfiguration);
+
             final WorkReport workReport = defaultWorkflow.startDefaultWorkflow();
             assertEquals(WorkStatus.COMPLETED, workReport.getStatus());
+
+            File modelDirectory = new File("target/test-classes/");
+
             DefaultWorkflowSave.saveModels(defaultWorkflow.getTransformationContext(),
-                    new File("target/test-classes/"),
+                    modelDirectory,
                     Collections.singletonList(rdbmsDatasourceFixture.getDialect()));
 
             if (rdbmsDatasourceFixture.getDialect().equals("hsqldb")) {
+                dialect = new HsqldbDialect();
             	databaseModule = Modules
             			.override(JudoHsqldbModules.builder().build())
             			.with(new JudoHsqldbDatasourceWrapperModule(rdbmsDatasourceFixture.getWrappedDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
             } else if (rdbmsDatasourceFixture.getDialect().equals("postgresql")) {
+                dialect = new HsqldbDialect();
             	databaseModule = Modules
             			.override(JudoPostgresqlModules.builder().build())
             			.with(new JudoPostgresqlDatasourceWrapperModule(rdbmsDatasourceFixture.getWrappedDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
@@ -273,19 +288,43 @@ public class JudoRuntimeFixture {
                 throw new IllegalArgumentException("Unknown dialect: " + rdbmsDatasourceFixture.getDialect());
             }
 
-            asmModel = defaultWorkflow.getTransformationContext().getByClass(AsmModel.class).get();
-            measureModel = defaultWorkflow.getTransformationContext().getByClass(MeasureModel.class).get();
-            rdbmsModel = defaultWorkflow.getTransformationContext().get(RdbmsModel.class, "rdbms:" + rdbmsDatasourceFixture.getDialect()).get();
-            liquibaseModel = defaultWorkflow.getTransformationContext().get(LiquibaseModel.class, "liquibase:" + rdbmsDatasourceFixture.getDialect()).get();
-            expressionModel = defaultWorkflow.getTransformationContext().getByClass(ExpressionModel.class).get();
-            scriptModel = defaultWorkflow.getTransformationContext().getByClass(ScriptModel.class).get();
-            asm2RdbmsTransformationTrace = defaultWorkflow.getTransformationContext().get(Asm2RdbmsTransformationTrace.class, "asm2rdbmstrace:" + rdbmsDatasourceFixture.getDialect()).get();
+            JudoModelHolder judoModelHolder;
+
+            if (!saveAndReloadModels) {
+                asmModel = defaultWorkflow.getTransformationContext().getByClass(AsmModel.class).get();
+                measureModel = defaultWorkflow.getTransformationContext().getByClass(MeasureModel.class).get();
+                rdbmsModel = defaultWorkflow.getTransformationContext().get(RdbmsModel.class, "rdbms:" + rdbmsDatasourceFixture.getDialect()).get();
+                liquibaseModel = defaultWorkflow.getTransformationContext().get(LiquibaseModel.class, "liquibase:" + rdbmsDatasourceFixture.getDialect()).get();
+                expressionModel = defaultWorkflow.getTransformationContext().getByClass(ExpressionModel.class).get();
+                scriptModel = defaultWorkflow.getTransformationContext().getByClass(ScriptModel.class).get();
+                asm2RdbmsTransformationTrace = defaultWorkflow.getTransformationContext().get(Asm2RdbmsTransformationTrace.class, "asm2rdbmstrace:" + rdbmsDatasourceFixture.getDialect()).get();
+                judoModelHolder = JudoModelHolder.builder()
+                        .asmModel(asmModel)
+                        .rdbmsModel(rdbmsModel)
+                        .measureModel(measureModel)
+                        .expressionModel(expressionModel)
+                        .scriptModel(scriptModel)
+                        .asm2rdbms(asm2RdbmsTransformationTrace)
+                        .build();
+
+            } else {
+                judoModelHolder =  JudoModelHolder.loadFromURL(modelName, modelDirectory.toURI(), dialect, false);
+                asmModel = judoModelHolder.getAsmModel();
+                measureModel = judoModelHolder.getMeasureModel();
+                rdbmsModel = judoModelHolder.getRdbmsModel();
+                liquibaseModel = judoModelHolder.getLiquibaseModel();
+                expressionModel = judoModelHolder.getExpressionModel();
+                scriptModel = judoModelHolder.getScriptModel();
+                asm2RdbmsTransformationTrace = judoModelHolder.getAsm2rdbms();
+            }
 
             this.asmUtils = new AsmUtils(asmModel.getResourceSet());
 
             injector = Guice.createInjector(
             		databaseModule,
-            		new JudoDefaultModule(this, 
+            		new JudoDefaultModule(this,
+                            judoModelHolder
+                            /*
             				JudoModelHolder.builder()
     			                .asmModel(asmModel)
     			                .rdbmsModel(rdbmsModel)
@@ -293,7 +332,7 @@ public class JudoRuntimeFixture {
     			                .expressionModel(expressionModel)
     			                .scriptModel(scriptModel)
     			                .asm2rdbms(asm2RdbmsTransformationTrace)
-    			                .build()));
+    			                .build() */));
 
             liquibaseStream = new ByteArrayOutputStream();
             liquibaseModel.saveLiquibaseModel(liquibaseSaveArgumentsBuilder()

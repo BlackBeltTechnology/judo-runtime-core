@@ -39,6 +39,10 @@
             <artifactId>judo-runtime-core-expression</artifactId>
         </dependency>
         <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms-liquibase</artifactId>
+        </dependency>
+        <dependency>
             <groupId>hu.blackbelt.judo</groupId>
             <artifactId>judo-dao-api</artifactId>
         </dependency>
@@ -164,6 +168,7 @@
             <artifactId>judo-tatami-asm2rdbms</artifactId>
             <scope>compile</scope>
         </dependency>
+
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-workflow</artifactId>

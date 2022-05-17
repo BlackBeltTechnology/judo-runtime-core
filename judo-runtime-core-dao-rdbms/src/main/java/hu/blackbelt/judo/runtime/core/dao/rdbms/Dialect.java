@@ -33,6 +33,8 @@ public interface Dialect {
     }
     */
 
+    String getName();
+
     String getDualTable();
 
 }
