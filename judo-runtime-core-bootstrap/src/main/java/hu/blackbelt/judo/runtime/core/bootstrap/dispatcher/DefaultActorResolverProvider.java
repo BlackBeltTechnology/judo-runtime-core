@@ -9,6 +9,8 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 
+import javax.annotation.Nullable;
+
 public class DefaultActorResolverProvider implements Provider<ActorResolver> {
 
     public static final String ACTOR_RESOLVER_CHECK_MAPPED_ACTORS = "actorResolverCheckMappedActors";
@@ -25,6 +27,7 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
 
     @Inject(optional = true)
     @Named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS)
+    @Nullable
     Boolean checkMappedActors = false;
 
     @SuppressWarnings("unchecked")

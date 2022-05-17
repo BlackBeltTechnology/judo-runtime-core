@@ -68,12 +68,6 @@
         </dependency>
 
         <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-persistence-postgresql</artifactId>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-core</artifactId>
         </dependency>

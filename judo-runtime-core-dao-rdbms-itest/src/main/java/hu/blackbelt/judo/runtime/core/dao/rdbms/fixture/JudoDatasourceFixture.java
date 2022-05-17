@@ -3,14 +3,6 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.fixture;
 
 import com.atomikos.icatch.jta.UserTransactionManager;
 import com.atomikos.jdbc.AtomikosNonXADataSourceBean;
-import hu.blackbelt.judo.runtime.core.persitence.postgresql.Marker;
-import liquibase.Liquibase;
-import liquibase.database.Database;
-import liquibase.database.core.HsqlDatabase;
-import liquibase.database.core.PostgresDatabase;
-import liquibase.database.jvm.HsqlConnection;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -59,8 +51,6 @@ public class JudoDatasourceFixture {
     @Getter
     protected DataSource wrappedDataSource;
 
-    @Getter
-    protected Database liquibaseDb;
 
     @Getter
     TransactionManager transactionManager;
@@ -123,14 +113,12 @@ public class JudoDatasourceFixture {
             ds.setUrl("jdbc:hsqldb:mem:memdb");
             ds.setUser("sa");
             ds.setPassword("saPassword");
-            liquibaseDb = new HsqlDatabase();
         } else if (dialect.equals(DIALECT_POSTGRESQL)) {
             sqlContainer.start();
             ds.setDriverClassName(sqlContainer.getDriverClassName());
             ds.setUrl(sqlContainer.getJdbcUrl());
             ds.setUser(sqlContainer.getUsername());
             ds.setPassword(sqlContainer.getPassword());
-            liquibaseDb = new PostgresDatabase();
         } else {
             throw new IllegalStateException("Unsupported dialect: " + dialect);
         }
@@ -140,40 +128,11 @@ public class JudoDatasourceFixture {
 
         originalDataSource = ds;
 
-        // Execute dialect based datatsource preprations
-        if (dialect.equals(DIALECT_POSTGRESQL)) {
-            executeInitiLiquibase(Marker.class.getClassLoader(), "liquibase/postgresql-init-changelog.xml", ds);
-        }
-
         wrappedDataSource = ProxyDataSourceBuilder.create(ds)
                 .name("DATA_SOURCE_PROXY")
                 .listener(loggingListener)
                 .build();
 
-    }
-
-    @SneakyThrows
-    public void setLiquibaseDbDialect(Connection connection) {
-        if (DIALECT_HSQLDB.equals(dialect)) {
-            liquibaseDb.setConnection(new HsqlConnection(connection));
-        } else {
-            liquibaseDb.setConnection(new JdbcConnection(connection));
-        }
-        liquibaseDb.setAutoCommit(false);
-    }
-
-    public void executeInitiLiquibase(ClassLoader classLoader, String name, DataSource dataSource) {
-        try {
-            setLiquibaseDbDialect(dataSource.getConnection());
-            @SuppressWarnings("resource")
-			final Liquibase liquibase = new Liquibase(name,
-                    new ClassLoaderResourceAccessor(classLoader), liquibaseDb);
-            liquibase.update((String) null);
-            liquibaseDb.close();
-        } catch (Exception e) {
-            log.error("Error init liquibase", e);
-            throw new RuntimeException(e);
-        }
     }
 
     public <T extends Throwable> T assertThrowsInTransaction(final Class<T> expectedType, final Executable executable) {

@@ -40,6 +40,10 @@
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms-liquibase</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dao-core</artifactId>
         </dependency>
         <dependency>

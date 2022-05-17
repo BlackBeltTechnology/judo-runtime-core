@@ -33,9 +33,17 @@
 
     <dependencies>
         <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
             <version>4.9.1</version>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -14,9 +14,11 @@ import com.google.inject.name.Names;
 
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.AtomikosUserTransactionManagerProvider;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbRdbmsSequenceProvider;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.SimpleLiquibaseExecutorProvider;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.SimpleLiquibaseExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import lombok.Builder;
@@ -69,6 +71,8 @@ public class JudoPostgresqlModules extends AbstractModule {
         bind(Boolean.class).annotatedWith(Names.named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)).toInstance(true);
         
         bind(TransactionManager.class).toProvider(AtomikosUserTransactionManagerProvider.class).in(Singleton.class);
+		bind(SimpleLiquibaseExecutor.class).toProvider(SimpleLiquibaseExecutorProvider.class).in(Singleton.class);
+		bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+	}
 
-    }
 }

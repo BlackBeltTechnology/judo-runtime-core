@@ -4,8 +4,6 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql;
 import javax.sql.DataSource;
 import javax.transaction.TransactionManager;
 
-import org.hsqldb.server.Server;
-
 import com.google.inject.Binder;
 
 public class JudoPostgresqlDatasourceWrapperModule implements com.google.inject.Module {

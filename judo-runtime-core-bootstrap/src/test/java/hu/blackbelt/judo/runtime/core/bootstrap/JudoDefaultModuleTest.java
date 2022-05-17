@@ -12,8 +12,11 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
+import hu.blackbelt.judo.meta.liquibase.databaseChangeLog;
+import hu.blackbelt.judo.meta.liquibase.impl.databaseChangeLogImpl;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.liquibase.support.LiquibaseModelResourceSupport;
+import hu.blackbelt.judo.meta.liquibase.util.builder.databaseChangeLogBuilder;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.measure.support.MeasureModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -90,6 +93,8 @@ class JudoDefaultModuleTest {
                 .name("judo")
                 .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
                 .build();
+
+        liquibaseModel.getResource().getContents().add(databaseChangeLogBuilder.create().build());
 
         Asm2RdbmsTransformationTrace asm2rdbms = Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
                 .asmModel(asmModel)

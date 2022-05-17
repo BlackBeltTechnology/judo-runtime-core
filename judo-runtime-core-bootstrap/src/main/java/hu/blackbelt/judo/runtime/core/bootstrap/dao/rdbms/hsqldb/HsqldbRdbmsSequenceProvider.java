@@ -6,6 +6,7 @@ import com.google.inject.name.Named;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsSequence;
 
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 @SuppressWarnings("rawtypes")
@@ -20,14 +21,17 @@ public class HsqldbRdbmsSequenceProvider implements Provider<Sequence> {
 
     @Inject(optional = true)
     @Named(RDBMS_SEQUENCE_START)
+    @Nullable
     Long start = 1L;
 
     @Inject(optional = true)
     @Named(RDBMS_SEQUENCE_INCREMENT)
+    @Nullable
     Long increment = 1L;
 
     @Inject(optional = true)
     @Named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)
+    @Nullable
     Boolean createIfNotExists = true;
 
     @Override

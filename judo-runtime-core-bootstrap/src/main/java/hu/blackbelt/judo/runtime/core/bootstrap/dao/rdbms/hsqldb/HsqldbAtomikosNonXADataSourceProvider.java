@@ -5,6 +5,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import org.hsqldb.server.Server;
 
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.nio.file.Files;
 public class HsqldbAtomikosNonXADataSourceProvider implements Provider<DataSource> {
 
     @Inject(optional = true)
+    @Nullable
     private Server server;
 
     @Override
@@ -30,6 +32,7 @@ public class HsqldbAtomikosNonXADataSourceProvider implements Provider<DataSourc
                     "localhost" + ":" + server.getPort() + "/" + databaseName;
         } else {
             databaseName = Long.toString(System.currentTimeMillis());
+            jdbcUrl = "jdbc:hsqldb:mem:" + databaseName + ";DB_CLOSE_DELAY=-1";
             try {
                 outDir = Files.createTempFile("atomikos-" + databaseName, ".out").toFile();
                 outDir.deleteOnExit();
@@ -41,18 +44,17 @@ public class HsqldbAtomikosNonXADataSourceProvider implements Provider<DataSourc
         }
 
         System.setProperty("com.atomikos.icatch.registered", "true");
-        AtomikosNonXADataSourceBean ds = new AtomikosNonXADataSourceBean();
-        ds.setPoolSize(10);
-        ds.setLocalTransactionMode(true);
         System.setProperty("com.atomikos.icatch.output_dir", outDir.getAbsolutePath());
         System.setProperty("com.atomikos.icatch.log_base_dir", logDir.getAbsolutePath());
 
-        ds.setUniqueResourceName("hsqldb-" + server.getDatabaseName(0, true));
+        AtomikosNonXADataSourceBean ds = new AtomikosNonXADataSourceBean();
+        ds.setUniqueResourceName("hsqldb/" + databaseName);
         ds.setDriverClassName("org.hsqldb.jdbcDriver");
-        // ds.setUrl("jdbc:hsqldb:mem:memdb");
         ds.setUrl(jdbcUrl);
         ds.setUser("sa");
         ds.setPassword("");
+        ds.setPoolSize(10);
+        ds.setLocalTransactionMode(true);
 
         return ds;
     }

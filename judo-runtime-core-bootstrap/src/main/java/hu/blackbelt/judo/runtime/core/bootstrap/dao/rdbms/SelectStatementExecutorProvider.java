@@ -13,6 +13,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 
+import javax.annotation.Nullable;
 import javax.inject.Provider;
 
 @SuppressWarnings("rawtypes")
@@ -49,6 +50,7 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
 
     @Inject(optional = true)
     @Named(SELECT_CHUNK_SIZE)
+    @Nullable
     private Integer chunkSize = 1000;
 
     @SuppressWarnings("unchecked")

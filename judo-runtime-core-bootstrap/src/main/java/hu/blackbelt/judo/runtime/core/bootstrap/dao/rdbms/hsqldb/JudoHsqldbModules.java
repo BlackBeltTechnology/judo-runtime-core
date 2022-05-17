@@ -12,6 +12,12 @@ import java.io.File;
 import javax.sql.DataSource;
 import javax.transaction.TransactionManager;
 
+import com.google.inject.util.Providers;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.SimpleLiquibaseExecutorProvider;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlRdbmsInitProvider;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.SimpleLiquibaseExecutor;
+import liquibase.database.Database;
 import lombok.Builder;
 import org.hsqldb.server.Server;
 
@@ -53,6 +59,8 @@ public class JudoHsqldbModules extends AbstractModule {
         bind(Dialect.class).toInstance(new HsqldbDialect());
         if (runServer) {
             bind(Server.class).toProvider(HsqldbServerProvider.class).in(Singleton.class);
+        } else {
+            bind(Server.class).toProvider(Providers.of(null)).in(Singleton.class);
         }
         bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance(databaseName);
         bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(databasePath);
@@ -64,13 +72,14 @@ public class JudoHsqldbModules extends AbstractModule {
         // Datasource        
         bind(DataSource.class).toProvider(HsqldbAtomikosNonXADataSourceProvider.class).in(Singleton.class);
 
-        
         bind(Sequence.class).toProvider(HsqldbRdbmsSequenceProvider.class).in(Singleton.class);
         bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_START)).toInstance(1L);
         bind(Long.class).annotatedWith(Names.named(RDBMS_SEQUENCE_INCREMENT)).toInstance(1L);
         bind(Boolean.class).annotatedWith(Names.named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)).toInstance(true);
 
-        
         bind(TransactionManager.class).toProvider(AtomikosUserTransactionManagerProvider.class).in(Singleton.class);
+
+        bind(SimpleLiquibaseExecutor.class).toProvider(SimpleLiquibaseExecutorProvider.class).in(Singleton.class);
+        bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
     }
 }

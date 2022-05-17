@@ -10,6 +10,8 @@ import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultIdentifierSigner;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 
+import javax.annotation.Nullable;
+
 @SuppressWarnings("rawtypes")
 public class DefaultIdentifierSignerProvider implements Provider<IdentifierSigner> {
 
@@ -22,10 +24,12 @@ public class DefaultIdentifierSignerProvider implements Provider<IdentifierSigne
     DataTypeManager dataTypeManager;
 
     @Inject(optional = true)
+    @Nullable
     String secret;
 
     @Inject(optional = true)
     @Named(IDENTIFIER_SIGNER_SECRET)
+    @Nullable
     IdentifierProvider identifierProvider;
 
     @Override

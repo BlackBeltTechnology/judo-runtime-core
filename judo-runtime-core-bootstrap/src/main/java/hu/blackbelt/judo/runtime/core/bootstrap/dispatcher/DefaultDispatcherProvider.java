@@ -19,6 +19,7 @@ import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
 
+import javax.annotation.Nullable;
 import javax.transaction.TransactionManager;
 
 @SuppressWarnings("rawtypes")
@@ -43,6 +44,7 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     DispatcherFunctionProvider dispatcherFunctionProvider;
 
     @Inject(optional = true)
+    @Nullable
     TransactionManager transactionManager;
 
     @Inject
@@ -64,32 +66,40 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     MetricsCollector metricsCollector;
 
     @Inject(optional = true)
+    @Nullable
     OpenIdConfigurationProvider openIdConfigurationProvider;
 
     @Inject(optional = true)
+    @Nullable
     TokenIssuer filestoreTokenIssuer;
 
     @Inject(optional = true)
+    @Nullable
     TokenValidator filestoreTokenValidator;
 
     @Inject(optional = true)
     @Named(DISPATCHER_METRICS_RETURNED)
+    @Nullable
     Boolean metricsReturned;
 
     @Inject(optional = true)
     @Named(DISPATCHER_ENABLE_DEFAULT_VALIDATION)
+    @Nullable
     Boolean enableDefaultValidation;
 
     @Inject(optional = true)
     @Named(DISPATCHER_TRIM_STRING)
+    @Nullable
     Boolean trimString;
 
     @Inject(optional = true)
     @Named(DISPATCHER_CASE_INSENSITIVE_LIKE)
+    @Nullable
     Boolean caseInsensitiveLike;
 
     @Inject(optional = true)
     @Named(DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION)
+    @Nullable
     String requiredStringValidatorOption;
 
     @Override

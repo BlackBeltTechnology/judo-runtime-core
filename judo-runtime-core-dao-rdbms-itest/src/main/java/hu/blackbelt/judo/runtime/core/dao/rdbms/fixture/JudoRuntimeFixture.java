@@ -32,7 +32,7 @@ import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.StreamResourceAccessor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.SimpleLiquibaseExecutor;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.script.codegen.generator.Script2JavaGenerator;
@@ -56,8 +56,6 @@ import hu.blackbelt.judo.tatami.workflow.DefaultWorkflowSave;
 import hu.blackbelt.judo.tatami.workflow.DefaultWorkflowSetupParameters;
 import hu.blackbelt.judo.tatami.workflow.PsmDefaultWorkflow;
 import hu.blackbelt.structured.map.proxy.CompositeClassLoader;
-import liquibase.Liquibase;
-import liquibase.exception.DatabaseException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -71,8 +69,6 @@ import org.eclipse.emf.ecore.EReference;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -88,8 +84,6 @@ import java.util.stream.StreamSupport;
 import static hu.blackbelt.judo.framework.compiler.api.CompilerContext.compilerContextBuilder;
 import static hu.blackbelt.judo.meta.esm.runtime.EsmEpsilonValidator.calculateEsmValidationScriptURI;
 import static hu.blackbelt.judo.meta.esm.runtime.EsmModel.SaveArguments.esmSaveArgumentsBuilder;
-import static hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel.SaveArguments.liquibaseSaveArgumentsBuilder;
-import static hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseNamespaceFixUriHandler.fixUriOutputStream;
 import static hu.blackbelt.judo.meta.psm.runtime.PsmModel.SaveArguments.psmSaveArgumentsBuilder;
 import static hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport.scriptModelResourceSupportBuilder;
 import static hu.blackbelt.judo.tatami.esm2psm.Esm2Psm.Esm2PsmParameter.esm2PsmParameter;
@@ -103,7 +97,6 @@ public class JudoRuntimeFixture {
         SLF4JBridgeHandler.install();
         SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
     }
-    private ByteArrayOutputStream liquibaseStream;
     private Script2JavaGenerator scriptGenerator = new Script2JavaGenerator();
     private Map<String, Function<Payload, Payload>> operationImplementations = new ConcurrentHashMap<>();
     private boolean initialized;
@@ -137,7 +130,7 @@ public class JudoRuntimeFixture {
     private boolean validateModels = Boolean.parseBoolean(System.getProperty("validateModels", "false"));
 
     @Setter
-    private boolean saveAndReloadModels = Boolean.parseBoolean(System.getProperty("saveAndReloadModels", "true"));
+    private boolean saveAndReloadModels = Boolean.parseBoolean(System.getProperty("saveAndReloadModels", "false"));
 
     @Getter
     private JudoDatasourceFixture rdbmsDatasourceFixture;
@@ -195,6 +188,9 @@ public class JudoRuntimeFixture {
     @Getter
     DispatcherFunctionProvider dispatcherFunctionProvider;
 
+    @Inject
+    SimpleLiquibaseExecutor simpleLiquibaseExecutor;
+
     public JudoRuntimeFixture(String modelName) {
         this.modelName = modelName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
     }
@@ -234,10 +230,6 @@ public class JudoRuntimeFixture {
 
         } catch (Throwable e) {
             log.error("Exception in RdbmDaoFixture.init: ", e);
-//            throw new AssertionFailedError("Error in RdbmsDaoFixture.init - see previous errors: " + e.toString());
-//            assertEquals("no error", "error");
-//            fail(e);
-//            throw new IllegalArgumentException(e);
         }
     }
 
@@ -304,6 +296,7 @@ public class JudoRuntimeFixture {
                         .measureModel(measureModel)
                         .expressionModel(expressionModel)
                         .scriptModel(scriptModel)
+                        .liquibaseModel(liquibaseModel)
                         .asm2rdbms(asm2RdbmsTransformationTrace)
                         .build();
 
@@ -320,26 +313,8 @@ public class JudoRuntimeFixture {
 
             this.asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-            injector = Guice.createInjector(
-            		databaseModule,
-            		new JudoDefaultModule(this,
-                            judoModelHolder
-                            /*
-            				JudoModelHolder.builder()
-    			                .asmModel(asmModel)
-    			                .rdbmsModel(rdbmsModel)
-    			                .measureModel(measureModel)
-    			                .expressionModel(expressionModel)
-    			                .scriptModel(scriptModel)
-    			                .asm2rdbms(asm2RdbmsTransformationTrace)
-    			                .build() */));
+            injector = Guice.createInjector(databaseModule, new JudoDefaultModule(this, judoModelHolder));
 
-            liquibaseStream = new ByteArrayOutputStream();
-            liquibaseModel.saveLiquibaseModel(liquibaseSaveArgumentsBuilder()
-                    .outputStream(fixUriOutputStream(liquibaseStream)));
-
-//            SLF4JQueryLoggingListener loggingListener = new SLF4JQueryLoggingListener();
-//            loggingListener.setQueryLogEntryCreator(new DefaultQueryLogEntryCreator());
             final EMap<EOperation, Function<Payload, Payload>> scripts = new BasicEMap<>();
 
             Map<String, String> sourceCodesByFqName = Maps.newHashMap();
@@ -427,64 +402,22 @@ public class JudoRuntimeFixture {
                         });
             }
             getDispatcherFunctionProvider().getScriptFunctions().putAll(scripts);
-            createDatabase();
-//            metricsCollector.start("TEST");
             this.initialized = true;
         } catch (Exception e) {
             log.error("Exception in RdbmDaoFixture.init: ", e);
-//            throw new AssertionFailedError("RdbmDaoFixture.init: " + e.toString(), e);
-//            assertEquals("no error", "error");
-//            fail(e);
-//            throw new RuntimeException(e);
-        }
-    }
-
-    public void createDatabase() {
-        try {
-            rdbmsDatasourceFixture.setLiquibaseDbDialect(rdbmsDatasourceFixture.getOriginalDataSource().getConnection());
-            final Liquibase liquibase = new Liquibase(getLiquibaseName(),
-                    new StreamResourceAccessor(Collections.singletonMap(getLiquibaseName(), new ByteArrayInputStream(liquibaseStream.toByteArray()))),
-                    rdbmsDatasourceFixture.getLiquibaseDb());
-            liquibase.update((String) null);
-            rdbmsDatasourceFixture.liquibaseDb.close();
-        } catch (Exception e) {
-            log.error("CREATE DATABASE", e);
-            throw new RuntimeException(e);
         }
     }
 
     public void dropDatabase() {
-        if (rdbmsDatasourceFixture != null && liquibaseStream != null) {
-            try {
-                rdbmsDatasourceFixture.setLiquibaseDbDialect(rdbmsDatasourceFixture.getOriginalDataSource().getConnection());
-                final Liquibase liquibase = new Liquibase(getLiquibaseName(),
-                        new StreamResourceAccessor(Collections.singletonMap(getLiquibaseName(), new ByteArrayInputStream(liquibaseStream.toByteArray()))),
-                        rdbmsDatasourceFixture.getLiquibaseDb());
-                liquibase.dropAll();
-            } catch (Exception e) {
-                log.error("DROP DATABASE", e);
-                throw new RuntimeException(e);
-            } finally {
-                try {
-                    rdbmsDatasourceFixture.liquibaseDb.close();
-                } catch (DatabaseException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-//        metricsCollector.stop("TEST");
-//        context.removeAll();
+        simpleLiquibaseExecutor.dropDatabase(rdbmsDatasourceFixture.originalDataSource, liquibaseModel);
     }
 
-    private String getLiquibaseName() {
-        return modelName + ".changelog.xml";
-    }
 
     public void addCustomJoinDefinition(final EReference reference, final CustomJoinDefinition customJoinDefinition) {
         getQueryFactory().getCustomJoinDefinitions().put(reference, customJoinDefinition);
     }
 
-     public List<Payload> getContents(String fqName, String... references) {
+    public List<Payload> getContents(String fqName, String... references) {
         List<Payload> result = new ArrayList<>();
         EClass classByFQName = getAsmClass(fqName);
         List<Payload> classPayloads = getDao().getAllOf(classByFQName);

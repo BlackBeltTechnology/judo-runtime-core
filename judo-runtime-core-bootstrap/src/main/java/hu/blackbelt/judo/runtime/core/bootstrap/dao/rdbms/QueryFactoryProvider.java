@@ -14,6 +14,7 @@ import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EReference;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Objects.requireNonNullElse;
@@ -30,6 +31,7 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
 
     @Inject(optional = true)
     @Named(QUERY_FACTORY_CUSTOM_JOIN_DEFINITIONS)
+    @Nullable
     EMap<EReference, CustomJoinDefinition> customJoinDefinitions;
 
     @Override

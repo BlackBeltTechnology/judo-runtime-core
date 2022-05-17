@@ -5,6 +5,7 @@ import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import org.hsqldb.server.Server;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -19,14 +20,17 @@ public class HsqldbServerProvider implements Provider<Server> {
 
     @Inject(optional = true)
     @Named(HSQLDB_SERVER_DATABASE_NAME)
+    @Nullable
     private String databaseName;
 
     @Inject(optional = true)
     @Named(HSQLDB_SERVER_DATABASE_PATH)
+    @Nullable
     private File databasePath;
 
     @Inject(optional = true)
     @Named(HSQLDB_SERVER_PORT)
+    @Nullable
     private Integer port;
 
     @Override
