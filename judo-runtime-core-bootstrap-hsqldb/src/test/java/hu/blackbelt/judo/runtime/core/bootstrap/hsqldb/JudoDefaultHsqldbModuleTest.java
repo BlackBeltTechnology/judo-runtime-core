@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.bootstrap;
+package hu.blackbelt.judo.runtime.core.bootstrap.hsqldb;
 
 import com.google.inject.Guice;
 import com.google.inject.Inject;
@@ -12,8 +12,6 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
-import hu.blackbelt.judo.meta.liquibase.databaseChangeLog;
-import hu.blackbelt.judo.meta.liquibase.impl.databaseChangeLogImpl;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.liquibase.support.LiquibaseModelResourceSupport;
 import hu.blackbelt.judo.meta.liquibase.util.builder.databaseChangeLogBuilder;
@@ -26,6 +24,8 @@ import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelReso
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
 import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoDefaultModule;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbModules;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,7 @@ import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
-class JudoDefaultModuleTest {
+class JudoDefaultHsqldbModuleTest {
 
     @Inject
     DAO dao;
@@ -104,7 +104,7 @@ class JudoDefaultModuleTest {
 
         injector = Guice.createInjector(
         		JudoHsqldbModules.builder().build(),
-        		new JudoDefaultModule(this, 
+        		new JudoDefaultModule(this,
         				JudoModelHolder.builder()
 			                .asmModel(asmModel)
 			                .rdbmsModel(rdbmsModel)

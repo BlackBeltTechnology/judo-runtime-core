@@ -14,10 +14,8 @@ import javax.transaction.TransactionManager;
 
 import com.google.inject.util.Providers;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.SimpleLiquibaseExecutorProvider;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlRdbmsInitProvider;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.SimpleLiquibaseExecutor;
-import liquibase.database.Database;
 import lombok.Builder;
 import org.hsqldb.server.Server;
 

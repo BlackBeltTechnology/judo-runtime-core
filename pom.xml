@@ -653,6 +653,16 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-bootstrap-hsqldb</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-bootstrap-postgresql</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>hu.blackbelt.mapper</groupId>
                 <artifactId>mapper-api</artifactId>
                 <version>${mapper-version}</version>
@@ -715,6 +725,9 @@
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
                 <module>judo-runtime-core-bootstrap</module>
+                <module>judo-runtime-core-bootstrap-hsqldb</module>
+                <module>judo-runtime-core-bootstrap-postgresql</module>
+
             </modules>
         </profile>
         <profile>
