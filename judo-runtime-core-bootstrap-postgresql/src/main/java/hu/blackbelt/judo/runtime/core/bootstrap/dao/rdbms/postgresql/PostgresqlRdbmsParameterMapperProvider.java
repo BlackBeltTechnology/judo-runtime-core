@@ -7,7 +7,6 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.query.HsqldbRdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlRdbmsParameterMapper;
 
 @SuppressWarnings("rawtypes")

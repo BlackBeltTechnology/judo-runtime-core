@@ -20,7 +20,8 @@ public class DefaultVariableResolverProvider implements Provider<VariableResolve
 	@Inject
     Sequence sequence;
 
-    @Override
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+	@Override
     public VariableResolver get() {
         DefaultVariableResolver variableResolver = new DefaultVariableResolver(dataTypeManager, context);
         variableResolver.registerSupplier("SYSTEM", "current_timestamp", new CurrentTimestampProvider(), false);

@@ -42,10 +42,12 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 class JudoDefaultHsqldbModuleTest {
 
-    @Inject
+    @SuppressWarnings("rawtypes")
+	@Inject
     DAO dao;
 
-    @Inject
+    @SuppressWarnings("rawtypes")
+	@Inject
     Sequence sequence;
 
     @Inject

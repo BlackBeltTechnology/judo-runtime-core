@@ -26,6 +26,18 @@
         </plugins>
     </build>
 
+	<dependencyManagement>
+		<dependencies>
+	        <dependency>
+	            <groupId>hu.blackbelt.judo.runtime</groupId>
+	            <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${project.version}</version>
+	        </dependency>
+		</dependencies>
+	</dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>

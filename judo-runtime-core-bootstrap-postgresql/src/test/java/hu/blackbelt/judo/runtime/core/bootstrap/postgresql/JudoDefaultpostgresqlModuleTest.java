@@ -2,7 +2,6 @@ package hu.blackbelt.judo.runtime.core.bootstrap.postgresql;
 
 import com.google.inject.*;
 
-import com.google.inject.Module;
 import com.google.inject.name.Names;
 import com.google.inject.util.Modules;
 import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
@@ -47,10 +46,12 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 class JudoDefaultpostgresqlModuleTest {
 
-    @Inject
+    @SuppressWarnings("rawtypes")
+	@Inject
     DAO dao;
 
-    @Inject
+    @SuppressWarnings("rawtypes")
+	@Inject
     Sequence sequence;
 
     @Inject
@@ -58,9 +59,11 @@ class JudoDefaultpostgresqlModuleTest {
 
     Injector injector;
 
-    JdbcDatabaseContainer sqlContainer;
+    @SuppressWarnings("rawtypes")
+	JdbcDatabaseContainer sqlContainer;
 
-    @BeforeEach
+    @SuppressWarnings({ "rawtypes", "resource" })
+	@BeforeEach
     void init() throws Exception {
 
 

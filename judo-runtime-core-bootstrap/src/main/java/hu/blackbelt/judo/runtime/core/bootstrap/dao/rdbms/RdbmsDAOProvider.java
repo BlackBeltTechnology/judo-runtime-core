@@ -25,7 +25,8 @@ public class RdbmsDAOProvider implements Provider<DAO> {
 
 
     // Force execute liquibase database creation
-    @Inject
+    @SuppressWarnings("unused")
+	@Inject
     private RdbmsInit init;
 
     @Inject

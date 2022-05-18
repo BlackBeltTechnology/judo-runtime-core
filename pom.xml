@@ -10,7 +10,7 @@
     <description>JUDO runtime core reactor module</description>
 
     <properties>
-        <revision>1.1.0-SNAPSHOT</revision>
+        <revision>1.0.0-SNAPSHOT</revision>
         <maven>3.8.3</maven>
         <maven.version>3.8.3</maven.version>
 
@@ -414,293 +414,19 @@
 
     </dependencies>
 
+<!--
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.google.inject</groupId>
-                <artifactId>guice</artifactId>
-                <version>5.1.0</version><!--$NO-MVN-MAN-VER$-->
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-northwind-psm</artifactId>
-                <version>${judo-tatami-version}</version>
-                <scope>test</scope>
-                <classifier>sdk</classifier>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-northwind-psm</artifactId>
-                <version>${judo-tatami-version}</version>
-                <scope>test</scope>
-                <classifier>sdk-internal</classifier>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-northwind-esm</artifactId>
-                <version>${judo-tatami-version}</version>
-                <classifier>sdk</classifier>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
-                <version>${judo-meta-psm-version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-core</artifactId>
-                <version>${judo-tatami-core-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-asm2rdbms</artifactId>
-                <version>${judo-tatami-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-asm2script</artifactId>
-                <version>${judo-tatami-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.framework</groupId>
-                <artifactId>compiler-api</artifactId>
-                <version>${judo-framework-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-workflow</artifactId>
-                <version>${judo-tatami-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.esm.model</artifactId>
-                <version>${judo-meta-esm-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.psm.model</artifactId>
-                <version>${judo-meta-psm-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
-                <version>${judo-meta-asm-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.rdbms.model</artifactId>
-                <version>${judo-meta-rdbms-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
-                <version>${judo-meta-liquibase-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.model</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.measure</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.builder.jql</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.builder.jql.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.measure.model</artifactId>
-                <version>${judo-meta-measure-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.openapi.model</artifactId>
-                <version>${judo-meta-openapi-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.jql.model</artifactId>
-                <version>${judo-meta-jql-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
-                <version>${judo-meta-query-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.script.model</artifactId>
-                <version>${judo-meta-script-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.script</groupId>
-                <artifactId>hu.blackbelt.judo.script.codegen.generator</artifactId>
-                <version>${judo-script-codegen-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-dao-api</artifactId>
-                <version>${judo-dao-api-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-dispatcher-api</artifactId>
-                <version>${judo-dispatcher-api-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-sdk-common</artifactId>
-                <version>${judo-sdk-common-version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core</artifactId>
+                <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
                 <version>${project.version}</version>
+				<scope>import</scope>
             </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dispatcher</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-accessmanager-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-accessmanager</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-security</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-rdbms</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-rdbms-hsqldb</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-rdbms-liquibase</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-rdbms-postgresql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-rdbms-itest</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-expression</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-query</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-			    <artifactId>judo-runtime-core-bootstrap</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-bootstrap-hsqldb</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-bootstrap-postgresql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.mapper</groupId>
-                <artifactId>mapper-api</artifactId>
-                <version>${mapper-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.mapper</groupId>
-                <artifactId>mapper-impl</artifactId>
-                <version>${mapper-version}</version>
-                <!--scope>test</scope--> <!-- temporary added as compile because not configurable yet -->
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.osgi.filestore</groupId>
-                <artifactId>filestore-security-api</artifactId>
-                <version>${osgi-filestore-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.bitbucket.b_c</groupId>
-                <artifactId>jose4j</artifactId>
-                <version>${jose4j-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-rdbms-schema-store</artifactId>
-                <version>${judo-rdbms-schema-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>javax.enterprise</groupId>
-                <artifactId>cdi-api</artifactId>
-                <version>1.2</version>
-                <scope>provided</scope>
-            </dependency>
-
         </dependencies>
     </dependencyManagement>
-
+-->
     <profiles>
         <profile>
             <id>modules</id>
@@ -717,7 +443,6 @@
                 <module>judo-runtime-core-dao-rdbms-hsqldb</module>
                 <module>judo-runtime-core-dao-rdbms-postgresql</module>
                 <module>judo-runtime-core-dao-rdbms-liquibase</module>
-                <module>judo-runtime-core-dao-rdbms-itest</module>
                 <module>judo-runtime-core-expression</module>
                 <module>judo-runtime-core-query</module>
                 <module>judo-runtime-core-dispatcher</module>
@@ -727,7 +452,7 @@
                 <module>judo-runtime-core-bootstrap</module>
                 <module>judo-runtime-core-bootstrap-hsqldb</module>
                 <module>judo-runtime-core-bootstrap-postgresql</module>
-
+                <module>judo-runtime-core-dependencies</module>
             </modules>
         </profile>
         <profile>
