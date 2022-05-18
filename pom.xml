@@ -677,11 +677,6 @@
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-transaction</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
 			    <artifactId>judo-runtime-core-bootstrap</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -750,7 +745,6 @@
                 <module>judo-runtime-core-expression</module>
                 <module>judo-runtime-core-query</module>
                 <module>judo-runtime-core-dispatcher</module>
-                <module>judo-runtime-core-transaction</module>
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
