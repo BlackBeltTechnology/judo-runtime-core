@@ -299,7 +299,7 @@ public class RecursiveCompositionTest {
         runtimeFixture.getDao().create(p, getRecursiveContainmentSamplePayload(), DAO.QueryCustomizer.<UUID>builder()
                 .mask(Collections.emptyMap())
                 .build());
-        jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getWrappedDataSource());
+        jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getDataSource());
 
         String sql = "SELECT ID, " + runtimeFixture.getRdbmsResolver().rdbmsField(nameOfX).getSqlName() + " FROM " + runtimeFixture.getRdbmsResolver().rdbmsTable(x).getSqlName();
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql, ImmutableMap.of());
@@ -499,7 +499,7 @@ public class RecursiveCompositionTest {
         final EClass p = runtimeFixture.getAsmUtils().getClassByFQName(P).get();
         runtimeFixture.getDao().delete(p, ids.get(X1));
 
-        jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getOriginalDataSource());
+        jdbcTemplate = new NamedParameterJdbcTemplate(datasourceFixture.getDataSource());
         int count = jdbcTemplate.queryForObject("SELECT count(1) FROM " + runtimeFixture.getRdbmsResolver().rdbmsTable(x).getSqlName(), new MapSqlParameterSource(), Integer.class);
         assertEquals(0, count);
         count = jdbcTemplate.queryForObject("SELECT count(1) FROM " + runtimeFixture.getRdbmsResolver().rdbmsTable(y).getSqlName(), new MapSqlParameterSource(), Integer.class);

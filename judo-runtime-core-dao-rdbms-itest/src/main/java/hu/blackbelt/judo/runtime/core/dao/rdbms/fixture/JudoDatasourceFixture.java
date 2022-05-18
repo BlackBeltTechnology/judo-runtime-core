@@ -6,9 +6,6 @@ import com.atomikos.jdbc.AtomikosNonXADataSourceBean;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import net.ttddyy.dsproxy.listener.logging.DefaultQueryLogEntryCreator;
-import net.ttddyy.dsproxy.listener.logging.SLF4JQueryLoggingListener;
-import net.ttddyy.dsproxy.support.ProxyDataSourceBuilder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.function.Executable;
 import org.testcontainers.containers.JdbcDatabaseContainer;
@@ -46,10 +43,7 @@ public class JudoDatasourceFixture {
     protected String container = System.getProperty("container", CONTAINER_NONE);
 
     @Getter
-    protected DataSource originalDataSource;
-
-    @Getter
-    protected DataSource wrappedDataSource;
+    protected DataSource dataSource;
 
 
     @Getter
@@ -80,7 +74,7 @@ public class JudoDatasourceFixture {
     }
 
     public void dropSchema() {
-        try (Connection connection = originalDataSource.getConnection(); Statement statement = connection.createStatement()) {
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
             if (dialect.equals(DIALECT_POSTGRESQL)) {
                 statement.execute("select 'drop table \"' || tablename || '\" cascade;' from pg_tables;");
             } else if (dialect.equals(DIALECT_HSQLDB)) {
@@ -122,16 +116,8 @@ public class JudoDatasourceFixture {
         } else {
             throw new IllegalStateException("Unsupported dialect: " + dialect);
         }
+        dataSource = ds;
 
-        SLF4JQueryLoggingListener loggingListener = new SLF4JQueryLoggingListener();
-        loggingListener.setQueryLogEntryCreator(new DefaultQueryLogEntryCreator());
-
-        originalDataSource = ds;
-
-        wrappedDataSource = ProxyDataSourceBuilder.create(ds)
-                .name("DATA_SOURCE_PROXY")
-                .listener(loggingListener)
-                .build();
 
     }
 

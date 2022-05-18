@@ -80,23 +80,6 @@
         </dependency>
 
         <dependency>
-            <groupId>net.jmob</groupId>
-            <artifactId>guice.conf</artifactId>
-            <version>v1.5.0</version>
-        </dependency>
-		<!-- Optional packages for guice configurator -->
-	    <dependency>
-	        <groupId>org.hibernate.validator</groupId>
-	        <artifactId>hibernate-validator-cdi</artifactId>
-	        <version>6.2.0.Final</version>
-	    </dependency>
-	    <dependency>
-	        <groupId>org.glassfish</groupId>
-	        <artifactId>javax.el</artifactId>
-	        <version>3.0.0</version>
-	    </dependency>
-
-        <dependency>
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>2.6.1</version>
@@ -127,13 +110,5 @@
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
         </dependency>
-
-        <!--
-        <dependency>
-            <groupId>hu.blackbelt.osgi.liquibase</groupId>
-            <artifactId>osgi-liquibase</artifactId>
-            <version>${osgi-liquibase-version}</version>
-        </dependency>
-        -->
     </dependencies>
 </project>

@@ -270,12 +270,12 @@ public class JudoRuntimeFixture {
                 dialect = new HsqldbDialect();
             	databaseModule = Modules
             			.override(JudoHsqldbModules.builder().build())
-            			.with(new JudoHsqldbDatasourceWrapperModule(rdbmsDatasourceFixture.getWrappedDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
+            			.with(new JudoHsqldbDatasourceWrapperModule(rdbmsDatasourceFixture.getDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
             } else if (rdbmsDatasourceFixture.getDialect().equals("postgresql")) {
                 dialect = new HsqldbDialect();
             	databaseModule = Modules
             			.override(JudoPostgresqlModules.builder().build())
-            			.with(new JudoPostgresqlDatasourceWrapperModule(rdbmsDatasourceFixture.getWrappedDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
+            			.with(new JudoPostgresqlDatasourceWrapperModule(rdbmsDatasourceFixture.getDataSource(), rdbmsDatasourceFixture.getTransactionManager()));
             } else {
                 throw new IllegalArgumentException("Unknown dialect: " + rdbmsDatasourceFixture.getDialect());
             }
@@ -409,7 +409,7 @@ public class JudoRuntimeFixture {
     }
 
     public void dropDatabase() {
-        simpleLiquibaseExecutor.dropDatabase(rdbmsDatasourceFixture.originalDataSource, liquibaseModel);
+        simpleLiquibaseExecutor.dropDatabase(rdbmsDatasourceFixture.dataSource, liquibaseModel);
     }
 
 

@@ -38,37 +38,12 @@
             javax.resource;version="[1.6,2)"
         </osgi-transaction-import>
 
-        <karaf-version>4.3.4</karaf-version>
-        <cxf-version>3.4.4</cxf-version>
-        <cxf-jaxrs-application-manager-version>0.7.1.20220301_152701_1df46756_develop
-        </cxf-jaxrs-application-manager-version>
-        <keycloak-version>10.0.2</keycloak-version>
-        <jooq-version>3.13.1</jooq-version>
         <epsilon-runtime-version>1.4.0.20220316_214617_dcae201c_develop</epsilon-runtime-version>
-        <google-karaf-features-version>1.0.7</google-karaf-features-version>
-        <javax-karaf-features-version>1.0.2</javax-karaf-features-version>
-        <bouncycastle-karaf-features-version>1.61.2</bouncycastle-karaf-features-version>
-        <eclipse-emf-karaf-features-version>1.0.1</eclipse-emf-karaf-features-version>
-        <eclipse-epsilon-karaf-features-version>1.0.6</eclipse-epsilon-karaf-features-version>
-        <eclipse-xtext-karaf-features-version>1.0.2</eclipse-xtext-karaf-features-version>
-        <antlr-karaf-features-version>1.0.1</antlr-karaf-features-version>
-        <apache-commons-karaf-features-version>1.0.6</apache-commons-karaf-features-version>
-        <apache-poi-karaf-features-version>1.0.4</apache-poi-karaf-features-version>
-        <apache-httpclient-karaf-features-version>1.0.0</apache-httpclient-karaf-features-version>
-        <javassist-karaf-features-version>1.0.1</javassist-karaf-features-version>
-        <sling-karaf-features-version>1.0.2</sling-karaf-features-version>
-        <jdbc-karaf-features-version>1.0.2</jdbc-karaf-features-version>
-        <jclouds-version>2.1.0</jclouds-version>
         <jose4j-version>0.7.2</jose4j-version>
-        <jooq-karaf-features-version>3.13.2.20220322_152857_cc0735de_develop</jooq-karaf-features-version>
-        <tinybundles-karaf-features-version>1.0.0</tinybundles-karaf-features-version>
-        <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
         <sonar-maven-plugin-version>3.7.0.1746</sonar-maven-plugin-version>
         <jacoco.version>0.8.6</jacoco.version>
 
         <jackson-version>2.11.4</jackson-version>
-        <transx-version>0.5.1</transx-version>
-        <swagger-version>1.5.24</swagger-version>
 
         <judo-framework-version>2.0.0.20220325_152807_8a68406e_develop</judo-framework-version>
         <judo-tatami-core-version>1.1.0.20220405_161751_7fec76d0_develop</judo-tatami-core-version>
@@ -85,7 +60,6 @@
         <judo-meta-measure-version>1.0.0.20220405_162220_28539f03_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220405_162206_0ac0daa1_develop</judo-meta-liquibase-version>
         <judo-meta-openapi-version>1.0.0.20220405_162229_f202387c_develop</judo-meta-openapi-version>
-        <judo-meta-keycloak-version>1.0.0.20220405_162306_8a9dcb59_develop</judo-meta-keycloak-version>
         <judo-dao-api-version>1.0.2.20220301_152834_cea2e81e_develop</judo-dao-api-version>
         <judo-sdk-common-version>1.0.0.20220405_162646_7bf86e0e_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220301_152852_a63b2efa_develop</judo-dispatcher-api-version>
@@ -97,11 +71,8 @@
         <judo-meta-query-version>1.0.0.20220405_162251_04a7dce4_develop</judo-meta-query-version>
         <judo-tatami-version>1.1.0.20220405_164003_ca74107c_develop</judo-tatami-version>
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
-<!--        <osgi-liquibase-version>1.2.1.20220223_094728_dbedc9cc_develop</osgi-liquibase-version> -->
+        <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
 
-        <pax-exam-version>4.13.4</pax-exam-version>
-        <pax-cdi-version>1.1.3</pax-cdi-version>
-        <log4j.configuration>log4j.properties</log4j.configuration>
 
         <!-- Code Quality-->
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -204,9 +175,6 @@
                     <configuration>
                         <argLine>-Dfile.encoding=UTF-8</argLine>
                         <trimStackTrace>false</trimStackTrace>
-                        <systemPropertyVariables>
-                            <log4j.configuration>${log4j.configuration}</log4j.configuration>
-                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -325,14 +293,30 @@
             <version>${slf4j-version}</version>
         </dependency>
 
-        <!--
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mattbertolini</groupId>
+            <artifactId>liquibase-slf4j</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-reload4j</artifactId>
+            <artifactId>jul-to-slf4j</artifactId>
             <version>${slf4j-version}</version>
-            <scope>test</scope>
         </dependency>
-        -->
+
+        <dependency>
+            <groupId>uk.org.lidalia</groupId>
+            <artifactId>sysout-over-slf4j</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
 
         <dependency>
             <groupId>hu.blackbelt.epsilon</groupId>
@@ -459,12 +443,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.ops4j.pax.transx</groupId>
-                <artifactId>pax-transx-jdbc</artifactId>
-                <version>${transx-version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
                 <version>${judo-meta-psm-version}</version>
@@ -523,12 +501,6 @@
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.rdbms.model</artifactId>
                 <version>${judo-meta-rdbms-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.keycloak.model</artifactId>
-                <version>${judo-meta-keycloak-version}</version>
             </dependency>
 
             <dependency>
@@ -691,17 +663,16 @@
                 <version>${mapper-version}</version>
                 <!--scope>test</scope--> <!-- temporary added as compile because not configurable yet -->
             </dependency>
+            <dependency>
+                <groupId>hu.blackbelt.osgi.filestore</groupId>
+                <artifactId>filestore-security-api</artifactId>
+                <version>${osgi-filestore-version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.bitbucket.b_c</groupId>
                 <artifactId>jose4j</artifactId>
                 <version>${jose4j-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.osgi.filestore</groupId>
-                <artifactId>filestore-security-api</artifactId>
-                <version>${osgi-filestore-version}</version>
             </dependency>
 
             <dependency>
@@ -717,11 +688,6 @@
                 <scope>provided</scope>
             </dependency>
 
-            <dependency>
-                <groupId>org.ops4j.pax.cdi</groupId>
-                <artifactId>pax-cdi-api</artifactId>
-                <version>${pax-cdi-version}</version>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 
