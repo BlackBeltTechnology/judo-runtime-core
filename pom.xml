@@ -24,7 +24,7 @@
 
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <surefire-version>3.0.0-M5</surefire-version>
+        <surefire-version>3.0.0-M6</surefire-version>
         <slf4j-version>1.7.36</slf4j-version>
 
         <osgi-default-import>
@@ -173,7 +173,12 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${surefire-version}</version>
                     <configuration>
-                        <argLine>-Dfile.encoding=UTF-8</argLine>
+                        <argLine>
+                            -Dfile.encoding=UTF-8
+                            --add-opens java.base/java.lang=ALL-UNNAMED
+                            --add-opens java.base/java.util=ALL-UNNAMED
+                            --add-opens java.base/java.time=ALL-UNNAMED
+                        </argLine>
                         <trimStackTrace>false</trimStackTrace>
                     </configuration>
                 </plugin>
