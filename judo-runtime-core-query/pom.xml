@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-query</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Query</name>
+    <name>JUDO Runtime Core :: Query</name>
 
     <build>
         <plugins>
@@ -19,20 +19,24 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>hu.blackbelt.judo.services.query*;version:=${project.version}</Export-Package>
+                        <Export-Package>hu.blackbelt.judo.runtime.core.query.*;version=${project.version}</Export-Package>
                     </instructions>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+	<dependencyManagement>
+		<dependencies>
+	        <dependency>
+	            <groupId>hu.blackbelt.judo.runtime</groupId>
+	            <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${project.version}</version>
+	        </dependency>
+		</dependencies>
+	</dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -79,17 +83,6 @@
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-api</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-workflow</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>

@@ -10,18 +10,17 @@
     <artifactId>judo-runtime-core-dao-rdbms</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services RDBMS Data Access Objects</name>
+    <name>JUDO Runtime Core :: RDBMS Data Access Objects</name>
 
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package>
-                            hu.blackbelt.judo.services.dao.rdbms.*;version:=${project.version}
-                        </Export-Package>
+                        <Export-Package>hu.blackbelt.judo.runtime.core.dao.rdbms.*;version=${project.version}</Export-Package>
                         <Private-Package>
                             org.jgrapht*,
                             org.jheaps*,
@@ -37,6 +36,18 @@
             </plugin>
         </plugins>
     </build>
+
+	<dependencyManagement>
+		<dependencies>
+	        <dependency>
+	            <groupId>hu.blackbelt.judo.runtime</groupId>
+	            <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${project.version}</version>
+	        </dependency>
+		</dependencies>
+	</dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -59,25 +70,6 @@
             <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-query</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo</groupId>
-            <artifactId>judo-operation-utils</artifactId>
-            <version>${judo-operation-utils-version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-dispatcher</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-persistence-postgresql</artifactId>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-core</artifactId>
@@ -100,43 +92,19 @@
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.jql.model</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.expression.builder.jql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.expression.builder.jql.asm</artifactId>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
         </dependency>
-
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq</artifactId>
-        </dependency>
-        <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
-            <version>2.0.1.Final</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.1</version>
         </dependency>
 
         <dependency>
@@ -148,130 +116,16 @@
         <dependency>
             <groupId>org.jgrapht</groupId>
             <artifactId>jgrapht-core</artifactId>
-            <version>1.3.0</version>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.measure</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-northwind-psm</artifactId>
-            <scope>test</scope>
-            <classifier>sdk</classifier>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-northwind-psm</artifactId>
-            <scope>test</scope>
-            <classifier>sdk-internal</classifier>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-asm2rdbms</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-workflow</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.psm.model.test</artifactId>
-            <scope>test</scope>
-            <version>${judo-meta-psm-version}</version>
-        </dependency>        
-        <dependency>
-            <groupId>hu.blackbelt.mapper</groupId>
-            <artifactId>mapper-impl</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.jdt</groupId>
-            <artifactId>org.eclipse.jdt.core</artifactId>
-            <version>3.21.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.jdt</groupId>
-            <artifactId>ecj</artifactId>
-            <version>3.21.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.hsqldb</groupId>
-            <artifactId>hsqldb</artifactId>
-            <version>2.6.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>42.2.12</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.osgi.liquibase</groupId>
-            <artifactId>osgi-liquibase</artifactId>
-            <version>${osgi-liquibase-version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>net.ttddyy</groupId>
-            <artifactId>datasource-proxy</artifactId>
-            <version>1.5.1</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.atomikos</groupId>
-            <artifactId>transactions-jdbc</artifactId>
-            <version>5.0.6</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>4.3.12.RELEASE</version>
-        </dependency>
-
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers</artifactId>
-            <version>1.15.2</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>1.15.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>1.15.2</version>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.script</groupId>
-            <artifactId>hu.blackbelt.judo.script.codegen.generator</artifactId>
-            <scope>test</scope>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
         </dependency>
     </dependencies>
 </project>
