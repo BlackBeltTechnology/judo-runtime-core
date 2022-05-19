@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-dispatcher</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Dispatcher</name>
+    <name>JUDO Runtime Core :: Dispatcher</name>
 
     <properties>
         <antlr4-version>4.5.1-1</antlr4-version>
@@ -23,7 +23,7 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>hu.blackbelt.judo.services.dispatcher.*;version:=${project.version}</Export-Package>
+                        <Export-Package>hu.blackbelt.judo.services.dispatcher.*;version=${project.version}</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
@@ -51,7 +51,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.2.0</version>
                 <executions>
                     <execution>
                         <id>add-source</id>
@@ -70,11 +69,22 @@
         </plugins>
     </build>
 
+	<dependencyManagement>
+		<dependencies>
+	        <dependency>
+	            <groupId>hu.blackbelt.judo.runtime</groupId>
+	            <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${project.version}</version>
+	        </dependency>
+		</dependencies>
+	</dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
-            <version>2.0.1.Final</version>
         </dependency>
 
         <dependency>
@@ -108,11 +118,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.1</version>
-        </dependency>
-        <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
         </dependency>
@@ -137,21 +142,19 @@
             <groupId>hu.blackbelt.osgi.filestore</groupId>
             <artifactId>filestore-security-api</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.esm.model</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-workflow</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-impl</artifactId>
             <scope>test</scope>
         </dependency>
+
+
+        <dependency>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
+            <version>2.6.1</version>
+
+        </dependency>
+
     </dependencies>
 </project>
