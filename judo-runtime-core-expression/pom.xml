@@ -73,7 +73,6 @@
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-workflow</artifactId>
             <scope>test</scope>
-            <version>${judo-tatami-version}</version>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
