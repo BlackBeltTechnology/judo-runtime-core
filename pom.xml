@@ -50,29 +50,22 @@
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0.20220405_162243_a599d313_develop</judo-meta-rdbms-version>
-        <judo-meta-esm-version>1.1.0.20220405_162202_08801cc6_develop</judo-meta-esm-version>
-        <judo-meta-psm-version>1.1.0.20220405_162250_fee181a8_develop</judo-meta-psm-version>
-        <judo-meta-jql-version>1.0.1.20220405_161348_f273cd5a_develop</judo-meta-jql-version>
-
-        <judo-meta-script-version>1.0.1.20220405_163241_c9ac58dd_develop</judo-meta-script-version>
         <judo-meta-asm-version>1.1.0.20220405_162156_c69f1a74_develop</judo-meta-asm-version>
         <judo-meta-expression-version>1.0.1.20220517_145508_fb211854_develop</judo-meta-expression-version>
         <judo-meta-measure-version>1.0.0.20220405_162220_28539f03_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220405_162206_0ac0daa1_develop</judo-meta-liquibase-version>
-        <judo-meta-openapi-version>1.0.0.20220405_162229_f202387c_develop</judo-meta-openapi-version>
         <judo-dao-api-version>1.0.2.20220301_152834_cea2e81e_develop</judo-dao-api-version>
         <judo-sdk-common-version>1.0.0.20220405_162646_7bf86e0e_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220301_152852_a63b2efa_develop</judo-dispatcher-api-version>
-        <judo-script-codegen-version>1.1.0.20220405_163750_cbf5dd35_develop</judo-script-codegen-version>
         <judo-operation-utils-version>1.1.0.20220405_162650_6298bb1f_develop</judo-operation-utils-version>
 
         <structured-map-proxy-version>1.0.6.20220301_160543_e228df4d_develop</structured-map-proxy-version>
 
         <judo-meta-query-version>1.0.0.20220405_162251_04a7dce4_develop</judo-meta-query-version>
         <judo-tatami-version>1.1.0.20220405_164003_ca74107c_develop</judo-tatami-version>
+
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
         <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
-
 
         <!-- Code Quality-->
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -416,22 +409,8 @@
             <version>4.5.1</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
-<!--
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dependencies</artifactId>
-				<type>pom</type>
-                <version>${project.version}</version>
-				<scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
--->
     <profiles>
         <profile>
             <id>modules</id>

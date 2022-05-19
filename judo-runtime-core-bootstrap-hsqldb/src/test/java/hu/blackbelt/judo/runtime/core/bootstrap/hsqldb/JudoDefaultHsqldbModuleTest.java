@@ -22,8 +22,6 @@ import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
-import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
-import hu.blackbelt.judo.meta.script.support.ScriptModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoDefaultModule;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbModules;
@@ -86,11 +84,6 @@ class JudoDefaultHsqldbModuleTest {
                 .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
                 .build();
 
-        ScriptModel scriptModel = ScriptModel.buildScriptModel()
-                .name("judo")
-                .resourceSet(ScriptModelResourceSupport.createScriptResourceSet())
-                .build();
-
         LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
                 .name("judo")
                 .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
@@ -112,7 +105,6 @@ class JudoDefaultHsqldbModuleTest {
 			                .rdbmsModel(rdbmsModel)
 			                .measureModel(measureModel)
 			                .expressionModel(expressionModel)
-			                .scriptModel(scriptModel)
                             .liquibaseModel(liquibaseModel)
 			                .asm2rdbms(asm2rdbms)
 			                .build()));

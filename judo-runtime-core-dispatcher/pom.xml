@@ -142,12 +142,6 @@
             <groupId>hu.blackbelt.osgi.filestore</groupId>
             <artifactId>filestore-security-api</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-workflow</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-impl</artifactId>

@@ -49,7 +49,11 @@
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.jql.model</artifactId>
+            <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.measure</artifactId>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
@@ -59,26 +63,6 @@
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.expression.builder.jql.asm</artifactId>
         </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.measure</artifactId>
-        </dependency>
 
-        <!-- TODO: Rewrite tests without northwind -->
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-workflow</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
-            <scope>test</scope>
-            <version>${judo-meta-psm-version}</version>
-        </dependency>
     </dependencies>
 </project>

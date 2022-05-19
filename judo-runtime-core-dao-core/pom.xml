@@ -75,24 +75,5 @@
             <groupId>org.jgrapht</groupId>
             <artifactId>jgrapht-core</artifactId>
         </dependency>
-
-        <!-- TODO: Rewrite tests without northwind -->
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-workflow</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.judo.tatami</groupId>
-            <artifactId>judo-tatami-northwind-psm</artifactId>
-            <scope>test</scope>
-            <classifier>sdk</classifier>
-            <version>${judo-tatami-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>hu.blackbelt.mapper</groupId>
-            <artifactId>mapper-impl</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

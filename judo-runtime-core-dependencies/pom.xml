@@ -64,18 +64,6 @@
             </dependency>
 
             <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-asm2script</artifactId>
-                <version>${judo-tatami-version}</version>
-            </dependency>
-
-             <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-workflow</artifactId>
-                <version>${judo-tatami-version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
                 <version>${judo-meta-asm-version}</version>
@@ -124,32 +112,9 @@
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.openapi.model</artifactId>
-                <version>${judo-meta-openapi-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.jql.model</artifactId>
-                <version>${judo-meta-jql-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
                 <version>${judo-meta-query-version}</version>
             </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.script.model</artifactId>
-                <version>${judo-meta-script-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.script</groupId>
-                <artifactId>hu.blackbelt.judo.script.codegen.generator</artifactId>
-                <version>${judo-script-codegen-version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>hu.blackbelt.judo</groupId>
                 <artifactId>judo-dao-api</artifactId>
@@ -298,8 +263,14 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2rdbms</artifactId>
+        </dependency>
+        <!--
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-asm2script</artifactId>
          </dependency>
+        -->
 
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
@@ -330,7 +301,7 @@
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
         </dependency>
- 
+
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.expression.builder.jql</artifactId>
@@ -351,11 +322,7 @@
             <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>hu.blackbelt.judo.meta</groupId>
-            <artifactId>hu.blackbelt.judo.meta.jql.model</artifactId>
-        </dependency>
-
+        <!--
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.script.model</artifactId>
@@ -365,7 +332,7 @@
             <groupId>hu.blackbelt.judo.script</groupId>
             <artifactId>hu.blackbelt.judo.script.codegen.generator</artifactId>
         </dependency>
-
+        -->
         <dependency>
             <groupId>hu.blackbelt.judo</groupId>
             <artifactId>judo-dao-api</artifactId>

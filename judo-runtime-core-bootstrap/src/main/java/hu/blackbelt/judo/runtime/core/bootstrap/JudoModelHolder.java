@@ -5,10 +5,8 @@ import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.meta.script.runtime.ScriptModel;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
-import hu.blackbelt.judo.tatami.asm2script.Asm2Script;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
@@ -20,7 +18,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.LoadArguments.asmLoadArgumentsBuilder;
-import static hu.blackbelt.judo.meta.script.runtime.ScriptModel.buildScriptModel;
 
 @Builder
 @Getter
@@ -37,9 +34,6 @@ public class JudoModelHolder {
 
     @NonNull
     ExpressionModel expressionModel;
-
-    @NonNull
-    ScriptModel scriptModel;
 
     @NonNull
     LiquibaseModel liquibaseModel;
@@ -110,24 +104,6 @@ public class JudoModelHolder {
                 .validateModel(validate)
                 .name(modelNameFromAsm));
 
-        /*
-        ScriptModel scriptModel = ScriptModel.loadScriptModel(ScriptModel.LoadArguments.scriptLoadArgumentsBuilder()
-                .inputStream(calculateRelativeURI(uri, "/" + modelName + "-script.model").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI("urn:asmjclextractor.judo-meta-expression"))
-                .validateModel(validate)
-                .name(modelNameFromAsm));
-        */
-        ScriptModel scriptModel = buildScriptModel()
-                .name(modelNameFromAsm)
-                .build();
-
-        Asm2Script.executeAsm2Script(
-                Asm2Script.Asm2ScriptParameter.asm2ScriptParameter()
-                        .asmModel(asmModel)
-                        .measureModel(measureModel)
-                        .scriptModel(scriptModel)
-        );
-
         LiquibaseModel liquibaseModel = LiquibaseModel.loadLiquibaseModel(LiquibaseModel.LoadArguments.liquibaseLoadArgumentsBuilder()
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-liquibase_" + dialect.getName() + ".changelog.xml").toURL().openStream())
                 .uri(org.eclipse.emf.common.util.URI.createURI(modelNameFromAsm+"-liquibase_" + dialect.getName() + ".changelog.xml"))
@@ -146,7 +122,6 @@ public class JudoModelHolder {
                 .expressionModel(expressionModel)
                 .liquibaseModel(liquibaseModel)
                 .asm2rdbms(asm2rdbms)
-                .scriptModel(scriptModel)
                 .build();
     }
 
