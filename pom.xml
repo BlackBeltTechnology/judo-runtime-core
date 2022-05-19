@@ -1,15 +1,16 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>hu.blackbelt.judo.runtime</groupId>
     <artifactId>judo-runtime-core-parent</artifactId>
     <packaging>pom</packaging>
     <version>${revision}</version>
 
-    <name>judo-runtime-core-parent</name>
-    <description>JUDO runtime core services</description>
+    <name>JUDO Runtime Core :: Parent</name>
+    <description>JUDO runtime core reactor module</description>
 
     <properties>
-        <revision>1.1.0-SNAPSHOT</revision>
+        <revision>1.0.0-SNAPSHOT</revision>
         <maven>3.8.3</maven>
         <maven.version>3.8.3</maven.version>
 
@@ -23,7 +24,8 @@
 
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <surefire-version>3.0.0-M5</surefire-version>
+        <surefire-version>3.0.0-M6</surefire-version>
+        <slf4j-version>1.7.36</slf4j-version>
 
         <osgi-default-import>
             org.osgi.framework;version="[1.8,2.0)",
@@ -33,42 +35,15 @@
         </osgi-default-import>
         <osgi-transaction-import>
             javax.transaction.xa;version=!,
-            javax.resource;version="[1.6,2)",
-            javax.resource.*;version="[1.6,2)",
-            javax.resource.spi.*;version="[1.6,2)"
+            javax.resource;version="[1.6,2)"
         </osgi-transaction-import>
 
-        <karaf-version>4.3.4</karaf-version>
-        <cxf-version>3.4.4</cxf-version>
-        <cxf-jaxrs-application-manager-version>0.7.1.20220301_152701_1df46756_develop</cxf-jaxrs-application-manager-version>
-        <keycloak-version>10.0.2</keycloak-version>
-        <osgi-utils-version>1.0.12.20220316_214508_c75030f0_develop</osgi-utils-version>
-        <jooq-version>3.13.1</jooq-version>
         <epsilon-runtime-version>1.4.0.20220316_214617_dcae201c_develop</epsilon-runtime-version>
-        <google-karaf-features-version>1.0.7</google-karaf-features-version>
-        <javax-karaf-features-version>1.0.2</javax-karaf-features-version>
-        <bouncycastle-karaf-features-version>1.61.2</bouncycastle-karaf-features-version>
-        <eclipse-emf-karaf-features-version>1.0.1</eclipse-emf-karaf-features-version>
-        <eclipse-epsilon-karaf-features-version>1.0.6</eclipse-epsilon-karaf-features-version>
-        <eclipse-xtext-karaf-features-version>1.0.2</eclipse-xtext-karaf-features-version>
-        <antlr-karaf-features-version>1.0.1</antlr-karaf-features-version>
-        <apache-commons-karaf-features-version>1.0.6</apache-commons-karaf-features-version>
-        <apache-poi-karaf-features-version>1.0.4</apache-poi-karaf-features-version>
-        <apache-httpclient-karaf-features-version>1.0.0</apache-httpclient-karaf-features-version>
-        <javassist-karaf-features-version>1.0.1</javassist-karaf-features-version>
-        <sling-karaf-features-version>1.0.2</sling-karaf-features-version>
-        <jdbc-karaf-features-version>1.0.2</jdbc-karaf-features-version>
-        <jclouds-version>2.1.0</jclouds-version>
         <jose4j-version>0.7.2</jose4j-version>
-        <jooq-karaf-features-version>3.13.2.20220322_152857_cc0735de_develop</jooq-karaf-features-version>
-        <tinybundles-karaf-features-version>1.0.0</tinybundles-karaf-features-version>
-        <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
         <sonar-maven-plugin-version>3.7.0.1746</sonar-maven-plugin-version>
         <jacoco.version>0.8.6</jacoco.version>
 
         <jackson-version>2.11.4</jackson-version>
-        <transx-version>0.5.1</transx-version>
-        <swagger-version>1.5.24</swagger-version>
 
         <judo-framework-version>2.0.0.20220325_152807_8a68406e_develop</judo-framework-version>
         <judo-tatami-core-version>1.1.0.20220405_161751_7fec76d0_develop</judo-tatami-core-version>
@@ -81,11 +56,10 @@
 
         <judo-meta-script-version>1.0.1.20220405_163241_c9ac58dd_develop</judo-meta-script-version>
         <judo-meta-asm-version>1.1.0.20220405_162156_c69f1a74_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220405_162647_f55885a1_develop</judo-meta-expression-version>
+        <judo-meta-expression-version>1.0.1.20220517_145508_fb211854_develop</judo-meta-expression-version>
         <judo-meta-measure-version>1.0.0.20220405_162220_28539f03_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220405_162206_0ac0daa1_develop</judo-meta-liquibase-version>
         <judo-meta-openapi-version>1.0.0.20220405_162229_f202387c_develop</judo-meta-openapi-version>
-        <judo-meta-keycloak-version>1.0.0.20220405_162306_8a9dcb59_develop</judo-meta-keycloak-version>
         <judo-dao-api-version>1.0.2.20220301_152834_cea2e81e_develop</judo-dao-api-version>
         <judo-sdk-common-version>1.0.0.20220405_162646_7bf86e0e_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220301_152852_a63b2efa_develop</judo-dispatcher-api-version>
@@ -97,19 +71,17 @@
         <judo-meta-query-version>1.0.0.20220405_162251_04a7dce4_develop</judo-meta-query-version>
         <judo-tatami-version>1.1.0.20220405_164003_ca74107c_develop</judo-tatami-version>
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
-        <judo-rdbms-schema-version>1.0.0.20220405_164837_c6d8d988_develop</judo-rdbms-schema-version>
-        <osgi-liquibase-version>1.2.1.20220223_094728_dbedc9cc_develop</osgi-liquibase-version>
+        <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
 
-        <pax-exam-version>4.13.4</pax-exam-version>
-        <pax-cdi-version>1.1.3</pax-cdi-version>
-        <log4j.configuration>log4j.properties</log4j.configuration>
 
         <!-- Code Quality-->
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.language>java</sonar.language>
         <sonar.java.source>${maven.compiler.source}</sonar.java.source>
-        <sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/../judo-runtime-core-tests-aggregator/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.jacoco.xmlReportPaths>
+            ${project.basedir}/../judo-runtime-core-tests-aggregator/target/site/jacoco-aggregate/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
     </properties>
 
     <url>http://github.com/${project-repositoryId}</url>
@@ -201,11 +173,13 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${surefire-version}</version>
                     <configuration>
-                        <argLine>-Dfile.encoding=UTF-8</argLine>
+                        <argLine>
+                            -Dfile.encoding=UTF-8
+                            --add-opens java.base/java.lang=ALL-UNNAMED
+                            --add-opens java.base/java.util=ALL-UNNAMED
+                            --add-opens java.base/java.time=ALL-UNNAMED
+                        </argLine>
                         <trimStackTrace>false</trimStackTrace>
-                        <systemPropertyVariables>
-                            <log4j.configuration>${log4j.configuration}</log4j.configuration>
-                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -215,7 +189,7 @@
                     <extensions>true</extensions>
                     <configuration>
                         <instructions>
-                            <Export-Package />
+                            <Export-Package/>
                             <Import-Package>
                                 ${osgi-default-import},
                                 *
@@ -234,13 +208,45 @@
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>${jacoco.version}</version>
                 </plugin>
-            </plugins>
+
+        		<!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+        		<plugin>
+        			<groupId>org.eclipse.m2e</groupId>
+        			<artifactId>lifecycle-mapping</artifactId>
+        			<version>1.0.0</version>
+        			<configuration>
+        				<lifecycleMappingMetadata>
+        					<pluginExecutions>
+        						<pluginExecution>
+        							<pluginExecutionFilter>
+        								<groupId>
+        									org.codehaus.mojo
+        								</groupId>
+        								<artifactId>
+        									flatten-maven-plugin
+        								</artifactId>
+        								<versionRange>
+        									[1.1.0,)
+        								</versionRange>
+        								<goals>
+        									<goal>flatten</goal>
+        								</goals>
+        							</pluginExecutionFilter>
+        							<action>
+                                        <ignore/>
+        							</action>
+        						</pluginExecution>
+        					</pluginExecutions>
+        				</lifecycleMappingMetadata>
+        			</configuration>
+        		</plugin>
+        	</plugins>
         </pluginManagement>
+
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.0.0</version>
                 <executions>
                     <execution>
                         <id>add-source</id>
@@ -257,7 +263,7 @@
                 </executions>
             </plugin>
 
-			<plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
                 <version>1.1.0</version>
@@ -289,18 +295,37 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.6.0</version>
+            <version>${slf4j-version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mattbertolini</groupId>
+            <artifactId>liquibase-slf4j</artifactId>
+            <version>4.1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>${slf4j-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>uk.org.lidalia</groupId>
+            <artifactId>sysout-over-slf4j</artifactId>
+            <version>1.0.2</version>
+        </dependency>
+
 
         <dependency>
             <groupId>hu.blackbelt.epsilon</groupId>
             <artifactId>epsilon-runtime-execution</artifactId>
-            <version>${epsilon-runtime-version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-osgi</artifactId>
             <version>${epsilon-runtime-version}</version>
         </dependency>
 
@@ -323,7 +348,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.22</version>
+            <version>1.18.24</version>
         </dependency>
 
         <dependency>
@@ -331,56 +356,37 @@
             <artifactId>guava</artifactId>
             <version>27.1-jre</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.9.0</version>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.6.2</version>
+            <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.6.2</version>
+            <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>5.6.2</version>
+            <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>1.7.21</version>
-            <scope>test</scope>
-        </dependency>
+
         <dependency>
             <groupId>com.jcabi</groupId>
             <artifactId>jcabi-log</artifactId>
             <version>0.18</version>
             <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <version>6.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>osgi.cmpn</artifactId>
-            <version>6.0.0</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.annotation</artifactId>
-            <version>6.0.0</version>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -407,309 +413,25 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>3.0.0</version>
+            <version>4.5.1</version>
             <scope>test</scope>
         </dependency>
 
     </dependencies>
 
+<!--
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-northwind-psm</artifactId>
-                <version>${judo-tatami-version}</version>
-                <scope>test</scope>
-                <classifier>sdk</classifier>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-northwind-psm</artifactId>
-                <version>${judo-tatami-version}</version>
-                <scope>test</scope>
-                <classifier>sdk-internal</classifier>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-northwind-esm</artifactId>
-                <version>${judo-tatami-version}</version>
-                <classifier>sdk</classifier>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.osgi.utils</groupId>
-                <artifactId>osgi-api</artifactId>
-                <version>${osgi-utils-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.ops4j.pax.transx</groupId>
-                <artifactId>pax-transx-jdbc</artifactId>
-                <version>${transx-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
-                <version>${judo-meta-psm-version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-core</artifactId>
-                <version>${judo-tatami-core-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-asm2rdbms</artifactId>
-                <version>${judo-tatami-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.framework</groupId>
-                <artifactId>compiler-api</artifactId>
-                <version>${judo-framework-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.tatami</groupId>
-                <artifactId>judo-tatami-workflow</artifactId>
-                <version>${judo-tatami-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.esm.model</artifactId>
-                <version>${judo-meta-esm-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.psm.model</artifactId>
-                <version>${judo-meta-psm-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
-                <version>${judo-meta-asm-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.rdbms.model</artifactId>
-                <version>${judo-meta-rdbms-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.keycloak.model</artifactId>
-                <version>${judo-meta-keycloak-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
-                <version>${judo-meta-liquibase-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.model</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.measure</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.builder.jql</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.expression.builder.jql.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.measure.model</artifactId>
-                <version>${judo-meta-measure-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.openapi.model</artifactId>
-                <version>${judo-meta-openapi-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.jql.model</artifactId>
-                <version>${judo-meta-jql-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
-                <version>${judo-meta-query-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.meta</groupId>
-                <artifactId>hu.blackbelt.judo.meta.script.model</artifactId>
-                <version>${judo-meta-script-version}</version>
-            </dependency>
-
-
-            <dependency>
-                <groupId>hu.blackbelt.judo.script</groupId>
-                <artifactId>hu.blackbelt.judo.script.codegen.generator</artifactId>
-                <version>${judo-script-codegen-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-dao-api</artifactId>
-                <version>${judo-dao-api-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-dispatcher-api</artifactId>
-                <version>${judo-dispatcher-api-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-sdk-common</artifactId>
-                <version>${judo-sdk-common-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.jooq</groupId>
-                <artifactId>jooq</artifactId>
-                <version>${jooq-version}</version>
-            </dependency>
-            <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core</artifactId>
+                <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
                 <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dispatcher</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-accessmanager-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-accessmanager</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-security</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-dao-rdbms</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-expression</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-query</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-transaction</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-persistence-hsqldb</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-persistence-postgresql</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.mapper</groupId>
-                <artifactId>mapper-api</artifactId>
-                <version>${mapper-version}</version>
-            </dependency>
-            <dependency>
-                <groupId>hu.blackbelt.mapper</groupId>
-                <artifactId>mapper-impl</artifactId>
-                <version>${mapper-version}</version>
-                <!--scope>test</scope--> <!-- temporary added as compile because not configurable yet -->
-            </dependency>
-
-            <dependency>
-                <groupId>org.bitbucket.b_c</groupId>
-                <artifactId>jose4j</artifactId>
-                <version>${jose4j-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.osgi.filestore</groupId>
-                <artifactId>filestore-security-api</artifactId>
-                <version>${osgi-filestore-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-rdbms-schema-store</artifactId>
-                <version>${judo-rdbms-schema-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>hu.blackbelt.judo</groupId>
-                <artifactId>judo-rdbms-schema-incremental</artifactId>
-                <version>${judo-rdbms-schema-version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>javax.enterprise</groupId>
-                <artifactId>cdi-api</artifactId>
-                <version>1.2</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.ops4j.pax.cdi</groupId>
-                <artifactId>pax-cdi-api</artifactId>
-                <version>${pax-cdi-version}</version>
+				<scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
-
+-->
     <profiles>
         <profile>
             <id>modules</id>
@@ -723,16 +445,19 @@
                 <module>judo-runtime-core</module>
                 <module>judo-runtime-core-dao-core</module>
                 <module>judo-runtime-core-dao-rdbms</module>
+                <module>judo-runtime-core-dao-rdbms-hsqldb</module>
+                <module>judo-runtime-core-dao-rdbms-postgresql</module>
+                <module>judo-runtime-core-dao-rdbms-liquibase</module>
                 <module>judo-runtime-core-expression</module>
                 <module>judo-runtime-core-query</module>
                 <module>judo-runtime-core-dispatcher</module>
-                <module>judo-runtime-core-persistence</module>
-                <module>judo-runtime-core-transaction</module>
-                <module>judo-runtime-core-persistence-hsqldb</module>
-                <module>judo-runtime-core-persistence-postgresql</module>
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
+                <module>judo-runtime-core-bootstrap</module>
+                <module>judo-runtime-core-bootstrap-hsqldb</module>
+                <module>judo-runtime-core-bootstrap-postgresql</module>
+                <module>judo-runtime-core-dependencies</module>
             </modules>
         </profile>
         <profile>
@@ -767,18 +492,18 @@
         </profile>
 
         <profile>
-			<id>release-dummy</id>
-			<distributionManagement>
-				<snapshotRepository>
-					<id>dummy-distribution</id>
-					<url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-snapshot/</url>
-				</snapshotRepository>
-				<repository>
-					<id>dummy-distribution</id>
-					<url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-release/</url>
-				</repository>
-			</distributionManagement>
-		</profile>
+            <id>release-dummy</id>
+            <distributionManagement>
+                <snapshotRepository>
+                    <id>dummy-distribution</id>
+                    <url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-snapshot/</url>
+                </snapshotRepository>
+                <repository>
+                    <id>dummy-distribution</id>
+                    <url>file:///tmp/${project.groupId}-${project.artifactId}-${project.version}/maven-release/</url>
+                </repository>
+            </distributionManagement>
+        </profile>
 
         <profile>
             <id>release-judong</id>

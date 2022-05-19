@@ -4,6 +4,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.builder.jql.asm.AsmJqlExtractor;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.meta.query.Select;
+import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.URI;

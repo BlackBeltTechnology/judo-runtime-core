@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-expression</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Expression</name>
+    <name>JUDO Runtime Core :: Expression</name>
 
     <build>
         <plugins>
@@ -19,12 +19,24 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>hu.blackbelt.judo.services.expression*;version:=${project.version}</Export-Package>
+                        <Export-Package>hu.blackbelt.judo.runtime.core.expression*;version=${project.version}</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+	<dependencyManagement>
+		<dependencies>
+	        <dependency>
+	            <groupId>hu.blackbelt.judo.runtime</groupId>
+	            <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${project.version}</version>
+	        </dependency>
+		</dependencies>
+	</dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -56,6 +68,7 @@
             <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.measure</artifactId>
         </dependency>
 
+        <!-- TODO: Rewrite tests without northwind -->
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-workflow</artifactId>
@@ -65,6 +78,7 @@
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
             <scope>test</scope>
+            <version>${judo-meta-psm-version}</version>
         </dependency>
     </dependencies>
 </project>
