@@ -102,7 +102,6 @@ public class JudoModelHolder {
         RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
         RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
         RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
-        //injectExcelMappings(rdbmsModel, null, calculateExcelMapping2RdbmsTransformationScriptURI(), calculateExcelMappingModelURI(), dialect.getName());
 
         RdbmsModel.loadRdbmsModel(RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder()
                 .resourceSet(rdbmsModel.getResourceSet())
