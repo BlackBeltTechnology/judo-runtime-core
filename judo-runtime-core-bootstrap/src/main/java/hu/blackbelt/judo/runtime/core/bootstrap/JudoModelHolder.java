@@ -1,10 +1,15 @@
 package hu.blackbelt.judo.runtime.core.bootstrap;
 
+import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
+import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
+import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
+import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.Builder;
@@ -18,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.LoadArguments.asmLoadArgumentsBuilder;
+import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
 
 @Builder
 @Getter
@@ -86,7 +92,19 @@ public class JudoModelHolder {
                     .name(modelNameFromAsm));
         }
 
-        RdbmsModel rdbmsModel = RdbmsModel.loadRdbmsModel(RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder()
+
+        RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
+                .name(modelNameFromAsm)
+                .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
+                .build();
+
+        // The RDBMS model resources have to know the mapping models
+        RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
+        RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
+        RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
+
+        RdbmsModel.loadRdbmsModel(RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder()
+                .resourceSet(rdbmsModel.getResourceSet())
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-rdbms_" + dialect.getName() +".model").toURL().openStream())
                 .uri(org.eclipse.emf.common.util.URI.createURI(modelNameFromAsm+"-rdbms_" + dialect.getName() + ".model"))
                 .validateModel(validate)
