@@ -1,6 +1,7 @@
 package hu.blackbelt.judo.runtime.core.bootstrap;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import hu.blackbelt.judo.dao.api.DAO;
@@ -9,6 +10,10 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
+import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
+import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
+import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
@@ -70,10 +75,14 @@ public class JudoDefaultModule extends AbstractModule {
         requestInjection(injectModulesTo);
 
         bind(AsmModel.class).toInstance(models.getAsmModel());
+        bind(RdbmsModel.class).toInstance(models.getRdbmsModel());
+        bind(MeasureModel.class).toInstance(models.getMeasureModel());
+        bind(LiquibaseModel.class).toInstance(models.getLiquibaseModel());
+        bind(ExpressionModel.class).toInstance(models.getExpressionModel());
 
         // Model
         bind(JudoModelHolder.class).toInstance(models);
-        
+
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
         bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
         bind(RdbmsBuilder.class).toProvider(RdbmsBuilderProvider.class).in(Singleton.class);
