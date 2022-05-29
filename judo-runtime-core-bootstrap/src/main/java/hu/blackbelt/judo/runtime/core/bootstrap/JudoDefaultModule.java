@@ -34,7 +34,9 @@ import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
+import lombok.Builder;
 
+import java.io.File;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -53,11 +55,26 @@ public class JudoDefaultModule extends AbstractModule {
     public static final String ACTOR_RESOLVER_CHECK_MAPPED_ACTORS = "actorResolverCheckMappedActors";
 
     private final Object injectModulesTo;
-    private final JudoModelHolder models;
+    private final JudoModelHolder judoModelHolder;
+    private Boolean bindModelHolder;
+
+    public static class JudoDefaultModuleBuilder {
+        private Object injectModulesTo = false;
+        private JudoModelHolder judoModelHolder = null;
+        private Boolean bindModelHolder = true;
+    }
 
     public JudoDefaultModule(Object injectModulesTo, JudoModelHolder models) {
         this.injectModulesTo = injectModulesTo;
-        this.models = models;
+        this.judoModelHolder = models;
+        this.bindModelHolder = true;
+    }
+
+    @Builder
+    public JudoDefaultModule(Object injectModulesTo, JudoModelHolder judoModelHolder, Boolean bindModelHolder) {
+        this.injectModulesTo = injectModulesTo;
+        this.judoModelHolder = judoModelHolder;
+        this.bindModelHolder = bindModelHolder;
     }
 
     public String generateNewSecret() {
@@ -72,16 +89,20 @@ public class JudoDefaultModule extends AbstractModule {
         }
     }
     protected void configure() {
-        requestInjection(injectModulesTo);
+        if (injectModulesTo != null) {
+            requestInjection(injectModulesTo);
+        }
 
-        bind(AsmModel.class).toInstance(models.getAsmModel());
-        bind(RdbmsModel.class).toInstance(models.getRdbmsModel());
-        bind(MeasureModel.class).toInstance(models.getMeasureModel());
-        bind(LiquibaseModel.class).toInstance(models.getLiquibaseModel());
-        bind(ExpressionModel.class).toInstance(models.getExpressionModel());
+        bind(AsmModel.class).toInstance(judoModelHolder.getAsmModel());
+        bind(RdbmsModel.class).toInstance(judoModelHolder.getRdbmsModel());
+        bind(MeasureModel.class).toInstance(judoModelHolder.getMeasureModel());
+        bind(LiquibaseModel.class).toInstance(judoModelHolder.getLiquibaseModel());
+        bind(ExpressionModel.class).toInstance(judoModelHolder.getExpressionModel());
 
         // Model
-        bind(JudoModelHolder.class).toInstance(models);
+        if (bindModelHolder) {
+            bind(JudoModelHolder.class).toInstance(judoModelHolder);
+        }
 
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
         bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
