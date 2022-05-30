@@ -3,7 +3,6 @@ package hu.blackbelt.judo.runtime.core.spring;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;

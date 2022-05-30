@@ -14,14 +14,12 @@ import hu.blackbelt.mapper.api.Coercer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
 import javax.transaction.TransactionManager;
 
 @Configuration
-//@Conditional(JudoDataSourceCondition.class)
 @ConditionalOnExpression("'${spring.datasource.url}'.contains('hsqldb')")
 public class JudoHsqldbSpringConfiguration {
 

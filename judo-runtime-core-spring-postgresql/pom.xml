@@ -7,31 +7,24 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>judo-runtime-core-spring</artifactId>
+    <artifactId>judo-runtime-core-spring-postgresql</artifactId>
     <packaging>jar</packaging>
 
-    <name>JUDO Runtime Core :: Spring</name>
+    <name>JUDO Runtime Core :: Spring :: Postgresql</name>
 
-	<dependencyManagement>
-		<dependencies>
-	        <dependency>
-	            <groupId>hu.blackbelt.judo.runtime</groupId>
-	            <artifactId>judo-runtime-core-dependencies</artifactId>
-				<type>pom</type>
-				<scope>import</scope>
-				<version>${project.version}</version>
-	        </dependency>
-		</dependencies>
-	</dependencyManagement>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-dependencies</artifactId>
+                <type>pom</type>
+                <scope>import</scope>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-autoconfigure</artifactId>
-            <version>2.7.0</version>
-        </dependency>
-
         <dependency>
             <groupId>hu.blackbelt.judo</groupId>
             <artifactId>judo-dao-api</artifactId>
@@ -69,6 +62,11 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms-postgresql</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dispatcher</artifactId>
         </dependency>
 
@@ -81,6 +79,7 @@
             <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-accessmanager</artifactId>
         </dependency>
+
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-asm2rdbms</artifactId>
@@ -90,9 +89,11 @@
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-dao-rdbms-postgresql</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>2.7.0</version>
         </dependency>
 
     </dependencies>
