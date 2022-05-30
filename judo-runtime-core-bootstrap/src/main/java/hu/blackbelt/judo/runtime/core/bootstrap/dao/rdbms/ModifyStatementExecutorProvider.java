@@ -2,12 +2,16 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms;
 
 import com.google.inject.Inject;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
+import hu.blackbelt.mapper.api.Coercer;
+import hu.blackbelt.mapper.api.ExtendableCoercer;
 
 import javax.inject.Provider;
 
@@ -15,10 +19,13 @@ import javax.inject.Provider;
 public class ModifyStatementExecutorProvider implements Provider<ModifyStatementExecutor> {
 
     @Inject
-    JudoModelHolder models;
+    AsmModel asmModel;
 
     @Inject
-    DataTypeManager dataTypeManager;
+    RdbmsModel rdbmsModel;
+
+    @Inject
+    Coercer coercer;
 
 	@Inject
     IdentifierProvider identifierProvider;
@@ -36,12 +43,12 @@ public class ModifyStatementExecutorProvider implements Provider<ModifyStatement
 	@Override
     public ModifyStatementExecutor get() {
         return ModifyStatementExecutor.builder()
-                .asmModel(models.getAsmModel())
-                .rdbmsModel(models.getRdbmsModel())
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
                 .identifierProvider(identifierProvider)
                 .transformationTraceService(this.transformationTraceService)
                 .rdbmsParameterMapper(rdbmsParameterMapper)
-                .coercer(dataTypeManager.getCoercer())
+                .coercer(coercer)
                 .rdbmsResolver(rdbmsResolver)
                 .build();
     }

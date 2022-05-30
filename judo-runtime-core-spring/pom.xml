@@ -44,7 +44,7 @@
                 <executions>
                     <execution>
                         <id>add-source</id>
-                        <phase>generate-test-sources</phase>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>add-source</goal>
                         </goals>
@@ -54,6 +54,23 @@
                             </sources>
                         </configuration>
                     </execution>
+
+                    <execution>
+                        <id>add-resource</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>add-resource</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/target/model</directory>
+                                    <targetPath>model</targetPath>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+
                 </executions>
             </plugin>
         </plugins>
@@ -89,6 +106,11 @@
         <dependency>
             <groupId>hu.blackbelt.judo</groupId>
             <artifactId>judo-dao-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo</groupId>
+            <artifactId>judo-sdk-common</artifactId>
         </dependency>
 
         <dependency>

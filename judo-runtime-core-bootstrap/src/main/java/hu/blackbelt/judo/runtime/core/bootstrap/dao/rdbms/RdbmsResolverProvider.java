@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
@@ -9,7 +10,7 @@ import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 public class RdbmsResolverProvider implements Provider<RdbmsResolver> {
 
     @Inject
-    JudoModelHolder models;
+    AsmModel asmModel;
 
     @Inject
     TransformationTraceService transformationTraceService;
@@ -17,7 +18,7 @@ public class RdbmsResolverProvider implements Provider<RdbmsResolver> {
     @Override
     public RdbmsResolver get() {
         return RdbmsResolver.builder()
-                .asmModel(models.getAsmModel())
+                .asmModel(asmModel)
                 .transformationTraceService(transformationTraceService)
                 .build();
     }

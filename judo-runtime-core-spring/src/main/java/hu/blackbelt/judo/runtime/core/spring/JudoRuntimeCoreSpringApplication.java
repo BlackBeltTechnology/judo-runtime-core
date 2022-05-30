@@ -10,26 +10,17 @@ import org.springframework.context.annotation.Import;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.net.URL;
 
 @SpringBootApplication
-//@Import({ JudoLocalModelLoaderConfiguration.class, JudoDefaultSpringConfiguration.class })
 public class JudoRuntimeCoreSpringApplication {
-
-	/*
-	@Bean
-	public DataSource getDataSource() {
-		DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
-		dataSourceBuilder.username("SA");
-		dataSourceBuilder.password("");
-		return dataSourceBuilder.build();
-	}
-
-	 */
 
 	@Bean
 	public static JudoModelHolder defaultJudoModelHolder() throws Exception {
 		JudoModelHolder modelHolder = JudoModelHolder.
-				loadFromURL("SalesModel", new File("target/model").toURI(), new HsqldbDialect());
+				loadFromURL("SalesModel",
+						JudoRuntimeCoreSpringApplication.class.getClassLoader().getResource("model").toURI(),
+						new HsqldbDialect());
 		return modelHolder;
 	}
 

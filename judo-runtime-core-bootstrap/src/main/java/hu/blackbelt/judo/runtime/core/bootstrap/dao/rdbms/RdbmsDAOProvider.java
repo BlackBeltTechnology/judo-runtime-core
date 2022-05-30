@@ -6,6 +6,7 @@ import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
@@ -30,7 +31,7 @@ public class RdbmsDAOProvider implements Provider<DAO> {
     private RdbmsInit init;
 
     @Inject
-    private JudoModelHolder models;
+    private AsmModel asmModel;
 
     @Inject
     private DataSource dataSource;
@@ -72,7 +73,7 @@ public class RdbmsDAOProvider implements Provider<DAO> {
         RdbmsDAOImpl.RdbmsDAOImplBuilder builder =  RdbmsDAOImpl.builder()
                 .dataSource(dataSource)
                 .context(context)
-                .asmModel(models.getAsmModel())
+                .asmModel(asmModel)
                 .identifierProvider(identifierProvider)
                 .instanceCollector(instanceCollector)
                 .metricsCollector(metricsCollector)

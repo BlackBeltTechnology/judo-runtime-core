@@ -9,6 +9,7 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
+import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.URI;
@@ -27,7 +28,7 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
     JudoModelHolder models;
 
     @Inject
-    DataTypeManager dataTypeManager;
+    Coercer coercer;
 
     @Inject(optional = true)
     @Named(QUERY_FACTORY_CUSTOM_JOIN_DEFINITIONS)
@@ -47,7 +48,7 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
                 models.getAsmModel().getResourceSet(),
                 models.getMeasureModel().getResourceSet(),
                 asmJqlExtractor.extractExpressions(),
-                dataTypeManager.getCoercer(),
+                coercer,
                 requireNonNullElse(customJoinDefinitions, ECollections.asEMap(new ConcurrentHashMap<>())));
 
         return queryFactory;
