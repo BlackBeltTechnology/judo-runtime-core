@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.spring;
+package hu.blackbelt.judo.runtime.core.spring.hsqldb;
 
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Sequence;

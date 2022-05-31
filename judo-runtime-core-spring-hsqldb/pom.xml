@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-spring-hsqldb</artifactId>
     <packaging>jar</packaging>
 
-    <name>JUDO Runtime Core :: Spring</name>
+    <name>JUDO Runtime Core :: Spring :: HSQLDB</name>
 
 	<dependencyManagement>
 		<dependencies>

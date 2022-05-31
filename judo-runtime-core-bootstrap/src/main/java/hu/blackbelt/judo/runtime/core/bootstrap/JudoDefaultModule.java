@@ -1,7 +1,6 @@
 package hu.blackbelt.judo.runtime.core.bootstrap;
 
 import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import hu.blackbelt.judo.dao.api.DAO;
@@ -32,11 +31,11 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
+import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
 import lombok.Builder;
 
-import java.io.File;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -55,25 +54,25 @@ public class JudoDefaultModule extends AbstractModule {
     public static final String ACTOR_RESOLVER_CHECK_MAPPED_ACTORS = "actorResolverCheckMappedActors";
 
     private final Object injectModulesTo;
-    private final JudoModelHolder judoModelHolder;
+    private final JudoModelLoader judoModelLoader;
     private Boolean bindModelHolder;
 
     public static class JudoDefaultModuleBuilder {
         private Object injectModulesTo = false;
-        private JudoModelHolder judoModelHolder = null;
+        private JudoModelLoader judoModelLoader = null;
         private Boolean bindModelHolder = true;
     }
 
-    public JudoDefaultModule(Object injectModulesTo, JudoModelHolder models) {
+    public JudoDefaultModule(Object injectModulesTo, JudoModelLoader models) {
         this.injectModulesTo = injectModulesTo;
-        this.judoModelHolder = models;
+        this.judoModelLoader = models;
         this.bindModelHolder = true;
     }
 
     @Builder
-    public JudoDefaultModule(Object injectModulesTo, JudoModelHolder judoModelHolder, Boolean bindModelHolder) {
+    public JudoDefaultModule(Object injectModulesTo, JudoModelLoader judoModelLoader, Boolean bindModelHolder) {
         this.injectModulesTo = injectModulesTo;
-        this.judoModelHolder = judoModelHolder;
+        this.judoModelLoader = judoModelLoader;
         this.bindModelHolder = bindModelHolder;
     }
 
@@ -93,15 +92,15 @@ public class JudoDefaultModule extends AbstractModule {
             requestInjection(injectModulesTo);
         }
 
-        bind(AsmModel.class).toInstance(judoModelHolder.getAsmModel());
-        bind(RdbmsModel.class).toInstance(judoModelHolder.getRdbmsModel());
-        bind(MeasureModel.class).toInstance(judoModelHolder.getMeasureModel());
-        bind(LiquibaseModel.class).toInstance(judoModelHolder.getLiquibaseModel());
-        bind(ExpressionModel.class).toInstance(judoModelHolder.getExpressionModel());
+        bind(AsmModel.class).toInstance(judoModelLoader.getAsmModel());
+        bind(RdbmsModel.class).toInstance(judoModelLoader.getRdbmsModel());
+        bind(MeasureModel.class).toInstance(judoModelLoader.getMeasureModel());
+        bind(LiquibaseModel.class).toInstance(judoModelLoader.getLiquibaseModel());
+        bind(ExpressionModel.class).toInstance(judoModelLoader.getExpressionModel());
 
         // Model
         if (bindModelHolder) {
-            bind(JudoModelHolder.class).toInstance(judoModelHolder);
+            bind(JudoModelLoader.class).toInstance(judoModelLoader);
         }
 
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
@@ -111,7 +110,9 @@ public class JudoDefaultModule extends AbstractModule {
         bind(SelectStatementExecutor.class).toProvider(SelectStatementExecutorProvider.class).in(Singleton.class);
         bind(ModifyStatementExecutor.class).toProvider(ModifyStatementExecutorProvider.class).in(Singleton.class);
 
-        bind(ExtendableCoercer.class).toInstance(new DefaultCoercer());
+        ExtendableCoercer coercer = new DefaultCoercer();
+        bind(Coercer.class).toInstance(coercer);
+        bind(ExtendableCoercer.class).toInstance(coercer);
         bind(DataTypeManager.class).toProvider(DataTypeManagerProvider.class).in(Singleton.class);
         bind(IdentifierProvider.class).toProvider(UUIDIdentifierProviderProvider.class).in(Singleton.class);
         

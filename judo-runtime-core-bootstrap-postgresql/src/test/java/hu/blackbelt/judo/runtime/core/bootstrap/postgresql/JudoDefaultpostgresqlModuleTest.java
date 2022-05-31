@@ -23,7 +23,7 @@ import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResource
 import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoDefaultModule;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.JudoPostgresqlModules;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
@@ -120,7 +120,7 @@ class JudoDefaultpostgresqlModuleTest {
                     binder.bind(String.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(sqlContainer.getDatabaseName());
                 }),
         		new JudoDefaultModule(this,
-        				JudoModelHolder.builder()
+        				JudoModelLoader.builder()
 			                .asmModel(asmModel)
 			                .rdbmsModel(rdbmsModel)
 			                .measureModel(measureModel)

@@ -13,31 +13,31 @@ import org.springframework.context.annotation.Configuration;
 public class JudoModelConfiguration {
 
     @Autowired
-    private JudoModelHolder judoModelHolder;
+    private JudoModelLoader judoModelLoader;
 
     @Bean
     public AsmModel getAsmModel() {
-        return judoModelHolder.getAsmModel();
+        return judoModelLoader.getAsmModel();
     }
 
     @Bean
     public Asm2RdbmsTransformationTrace getAsm2RdbmsTrace() {
-        return judoModelHolder.getAsm2rdbms();
+        return judoModelLoader.getAsm2rdbms();
     }
 
     @Bean
     public RdbmsModel getRdbmsModel() {
-        return judoModelHolder.getRdbmsModel();
+        return judoModelLoader.getRdbmsModel();
     }
 
     @Bean
     public ExpressionModel getExpressionModel() {
-        return judoModelHolder.getExpressionModel();
+        return judoModelLoader.getExpressionModel();
     }
 
     @Bean
     public MeasureModel getMeasureModel() {
-        return judoModelHolder.getMeasureModel();
+        return judoModelLoader.getMeasureModel();
     }
 
 }

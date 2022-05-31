@@ -343,11 +343,6 @@ public class JudoDefaultSpringConfiguration {
         return variableResolver;
     }
 
-    @Bean
-    public RealmExtractor getRealmExtractor() {
-        return new PathInfoRealmExtractor(asmModel);
-    }
-
 }
 
 

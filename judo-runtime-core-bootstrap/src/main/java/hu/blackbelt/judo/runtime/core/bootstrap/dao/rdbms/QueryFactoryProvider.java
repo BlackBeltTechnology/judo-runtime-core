@@ -5,8 +5,7 @@ import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuilderConfig;
 import hu.blackbelt.judo.meta.expression.builder.jql.asm.AsmJqlExtractor;
-import hu.blackbelt.judo.runtime.core.DataTypeManager;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.mapper.api.Coercer;
@@ -25,7 +24,7 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
     public static final String QUERY_FACTORY_CUSTOM_JOIN_DEFINITIONS = "queryFactoryCustomJoinDefinitions";
 
     @Inject
-    JudoModelHolder models;
+    JudoModelLoader models;
 
     @Inject
     Coercer coercer;

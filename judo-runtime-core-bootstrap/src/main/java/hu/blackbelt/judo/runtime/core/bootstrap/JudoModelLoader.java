@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.spring;
+package hu.blackbelt.judo.runtime.core.bootstrap;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
@@ -18,14 +18,17 @@ import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Enumeration;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.LoadArguments.asmLoadArgumentsBuilder;
 
 @Builder
 @Getter
-public class JudoModelHolder {
+public class JudoModelLoader {
 
     @NonNull
     AsmModel asmModel;
@@ -46,11 +49,40 @@ public class JudoModelHolder {
     Asm2RdbmsTransformationTrace asm2rdbms;
 
 
-    public static JudoModelHolder loadFromURL(String modelName, URI uri, Dialect dialect) throws Exception {
+    public static JudoModelLoader loadFromClassloader(String modelName, ClassLoader classLoader, Dialect dialect, boolean validate) throws Exception {
+
+        Enumeration<URL> urlEnumeration = classLoader.getResources("model");
+        URL url = null;
+        while (urlEnumeration.hasMoreElements() && url == null) {
+            URL urlToTest = urlEnumeration.nextElement();
+            try {
+                calculateRelativeURI(urlToTest.toURI(), "/" + modelName + "-asm.model").toURL().openStream().close();
+                url = urlToTest;
+            } catch (Exception e) {
+            }
+        }
+        return loadFromURL(modelName, url.toURI(), dialect, validate);
+    }
+
+    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect) throws Exception {
+        if (directory == null) {
+            throw new IllegalArgumentException("Directory is null");
+        }
+        if (!directory.exists()) {
+            throw new IllegalArgumentException("Directory does not exitsts: " + directory);
+        }
+        if (!directory.isDirectory()) {
+            throw new IllegalArgumentException("Given file is not directory: " + directory);
+        }
+
+        return loadFromURL(modelName, directory.toURI(), dialect, true);
+    }
+
+    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect) throws Exception {
         return loadFromURL(modelName, uri, dialect, true);
     }
 
-    public static JudoModelHolder loadFromURL(String modelName, URI uri, Dialect dialect, boolean validate) throws Exception {
+    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean validate) throws Exception {
 
         if (modelName == null) {
             throw new IllegalArgumentException("Model name have to be defined");
@@ -131,7 +163,7 @@ public class JudoModelHolder {
                 calculateRelativeURI(uri, "/" + modelName + "-asm2rdbms_" + dialect.getName() + ".model").toURL().openStream());
 
 
-        return JudoModelHolder.builder()
+        return JudoModelLoader.builder()
                 .asmModel(asmModel)
                 .rdbmsModel(rdbmsModel)
                 .measureModel(measureModel)
@@ -145,14 +177,22 @@ public class JudoModelHolder {
     @SneakyThrows(URISyntaxException.class)
     private static URI calculateRelativeURI(URI base, String path) {
         //URI root = JudoModelHolder.class.getProtectionDomain().getCodeSource().getLocation().toURI();
-        URI root = base;
-        if (root.toString().endsWith(".jar")) {
-            root = new URI("jar:" + root.toString() + "!/" + path);
-        } else if (root.toString().startsWith("jar:bundle:")) {
-            root = new URI(root.toString().substring(4, root.toString().indexOf("!")) + path);
-        } else {
-            root = new URI(root.toString() + "/" + path);
+        String root = base.toString();
+        if (root.endsWith("/")) {
+            root.substring(0, root.length() - 1);
         }
-        return root;
+        String rel = path;
+        if (rel.startsWith("/")) {
+            rel = path.substring(1);
+        }
+        URI ret = base;
+        if (root.endsWith(".jar")) {
+            ret = new URI("jar:" + root.toString() + "!/" + rel);
+        } else if (root.startsWith("jar:bundle:")) {
+            ret = new URI(root.substring(4, root.indexOf("!")) + rel);
+        } else {
+            ret = new URI(root + "/" + rel);
+        }
+        return ret;
     }
 }
