@@ -3,13 +3,14 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.runtime.core.DataTypeManager;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
+import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
+import hu.blackbelt.mapper.api.Coercer;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
@@ -24,10 +25,13 @@ public class RdbmsInstanceCollectorProvider implements Provider<InstanceCollecto
     RdbmsResolver rdbmsResolver;
 
     @Inject
-    JudoModelHolder models;
+    AsmModel asmModel;
 
     @Inject
-    DataTypeManager dataTypeManager;
+    RdbmsModel rdbmsModel;
+
+    @Inject
+    Coercer coercer;
 
     @Inject
     IdentifierProvider identifierProvider;
@@ -40,10 +44,10 @@ public class RdbmsInstanceCollectorProvider implements Provider<InstanceCollecto
     public InstanceCollector get() {
         InstanceCollector instanceCollector = RdbmsInstanceCollector.builder()
                 .jdbcTemplate(new NamedParameterJdbcTemplate(dataSource))
-                .asmUtils(new AsmUtils(models.getAsmModel().getResourceSet()))
+                .asmUtils(new AsmUtils(asmModel.getResourceSet()))
                 .rdbmsResolver(rdbmsResolver)
-                .rdbmsModel(models.getRdbmsModel())
-                .coercer(dataTypeManager.getCoercer())
+                .rdbmsModel(rdbmsModel)
+                .coercer(coercer)
                 .rdbmsParameterMapper(rdbmsParameterMapper)
                 .identifierProvider(identifierProvider)
                 .build();

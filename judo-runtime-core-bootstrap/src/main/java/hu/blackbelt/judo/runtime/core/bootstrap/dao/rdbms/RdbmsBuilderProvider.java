@@ -4,9 +4,9 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.runtime.core.DataTypeManager;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
+import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
@@ -14,12 +14,17 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 
+import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EClass;
 
 @SuppressWarnings("rawtypes")
 public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
+
     @Inject
-    JudoModelHolder models;
+    AsmModel asmModel;
+
+    @Inject
+    RdbmsModel rdbmsModel;
 
     @Inject
     RdbmsResolver rdbmsResolver;
@@ -31,7 +36,7 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     IdentifierProvider identifierProvider;
 
     @Inject
-    DataTypeManager dataTypeManager;
+    Coercer coercer;
 
     @Inject
     VariableResolver variableResolver;
@@ -45,16 +50,16 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     @SuppressWarnings({ "unchecked" })
 	@Override
     public RdbmsBuilder get() {
-        AsmUtils asm = new AsmUtils(models.getAsmModel().getResourceSet());
+        AsmUtils asm = new AsmUtils(asmModel.getResourceSet());
 
         return RdbmsBuilder.builder()
-                .rdbmsModel(models.getRdbmsModel())
+                .rdbmsModel(rdbmsModel)
                 .ancestorNameFactory(new AncestorNameFactory(asm.all(EClass.class)))
                 .rdbmsResolver(rdbmsResolver)
                 .parameterMapper(rdbmsParameterMapper)
                 .asmUtils(asm)
                 .identifierProvider(identifierProvider)
-                .coercer(dataTypeManager.getCoercer())
+                .coercer(coercer)
                 .variableResolver(variableResolver)
                 .mapperFactory(mapperFactory)
                 .dialect(dialect)

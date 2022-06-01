@@ -23,26 +23,21 @@ public class DefaultIdentifierSignerProvider implements Provider<IdentifierSigne
     @Inject
     DataTypeManager dataTypeManager;
 
-    @Inject(optional = true)
-    @Nullable
-    String secret;
+    @Inject
+    IdentifierProvider identifierProvider;
 
     @Inject(optional = true)
     @Named(IDENTIFIER_SIGNER_SECRET)
     @Nullable
-    IdentifierProvider identifierProvider;
+    String secret;
 
     @Override
     @SuppressWarnings("unchecked")
     public IdentifierSigner get() {
-        IdentifierProvider idprov = identifierProvider;
-        if (idprov == null) {
-            idprov = new UUIDIdentifierProvider();
-        }
 
         return DefaultIdentifierSigner.builder()
                 .asmModel(asmModel)
-                .identifierProvider(idprov)
+                .identifierProvider(identifierProvider)
                 .dataTypeManager(dataTypeManager)
                 .secret(secret)
                 .build();

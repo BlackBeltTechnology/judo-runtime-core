@@ -1,0 +1,100 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>hu.blackbelt.judo.runtime</groupId>
+        <artifactId>judo-runtime-core-parent</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>judo-runtime-core-spring-hsqldb</artifactId>
+    <packaging>jar</packaging>
+
+    <name>JUDO Runtime Core :: Spring :: HSQLDB</name>
+
+	<dependencyManagement>
+		<dependencies>
+	        <dependency>
+	            <groupId>hu.blackbelt.judo.runtime</groupId>
+	            <artifactId>judo-runtime-core-dependencies</artifactId>
+				<type>pom</type>
+				<scope>import</scope>
+				<version>${project.version}</version>
+	        </dependency>
+		</dependencies>
+	</dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>hu.blackbelt.judo</groupId>
+            <artifactId>judo-dao-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo</groupId>
+            <artifactId>judo-sdk-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.mapper</groupId>
+            <artifactId>mapper-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.mapper</groupId>
+            <artifactId>mapper-impl</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dao-rdbms-hsqldb</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-dispatcher</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-accessmanager-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-accessmanager</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2rdbms</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+
+    </dependencies>
+</project>
