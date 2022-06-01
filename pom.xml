@@ -61,7 +61,7 @@
         <structured-map-proxy-version>1.0.6.20220301_160543_e228df4d_develop</structured-map-proxy-version>
 
         <judo-meta-query-version>1.0.0.20220405_162251_04a7dce4_develop</judo-meta-query-version>
-        <judo-tatami-version>1.1.0.20220525_072125_768f90aa_feature_JNG_3770_JSLBatchTransfromation</judo-tatami-version>
+        <judo-tatami-version>1.1.0-SNAPSHOT</judo-tatami-version>
 
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
         <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
