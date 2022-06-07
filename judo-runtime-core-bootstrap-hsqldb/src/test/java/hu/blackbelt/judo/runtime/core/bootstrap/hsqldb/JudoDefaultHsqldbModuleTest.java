@@ -23,7 +23,7 @@ import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResource
 import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoDefaultModule;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbModules;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
@@ -100,7 +100,7 @@ class JudoDefaultHsqldbModuleTest {
         injector = Guice.createInjector(
         		JudoHsqldbModules.builder().build(),
         		new JudoDefaultModule(this,
-        				JudoModelHolder.builder()
+        				JudoModelLoader.builder()
 			                .asmModel(asmModel)
 			                .rdbmsModel(rdbmsModel)
 			                .measureModel(measureModel)

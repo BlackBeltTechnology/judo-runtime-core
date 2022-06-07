@@ -2,7 +2,7 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelHolder;
+import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.SimpleLiquibaseExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlRdbmsInit;
@@ -18,7 +18,7 @@ public class PostgresqlRdbmsInitProvider implements Provider<RdbmsInit> {
     DataSource dataSource;
 
     @Inject
-    JudoModelHolder models;
+    JudoModelLoader models;
 
     @Override
     public RdbmsInit get() {

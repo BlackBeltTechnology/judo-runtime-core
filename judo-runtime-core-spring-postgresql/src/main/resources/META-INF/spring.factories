@@ -1,0 +1,2 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+hu.blackbelt.judo.runtime.core.spring.postgresql.JudoPostgresqlSpringConfiguration
