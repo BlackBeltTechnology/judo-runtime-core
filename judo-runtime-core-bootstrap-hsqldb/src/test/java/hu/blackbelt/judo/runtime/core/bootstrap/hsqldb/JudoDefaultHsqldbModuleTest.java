@@ -1,10 +1,8 @@
 package hu.blackbelt.judo.runtime.core.bootstrap.hsqldb;
 
-import com.google.inject.Guice;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-
-import hu.blackbelt.epsilon.runtime.execution.impl.Slf4jLog;
+import com.google.inject.*;
+import hu.blackbelt.epsilon.runtime.execution.api.Log;
+import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
@@ -27,15 +25,12 @@ import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbModules;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.util.HashMap;
 
 import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class JudoDefaultHsqldbModuleTest {
@@ -72,7 +67,9 @@ class JudoDefaultHsqldbModuleTest {
         RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
         RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
         RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
-        injectExcelMappings(rdbmsModel, new Slf4jLog(log), calculateExcelMapping2RdbmsTransformationScriptURI(), calculateExcelMappingModelURI(), "hsqldb");
+        try (Log bufferedLog = new BufferedSlf4jLogger(log)) {
+            injectExcelMappings(rdbmsModel, bufferedLog, calculateExcelMapping2RdbmsTransformationScriptURI(), calculateExcelMappingModelURI(), "hsqldb");
+        }
 
         MeasureModel measureModel = MeasureModel.buildMeasureModel()
                 .name("judo")
