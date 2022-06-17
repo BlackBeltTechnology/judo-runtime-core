@@ -37,22 +37,23 @@
             javax.resource;version="[1.6,2)"
         </osgi-transaction-import>
 
-        <epsilon-runtime-version>1.4.0.20220523_132344_09a0b54b_develop</epsilon-runtime-version>
+        <epsilon-runtime-version>1.4.0.20220616_093846_72efef9e_develop</epsilon-runtime-version>
         <jose4j-version>0.7.2</jose4j-version>
         <sonar-maven-plugin-version>3.7.0.1746</sonar-maven-plugin-version>
         <jacoco.version>0.8.6</jacoco.version>
 
         <jackson-version>2.11.4</jackson-version>
 
-        <judo-framework-version>2.0.0.20220325_152807_8a68406e_develop</judo-framework-version>
+        <judo-framework-version>2.0.0.20220616_142338_b5c75a39_develop</judo-framework-version>
         <judo-tatami-core-version>1.1.0.20220405_161751_7fec76d0_develop</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.0.20220405_162243_a599d313_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.0.20220405_162156_c69f1a74_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220517_145508_fb211854_develop</judo-meta-expression-version>
-        <judo-meta-measure-version>1.0.0.20220405_162220_28539f03_develop</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.0.20220405_162206_0ac0daa1_develop</judo-meta-liquibase-version>
+        <judo-meta-rdbms-version>1.0.0.20220616_233835_0769db60_feature_JNG_3784_FixingTycho</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.0.20220616_233557_c20986c3_feature_JNG_3784_FixingTycho</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.1.20220616_235047_08db5e0f_feature_JNG_3784_FixingTycho</judo-meta-expression-version>
+        <judo-meta-measure-version>1.0.0.20220616_233813_180a2739_feature_JNG_3784_FixingTycho</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.0.20220616_233755_f0144685_feature_JNG_3784_FixingTycho</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.0.20220617_132052_2362ac47_develop</judo-meta-query-version>
         <judo-dao-api-version>1.0.2.20220301_152834_cea2e81e_develop</judo-dao-api-version>
         <judo-sdk-common-version>1.0.0.20220405_162646_7bf86e0e_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220301_152852_a63b2efa_develop</judo-dispatcher-api-version>
@@ -60,8 +61,7 @@
 
         <structured-map-proxy-version>1.0.6.20220301_160543_e228df4d_develop</structured-map-proxy-version>
 
-        <judo-meta-query-version>1.0.0.20220405_162251_04a7dce4_develop</judo-meta-query-version>
-        <judo-tatami-version>1.1.0.20220601_150225_24698e7f_feature_JNG_3774_AddSpringSupport</judo-tatami-version>
+        <judo-tatami-version>1.1.0.20220617_085025_1fbd6153_feature_JNG_3769_Improve_logging</judo-tatami-version>
 
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
         <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
@@ -333,33 +333,19 @@
             <groupId>hu.blackbelt.epsilon</groupId>
             <artifactId>epsilon-runtime-execution</artifactId>
             <version>${epsilon-runtime-version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.eclipse.platform</groupId>
-                    <artifactId>org.eclipse.equinox.preferences</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.platform</groupId>
-            <artifactId>org.eclipse.equinox.preferences</artifactId>
-            <version>3.10.1</version>
         </dependency>
 
         <dependency>
             <groupId>org.eclipse.emf</groupId>
             <artifactId>org.eclipse.emf.ecore</artifactId>
-            <version>2.21.0</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.emf</groupId>
             <artifactId>org.eclipse.emf.common</artifactId>
-            <version>2.21.0</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.emf</groupId>
             <artifactId>org.eclipse.emf.ecore.xmi</artifactId>
-            <version>2.16.0</version>
         </dependency>
 
         <dependency>
@@ -377,25 +363,21 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.9.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>5.8.2</version>
             <scope>test</scope>
         </dependency>
 
