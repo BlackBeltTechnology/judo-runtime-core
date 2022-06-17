@@ -1,9 +1,7 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.SubSelect;
-import hu.blackbelt.judo.meta.query.Variable;
+import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsNamedParameter;
@@ -47,16 +45,25 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
     }
 
     private Stream<? extends RdbmsField> getFields(final Variable variable, final Map<String, Object> queryParameters) {
+        boolean isParameter = PARAMETER_VARIABLE_KEY.equals(variable.getCategory());
         final Object resolvedValue;
-        if (PARAMETER_VARIABLE_KEY.equals(variable.getCategory())) {
-            resolvedValue = queryParameters != null ? queryParameters.get(variable.getName()): null;
+        if (isParameter) {
+            resolvedValue = queryParameters != null ? queryParameters.get(variable.getName()) : null;
         } else {
             resolvedValue = rdbmsBuilder.getVariableResolver().resolve(Object.class, variable.getCategory(), variable.getName());
         }
         final Object parameterValue;
         if (AsmUtils.isEnumeration(variable.getType())) {
-            EEnum eEnum = (EEnum) variable.getType();
-            parameterValue = resolvedValue != null ? eEnum.getEEnumLiteral(String.valueOf(resolvedValue)).getValue() : null;
+            if (resolvedValue != null) {
+                EEnum eEnum = (EEnum) variable.getType();
+                if (isParameter) {
+                    parameterValue = eEnum.getEEnumLiteral((Integer) resolvedValue).getValue();
+                } else {
+                    parameterValue = eEnum.getEEnumLiteral(String.valueOf(resolvedValue)).getValue();
+                }
+            } else {
+                parameterValue = null;
+            }
         } else {
             parameterValue = rdbmsBuilder.getCoercer().coerce(resolvedValue, variable.getType().getInstanceClassName());
         }
