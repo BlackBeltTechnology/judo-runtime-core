@@ -1,10 +1,7 @@
 package hu.blackbelt.judo.runtime.core.query;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.expression.Expression;
-import hu.blackbelt.judo.meta.expression.IntegerExpression;
-import hu.blackbelt.judo.meta.expression.LogicalExpression;
-import hu.blackbelt.judo.meta.expression.ReferenceExpression;
+import hu.blackbelt.judo.meta.expression.*;
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
 import hu.blackbelt.judo.meta.expression.collection.*;
 import hu.blackbelt.judo.meta.expression.constant.IntegerConstant;
@@ -16,9 +13,7 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EClassifier;
-import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -125,10 +120,16 @@ public abstract class JoinFactory {
                 ordered = false;
                 continue;
             } else if (navigation.getFeatureName() != null) {
-                final EReference reference = lastPartner.getType().getEAllReferences().stream().filter(r -> Objects.equals(r.getName(), navigation.getFeatureName())).findAny().get();
-
+                final EReference reference =
+                        lastPartner.getType()
+                                   .getEAllReferences().stream()
+                                   .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
+                                   .findAny()
+                                   .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
+                                                                                               navigation.getFeatureName())));
                 checkArgument(reference != null, "Unknown reference: " + navigation.getFeatureName());
-                checkArgument(!reference.isDerived(), "Derived references must be resolved by expression builder");
+                checkArgument(!reference.isDerived(), String.format("Derived references must be resolved by expression builder: %s (%s)",
+                                                                    reference.getName(), modelAdapter.getFqName(reference.eContainer())));
                 if (limited) {
                     checkArgument(!reference.isMany(), "Collection navigation is not allowed here");
                     if (ordered) {
