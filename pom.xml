@@ -23,8 +23,9 @@
 
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
-        <surefire-version>3.0.0-M6</surefire-version>
+        <surefire-version>3.0.0-M5</surefire-version>
         <slf4j-version>1.7.36</slf4j-version>
+        <logback-test-config>${maven.multiModuleProjectDirectory}/logback-test.xml</logback-test-config>
 
         <osgi-default-import>
             org.osgi.framework;version="[1.8,2.0)",
@@ -37,31 +38,33 @@
             javax.resource;version="[1.6,2)"
         </osgi-transaction-import>
 
-        <epsilon-runtime-version>1.4.0.20220616_093846_72efef9e_develop</epsilon-runtime-version>
         <jose4j-version>0.7.2</jose4j-version>
         <sonar-maven-plugin-version>3.7.0.1746</sonar-maven-plugin-version>
         <jacoco.version>0.8.6</jacoco.version>
 
         <jackson-version>2.11.4</jackson-version>
 
+
+        <epsilon-runtime-version>1.4.0.20220616_093846_72efef9e_develop</epsilon-runtime-version>
         <judo-framework-version>2.0.0.20220616_142338_b5c75a39_develop</judo-framework-version>
-        <judo-tatami-core-version>1.1.0.20220405_161751_7fec76d0_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.0.20220617_192057_67402cb8_develop</judo-tatami-core-version>
+
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.0.20220616_233835_0769db60_feature_JNG_3784_FixingTycho</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.0.20220616_233557_c20986c3_feature_JNG_3784_FixingTycho</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220616_235047_08db5e0f_feature_JNG_3784_FixingTycho</judo-meta-expression-version>
-        <judo-meta-measure-version>1.0.0.20220616_233813_180a2739_feature_JNG_3784_FixingTycho</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.0.20220616_233755_f0144685_feature_JNG_3784_FixingTycho</judo-meta-liquibase-version>
+        <judo-meta-rdbms-version>1.0.0.20220617_192426_2747cdfe_develop</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.0.20220617_192358_f467dc3f_develop</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.1.20220617_192809_f942fc1b_develop</judo-meta-expression-version>
+        <judo-meta-measure-version>1.0.0.20220617_192409_b95a7f05_develop</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.0.20220617_192403_15d933de_develop</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.0.20220617_132052_2362ac47_develop</judo-meta-query-version>
         <judo-dao-api-version>1.0.2.20220301_152834_cea2e81e_develop</judo-dao-api-version>
         <judo-sdk-common-version>1.0.0.20220405_162646_7bf86e0e_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220301_152852_a63b2efa_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.0.20220531_192753_f788ba92_feature_JNG_2690_Support_calling_parameterized_queries</judo-operation-utils-version>
+        <judo-operation-utils-version>1.1.0.20220617_192810_6674fff5_develop</judo-operation-utils-version>
 
         <structured-map-proxy-version>1.0.6.20220301_160543_e228df4d_develop</structured-map-proxy-version>
 
-        <judo-tatami-version>1.1.0.20220617_085025_1fbd6153_feature_JNG_3769_Improve_logging</judo-tatami-version>
+        <judo-tatami-version>1.1.0.20220617_210814_75bad5f7_develop</judo-tatami-version>
 
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
         <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
@@ -166,6 +169,9 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${surefire-version}</version>
                     <configuration>
+                        <systemPropertyVariables>
+                            <logback.configurationFile>${logback-test-config}</logback.configurationFile>
+                        </systemPropertyVariables>
                         <argLine>
                             -Dfile.encoding=UTF-8
                             --add-opens java.base/java.lang=ALL-UNNAMED
@@ -308,7 +314,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
+            <version>1.2.11</version>
         </dependency>
 
         <dependency>
