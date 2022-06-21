@@ -12,8 +12,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.AttributeSelector;
 import hu.blackbelt.judo.meta.expression.LogicalExpression;
 import hu.blackbelt.judo.meta.expression.TypeName;
-import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuilder;
-import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuildingContext;
+import hu.blackbelt.judo.meta.expression.builder.jql.*;
 import hu.blackbelt.judo.meta.expression.constant.*;
 import hu.blackbelt.judo.meta.expression.logical.*;
 import hu.blackbelt.judo.meta.expression.object.ObjectVariableReference;
@@ -395,7 +394,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         synchronized (this) {
             filterExpressionJql = new JqlParser().parseString(filterExpressionString);
         }
-        final LogicalExpression filterExpression = (LogicalExpression) jqlExpressionBuilder.createExpression(filterExpressionJql, context);
+        final LogicalExpression filterExpression = (LogicalExpression)
+                jqlExpressionBuilder.createExpression(CreateExpressionArguments.<EClass, EClass, EClassifier>builder()
+                                                                               .withJqlExpression(filterExpressionJql)
+                                                                               .withContext(context)
+                                                                               .build());
 
         final LogicalExpression translatedFilterExpression = (LogicalExpression) translator.apply(filterExpression);
 
