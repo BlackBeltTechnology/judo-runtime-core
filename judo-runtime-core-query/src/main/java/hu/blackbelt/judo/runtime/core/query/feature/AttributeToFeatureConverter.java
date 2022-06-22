@@ -53,7 +53,9 @@ public class AttributeToFeatureConverter extends ExpressionToFeatureConverter<At
         context.addFeature(attribute);
 
         if (attribute.getSourceAttribute().isDerived()) {
-            throw new IllegalStateException("Derived attributes must be resolved by expression builder");
+            throw new IllegalStateException(String.format("Derived attributes must be resolved by expression builder: %s (%s)",
+                                                          attribute.getSourceAttribute().getName(),
+                                                          modelAdapter.getFqName(attribute.getSourceAttribute().eContainer())));
         }
 
         final Feature scaled;

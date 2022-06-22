@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -60,8 +61,15 @@ public class JudoModelLoader {
         while (urlEnumeration.hasMoreElements() && url == null) {
             URL urlToTest = urlEnumeration.nextElement();
             try {
-                calculateRelativeURI(urlToTest.toURI(), "/" + modelName + "-asm.model").toURL().openStream().close();
-                url = urlToTest;
+                URL relativeUrl = calculateRelativeURI(urlToTest.toURI(), "/" + modelName + "-asm.model").toURL();
+                InputStream stream = relativeUrl.openStream();
+                if (stream != null) {
+                    url = urlToTest;
+                    try {
+                        stream.close();
+                    } catch (Exception e2) {
+                    }
+                }
             } catch (Exception e) {
             }
         }
