@@ -25,6 +25,7 @@
         <maven.compiler.target>11</maven.compiler.target>
         <surefire-version>3.0.0-M5</surefire-version>
         <slf4j-version>1.7.36</slf4j-version>
+        <!--suppress UnresolvedMavenProperty -->
         <logback-test-config>${maven.multiModuleProjectDirectory}/logback-test.xml</logback-test-config>
 
         <osgi-default-import>
@@ -44,11 +45,8 @@
 
         <jackson-version>2.11.4</jackson-version>
 
-
         <epsilon-runtime-version>1.4.0.20220616_093846_72efef9e_develop</epsilon-runtime-version>
-        <judo-framework-version>2.0.0.20220616_142338_b5c75a39_develop</judo-framework-version>
         <judo-tatami-core-version>1.1.0.20220617_192057_67402cb8_develop</judo-tatami-core-version>
-
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0.20220617_192426_2747cdfe_develop</judo-meta-rdbms-version>
@@ -569,7 +567,7 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <version>0.8.8</version>
+                        <version>0.8.6</version>
                         <executions>
                             <execution>
                                 <id>prepare-agent</id>
