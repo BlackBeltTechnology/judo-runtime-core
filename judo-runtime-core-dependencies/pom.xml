@@ -17,6 +17,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.2.7</version>
                 <configuration>
                     <flattenMode>resolveCiFriendliesOnly</flattenMode>
                     <pomElements>
@@ -85,7 +86,7 @@
             <dependency>
                 <groupId>hu.blackbelt.judo.tatami</groupId>
                 <artifactId>judo-tatami-asm2rdbms</artifactId>
-                <version>${judo-tatami-version}</version>
+                <version>${judo-tatami-base-version}</version>
             </dependency>
 
             <dependency>
