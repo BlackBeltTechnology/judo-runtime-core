@@ -46,23 +46,23 @@
         <jackson-version>2.11.4</jackson-version>
 
         <epsilon-runtime-version>1.4.0.20220616_093846_72efef9e_develop</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.0.20220617_192057_67402cb8_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.0.20220626_230410_79f7971b_develop</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.0.20220617_192426_2747cdfe_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.0.20220617_192358_f467dc3f_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220617_192809_f942fc1b_develop</judo-meta-expression-version>
-        <judo-meta-measure-version>1.0.0.20220617_192409_b95a7f05_develop</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.0.20220617_192403_15d933de_develop</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.0.20220617_132052_2362ac47_develop</judo-meta-query-version>
+        <judo-meta-rdbms-version>1.0.0.20220618_232651_d22f429b_develop</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.0.20220618_232613_0c08e3ef_develop</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.1.20220619_080709_a8a43869_develop</judo-meta-expression-version>
+        <judo-meta-measure-version>1.0.0.20220618_232641_47cbbd4b_develop</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.0.20220618_232643_9a47d4b3_develop</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.0.20220623_115213_8c0b358e_develop</judo-meta-query-version>
         <judo-dao-api-version>1.0.2.20220301_152834_cea2e81e_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.0.20220405_162646_7bf86e0e_develop</judo-sdk-common-version>
+        <judo-sdk-common-version>1.0.0.20220619_080710_e94f42ec_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220301_152852_a63b2efa_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.0.20220617_192810_6674fff5_develop</judo-operation-utils-version>
+        <judo-operation-utils-version>1.1.0.20220619_080726_840d3f84_develop</judo-operation-utils-version>
 
         <structured-map-proxy-version>1.0.6.20220301_160543_e228df4d_develop</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.0.20220623_075841_f90a9967_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.0.20220626_234018_a1bcc65e_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
         <osgi-filestore-version>1.2.1.20220316_214612_e47f4e91_develop</osgi-filestore-version>
@@ -186,7 +186,7 @@
                     <extensions>true</extensions>
                     <configuration>
                         <instructions>
-                            <Export-Package/>
+                            <Export-Package />
                             <Import-Package>
                                 ${osgi-default-import},
                                 *
@@ -230,7 +230,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore/>
+                                        <ignore />
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
