@@ -119,7 +119,7 @@
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.expression.model.adapter.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
+                <version>${judo-meta-expression-asm-version}</version>
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
@@ -129,7 +129,7 @@
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
                 <artifactId>hu.blackbelt.judo.meta.expression.builder.jql.asm</artifactId>
-                <version>${judo-meta-expression-version}</version>
+                <version>${judo-meta-expression-asm-version}</version>
             </dependency>
             <dependency>
                 <groupId>hu.blackbelt.judo.meta</groupId>
