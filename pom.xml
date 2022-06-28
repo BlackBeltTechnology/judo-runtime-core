@@ -51,7 +51,8 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0.20220618_232651_d22f429b_develop</judo-meta-rdbms-version>
         <judo-meta-asm-version>1.1.0.20220618_232613_0c08e3ef_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220619_080709_a8a43869_develop</judo-meta-expression-version>
+        <judo-meta-expression-version>1.0.1.20220627_163142_6adc58f6_feature_JNG_3791_SplitExpressionAdapters</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.1.20220627_161946_861bc5f5_feature_JNG_3791_SplitExpressionAdapters</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.0.20220618_232641_47cbbd4b_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220618_232643_9a47d4b3_develop</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.0.20220623_115213_8c0b358e_develop</judo-meta-query-version>
