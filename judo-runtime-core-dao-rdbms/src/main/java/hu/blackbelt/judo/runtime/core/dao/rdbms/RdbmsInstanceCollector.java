@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms;
 
 import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
@@ -60,14 +61,14 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     @Builder
     private RdbmsInstanceCollector(
             @NonNull NamedParameterJdbcTemplate jdbcTemplate,
-            @NonNull AsmUtils asmUtils,
+            @NonNull AsmModel asmModel,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<ID> identifierProvider,
             @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper) {
         this.jdbcTemplate = jdbcTemplate;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.rdbmsResolver = rdbmsResolver;
         this.rdbmsModel = rdbmsModel;
         this.coercer = coercer;

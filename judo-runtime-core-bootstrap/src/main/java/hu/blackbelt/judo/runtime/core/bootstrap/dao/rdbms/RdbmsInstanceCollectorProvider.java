@@ -4,7 +4,6 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInstanceCollector;
@@ -44,7 +43,7 @@ public class RdbmsInstanceCollectorProvider implements Provider<InstanceCollecto
     public InstanceCollector get() {
         InstanceCollector instanceCollector = RdbmsInstanceCollector.builder()
                 .jdbcTemplate(new NamedParameterJdbcTemplate(dataSource))
-                .asmUtils(new AsmUtils(asmModel.getResourceSet()))
+                .asmModel(asmModel)
                 .rdbmsResolver(rdbmsResolver)
                 .rdbmsModel(rdbmsModel)
                 .coercer(coercer)

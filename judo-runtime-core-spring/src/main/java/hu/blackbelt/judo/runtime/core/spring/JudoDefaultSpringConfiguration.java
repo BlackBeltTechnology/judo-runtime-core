@@ -201,7 +201,7 @@ public class JudoDefaultSpringConfiguration {
     ) {
         InstanceCollector instanceCollector = RdbmsInstanceCollector.builder()
                 .jdbcTemplate(new NamedParameterJdbcTemplate(dataSource))
-                .asmUtils(new AsmUtils(asmModel.getResourceSet()))
+                .asmModel(asmModel)
                 .rdbmsResolver(rdbmsResolver)
                 .rdbmsModel(rdbmsModel)
                 .coercer(coercer)
