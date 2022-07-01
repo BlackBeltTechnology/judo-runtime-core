@@ -23,6 +23,11 @@
                         <Export-Package>hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.*;version=${project.version}</Export-Package>
                         <Import-Package>
                             ${osgi-default-import},
+                            liquibase;version="[4.4,5)",
+                            liquibase.database;version="[4.4,5)",
+                            liquibase.database.jvm;version="[4.4,5)",
+                            liquibase.exception;version="[4.4,5)",
+                            liquibase.resource;version="[4.4,5)",
                             *
                         </Import-Package>
                     </instructions>
