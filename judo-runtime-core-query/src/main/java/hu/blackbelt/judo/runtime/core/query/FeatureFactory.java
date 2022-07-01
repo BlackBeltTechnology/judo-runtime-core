@@ -78,6 +78,9 @@ public class FeatureFactory {
         converters.put(Position.class, new PositionToFeatureConverter(this, modelAdapter));
         converters.put(Replace.class, new ReplaceToFeatureConverter(this, modelAdapter));
         converters.put(RoundExpression.class, new RoundToFeatureConverter(this, modelAdapter));
+        converters.put(AbsoluteExpression.class, new AbsoluteToFeatureConverter(this, modelAdapter));
+        converters.put(CeilExpression.class, new CeilToFeatureConverter(this, modelAdapter));
+        converters.put(FloorExpression.class, new FloorToFeatureConverter(this, modelAdapter));
         converters.put(SequenceExpression.class, new SequenceExpressionToFeatureConverter(this, modelAdapter));
         converters.put(StringAggregatedExpression.class, new StringAggregatedExpressionToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(StringComparison.class, new StringComparisonToFeatureConverter(this, modelAdapter));
