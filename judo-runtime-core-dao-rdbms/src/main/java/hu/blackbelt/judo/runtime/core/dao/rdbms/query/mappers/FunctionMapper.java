@@ -133,6 +133,14 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("TRIM({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
 
+        functionBuilderMap.put(FunctionSignature.LEFT_TRIM_STRING, c ->
+                c.builder.pattern("LTRIM({0})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING))));
+
+        functionBuilderMap.put(FunctionSignature.RIGHT_TRIM_STRING, c ->
+                c.builder.pattern("RTRIM({0})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING))));
+
         functionBuilderMap.put(FunctionSignature.INTEGER_TO_STRING, c ->
                 c.builder.pattern("CAST({0} AS LONGVARCHAR)")
                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
