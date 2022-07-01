@@ -35,6 +35,7 @@ public class FeatureFactory {
         converters.put(AttributeSelector.class, new AttributeToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(ObjectSelectorExpression.class, new ObjectSelectorExpressionToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(ObjectNavigationExpression.class, new ObjectNavigationToFeatureConverter(this, joinFactory, modelAdapter));
+        converters.put(Capitalize.class, new CapitalizeToFeatureConverter(this, modelAdapter));
         converters.put(CastObject.class, new CastObjectToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(CastCollection.class, new CastCollectionToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(ContainerExpression.class, new ContainerExpressionToFeatureConverter(this, joinFactory, modelAdapter));
