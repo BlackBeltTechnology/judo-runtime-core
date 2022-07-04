@@ -166,7 +166,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.dataTypeManager = dataTypeManager;
         this.identifierSigner = identifierSigner;
 
-        if (accessManager != null) {
+        if (accessManager == null) {
             this.accessManager = (operation, signedIdentifier, exchange) -> {};
         } else {
             this.accessManager = accessManager;
