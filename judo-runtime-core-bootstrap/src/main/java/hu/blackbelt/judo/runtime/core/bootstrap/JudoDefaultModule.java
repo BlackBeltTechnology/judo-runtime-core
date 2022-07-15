@@ -148,7 +148,7 @@ public class JudoDefaultModule extends AbstractModule {
         // Dispatcher
         bind(DispatcherFunctionProvider.class).toProvider(DispatcherFunctionProviderProvider.class).in(Singleton.class);
 
-        bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).in(Singleton.class);
+        bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).asEagerSingleton();
         bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_METRICS_RETURNED)).toInstance(Boolean.FALSE);
         bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_ENABLE_DEFAULT_VALIDATION)).toInstance(Boolean.FALSE);
         bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_TRIM_STRING)).toInstance(Boolean.FALSE);
