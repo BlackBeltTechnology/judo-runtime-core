@@ -39,20 +39,11 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static hu.blackbelt.judo.runtime.core.dispatcher.validators.Validator.*;
 import static java.util.Optional.ofNullable;
 
 @Slf4j
 public class DefaultDispatcher<ID> implements Dispatcher {
-
-    public static final String ERROR_MISSING_REQUIRED_PARAMETER = "MISSING_REQUIRED_PARAMETER";
-    public static final String ERROR_NULL_PARAMETER_ITEM_IS_NOT_SUPPORTED = "NULL_PARAMETER_ITEM_IS_NOT_SUPPORTED";
-    public static final String ERROR_TOO_MANY_PARAMETERS = "TOO_MANY_PARAMETERS";
-    public static final String ERROR_TOO_FEW_PARAMETERS = "TOO_FEW_PARAMETERS";
-    public static final String ERROR_MISSING_IDENTIFIER_OF_BOUND_OPERATION = "MISSING_IDENTIFIER_OF_BOUND_OPERATION";
-    public static final String ERROR_INVALID_IDENTIFIER = "INVALID_IDENTIFIER";
-    public static final String ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND = "BOUND_OPERATION_INSTANCE_NOT_FOUND";
-    public static final String ERROR_ACCESS_DENIED_INVALID_TYPE = "ACCESS_DENIED_INVALID_TYPE";
-    public static final String ERROR_BOUND_OPERATION_INSTANCE_IS_IMMUTABLE = "BOUND_OPERATION_INSTANCE_IS_IMMUTABLE";
 
     public static final String UPDATEABLE_KEY = "__updateable";
     public static final String DELETEABLE_KEY = "__deleteable";
@@ -448,9 +439,21 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             final Collection<Map<String, Object>> parameterList = exchange.get(parameter.getName()) != null ? ((Collection<Map<String, Object>>) exchange.get(parameter.getName())) : Collections.emptyList();
             final int parameterListSize = parameterList.size();
             if (parameterListSize < parameter.getLowerBound()) {
-                addValidationError(parameter, validationContext, feedbackItems, ERROR_TOO_FEW_PARAMETERS, ImmutableMap.of("size", parameterListSize));
+                addValidationError(ImmutableMap.of(
+                            Validator.FEATURE_KEY, parameter.getName(),
+                            SIZE_PARAMETER, parameterListSize
+                        ),
+                        validationContext.get(RequestConverter.LOCATION_KEY),
+                        feedbackItems,
+                        ERROR_TOO_FEW_PARAMETERS);
             } else if (parameterListSize > parameter.getUpperBound() && parameter.getUpperBound() != -1) {
-                addValidationError(parameter, validationContext, feedbackItems, ERROR_TOO_MANY_PARAMETERS, ImmutableMap.of("size", parameterListSize));
+                addValidationError(ImmutableMap.of(
+                        Validator.FEATURE_KEY, parameter.getName(),
+                                SIZE_PARAMETER, parameterListSize
+                        ),
+                        validationContext.get(RequestConverter.LOCATION_KEY),
+                        feedbackItems,
+                        ERROR_TOO_MANY_PARAMETERS);
             }
             int idx = 0;
             final List<Payload> payloadList = new ArrayList<>();
@@ -467,7 +470,11 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     }
                 }
                 if (!payload.isPresent()) {
-                    addValidationError(parameter, validationContext, feedbackItems, ERROR_NULL_PARAMETER_ITEM_IS_NOT_SUPPORTED, null);
+                    addValidationError(
+                            ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
+                            validationContext.get(RequestConverter.LOCATION_KEY),
+                            feedbackItems,
+                            ERROR_NULL_PARAMETER_ITEM_IS_NOT_SUPPORTED);
                 } else {
                     payloadList.add(payload.get());
                 }
@@ -500,7 +507,10 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         feedbackItems.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, inputPayload, validationContext));
                     }
                 } else if (parameter.isRequired()) {
-                    addValidationError(parameter, validationContext, feedbackItems, ERROR_MISSING_REQUIRED_PARAMETER, null);
+                    addValidationError(ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
+                            validationContext.get(RequestConverter.LOCATION_KEY),
+                            feedbackItems,
+                            ERROR_MISSING_REQUIRED_PARAMETER);
                 }
             } catch (ValidationException ex) {
                 feedbackItems.addAll(ex.getFeedbackItems());
@@ -553,21 +563,6 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     .orElseThrow(() -> new IllegalArgumentException("Unable to resolve entity type")));
         }
         return entityType;
-    }
-
-    private void addValidationError(EParameter parameter, Map<String, Object> validationContext, List<FeedbackItem> feedbackItems, String code, Map<String, Object> parameters) {
-        final Map<String, Object> details = new LinkedHashMap<>();
-        details.put(Validator.FEATURE_KEY, parameter.getName());
-
-        if (parameter != null) {
-            details.putAll(parameters);
-        }
-        feedbackItems.add(FeedbackItem.builder()
-                .code(code)
-                .level(FeedbackItem.Level.ERROR)
-                .location(validationContext.get(RequestConverter.LOCATION_KEY))
-                .details(details)
-                .build());
     }
 
     @SuppressWarnings("unchecked")
