@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.dispatcher;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
@@ -10,7 +11,7 @@ import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.GetUploadTokenCall;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
-import hu.blackbelt.judo.runtime.core.dispatcher.validators.Validator;
+import hu.blackbelt.judo.runtime.core.validator.Validator;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.osgi.filestore.security.api.DownloadClaim;
 import hu.blackbelt.osgi.filestore.security.api.Token;
@@ -24,6 +25,8 @@ import org.eclipse.emf.ecore.*;
 
 import java.util.*;
 import java.util.function.Function;
+
+import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 
 @Builder
 @Slf4j
@@ -74,24 +77,22 @@ public class RequestConverter {
     private static final boolean VALIDATE_MISSING_FEATURES_DEFAULT = true;
     private static final boolean IGNORE_INVALID_VALUES_DEFAULT = false;
 
-    public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("[^a-zA-Z0-9_]", "_");
-    public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("[^a-zA-Z0-9_]", "_");
+    public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("\\W", "_");
+    public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("\\W", "_");
 
     public Optional<Payload> convert(final Map<String, Object> input, final Map<String, Object> validationContext) throws ValidationException {
         if (input == null) {
             return Optional.empty();
         }
 
-        final List<FeedbackItem> feedbackItems = new ArrayList<>();
-
         final Map<String, Object> lastContext = new TreeMap<>(validationContext);
-        feedbackItems.addAll(extractIdentifier(transferObjectType, input, lastContext));
+        final List<FeedbackItem> feedbackItems = new ArrayList<>(extractIdentifier(transferObjectType, input, lastContext));
 
         Payload converted = null;
         try {
             converted = PayloadTraverser.builder()
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                            ? asmUtils.getMappedReference(reference).filter(mappedReference -> mappedReference.isContainment()).isPresent()
+                            ? asmUtils.getMappedReference(reference).filter(EReference::isContainment).isPresent()
                             : AsmUtils.isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
                     .processor((instance, ctx) -> {
                         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
@@ -102,10 +103,10 @@ public class RequestConverter {
                         // do not validate referenced elements but containment only
                         final boolean validate = !validators.isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
                         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
-                        ctx.getType().getEAllAttributes().stream().forEach(a -> feedbackItems.addAll(convertValue(a, instance, validate, currentContext, ignoreInvalidValues)));
+                        ctx.getType().getEAllAttributes().forEach(a -> feedbackItems.addAll(convertValue(a, instance, validate, currentContext, ignoreInvalidValues)));
                         if ((Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT) && identifierProvider != null) {
                             ctx.getType().getEAllReferences().stream()
-                                    .filter(r -> AsmUtils.isEmbedded(r) && !AsmUtils.isAllowedToCreateEmbeddedObject(r) && asmUtils.getMappedReference(r).filter(mr -> mr.isContainment()).isPresent())
+                                    .filter(r -> AsmUtils.isEmbedded(r) && !AsmUtils.isAllowedToCreateEmbeddedObject(r) && asmUtils.getMappedReference(r).filter(EReference::isContainment).isPresent())
                                     .forEach(c -> {
                                         if (c.isMany()) {
                                             final Collection<Payload> containments = instance.getAsCollectionPayload(c.getName());
@@ -145,13 +146,8 @@ public class RequestConverter {
                                 feedbackItems.addAll(validateReference(r, instance, currentContext, ignoreInvalidValues));
                             });
                         }
-                        for (final Iterator<Map.Entry<String, Object>> it = instance.entrySet().iterator(); it.hasNext(); ) {
-                            final Map.Entry<String, Object> entry = it.next();
-                            if (!ctx.getType().getEAllStructuralFeatures().stream().anyMatch(f -> Objects.equals(f.getName(), entry.getKey()))
-                                    && !keepProperties.contains(entry.getKey())) {
-                                it.remove();
-                            }
-                        }
+                        instance.entrySet().removeIf(entry -> ctx.getType().getEAllStructuralFeatures().stream().noneMatch(f -> Objects.equals(f.getName(), entry.getKey()))
+                                && !keepProperties.contains(entry.getKey()));
                     })
                     .build()
                     .traverse(Payload.asPayload(input), transferObjectType);
@@ -183,17 +179,13 @@ public class RequestConverter {
                 if (log.isDebugEnabled()) {
                     log.debug("Extracting signature failed", ex);
                 }
+                addValidationError(ImmutableMap.of(
+                        DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)),
+                        validationContext.get(RequestConverter.LOCATION_KEY),
+                        feedbackItems,
+                        ERROR_INVALID_IDENTIFIER
+                );
 
-                final Map<String, Object> details = new LinkedHashMap<>();
-                if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                    details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                }
-                feedbackItems.add(FeedbackItem.builder()
-                        .code("INVALID_IDENTIFIER")
-                        .level(FeedbackItem.Level.ERROR)
-                        .location(validationContext.get(LOCATION_KEY))
-                        .details(details)
-                        .build());
             }
         }
         return feedbackItems;
@@ -217,39 +209,32 @@ public class RequestConverter {
                 if (trimString && converted instanceof String && AsmUtils.isString(attribute.getEAttributeType())) {
                     converted = ((String) converted).trim();
                 }
-            } else {
-                converted = null;
             }
         } catch (InvalidTokenException ex) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute));
-            details.put(Validator.VALUE_KEY, value);
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("INVALID_FILE_TOKEN")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(currentContext.get(LOCATION_KEY))
-                    .details(details)
-                    .build());
+            addValidationError(
+                    ImmutableMap.of(
+                            Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
+                            DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY),
+                            Validator.VALUE_KEY, value
+                    ),
+                    currentContext.get(LOCATION_KEY),
+                    feedbackItems,
+                    ERROR_INVALID_FILE_TOKEN);
         } catch (RuntimeException ex) {
             if (!ignoreInvalidValue) {
                 if (!validate) {
                     throw ex;
                 } else {
-                    final Map<String, Object> details = new LinkedHashMap<>();
-                    details.put(Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute));
-                    details.put(Validator.VALUE_KEY, value);
-                    if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                        details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                    }
-                    feedbackItems.add(FeedbackItem.builder()
-                            .code("CONVERSION_FAILED")
-                            .level(FeedbackItem.Level.ERROR)
-                            .location(currentContext.get(LOCATION_KEY))
-                            .details(details)
-                            .build());
+                    addValidationError(
+                            ImmutableMap.of(
+                                    Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
+                                    DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY),
+                                    Validator.VALUE_KEY, value
+                            ),
+                            currentContext.get(LOCATION_KEY),
+                            feedbackItems,
+                            ERROR_CONVERSION_FAILED
+                    );
                 }
             } else {
                 log.debug("Ignored invalid value of {}: {}", new Object[] {AsmUtils.getAttributeFQName(attribute), value}, ex);
@@ -282,31 +267,27 @@ public class RequestConverter {
                 @SuppressWarnings("rawtypes")
 				final int size = ((Collection) value).size();
                 if (size < reference.getLowerBound()) {
-                    final Map<String, Object> details = new LinkedHashMap<>();
-                    details.put(Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference));
-                    details.put("size", size);
-                    if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                        details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                    }
-                    feedbackItems.add(FeedbackItem.builder()
-                            .code("TOO_FEW_ITEMS")
-                            .level(FeedbackItem.Level.ERROR)
-                            .location(currentContext.get(LOCATION_KEY))
-                            .details(details)
-                            .build());
+                    addValidationError(
+                            ImmutableMap.of(
+                                    Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
+                                    DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY),
+                                    SIZE_PARAMETER, size
+                            ),
+                            currentContext.get(LOCATION_KEY),
+                            feedbackItems,
+                            ERROR_TOO_FEW_ITEMS
+                    );
                 } else if (size > reference.getUpperBound() && reference.getUpperBound() != -1) {
-                    final Map<String, Object> details = new LinkedHashMap<>();
-                    details.put(Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference));
-                    details.put("size", size);
-                    if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                        details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                    }
-                    feedbackItems.add(FeedbackItem.builder()
-                            .code("TOO_MANY_ITEMS")
-                            .level(FeedbackItem.Level.ERROR)
-                            .location(currentContext.get(LOCATION_KEY))
-                            .details(details)
-                            .build());
+                    addValidationError(
+                            ImmutableMap.of(
+                                    Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
+                                    DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY),
+                                    SIZE_PARAMETER, size
+                            ),
+                            currentContext.get(LOCATION_KEY),
+                            feedbackItems,
+                            ERROR_TOO_MANY_ITEMS
+                    );
                 }
                 int idx = 0;
                 for (@SuppressWarnings("rawtypes")
@@ -316,17 +297,15 @@ public class RequestConverter {
 
                     final Object item = it.next();
                     if (item == null) {
-                        final Map<String, Object> details = new LinkedHashMap<>();
-                        details.put(Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference));
-                        if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                            details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                        }
-                        feedbackItems.add(FeedbackItem.builder()
-                                .code("NULL_ITEM_IS_NOT_SUPPORTED")
-                                .level(FeedbackItem.Level.ERROR)
-                                .location(currentItemContext.get(LOCATION_KEY))
-                                .details(details)
-                                .build());
+                        addValidationError(
+                                ImmutableMap.of(
+                                        Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
+                                        DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)
+                                ),
+                                currentContext.get(LOCATION_KEY),
+                                feedbackItems,
+                                ERROR_NULL_ITEM_IS_NOT_SUPPORTED
+                        );
                     } else if (!(item instanceof Payload)) {
                         throw new IllegalStateException("Item must be a Payload");
                     } else {
@@ -336,31 +315,27 @@ public class RequestConverter {
                     }
                 }
             } else if (value != null && !(value instanceof Collection)) {
-                final Map<String, Object> details = new LinkedHashMap<>();
-                details.put(Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference));
-                if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                    details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                }
-                feedbackItems.add(FeedbackItem.builder()
-                        .code("INVALID_CONTENT")
-                        .level(FeedbackItem.Level.ERROR)
-                        .location(currentContext.get(LOCATION_KEY))
-                        .details(details)
-                        .build());
+                addValidationError(
+                        ImmutableMap.of(
+                                Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
+                                DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)
+                        ),
+                        currentContext.get(LOCATION_KEY),
+                        feedbackItems,
+                        ERROR_INVALID_CONTENT
+                );
             }
         } else {
             if (value instanceof Collection) {
-                final Map<String, Object> details = new LinkedHashMap<>();
-                details.put(Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference));
-                if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                    details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                }
-                feedbackItems.add(FeedbackItem.builder()
-                        .code("INVALID_CONTENT")
-                        .level(FeedbackItem.Level.ERROR)
-                        .location(currentContext.get(LOCATION_KEY))
-                        .details(details)
-                        .build());
+                addValidationError(
+                        ImmutableMap.of(
+                                Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
+                                DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)
+                        ),
+                        currentContext.get(LOCATION_KEY),
+                        feedbackItems,
+                        ERROR_INVALID_CONTENT
+                );
             } else if (value != null && !(value instanceof Payload)) {
                 throw new IllegalStateException("Item must be a Payload");
             } else if (!ignoreInvalidValues && value != null) {
@@ -373,27 +348,24 @@ public class RequestConverter {
         final Optional<EReference> mappedReference = asmUtils.getMappedReference(reference);
         final boolean validateForCreate = createReference != null
                 ? mappedReference
-                .map(mr -> !asmUtils.getMappedReference(createReference)
-                        .map(mappedCreateReference -> mappedCreateReference.getEOpposite())
+                .map(mr -> asmUtils.getMappedReference(createReference)
+                        .map(EReference::getEOpposite)
                         .filter(mappedCreateReferenceOpposite -> AsmUtils.equals(mappedCreateReferenceOpposite, mr))
-                        .isPresent())
+                        .isEmpty())
                 .orElse(false)
                 : false;
 
-        if (reference.isRequired() && (validateMissingFeatures || instance.containsKey(reference.getName())) && (createReference == null || !mappedReference.isPresent() ? AsmUtils.isEmbedded(reference) : validateForCreate) && value == null) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference));
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("MISSING_REQUIRED_RELATION")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(currentContext.get(LOCATION_KEY))
-                    .details(details)
-                    .build());
+        if (reference.isRequired() && (validateMissingFeatures || instance.containsKey(reference.getName())) && (createReference == null || mappedReference.isEmpty() ? AsmUtils.isEmbedded(reference) : validateForCreate) && value == null) {
+            addValidationError(
+                    ImmutableMap.of(
+                            Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
+                            DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)
+                    ),
+                    currentContext.get(LOCATION_KEY),
+                    feedbackItems,
+                    ERROR_MISSING_REQUIRED_RELATION
+            );
         }
-
         return feedbackItems;
     }
 
@@ -405,31 +377,27 @@ public class RequestConverter {
         final List<FeedbackItem> feedbackItems = new ArrayList<>();
 
         if (attribute.isRequired() && (validateMissingFeatures || instance.containsKey(attribute.getName())) && value == null) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute));
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("MISSING_REQUIRED_ATTRIBUTE")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(validationContext.get(LOCATION_KEY))
-                    .details(details)
-                    .build());
+            addValidationError(
+                    ImmutableMap.of(
+                            Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
+                            DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)
+                    ),
+                    validationContext.get(LOCATION_KEY),
+                    feedbackItems,
+                    ERROR_MISSING_REQUIRED_ATTRIBUTE
+            );
         }
         if (AsmUtils.isString(attribute.getEAttributeType()) && attribute.isRequired() && (validateMissingFeatures || instance.containsKey(attribute.getName()))
                 && value != null && RequiredStringValidatorOption.ACCEPT_NON_EMPTY.equals(requiredStringValidatorOption) && ((String) value).isEmpty()) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute));
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("MISSING_REQUIRED_ATTRIBUTE")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(validationContext.get(LOCATION_KEY))
-                    .details(details)
-                    .build());
+            addValidationError(
+                    ImmutableMap.of(
+                            Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
+                            DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)
+                    ),
+                    validationContext.get(LOCATION_KEY),
+                    feedbackItems,
+                    ERROR_MISSING_REQUIRED_ATTRIBUTE
+            );
         }
 
         if (value != null) {
@@ -448,7 +416,7 @@ public class RequestConverter {
                 .findAny()
                 .orElseThrow(() -> new IllegalStateException("Invalid enumeration type: " + AsmUtils.getClassifierFQName(dataType)))
                 .getEEnumLiteral(literal))
-                .map(l -> l.getValue())
+                .map(EEnumLiteral::getValue)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid enumeration literal '" + literal + "' of type: " + AsmUtils.getClassifierFQName(dataType)));
     }
 
@@ -460,7 +428,7 @@ public class RequestConverter {
                 @SuppressWarnings("unchecked")
 				final Map<String, Object> context = new Gson().fromJson(contextString, Map.class);
                 final String attributeName = (String) context.get(GetUploadTokenCall.ATTRIBUTE_KEY);
-                if (attributeName != null && !AsmUtils.equals(dataType, asmUtils.resolveAttribute(attributeName).map(a -> a.getEAttributeType()).orElse(null))) {
+                if (attributeName != null && !AsmUtils.equals(dataType, asmUtils.resolveAttribute(attributeName).map(EAttribute::getEAttributeType).orElse(null))) {
                     throw new InvalidTokenException(null);
                 }
             } else {

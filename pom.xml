@@ -435,6 +435,7 @@
             <modules>
                 <module>judo-runtime-core</module>
                 <module>judo-runtime-core-dao-core</module>
+                <module>judo-runtime-core-validator</module>
                 <module>judo-runtime-core-dao-rdbms</module>
                 <module>judo-runtime-core-dao-rdbms-hsqldb</module>
                 <module>judo-runtime-core-dao-rdbms-postgresql</module>
