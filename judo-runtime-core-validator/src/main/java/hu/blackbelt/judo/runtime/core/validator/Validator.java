@@ -1,11 +1,7 @@
-package hu.blackbelt.judo.runtime.core.dispatcher.validators;
+package hu.blackbelt.judo.runtime.core.validator;
 
-import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.Payload;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.RequestConverter;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
-import org.eclipse.emf.ecore.EParameter;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 import java.util.Collection;
@@ -31,6 +27,12 @@ public interface Validator {
     String ERROR_NULL_ITEM_IS_NOT_SUPPORTED = "NULL_ITEM_IS_NOT_SUPPORTED";
     String ERROR_CONVERSION_FAILED = "CONVERSION_FAILED";
     String ERROR_INVALID_FILE_TOKEN = "INVALID_FILE_TOKEN";
+    String ERROR_PRECISION_VALIDATION_FAILED = "PRECISION_VALIDATION_FAILED";
+    String ERROR_SCALE_VALIDATION_FAILED = "SCALE_VALIDATION_FAILED";
+    String ERROR_MAX_LENGTH_VALIDATION_FAILED = "MAX_LENGTH_VALIDATION_FAILED";
+    String ERROR_PATTERN_VALIDATION_FAILED = "PATTERN_VALIDATION_FAILED";
+    String ERROR_MIN_LENGTH_VALIDATION_FAILED = "MIN_LENGTH_VALIDATION_FAILED";
+
 
     String SIZE_PARAMETER = "size";
 
@@ -46,7 +48,7 @@ public interface Validator {
 
     public static void addValidationError(Map<String, Object> parameters,
                                           Object location,
-                                          List<FeedbackItem> feedbackItems,
+                                          Collection<FeedbackItem> feedbackItems,
                                           String code) {
         final Map<String, Object> details = new LinkedHashMap<>();
 

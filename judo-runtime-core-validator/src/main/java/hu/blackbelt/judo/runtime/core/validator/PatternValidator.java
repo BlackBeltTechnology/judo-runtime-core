@@ -1,16 +1,14 @@
-package hu.blackbelt.judo.runtime.core.dispatcher.validators;
+package hu.blackbelt.judo.runtime.core.validator;
 
+import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.RequestConverter;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -37,19 +35,15 @@ public class PatternValidator implements Validator {
 
         if (value instanceof String) {
             if (!pattern.matcher((String)value).matches()) {
-                final Map<String, Object> details = new LinkedHashMap<>();
-                details.put(FEATURE_KEY, RequestConverter.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature));
-                details.put(CONSTRAINT_NAME, pattern);
-                details.put(VALUE_KEY, value);
-                if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                    details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                }
-                feedbackItems.add(FeedbackItem.builder()
-                        .code("PATTERN_VALIDATION_FAILED")
-                        .level(FeedbackItem.Level.ERROR)
-                        .location(context.get(RequestConverter.LOCATION_KEY))
-                        .details(details)
-                        .build());
+                Validator.addValidationError(ImmutableMap.of(
+                                FEATURE_KEY, DaoPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                                CONSTRAINT_NAME, pattern,
+                                VALUE_KEY, value,
+                                DaoPayloadValidator.REFERENCE_ID_KEY, instance.get(DaoPayloadValidator.REFERENCE_ID_KEY)
+                        ),
+                        context.get(DaoPayloadValidator.LOCATION_KEY),
+                        feedbackItems,
+                        ERROR_PATTERN_VALIDATION_FAILED);
             }
         } else {
             throw new IllegalStateException("Pattern constraint is supported on String type only");

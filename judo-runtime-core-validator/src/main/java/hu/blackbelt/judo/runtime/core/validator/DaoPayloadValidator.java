@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.core.validators;
+package hu.blackbelt.judo.runtime.core.validator;
 
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
