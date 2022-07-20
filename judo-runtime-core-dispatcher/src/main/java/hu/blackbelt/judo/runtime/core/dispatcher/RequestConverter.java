@@ -107,7 +107,7 @@ public class RequestConverter {
         return Optional.of(payload);
     }
 
-    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext,  Map<String, Object> feedbackContext) {
+    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext, Map<String, Object> feedbackContext) {
 
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
         final Map<String, Object> currentContext = new TreeMap<>(validationContext);
@@ -154,7 +154,7 @@ public class RequestConverter {
     }
 
     private PayloadValidator getPayloadValidator() {
-        PayloadValidator payloadValidator = PayloadValidator.builder()
+        return PayloadValidator.builder()
                 .asmUtils(asmUtils)
                 .coercer(coercer)
                 .identifierProvider(identifierProvider)
@@ -163,21 +163,17 @@ public class RequestConverter {
                 .throwValidationException(throwValidationException)
                 .requiredStringValidatorOption(requiredStringValidatorOption)
                 .build();
-        return payloadValidator;
     }
 
     private void processReference(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> currentContext, Map<String, Object> feedbackContext, boolean ignoreInvalidValues) {
-        final String referenceLocation = currentContext.get(LOCATION_KEY) + (((String) currentContext.get(LOCATION_KEY)).isEmpty() || ((String) currentContext.get(LOCATION_KEY)).endsWith("/") ? "" : ".");
-        final Map<String, Object> referenceValidationContext = new TreeMap<>(feedbackContext);
-        referenceValidationContext.put(LOCATION_KEY, referenceLocation);
 
-        validateReferencedIdentifiers(instance, reference, feedbackItems, referenceValidationContext);
+        validateReferencedIdentifiers(instance, reference, feedbackItems, currentContext, feedbackContext);
         feedbackItems.addAll(getPayloadValidator().validateReference(reference, instance, currentContext, ignoreInvalidValues));
     }
 
-    private void validateReferencedIdentifiers(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext) {
+    private void validateReferencedIdentifiers(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext, Map<String, Object> feedbackContext) {
         final String referenceLocation = validationContext.get(LOCATION_KEY) + (((String) validationContext.get(LOCATION_KEY)).isEmpty() || ((String) validationContext.get(LOCATION_KEY)).endsWith("/") ? "" : ".");
-        final Map<String, Object> referenceValidationContext = new TreeMap<>(validationContext);
+        final Map<String, Object> referenceValidationContext = new TreeMap<>(feedbackContext);
         referenceValidationContext.put(LOCATION_KEY, referenceLocation);
 
         if (instance.get(reference.getName()) instanceof Payload && !reference.isMany()) {

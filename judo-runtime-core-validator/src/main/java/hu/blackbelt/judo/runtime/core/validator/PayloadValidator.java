@@ -113,7 +113,7 @@ public class PayloadValidator {
         try {
             PayloadTraverser.builder()
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                            ? asmUtils.getMappedReference(reference).filter(mappedReference -> mappedReference.isContainment()).isPresent()
+                            ? asmUtils.getMappedReference(reference).filter(EReference::isContainment).isPresent()
                             : AsmUtils.isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
                     .processor((instance, ctx) -> processPayload(instance, ctx, feedbackItems, validationContext))
                     .build()
@@ -133,27 +133,29 @@ public class PayloadValidator {
 
     private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext) {
         {
+            final Map<String, Object> feedbackContext = new TreeMap<>(validationContext);
             final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
-            final Map<String, Object> payloadContext = new TreeMap<>(validationContext);
-            payloadContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
+            final Map<String, Object> currentContext = new TreeMap<>(validationContext);
+            currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
+            feedbackContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
 
             // do not validate referenced elements but containment only
             final boolean validate = !validators.isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
             final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
             if (validate) {
-                ctx.getType().getEAllAttributes().stream().forEach(attribute -> processAttribute(instance, attribute, feedbackItems, payloadContext, ignoreInvalidValues));
-                ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, feedbackItems, payloadContext, ignoreInvalidValues));
+                ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, feedbackItems, feedbackContext, ignoreInvalidValues));
+                ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, feedbackItems, currentContext, ignoreInvalidValues));
             }
         }
     }
 
-    private void processReference(final Payload instance, final EReference reference, final Collection<FeedbackItem> feedbackItems, final Map<String, Object> validationContext, final boolean ignoreInvalidValues) {
+    private void processReference(final Payload instance,
+                                  final EReference reference,
+                                  final Collection<FeedbackItem> feedbackItems,
+                                  final Map<String, Object> validationContext,
+                                  final boolean ignoreInvalidValues) {
 
-        final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
-        final Map<String, Object> referenceValidationContext = new TreeMap<>(validationContext);
-        String referenceLocation = containerLocation + (containerLocation.isEmpty() || containerLocation.endsWith("/") ? "" : ".") + reference.getName();
-        referenceValidationContext.put(LOCATION_KEY, referenceLocation);
-        feedbackItems.addAll(validateReference(reference, instance, referenceValidationContext, ignoreInvalidValues));
+        feedbackItems.addAll(validateReference(reference, instance, validationContext, ignoreInvalidValues));
     }
 
     private void processAttribute(final Payload instance, final EAttribute attribute, final Collection<FeedbackItem> feedbackItems, final Map<String, Object> validationContext, final boolean ignoreInvalidValue) {
