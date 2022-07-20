@@ -83,7 +83,7 @@ public class RequestConverter {
         }
 
         final Map<String, Object> feedbackContext = new TreeMap<>(validationContext);
-        final List<FeedbackItem> feedbackItems = new ArrayList<>(extractIdentifier(transferObjectType, input, feedbackContext));
+        final List<FeedbackItem> feedbackItems = new ArrayList<>(validateIdentifier(transferObjectType, input, feedbackContext));
         final Payload payload = Payload.asPayload(input);
 
         try {
@@ -91,9 +91,7 @@ public class RequestConverter {
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
                             ? asmUtils.getMappedReference(reference).filter(EReference::isContainment).isPresent()
                             : AsmUtils.isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
-                    .processor((instance, ctx) -> {
-                        processPayload(instance, ctx, feedbackItems, validationContext, feedbackContext);
-                    })
+                    .processor((instance, ctx) -> processPayload(instance, ctx, feedbackItems, validationContext))
                     .build()
                     .traverse(payload, transferObjectType);
         } catch (IllegalArgumentException ex) {
@@ -109,33 +107,27 @@ public class RequestConverter {
         return Optional.of(payload);
     }
 
-    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext, Map<String, Object> feedbackContext) {
+    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext) {
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
         final Map<String, Object> payloadContext = new TreeMap<>(validationContext);
         payloadContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
-        feedbackContext.put(LOCATION_KEY, payloadContext.get(LOCATION_KEY));
 
         // Validate only elements which is contained only from root payload
         final boolean validate = !validators.isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
 
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
-        ctx.getType().getEAllAttributes().forEach(a -> feedbackItems.addAll(convertValue(a, instance, validate, payloadContext, ignoreInvalidValues)));
+        ctx.getType().getEAllAttributes().forEach(a -> processAttribute(instance, a, feedbackItems, validate, payloadContext, ignoreInvalidValues));
 
         if ((Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT) && identifierProvider != null) {
             ctx.getType().getEAllReferences().stream()
                     .filter(r -> AsmUtils.isEmbedded(r) && !AsmUtils.isAllowedToCreateEmbeddedObject(r) && asmUtils.getMappedReference(r).filter(EReference::isContainment).isPresent())
-                    .forEach(c -> {
-                        removeNonCreatableReferenceElements(instance, c);
-                    });
+                    .forEach(c -> removeNonCreatableReferenceElements(instance, c));
         }
         if (validate) {
-            ctx.getType().getEAllReferences().forEach(r -> {
-                processReference(instance, r, feedbackItems, payloadContext, feedbackContext, ignoreInvalidValues);
-            });
+            ctx.getType().getEAllReferences().forEach(r -> processReference(instance, r, feedbackItems, payloadContext, ignoreInvalidValues));
         }
         instance.entrySet().removeIf(entry -> ctx.getType().getEAllStructuralFeatures().stream().noneMatch(f -> Objects.equals(f.getName(), entry.getKey()))
                 && !keepProperties.contains(entry.getKey()));
-
     }
 
     private void removeNonCreatableReferenceElements(Payload instance, EReference reference) {
@@ -172,25 +164,34 @@ public class RequestConverter {
         return payloadValidator;
     }
 
-    private void processReference(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext, Map<String, Object> feedbackContext, boolean ignoreInvalidValues) {
+    private void processReference(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext, boolean ignoreInvalidValues) {
+        validateReferencedIdentifiers(instance, reference, feedbackItems, validationContext);
+
         final String referenceLocation = validationContext.get(LOCATION_KEY) + (((String) validationContext.get(LOCATION_KEY)).isEmpty() || ((String) validationContext.get(LOCATION_KEY)).endsWith("/") ? "" : ".");
-        final Map<String, Object> referenceValidationContext = new TreeMap<>(feedbackContext);
+        final Map<String, Object> referenceValidationContext = new TreeMap<>(validationContext);
+        referenceValidationContext.put(LOCATION_KEY, referenceLocation);
+        feedbackItems.addAll(getPayloadValidator().validateReference(reference, instance, referenceValidationContext, ignoreInvalidValues));
+    }
+
+    private void validateReferencedIdentifiers(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext) {
+        final String referenceLocation = validationContext.get(LOCATION_KEY) + (((String) validationContext.get(LOCATION_KEY)).isEmpty() || ((String) validationContext.get(LOCATION_KEY)).endsWith("/") ? "" : ".");
+        final Map<String, Object> referenceValidationContext = new TreeMap<>(validationContext);
+        referenceValidationContext.put(LOCATION_KEY, referenceLocation);
 
         if (instance.get(reference.getName()) instanceof Payload && !reference.isMany()) {
             referenceValidationContext.put(LOCATION_KEY, referenceLocation + reference.getName());
-            feedbackItems.addAll(extractIdentifier(reference.getEReferenceType(), instance.getAsPayload(reference.getName()), referenceValidationContext));
+            feedbackItems.addAll(validateIdentifier(reference.getEReferenceType(), instance.getAsPayload(reference.getName()), referenceValidationContext));
         } else if (instance.get(reference.getName()) instanceof Collection && reference.isMany()) {
             int idx = 0;
             for (Iterator<Payload> it = instance.getAsCollectionPayload(reference.getName()).iterator(); it.hasNext(); idx++) {
                 referenceValidationContext.put(LOCATION_KEY, referenceLocation + reference.getName() + "[" + idx + "]");
-                feedbackItems.addAll(extractIdentifier(reference.getEReferenceType(), it.next(), referenceValidationContext));
+                feedbackItems.addAll(validateIdentifier(reference.getEReferenceType(), it.next(), referenceValidationContext));
             }
         }
-        feedbackItems.addAll(getPayloadValidator().validateReference(reference, instance, validationContext, ignoreInvalidValues));
-
     }
 
-    private List<FeedbackItem> extractIdentifier(final EClass clazz, final Map<String, Object> instance, final Map<String, Object> validationContext) {
+
+    private List<FeedbackItem> validateIdentifier(final EClass clazz, final Map<String, Object> instance, final Map<String, Object> validationContext) {
         if (instance == null) {
             return Collections.emptyList();
         }
@@ -217,13 +218,12 @@ public class RequestConverter {
         return feedbackItems;
     }
 
-    private List<FeedbackItem> convertValue(final EAttribute attribute, final Payload instance, final boolean validate, final Map<String, Object> validationContext, final boolean ignoreInvalidValue) {
+    private void processAttribute(final Payload instance, final EAttribute attribute, Collection<FeedbackItem> feedbackItems, final boolean validate, final Map<String, Object> validationContext, final boolean ignoreInvalidValue) {
         final Object value = instance.get(attribute.getName());
-        final List<FeedbackItem> feedbackItems = new ArrayList<>();
 
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
-        final Map<String, Object> currentContext = new TreeMap<>(validationContext);
-        currentContext.put(LOCATION_KEY, containerLocation + (containerLocation.isEmpty() || containerLocation.endsWith("/") ? "" : ".") + attribute.getName());
+        final Map<String, Object> attributeContext = new TreeMap<>(validationContext);
+        attributeContext.put(LOCATION_KEY, containerLocation + (containerLocation.isEmpty() || containerLocation.endsWith("/") ? "" : ".") + attribute.getName());
 
         Object converted = null;
         try {
@@ -246,7 +246,7 @@ public class RequestConverter {
                             PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY)),
                             Validator.VALUE_KEY, value
                     ),
-                    currentContext.get(LOCATION_KEY),
+                    attributeContext.get(LOCATION_KEY),
                     feedbackItems,
                     ERROR_INVALID_FILE_TOKEN);
         } catch (RuntimeException ex) {
@@ -260,7 +260,7 @@ public class RequestConverter {
                                     PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY)),
                                     Validator.VALUE_KEY, value
                             ),
-                            currentContext.get(LOCATION_KEY),
+                            attributeContext.get(LOCATION_KEY),
                             feedbackItems,
                             ERROR_CONVERSION_FAILED
                     );
@@ -275,10 +275,8 @@ public class RequestConverter {
         }
 
         if (validate && !ignoreInvalidValue) {
-            feedbackItems.addAll(getPayloadValidator().validateAttribute(attribute, instance, currentContext));
+            feedbackItems.addAll(getPayloadValidator().validateAttribute(attribute, instance, attributeContext));
         }
-
-        return feedbackItems;
     }
 
     private Object convertEnumerationValue(final EDataType dataType, final Object oldValue) {
