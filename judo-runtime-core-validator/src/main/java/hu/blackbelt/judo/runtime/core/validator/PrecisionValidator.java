@@ -1,10 +1,9 @@
-package hu.blackbelt.judo.runtime.core.dispatcher.validators;
+package hu.blackbelt.judo.runtime.core.validator;
 
+import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.RequestConverter;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
@@ -12,8 +11,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
+
+import static hu.blackbelt.judo.runtime.core.validator.Validator.addValidationError;
 
 public class PrecisionValidator implements Validator {
 
@@ -68,21 +69,17 @@ public class PrecisionValidator implements Validator {
     private Collection<FeedbackItem> validateInteger(final Payload instance, final EStructuralFeature feature, final Map<String, Object> context, final int precision, final BigInteger number) {
         final Collection<FeedbackItem> feedbackItems = new ArrayList<>();
 
-        final String string = number.toString().replaceAll("[^0-9]*", "");
+        final String string = number.toString().replaceAll("\\D*", "");
         if (precision < string.length()) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(FEATURE_KEY, RequestConverter.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature));
-            details.put(PRECISION_CONSTRAINT_NAME, precision);
-            details.put(VALUE_KEY, number);
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("PRECISION_VALIDATION_FAILED")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(context.get(RequestConverter.LOCATION_KEY))
-                    .details(details)
-                    .build());
+            addValidationError(ImmutableMap.of(
+                            FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                            PRECISION_CONSTRAINT_NAME, precision,
+                            VALUE_KEY, number,
+                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                    ),
+                    context.get(PayloadValidator.LOCATION_KEY),
+                    feedbackItems,
+                    ERROR_PRECISION_VALIDATION_FAILED);
         }
 
         return feedbackItems;
@@ -91,39 +88,31 @@ public class PrecisionValidator implements Validator {
     private Collection<FeedbackItem> validateDecimal(final Payload instance, final EStructuralFeature feature, final Map<String, Object> context, final int precision, final int scale, final BigDecimal number) {
         final Collection<FeedbackItem> feedbackItems = new ArrayList<>();
 
-        final String string = number.toString().replaceAll("[^0-9]*", "");
-        final String fraction = number.toString().replaceAll(".*\\.[^0-9]*", "");
+        final String string = number.toString().replaceAll("\\D*", "");
+        final String fraction = number.toString().replaceAll(".*\\.\\D*", "");
         if (precision < string.length()) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(FEATURE_KEY, RequestConverter.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature));
-            details.put(PRECISION_CONSTRAINT_NAME, precision);
-            details.put(VALUE_KEY, number);
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("PRECISION_VALIDATION_FAILED")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(context.get(RequestConverter.LOCATION_KEY))
-                    .details(details)
-                    .build());
+            addValidationError(ImmutableMap.of(
+                            FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                            PRECISION_CONSTRAINT_NAME, precision,
+                            VALUE_KEY, number,
+                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                    ),
+                    context.get(PayloadValidator.LOCATION_KEY),
+                    feedbackItems,
+                    ERROR_PRECISION_VALIDATION_FAILED);
         }
 
         if (scale < fraction.length()) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(FEATURE_KEY, RequestConverter.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature));
-            details.put(PRECISION_CONSTRAINT_NAME, precision);
-            details.put(SCALE_CONSTRAINT_NAME, fraction);
-            details.put(VALUE_KEY, number);
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("SCALE_VALIDATION_FAILED")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(context.get(RequestConverter.LOCATION_KEY))
-                    .details(details)
-                    .build());
+            addValidationError(ImmutableMap.of(
+                            FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                            PRECISION_CONSTRAINT_NAME, precision,
+                            SCALE_CONSTRAINT_NAME, fraction,
+                            VALUE_KEY, number,
+                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                    ),
+                    context.get(PayloadValidator.LOCATION_KEY),
+                    feedbackItems,
+                    ERROR_SCALE_VALIDATION_FAILED);
         }
 
         return feedbackItems;
