@@ -1,17 +1,16 @@
-package hu.blackbelt.judo.runtime.core.dispatcher.validators;
+package hu.blackbelt.judo.runtime.core.validator;
 
+import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.RequestConverter;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class MinLengthValidator implements Validator {
 
@@ -37,19 +36,15 @@ public class MinLengthValidator implements Validator {
         if (value instanceof String) {
             final int length = ((String) value).length();
             if (length < minLength) {
-                final Map<String, Object> details = new LinkedHashMap<>();
-                details.put(FEATURE_KEY, RequestConverter.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature));
-                details.put(CONSTRAINT_NAME, minLength);
-                details.put(VALUE_KEY, value);
-                if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                    details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-                }
-                feedbackItems.add(FeedbackItem.builder()
-                        .code("MIN_LENGTH_VALIDATION_FAILED")
-                        .level(FeedbackItem.Level.ERROR)
-                        .location(context.get(RequestConverter.LOCATION_KEY))
-                        .details(details)
-                        .build());
+                Validator.addValidationError(ImmutableMap.of(
+                                FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                                CONSTRAINT_NAME, minLength,
+                                VALUE_KEY, value,
+                                PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                        ),
+                        context.get(PayloadValidator.LOCATION_KEY),
+                        feedbackItems,
+                        ERROR_MIN_LENGTH_VALIDATION_FAILED);
             }
         } else {
             throw new IllegalStateException("MinLength constraint is supported on String type only");
