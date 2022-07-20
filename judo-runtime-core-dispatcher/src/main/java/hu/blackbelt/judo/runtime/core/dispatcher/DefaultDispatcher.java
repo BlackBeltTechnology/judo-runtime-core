@@ -388,7 +388,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 .asmUtils(getAsmUtils())
                 .validators(getValidators())
                 .trimString(trimString)
-                .requiredStringValidatorOption(RequestConverter.RequiredStringValidatorOption.valueOf(requiredStringValidatorOption))
+                .requiredStringValidatorOption(PayloadValidator.RequiredStringValidatorOption.valueOf(requiredStringValidatorOption))
                 .identifierSigner(identifierSigner)
                 .identifierProvider(identifierProvider)
                 .throwValidationException(true)

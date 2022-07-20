@@ -10,6 +10,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 public class MaxLengthValidator implements Validator {
 
@@ -36,12 +37,12 @@ public class MaxLengthValidator implements Validator {
             final int length = ((String) value).length();
             if (length > maxLength) {
                 Validator.addValidationError(ImmutableMap.of(
-                                FEATURE_KEY, DaoPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                                FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                                 CONSTRAINT_NAME, maxLength,
                                 VALUE_KEY, value,
-                                DaoPayloadValidator.REFERENCE_ID_KEY, instance.get(DaoPayloadValidator.REFERENCE_ID_KEY)
+                                PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
                         ),
-                        context.get(DaoPayloadValidator.LOCATION_KEY),
+                        context.get(PayloadValidator.LOCATION_KEY),
                         feedbackItems,
                         ERROR_MAX_LENGTH_VALIDATION_FAILED);
             }

@@ -4,10 +4,7 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public interface Validator {
     String ERROR_MISSING_REQUIRED_PARAMETER = "MISSING_REQUIRED_PARAMETER";
@@ -53,7 +50,15 @@ public interface Validator {
         final Map<String, Object> details = new LinkedHashMap<>();
 
         if (parameters != null) {
-            details.putAll(parameters);
+            parameters.forEach((k,v) -> {
+                if (v instanceof Optional) {
+                    if (((Optional) v).isPresent()) {
+                        details.put(k, ((Optional) v).get());
+                    }
+                } else {
+                    details.put(k, v);
+                }
+            });
         }
         feedbackItems.add(FeedbackItem.builder()
                 .code(code)

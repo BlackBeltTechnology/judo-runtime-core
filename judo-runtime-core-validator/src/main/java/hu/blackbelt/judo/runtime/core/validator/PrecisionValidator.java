@@ -12,6 +12,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 
 import static hu.blackbelt.judo.runtime.core.validator.Validator.addValidationError;
 
@@ -71,12 +72,12 @@ public class PrecisionValidator implements Validator {
         final String string = number.toString().replaceAll("\\D*", "");
         if (precision < string.length()) {
             addValidationError(ImmutableMap.of(
-                            FEATURE_KEY, DaoPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                            FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
                             VALUE_KEY, number,
-                            DaoPayloadValidator.REFERENCE_ID_KEY, instance.get(DaoPayloadValidator.REFERENCE_ID_KEY)
+                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
                     ),
-                    context.get(DaoPayloadValidator.LOCATION_KEY),
+                    context.get(PayloadValidator.LOCATION_KEY),
                     feedbackItems,
                     ERROR_PRECISION_VALIDATION_FAILED);
         }
@@ -91,25 +92,25 @@ public class PrecisionValidator implements Validator {
         final String fraction = number.toString().replaceAll(".*\\.\\D*", "");
         if (precision < string.length()) {
             addValidationError(ImmutableMap.of(
-                            FEATURE_KEY, DaoPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                            FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
                             VALUE_KEY, number,
-                            DaoPayloadValidator.REFERENCE_ID_KEY, instance.get(DaoPayloadValidator.REFERENCE_ID_KEY)
+                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
                     ),
-                    context.get(DaoPayloadValidator.LOCATION_KEY),
+                    context.get(PayloadValidator.LOCATION_KEY),
                     feedbackItems,
                     ERROR_PRECISION_VALIDATION_FAILED);
         }
 
         if (scale < fraction.length()) {
             addValidationError(ImmutableMap.of(
-                            FEATURE_KEY, DaoPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                            FEATURE_KEY, PayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
                             SCALE_CONSTRAINT_NAME, fraction,
                             VALUE_KEY, number,
-                            DaoPayloadValidator.REFERENCE_ID_KEY, instance.get(DaoPayloadValidator.REFERENCE_ID_KEY)
+                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
                     ),
-                    context.get(DaoPayloadValidator.LOCATION_KEY),
+                    context.get(PayloadValidator.LOCATION_KEY),
                     feedbackItems,
                     ERROR_SCALE_VALIDATION_FAILED);
         }
