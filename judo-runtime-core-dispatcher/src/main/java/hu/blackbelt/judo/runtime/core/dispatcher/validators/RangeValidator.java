@@ -84,8 +84,8 @@ public class RangeValidator<ID> implements Validator {
         if (id == null || !validIds.contains(id)) {
             Validator.addValidationError(ImmutableMap.of(
                             identifierProvider.getName(), id,
-                            IdentifierSigner.SIGNED_IDENTIFIER_KEY, ((Payload) value).get(IdentifierSigner.SIGNED_IDENTIFIER_KEY),
-                            DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY)
+                            IdentifierSigner.SIGNED_IDENTIFIER_KEY, Optional.ofNullable(((Payload) value).get(IdentifierSigner.SIGNED_IDENTIFIER_KEY)),
+                            DefaultDispatcher.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultDispatcher.REFERENCE_ID_KEY))
                     ),
                     validationContext.get(RequestConverter.LOCATION_KEY),
                     feedbackItems,

@@ -91,7 +91,7 @@ public class RequestConverter {
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
                             ? asmUtils.getMappedReference(reference).filter(EReference::isContainment).isPresent()
                             : AsmUtils.isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
-                    .processor((instance, ctx) -> processPayload(instance, ctx, feedbackItems, validationContext))
+                    .processor((instance, ctx) -> processPayload(instance, ctx, feedbackItems, validationContext, feedbackContext))
                     .build()
                     .traverse(payload, transferObjectType);
         } catch (IllegalArgumentException ex) {
@@ -107,16 +107,18 @@ public class RequestConverter {
         return Optional.of(payload);
     }
 
-    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext) {
+    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext,  Map<String, Object> feedbackContext) {
+
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
-        final Map<String, Object> payloadContext = new TreeMap<>(validationContext);
-        payloadContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
+        final Map<String, Object> currentContext = new TreeMap<>(validationContext);
+        currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
+        feedbackContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
 
         // Validate only elements which is contained only from root payload
         final boolean validate = !validators.isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
 
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
-        ctx.getType().getEAllAttributes().forEach(a -> processAttribute(instance, a, feedbackItems, validate, payloadContext, ignoreInvalidValues));
+        ctx.getType().getEAllAttributes().forEach(a -> processAttribute(instance, a, feedbackItems, validate, feedbackContext, ignoreInvalidValues));
 
         if ((Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT) && identifierProvider != null) {
             ctx.getType().getEAllReferences().stream()
@@ -124,7 +126,7 @@ public class RequestConverter {
                     .forEach(c -> removeNonCreatableReferenceElements(instance, c));
         }
         if (validate) {
-            ctx.getType().getEAllReferences().forEach(r -> processReference(instance, r, feedbackItems, payloadContext, ignoreInvalidValues));
+            ctx.getType().getEAllReferences().forEach(r -> processReference(instance, r, feedbackItems, currentContext, feedbackContext, ignoreInvalidValues));
         }
         instance.entrySet().removeIf(entry -> ctx.getType().getEAllStructuralFeatures().stream().noneMatch(f -> Objects.equals(f.getName(), entry.getKey()))
                 && !keepProperties.contains(entry.getKey()));
@@ -164,13 +166,13 @@ public class RequestConverter {
         return payloadValidator;
     }
 
-    private void processReference(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext, boolean ignoreInvalidValues) {
-        validateReferencedIdentifiers(instance, reference, feedbackItems, validationContext);
-
-        final String referenceLocation = validationContext.get(LOCATION_KEY) + (((String) validationContext.get(LOCATION_KEY)).isEmpty() || ((String) validationContext.get(LOCATION_KEY)).endsWith("/") ? "" : ".");
-        final Map<String, Object> referenceValidationContext = new TreeMap<>(validationContext);
+    private void processReference(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> currentContext, Map<String, Object> feedbackContext, boolean ignoreInvalidValues) {
+        final String referenceLocation = currentContext.get(LOCATION_KEY) + (((String) currentContext.get(LOCATION_KEY)).isEmpty() || ((String) currentContext.get(LOCATION_KEY)).endsWith("/") ? "" : ".");
+        final Map<String, Object> referenceValidationContext = new TreeMap<>(feedbackContext);
         referenceValidationContext.put(LOCATION_KEY, referenceLocation);
-        feedbackItems.addAll(getPayloadValidator().validateReference(reference, instance, referenceValidationContext, ignoreInvalidValues));
+
+        validateReferencedIdentifiers(instance, reference, feedbackItems, referenceValidationContext);
+        feedbackItems.addAll(getPayloadValidator().validateReference(reference, instance, currentContext, ignoreInvalidValues));
     }
 
     private void validateReferencedIdentifiers(Payload instance, EReference reference, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext) {

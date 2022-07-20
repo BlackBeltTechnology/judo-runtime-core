@@ -19,7 +19,7 @@ import static hu.blackbelt.judo.runtime.core.validator.Validator.addValidationEr
 public class PrecisionValidator implements Validator {
 
     private static final String PRECISION_CONSTRAINT_NAME = "precision";
-    private static final String SCALE_CONSTRAINT_NAME = "precision";
+    private static final String SCALE_CONSTRAINT_NAME = "scale";
 
     @Override
     public boolean isApplicable(final EStructuralFeature feature) {
