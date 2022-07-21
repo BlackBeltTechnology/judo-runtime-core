@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.accessmanager;
 
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
@@ -9,7 +10,6 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import hu.blackbelt.judo.runtime.core.accessmanager.behaviours.*;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.exception.AuthenticationRequiredException;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -76,24 +76,24 @@ public class DefaultAccessManager implements AccessManager {
 
         if (!exposedForPublicOrTokenActor && !metadataOperation && actorFqName != null) {
             log.info("Operation failed, operation is not exposed to the given actor");
-            throw new AccessDeniedException(FeedbackItem.builder()
+            throw new AccessDeniedException(ValidationResult.builder()
                     .code("ACCESS_DENIED")
-                    .level(FeedbackItem.Level.ERROR)
+                    .level(ValidationResult.Level.ERROR)
                     .build());
         } else if (!exposedForPublicOrTokenActor && !metadataOperation) {
             log.info("Operation failed, authentication token is required to call a non-public operation");
-            throw new AuthenticationRequiredException(FeedbackItem.builder()
+            throw new AuthenticationRequiredException(ValidationResult.builder()
                     .code("AUTHENTICATION_REQUIRED")
-                    .level(FeedbackItem.Level.ERROR)
+                    .level(ValidationResult.Level.ERROR)
                     .build());
         }
 
         if (signedIdentifier != null && signedIdentifier.getProducedBy() != null && AsmUtils.getExtensionAnnotationListByName(signedIdentifier.getProducedBy(), "exposedBy").stream()
                 .noneMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")))) {
             log.info("Operation failed, principal has no permission to access instance of bound operation");
-            throw new AccessDeniedException(FeedbackItem.builder()
+            throw new AccessDeniedException(ValidationResult.builder()
                     .code("ACCESS_DENIED_FOR_INSTANCE_OF_BOUND_OPERATION")
-                    .level(FeedbackItem.Level.ERROR)
+                    .level(ValidationResult.Level.ERROR)
                     .build());
         }
 

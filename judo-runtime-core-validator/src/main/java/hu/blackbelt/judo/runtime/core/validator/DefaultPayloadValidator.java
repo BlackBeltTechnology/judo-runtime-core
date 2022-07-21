@@ -3,9 +3,10 @@ package hu.blackbelt.judo.runtime.core.validator;
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.dao.api.PayloadValidator;
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.PayloadTraverser;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
@@ -20,7 +21,7 @@ import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 
 @Builder
 @Slf4j
-public class PayloadValidator {
+public class DefaultPayloadValidator implements PayloadValidator {
     public enum RequiredStringValidatorOption {
         ACCEPT_EMPTY, ACCEPT_NON_EMPTY
     }
@@ -31,16 +32,14 @@ public class PayloadValidator {
     @NonNull
     private final Coercer coercer;
 
-    private final boolean trimString;
+//    private final boolean trimString;
 
     private final RequiredStringValidatorOption requiredStringValidatorOption;
 
     @SuppressWarnings("rawtypes")
     private final IdentifierProvider identifierProvider;
 
-    private final Collection<Validator> validators;
-
-    private final boolean throwValidationException;
+    private final ValidatorProvider validatorProvider;
 
     public static final String REFERENCE_ID_KEY = "__referenceId";
     public static final String VERSION_KEY = "__version";
@@ -61,52 +60,52 @@ public class PayloadValidator {
     public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("[^a-zA-Z0-9_]", "_");
     public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("[^a-zA-Z0-9_]", "_");
 
-    public List<FeedbackItem> validateInsert(final EClass transferObjectType, Payload input) throws ValidationException {
+    public List<ValidationResult> validateInsert(final EClass transferObjectType, Payload input) throws ValidationException {
         final Map<String, Object> validationContext = new TreeMap<>();
         validationContext.put(LOCATION_KEY, "");
         validationContext.put(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
         validationContext.put(CREATE_REFERENCE_KEY, null);
-        return validatePayload(transferObjectType, input, validationContext);
+        return validatePayload(transferObjectType, input, validationContext, true);
     }
 
-    public List<FeedbackItem> validateUpdate(final EClass transferObjectType, Payload input) throws ValidationException {
+    public List<ValidationResult> validateUpdate(final EClass transferObjectType, Payload input) throws ValidationException {
         final Map<String, Object> validationContext = new TreeMap<>();
         validationContext.put(LOCATION_KEY, "");
         validationContext.put(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
         validationContext.put(CREATE_REFERENCE_KEY, null);
-        return validatePayload(transferObjectType, input, validationContext);
+        return validatePayload(transferObjectType, input, validationContext, true);
     }
 
-    public List<FeedbackItem> validateSetReference(final EClass transferObjectType, Payload input) throws ValidationException {
+    public List<ValidationResult> validateSetReference(final EClass transferObjectType, Payload input) throws ValidationException {
         final Map<String, Object> validationContext = new TreeMap<>();
         validationContext.put(NO_TRAVERSE_KEY, true);
         validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext);
+        return validatePayload(transferObjectType, input, validationContext, true);
     }
 
-    public List<FeedbackItem> validateUnsetReference(final EClass transferObjectType, Payload input) throws ValidationException {
+    public List<ValidationResult> validateUnsetReference(final EClass transferObjectType, Payload input) throws ValidationException {
         final Map<String, Object> validationContext = new TreeMap<>();
         validationContext.put(NO_TRAVERSE_KEY, true);
         validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext);
+        return validatePayload(transferObjectType, input, validationContext, true);
     }
 
-    public List<FeedbackItem> validateAddReference(final EClass transferObjectType, Payload input) throws ValidationException {
+    public List<ValidationResult> validateAddReference(final EClass transferObjectType, Payload input) throws ValidationException {
         final Map<String, Object> validationContext = new TreeMap<>();
         validationContext.put(NO_TRAVERSE_KEY, true);
         validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext);
+        return validatePayload(transferObjectType, input, validationContext, true);
     }
 
-    public List<FeedbackItem> validateRemoveReference(final EClass transferObjectType, Payload input) throws ValidationException {
+    public List<ValidationResult> validateRemoveReference(final EClass transferObjectType, Payload input) throws ValidationException {
         final Map<String, Object> validationContext = new TreeMap<>();
         validationContext.put(NO_TRAVERSE_KEY, true);
         validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext);
+        return validatePayload(transferObjectType, input, validationContext, true);
     }
 
-    private List<FeedbackItem> validatePayload(final EClass transferObjectType, final Payload input, final Map<String, Object> validationContext) throws ValidationException {
-        final List<FeedbackItem> feedbackItems = new ArrayList<>();
+    public List<ValidationResult> validatePayload(final EClass transferObjectType, final Payload input, final Map<String, Object> validationContext, boolean throwValidationException) throws ValidationException {
+        final List<ValidationResult> validationResults = new ArrayList<>();
 
         final Payload payload = Payload.asPayload(input);
 
@@ -115,23 +114,23 @@ public class PayloadValidator {
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
                             ? asmUtils.getMappedReference(reference).filter(EReference::isContainment).isPresent()
                             : AsmUtils.isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
-                    .processor((instance, ctx) -> processPayload(instance, ctx, feedbackItems, validationContext))
+                    .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext))
                     .build()
                     .traverse(payload, transferObjectType);
         } catch (IllegalArgumentException ex) {
             log.debug("Invalid payload", ex);
         }
 
-        if (throwValidationException && !feedbackItems.isEmpty()) {
-            throw new ValidationException("Validation failed", Collections.unmodifiableCollection(feedbackItems));
+        if (throwValidationException && !validationResults.isEmpty()) {
+            throw new ValidationException("Validation failed", Collections.unmodifiableCollection(validationResults));
         } else {
-            validationContext.put(VALIDATION_RESULT_KEY, feedbackItems);
+            validationContext.put(VALIDATION_RESULT_KEY, validationResults);
         }
-        return feedbackItems;
+        return validationResults;
     }
 
 
-    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<FeedbackItem> feedbackItems, Map<String, Object> validationContext) {
+    private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<ValidationResult> validationResults, Map<String, Object> validationContext) {
         {
             final Map<String, Object> feedbackContext = new TreeMap<>(validationContext);
             final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
@@ -140,37 +139,37 @@ public class PayloadValidator {
             feedbackContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
 
             // do not validate referenced elements but containment only
-            final boolean validate = !validators.isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
+            final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
             final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
             if (validate) {
-                ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, feedbackItems, feedbackContext, ignoreInvalidValues));
-                ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, feedbackItems, currentContext, ignoreInvalidValues));
+                ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, feedbackContext, ignoreInvalidValues));
+                ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
             }
         }
     }
 
     private void processReference(final Payload instance,
                                   final EReference reference,
-                                  final Collection<FeedbackItem> feedbackItems,
+                                  final Collection<ValidationResult> validationResults,
                                   final Map<String, Object> validationContext,
                                   final boolean ignoreInvalidValues) {
 
-        feedbackItems.addAll(validateReference(reference, instance, validationContext, ignoreInvalidValues));
+        validationResults.addAll(validateReference(reference, instance, validationContext, ignoreInvalidValues));
     }
 
-    private void processAttribute(final Payload instance, final EAttribute attribute, final Collection<FeedbackItem> feedbackItems, final Map<String, Object> validationContext, final boolean ignoreInvalidValue) {
+    private void processAttribute(final Payload instance, final EAttribute attribute, final Collection<ValidationResult> validationResults, final Map<String, Object> validationContext, final boolean ignoreInvalidValue) {
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
         final Map<String, Object> attributeValidationContext = new TreeMap<>(validationContext);
         attributeValidationContext.put(LOCATION_KEY, containerLocation + (containerLocation.isEmpty() || containerLocation.endsWith("/") ? "" : ".") + attribute.getName());
 
         if (!ignoreInvalidValue) {
-            feedbackItems.addAll(validateAttribute(attribute, instance, attributeValidationContext));
+            validationResults.addAll(validateAttribute(attribute, instance, attributeValidationContext));
         }
     }
 
-    public List<FeedbackItem> validateReference(final EReference reference, final Payload instance, final Map<String, Object> validationContext, final boolean ignoreInvalidValues) {
+    public List<ValidationResult> validateReference(final EReference reference, final Payload instance, final Map<String, Object> validationContext, final boolean ignoreInvalidValues) {
         final Object value = instance.get(reference.getName());
-        final List<FeedbackItem> feedbackItems = new ArrayList<>();
+        final List<ValidationResult> validationResults = new ArrayList<>();
 
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
         final Map<String, Object> currentContext = new TreeMap<>(validationContext);
@@ -186,22 +185,22 @@ public class PayloadValidator {
                     addValidationError(
                             ImmutableMap.of(
                                     Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
-                                    PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY)),
+                                    DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY)),
                                     SIZE_PARAMETER, size
                             ),
                             currentContext.get(LOCATION_KEY),
-                            feedbackItems,
+                            validationResults,
                             ERROR_TOO_FEW_ITEMS
                     );
                 } else if (size > reference.getUpperBound() && reference.getUpperBound() != -1) {
                     addValidationError(
                             ImmutableMap.of(
                                     Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
-                                    PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY)),
+                                    DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY)),
                                     SIZE_PARAMETER, size
                             ),
                             currentContext.get(LOCATION_KEY),
-                            feedbackItems,
+                            validationResults,
                             ERROR_TOO_MANY_ITEMS
                     );
                 }
@@ -216,28 +215,28 @@ public class PayloadValidator {
                         addValidationError(
                                 ImmutableMap.of(
                                         Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
-                                        PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                                        DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                                 ),
                                 currentItemContext.get(LOCATION_KEY),
-                                feedbackItems,
+                                validationResults,
                                 ERROR_NULL_ITEM_IS_NOT_SUPPORTED
                         );
                     } else if (!(item instanceof Payload)) {
                         throw new IllegalStateException("Item must be a Payload");
                     } else {
-                        validators.stream()
+                        validatorProvider.getValidators().stream()
                                 .filter(v -> v.isApplicable(reference))
-                                .forEach(v -> feedbackItems.addAll(v.validateValue(instance, reference, item, currentItemContext)));
+                                .forEach(v -> validationResults.addAll(v.validateValue(instance, reference, item, currentItemContext)));
                     }
                 }
             } else if (value != null && !(value instanceof Collection)) {
                 addValidationError(
                         ImmutableMap.of(
                                 Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
-                                PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                                DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                         ),
                         currentContext.get(LOCATION_KEY),
-                        feedbackItems,
+                        validationResults,
                         ERROR_INVALID_CONTENT
                 );
             }
@@ -246,18 +245,18 @@ public class PayloadValidator {
                 addValidationError(
                         ImmutableMap.of(
                                 Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
-                                PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                                DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                         ),
                         currentContext.get(LOCATION_KEY),
-                        feedbackItems,
+                        validationResults,
                         ERROR_INVALID_CONTENT
                 );
             } else if (value != null && !(value instanceof Payload)) {
                 throw new IllegalStateException("Item must be a Payload");
             } else if (!ignoreInvalidValues && value != null) {
-                validators.stream()
+                validatorProvider.getValidators().stream()
                         .filter(v -> v.isApplicable(reference))
-                        .forEach(v -> feedbackItems.addAll(v.validateValue(instance, reference, value, currentContext)));
+                        .forEach(v -> validationResults.addAll(v.validateValue(instance, reference, value, currentContext)));
             }
         }
 
@@ -275,31 +274,31 @@ public class PayloadValidator {
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
-                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                            DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                     ),
                     currentContext.get(LOCATION_KEY),
-                    feedbackItems,
+                    validationResults,
                     ERROR_MISSING_REQUIRED_RELATION
             );
         }
-        return feedbackItems;
+        return validationResults;
     }
 
-    public List<FeedbackItem> validateAttribute(final EAttribute attribute, final Payload instance, final Map<String, Object> validationContext) {
+    public Collection<ValidationResult> validateAttribute(final EAttribute attribute, final Payload instance, final Map<String, Object> validationContext) {
         final Object value = instance.get(attribute.getName());
 
         final boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
 
-        final List<FeedbackItem> feedbackItems = new ArrayList<>();
+        final List<ValidationResult> validationResults = new ArrayList<>();
 
         if (attribute.isRequired() && (validateMissingFeatures || instance.containsKey(attribute.getName())) && value == null) {
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
-                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                            DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                     ),
                     validationContext.get(LOCATION_KEY),
-                    feedbackItems,
+                    validationResults,
                     ERROR_MISSING_REQUIRED_ATTRIBUTE
             );
         }
@@ -308,21 +307,21 @@ public class PayloadValidator {
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
-                            PayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(PayloadValidator.REFERENCE_ID_KEY))
+                            DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                     ),
                     validationContext.get(LOCATION_KEY),
-                    feedbackItems,
+                    validationResults,
                     ERROR_MISSING_REQUIRED_ATTRIBUTE
             );
         }
 
         if (value != null) {
-            validators.stream()
+            validatorProvider.getValidators().stream()
                     .filter(v -> v.isApplicable(attribute))
-                    .forEach(v -> feedbackItems.addAll(v.validateValue(instance, attribute, value, validationContext)));
+                    .forEach(v -> validationResults.addAll(v.validateValue(instance, attribute, value, validationContext)));
         }
 
-        return feedbackItems;
+        return validationResults;
     }
 
 }

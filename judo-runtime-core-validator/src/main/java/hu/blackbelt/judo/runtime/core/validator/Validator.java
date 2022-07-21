@@ -1,7 +1,7 @@
 package hu.blackbelt.judo.runtime.core.validator;
 
 import hu.blackbelt.judo.dao.api.Payload;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 import java.util.*;
@@ -40,12 +40,12 @@ public interface Validator {
 
     boolean isApplicable(EStructuralFeature feature);
 
-    Collection<FeedbackItem> validateValue(Payload payload, EStructuralFeature feature, Object value, Map<String, Object> context);
+    Collection<ValidationResult> validateValue(Payload payload, EStructuralFeature feature, Object value, Map<String, Object> context);
 
 
     public static void addValidationError(Map<String, Object> parameters,
                                           Object location,
-                                          Collection<FeedbackItem> feedbackItems,
+                                          Collection<ValidationResult> validationResults,
                                           String code) {
         final Map<String, Object> details = new LinkedHashMap<>();
 
@@ -60,9 +60,9 @@ public interface Validator {
                 }
             });
         }
-        feedbackItems.add(FeedbackItem.builder()
+        validationResults.add(ValidationResult.builder()
                 .code(code)
-                .level(FeedbackItem.Level.ERROR)
+                .level(ValidationResult.Level.ERROR)
                 .location(location)
                 .details(details)
                 .build());

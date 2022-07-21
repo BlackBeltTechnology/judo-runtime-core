@@ -2,9 +2,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dao.api.IdentifierProvider;
-import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.dao.api.*;
 import hu.blackbelt.judo.dispatcher.api.BusinessException;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
@@ -103,15 +101,19 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final Validator rangeValidator;
 
+    private final PayloadValidator payloadValidator;
+
+    private final ValidatorProvider validatorProvider;
+
     private final Boolean metricsReturned;
 
     private final Boolean trimString;
 
     private final Boolean caseInsensitiveLike;
 
-    private final String requiredStringValidatorOption;
+//    private final String requiredStringValidatorOption;
 
-    private final Collection<Validator> validators = new ArrayList<>();
+//    private final Collection<Validator> validators = new ArrayList<>();
 
     private Set<BehaviourCall<ID>> behaviourCalls;
 
@@ -155,6 +157,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             @NonNull ActorResolver actorResolver,
             @NonNull Context context,
             @NonNull MetricsCollector metricsCollector,
+            @NonNull PayloadValidator payloadValidator,
+            ValidatorProvider validatorProvider,
             OpenIdConfigurationProvider openIdConfigurationProvider,
             TokenIssuer filestoreTokenIssuer,
             TokenValidator filestoreTokenValidator,
@@ -163,8 +167,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             Boolean metricsReturned,
             Boolean enableDefaultValidation,
             Boolean trimString,
-            Boolean caseInsensitiveLike,
-            String requiredStringValidatorOption
+            Boolean caseInsensitiveLike
         ) {
         this.asmModel = asmModel;
         this.dao = dao;
@@ -180,14 +183,33 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.expressionModel = expressionModel;
         this.context = context;
         this.metricsCollector = metricsCollector;
+        this.payloadValidator = payloadValidator;
 
         if (enableDefaultValidation == null || enableDefaultValidation) {
-            validators.addAll(DEFAULT_VALIDATORS);
+            this.validatorProvider = Objects.requireNonNullElse(validatorProvider, new ValidatorProvider() {});
+            //validators.addAll(DEFAULT_VALIDATORS);
             rangeValidator = new RangeValidator<>(dao, identifierProvider, context, transactionManager);
-            validators.add(rangeValidator);
+            //validators.add(rangeValidator);
         } else {
-            rangeValidator = null;
+            rangeValidator = new Validator() {
+                @Override
+                public boolean isApplicable(EStructuralFeature feature) {
+                    return false;
+                }
+
+                @Override
+                public Collection<ValidationResult> validateValue(Payload payload, EStructuralFeature feature, Object value, Map<String, Object> context) {
+                    return null;
+                }
+            };
+            this.validatorProvider = new ValidatorProvider() {
+                @Override
+                public Collection<Validator> getValidators() {
+                    return Collections.emptyList();
+                }
+            };
         }
+
 
         this.metricsReturned = Objects.requireNonNullElse(metricsReturned, true);
 
@@ -195,7 +217,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
         this.caseInsensitiveLike = Objects.requireNonNullElse(caseInsensitiveLike, false);
 
-        this.requiredStringValidatorOption = Objects.requireNonNullElse(requiredStringValidatorOption, "ACCEPT_NON_EMPTY");
+//        this.requiredStringValidatorOption = Objects.requireNonNullElse(requiredStringValidatorOption, "ACCEPT_NON_EMPTY");
 
         this.openIdConfigurationProvider = openIdConfigurationProvider;
 
@@ -245,9 +267,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         if (exposed) {
             if (exchange.get(IdentifierSigner.SIGNED_IDENTIFIER_KEY) == null) {
                 log.info("Operation failed, missing " + IdentifierSigner.SIGNED_IDENTIFIER_KEY + " header of bound operation");
-                throw new ValidationException(Collections.singleton(FeedbackItem.builder()
+                throw new ValidationException(Collections.singleton(ValidationResult.builder()
                         .code(ERROR_MISSING_IDENTIFIER_OF_BOUND_OPERATION)
-                        .level(FeedbackItem.Level.ERROR)
+                        .level(ValidationResult.Level.ERROR)
                         .build()));
             }
 
@@ -260,9 +282,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 if (log.isDebugEnabled()) {
                     log.debug("Extracting signature failed", ex);
                 }
-                throw new ValidationException(Collections.singleton(FeedbackItem.builder()
+                throw new ValidationException(Collections.singleton(ValidationResult.builder()
                         .code(ERROR_INVALID_IDENTIFIER)
-                        .level(FeedbackItem.Level.ERROR)
+                        .level(ValidationResult.Level.ERROR)
                         .build()));
             }
         } else {
@@ -288,9 +310,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private Payload getTransferObjectAsBoundType(EClass mappedTransferObjectType, SignedIdentifier signedIdentifier) {
         final ID id = dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType());
         return dao.getByIdentifier(mappedTransferObjectType, id)
-                .orElseThrow(() -> new NotFoundException(FeedbackItem.builder()
+                .orElseThrow(() -> new NotFoundException(ValidationResult.builder()
                         .code(ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND)
-                        .level(FeedbackItem.Level.ERROR)
+                        .level(ValidationResult.Level.ERROR)
                         .build()));
     }
 
@@ -303,9 +325,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         if (operation.eContainer() != null && !AsmUtils.equals(operation.eContainer(), producedBy.getEType()) &&
                 !((producedBy.getEType() instanceof EClass) && ((EClass) producedBy.getEType()).getEAllSuperTypes().contains(operation.eContainer()))) {
             log.info("Mapped transfer object type of bound operation {} does not match type of signed identifier {}", AsmUtils.getOperationFQName(operation), AsmUtils.getClassifierFQName(producedBy.getEType()));
-            throw new AccessDeniedException(FeedbackItem.builder()
+            throw new AccessDeniedException(ValidationResult.builder()
                     .code(ERROR_ACCESS_DENIED_INVALID_TYPE)
-                    .level(FeedbackItem.Level.ERROR)
+                    .level(ValidationResult.Level.ERROR)
                     .build());
         }
     }
@@ -322,14 +344,6 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             asmUtils = new AsmUtils(asmModel.getResourceSet());
         }
         return asmUtils;
-    }
-
-    private Collection<Validator> getValidators() {
-        if (validators.size() == 0) {
-            validators.addAll(DEFAULT_VALIDATORS);
-            validators.add(new RangeValidator<>(dao, identifierProvider, context, transactionManager));
-        }
-        return validators;
     }
 
     @SuppressWarnings("unchecked")
@@ -380,17 +394,17 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     @SuppressWarnings("unchecked")
-    void processParameter(EOperation operation, EParameter parameter, EClassifier parameterType, Map<String, Object> exchange, final Map<String, Object> validationContext, List<FeedbackItem> feedbackItems) {
+    void processParameter(EOperation operation, EParameter parameter, EClassifier parameterType, Map<String, Object> exchange, final Map<String, Object> validationContext, List<ValidationResult> ValidationResults) {
         final EClass transferObjectType = (EClass) parameterType;
         final RequestConverter requestConverter = RequestConverter.builder()
                 .transferObjectType(transferObjectType)
                 .coercer(dataTypeManager.getCoercer())
                 .asmUtils(getAsmUtils())
-                .validators(getValidators())
+                .validatorProvider(validatorProvider)
                 .trimString(trimString)
-                .requiredStringValidatorOption(PayloadValidator.RequiredStringValidatorOption.valueOf(requiredStringValidatorOption))
                 .identifierSigner(identifierSigner)
                 .identifierProvider(identifierProvider)
+                .payloadValidator(payloadValidator)
                 .throwValidationException(true)
                 .keepProperties(Arrays.asList(IdentifierSigner.SIGNED_IDENTIFIER_KEY, identifierProvider.getName(), REFERENCE_ID_KEY, VERSION_KEY))
                 .filestoreTokenValidator(filestoreTokenValidator)
@@ -408,7 +422,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                             SIZE_PARAMETER, parameterListSize
                         ),
                         validationContext.get(RequestConverter.LOCATION_KEY),
-                        feedbackItems,
+                        ValidationResults,
                         ERROR_TOO_FEW_PARAMETERS);
             } else if (parameterListSize > parameter.getUpperBound() && parameter.getUpperBound() != -1) {
                 addValidationError(ImmutableMap.of(
@@ -416,7 +430,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                                 SIZE_PARAMETER, parameterListSize
                         ),
                         validationContext.get(RequestConverter.LOCATION_KEY),
-                        feedbackItems,
+                        ValidationResults,
                         ERROR_TOO_MANY_PARAMETERS);
             }
             int idx = 0;
@@ -429,7 +443,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     try {
                         payload = requestConverter.convert(input, validationContext);
                     } catch (ValidationException ex) {
-                        feedbackItems.addAll(ex.getFeedbackItems());
+                        ValidationResults.addAll(ex.getValidationResults());
                         continue;
                     }
                 }
@@ -437,7 +451,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     addValidationError(
                             ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
                             validationContext.get(RequestConverter.LOCATION_KEY),
-                            feedbackItems,
+                            ValidationResults,
                             ERROR_NULL_PARAMETER_ITEM_IS_NOT_SUPPORTED);
                 } else {
                     payloadList.add(payload.get());
@@ -446,7 +460,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     final EReference reference = getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                             .map(o -> (EReference) o)
                             .orElseThrow(() -> new IllegalArgumentException("Owner operation is not found for " + operation.getName()));
-                    feedbackItems.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, Payload.asPayload(input), validationContext));
+                    ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, Payload.asPayload(input), validationContext));
                 }
             }
             exchange.put(parameter.getName(), payloadList);
@@ -459,7 +473,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         final EReference reference = getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                                 .map(o -> (EReference) o)
                                 .orElseThrow(() -> new IllegalArgumentException("Owner operation is not found for " + operation.getName()));
-                        feedbackItems.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, payload.get(), validationContext));
+                        ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, payload.get(), validationContext));
                     }
                     Optional<String> inputRangeReferenceFQName = AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false);
                     if (inputRangeReferenceFQName.isPresent()) {
@@ -468,16 +482,16 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         exchange.put(parameter.getName(), inputPayload);
                         final EReference reference = getAsmUtils().resolveReference(inputRangeReferenceFQName.get())
                                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
-                        feedbackItems.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, inputPayload, validationContext));
+                        ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, inputPayload, validationContext));
                     }
                 } else if (parameter.isRequired()) {
                     addValidationError(ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
                             validationContext.get(RequestConverter.LOCATION_KEY),
-                            feedbackItems,
+                            ValidationResults,
                             ERROR_MISSING_REQUIRED_PARAMETER);
                 }
             } catch (ValidationException ex) {
-                feedbackItems.addAll(ex.getFeedbackItems());
+                ValidationResults.addAll(ex.getValidationResults());
             }
         }
     }
@@ -513,9 +527,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             entityType = Optional.of(getAsmUtils().resolve(signedIdentifier.getEntityType()).filter(t -> t instanceof EClass).map(t -> (EClass) t)
                     .orElseThrow(() -> new IllegalArgumentException("Unable to resolve entity type")));
             final Payload metadata = dao.getMetadata(mappedTransferObjectType, dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType()))
-                    .orElseThrow(() -> new NotFoundException(FeedbackItem.builder()
+                    .orElseThrow(() -> new NotFoundException(ValidationResult.builder()
                             .code(ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND)
-                            .level(FeedbackItem.Level.ERROR)
+                            .level(ValidationResult.Level.ERROR)
                             .build()));
             checkState(Objects.equals(AsmUtils.getClassifierFQName(entityType.get()), metadata.get(Dispatcher.ENTITY_TYPE_MAP_KEY)), "Invalid entity type in signed identifier");
         } else {
@@ -575,9 +589,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     SignedIdentifier signedIdentifierValue = signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation"));
                     if (exposed) {
                         if (Boolean.TRUE.equals(signedIdentifierValue.getImmutable())) {
-                            throw new AccessDeniedException(FeedbackItem.builder()
+                            throw new AccessDeniedException(ValidationResult.builder()
                                     .code(ERROR_BOUND_OPERATION_INSTANCE_IS_IMMUTABLE)
-                                    .level(FeedbackItem.Level.ERROR)
+                                    .level(ValidationResult.Level.ERROR)
                                     .build());
                         }
                         accessManager.authorizeOperation(operation, signedIdentifierValue, exchange);
@@ -608,7 +622,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
                 // Validating and converting parameters
                 if (exposed) {
-                    final List<FeedbackItem> feedbackItems = new ArrayList<>();
+                    final List<ValidationResult> ValidationResults = new ArrayList<>();
                     final List<EParameter> parameters = operation.getEParameters().stream()
                             .filter(parameter -> (parameter.getEType() instanceof EClass))
                             .collect(Collectors.toList());
@@ -617,11 +631,11 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         final EClass transferObjectType = (EClass) parameter.getEType();
                         final Map<String, Object> validationContext = new TreeMap<>();
                         validationContext.put(RequestConverter.LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
-                        processParameter(operation, parameter, transferObjectType, exchange, validationContext, feedbackItems);
+                        processParameter(operation, parameter, transferObjectType, exchange, validationContext, ValidationResults);
                     });
 
-                    if (!feedbackItems.isEmpty()) {
-                        throw new ValidationException("Invalid request", feedbackItems);
+                    if (!ValidationResults.isEmpty()) {
+                        throw new ValidationException("Invalid request", ValidationResults);
                     }
                 }
 
