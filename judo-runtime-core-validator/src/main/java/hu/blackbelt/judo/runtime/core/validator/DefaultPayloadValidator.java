@@ -32,8 +32,6 @@ public class DefaultPayloadValidator implements PayloadValidator {
     @NonNull
     private final Coercer coercer;
 
-//    private final boolean trimString;
-
     private final RequiredStringValidatorOption requiredStringValidatorOption;
 
     @SuppressWarnings("rawtypes")
