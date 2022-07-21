@@ -1,13 +1,13 @@
 package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
@@ -235,9 +235,9 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
 
             if (!hasCorrectSigner((EClass) signedIdentifier.getProducedBy().getEType(), clazz)) {
                 log.info("Mapped transfer object type {} does not match type of signed identifier {}", AsmUtils.getClassifierFQName(clazz), AsmUtils.getClassifierFQName(signedIdentifier.getProducedBy().getEType()));
-                throw new AccessDeniedException(FeedbackItem.builder()
+                throw new AccessDeniedException(ValidationResult.builder()
                         .code("ACCESS_DENIED_INVALID_TYPE")
-                        .level(FeedbackItem.Level.ERROR)
+                        .level(ValidationResult.Level.ERROR)
                         .build());
             }
 

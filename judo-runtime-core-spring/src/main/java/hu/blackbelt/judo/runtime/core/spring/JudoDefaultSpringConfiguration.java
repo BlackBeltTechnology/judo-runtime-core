@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.spring;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.PayloadValidator;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
@@ -30,6 +31,8 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.runtime.core.security.*;
+import hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator;
+import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.judo.tatami.core.TransformationTraceServiceImpl;
@@ -280,18 +283,35 @@ public class JudoDefaultSpringConfiguration {
 
     @Bean
     @SuppressWarnings("unchecked")
+    public PayloadValidator getPayloadValidator() {
+        // TODO: Parameters
+        String requiredStringValidatorOption = "ACCEPT_NON_EMPTY";
+
+        AsmUtils asm = new AsmUtils(asmModel.getResourceSet());
+
+        return DefaultPayloadValidator.builder()
+                .asmUtils(asm)
+                .identifierProvider(identifierProvider)
+                .coercer(coercer)
+                .validatorProvider(new ValidatorProvider() {})
+                .requiredStringValidatorOption(DefaultPayloadValidator.RequiredStringValidatorOption.valueOf(requiredStringValidatorOption))
+                .build();
+    }
+
+    @Bean
+    @SuppressWarnings("unchecked")
     public Dispatcher getDispatcher(
             DAO dao,
             AccessManager accessManager,
             IdentifierSigner identifierSigner,
-            ActorResolver actorResolver
+            ActorResolver actorResolver,
+            PayloadValidator payloadValidator
     ) {
         // TODO: Parameters
         Boolean metricsReturned = true;
         Boolean enableDefaultValidation = true;
         Boolean trimString = false;
         Boolean caseInsensitiveLike = false;
-        String requiredStringValidatorOption = "ACCEPT_NON_EMPTY";
 
         return DefaultDispatcher.builder()
                 .asmModel(asmModel)
@@ -309,11 +329,11 @@ public class JudoDefaultSpringConfiguration {
                 .openIdConfigurationProvider(openIdConfigurationProvider)
                 .filestoreTokenValidator(filestoreTokenValidator)
                 .filestoreTokenIssuer(filestoreTokenIssuer)
+                .payloadValidator(payloadValidator)
                 .metricsReturned(metricsReturned)
                 .enableDefaultValidation(enableDefaultValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
-                .requiredStringValidatorOption(requiredStringValidatorOption)
                 .build();
     }
 

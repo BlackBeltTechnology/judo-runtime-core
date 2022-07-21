@@ -1,13 +1,15 @@
 package hu.blackbelt.judo.runtime.core.exception;
 
+import hu.blackbelt.judo.dao.api.ValidationResult;
+
 public class AuthenticationRequiredException extends ClientException {
 
 	private static final long serialVersionUID = -5826001649836508910L;
-	private final FeedbackItem feedbackItem;
+	private final ValidationResult validationResult;
 
-    public AuthenticationRequiredException(FeedbackItem feedbackItem) {
+    public AuthenticationRequiredException(ValidationResult validationResult) {
         super();
-        this.feedbackItem = feedbackItem;
+        this.validationResult = validationResult;
     }
 
     @Override
@@ -17,6 +19,6 @@ public class AuthenticationRequiredException extends ClientException {
 
     @Override
     public Object getDetails() {
-        return feedbackItem;
+        return validationResult;
     }
 }
