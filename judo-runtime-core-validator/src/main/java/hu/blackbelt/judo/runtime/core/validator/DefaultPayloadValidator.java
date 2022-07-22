@@ -86,17 +86,17 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<ValidationResult> validationResults, Map<String, Object> validationContext) {
         {
-            final Map<String, Object> feedbackContext = new TreeMap<>(validationContext);
+            final Map<String, Object> validationResultContext = new TreeMap<>(validationContext);
             final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
             final Map<String, Object> currentContext = new TreeMap<>(validationContext);
             currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
-            feedbackContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
+            validationResultContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
 
             // do not validate referenced elements but containment only
             final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
             final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
             if (validate) {
-                ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, feedbackContext, ignoreInvalidValues));
+                ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
                 ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
             }
         }
