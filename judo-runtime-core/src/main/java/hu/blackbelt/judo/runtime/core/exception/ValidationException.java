@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.exception;
 
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import lombok.Getter;
 
 import java.util.Collection;
@@ -9,16 +10,16 @@ public class ValidationException extends ClientException {
 	private static final long serialVersionUID = 1550702685342981741L;
 
 	@Getter
-    private final Collection<FeedbackItem> feedbackItems;
+    private final Collection<ValidationResult> validationResults;
 
-    public ValidationException(final Collection<FeedbackItem> feedbackItems) {
+    public ValidationException(final Collection<ValidationResult> validationResults) {
         super();
-        this.feedbackItems = feedbackItems;
+        this.validationResults = validationResults;
     }
 
-    public ValidationException(final String message, final Collection<FeedbackItem> feedbackItems) {
+    public ValidationException(final String message, final Collection<ValidationResult> validationResults) {
         super(message);
-        this.feedbackItems = feedbackItems;
+        this.validationResults = validationResults;
     }
 
     @Override
@@ -28,6 +29,13 @@ public class ValidationException extends ClientException {
 
     @Override
     public Object getDetails() {
-        return feedbackItems;
+        return validationResults;
+    }
+
+    @Override
+    public String toString() {
+        String s = getClass().getName();
+        String message = getLocalizedMessage();
+        return (message != null) ? (s + ": " + message + " " + getDetails()) : (s + ": " + getDetails());
     }
 }

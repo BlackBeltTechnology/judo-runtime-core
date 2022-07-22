@@ -1,16 +1,18 @@
 package hu.blackbelt.judo.runtime.core.dispatcher.validators;
 
+import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.RequestConverter;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.AlwaysRollbackTransactionalBehaviourCall;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.BehaviourCall;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
+import hu.blackbelt.judo.runtime.core.validator.Validator;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,8 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 import javax.transaction.TransactionManager;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -47,11 +51,11 @@ public class RangeValidator<ID> implements Validator {
     }
 
     @Override
-    public Collection<FeedbackItem> validateValue(Payload instance, final EStructuralFeature feature, final Object value, final Map<String, Object> validationContext) {
-        final Collection<FeedbackItem> feedbackItems = new ArrayList<>();
+    public Collection<ValidationResult> validateValue(Payload instance, final EStructuralFeature feature, final Object value, final Map<String, Object> validationContext) {
+        final Collection<ValidationResult> validationResults = new ArrayList<>();
 
         if (!AsmUtils.getExtensionAnnotationValue(feature, "range", false).isPresent()) {
-            return feedbackItems;
+            return validationResults;
         }
 
         final BehaviourCall<ID> getRangeCall = new AlwaysRollbackTransactionalBehaviourCall<ID>(context, transactionManager) {
@@ -80,20 +84,16 @@ public class RangeValidator<ID> implements Validator {
 
         final ID id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
         if (id == null || !validIds.contains(id)) {
-            final Map<String, Object> details = new LinkedHashMap<>();
-            details.put(identifierProvider.getName(), id);
-            details.put(IdentifierSigner.SIGNED_IDENTIFIER_KEY, ((Payload) value).get(IdentifierSigner.SIGNED_IDENTIFIER_KEY));
-            if (instance.containsKey(DefaultDispatcher.REFERENCE_ID_KEY)) {
-                details.put(DefaultDispatcher.REFERENCE_ID_KEY, instance.get(DefaultDispatcher.REFERENCE_ID_KEY));
-            }
-            feedbackItems.add(FeedbackItem.builder()
-                    .code("NOT_ACCEPTED_BY_RANGE")
-                    .level(FeedbackItem.Level.ERROR)
-                    .location(validationContext.get(RequestConverter.LOCATION_KEY))
-                    .details(details)
-                    .build());
+            Validator.addValidationError(ImmutableMap.of(
+                            identifierProvider.getName(), id,
+                            IdentifierSigner.SIGNED_IDENTIFIER_KEY, Optional.ofNullable(((Payload) value).get(IdentifierSigner.SIGNED_IDENTIFIER_KEY)),
+                            DefaultDispatcher.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultDispatcher.REFERENCE_ID_KEY))
+                    ),
+                    validationContext.get(LOCATION_KEY),
+                    validationResults,
+                    "NOT_ACCEPTED_BY_RANGE");
         }
 
-        return feedbackItems;
+        return validationResults;
     }
 }
