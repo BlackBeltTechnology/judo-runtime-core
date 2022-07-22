@@ -1,8 +1,8 @@
 package hu.blackbelt.judo.runtime.core.accessmanager.behaviours;
 
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -40,9 +40,9 @@ public abstract class BehaviourAuthorizer {
                 if (Arrays.stream(flag).noneMatch(f -> Boolean.parseBoolean(operationOwnerPermissions.getDetails().get(f.permissionName)))) {
                     log.info("Operation failed, permission denied (by CRUD operation)");
                     details.put("MODEL_ELEMENT", AsmUtils.getOperationFQName((EOperation) element));
-                    throw new AccessDeniedException(FeedbackItem.builder()
+                    throw new AccessDeniedException(ValidationResult.builder()
                             .code("PERMISSION_DENIED")
-                            .level(FeedbackItem.Level.ERROR)
+                            .level(ValidationResult.Level.ERROR)
                             .location(element.getName())
                             .details(details)
                             .build());
@@ -56,9 +56,9 @@ public abstract class BehaviourAuthorizer {
                 } else {
                     details.put("MODEL_ELEMENT", element.getName());
                 }
-                throw new AccessDeniedException(FeedbackItem.builder()
+                throw new AccessDeniedException(ValidationResult.builder()
                         .code("PERMISSION_DENIED")
-                        .level(FeedbackItem.Level.ERROR)
+                        .level(ValidationResult.Level.ERROR)
                         .location(element.getName())
                         .details(details)
                         .build());

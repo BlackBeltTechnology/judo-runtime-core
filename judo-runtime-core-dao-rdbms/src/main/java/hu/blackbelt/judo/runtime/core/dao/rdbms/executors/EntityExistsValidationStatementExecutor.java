@@ -1,12 +1,12 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
 
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.InstanceExistsValidationStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
@@ -75,9 +75,9 @@ class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> 
             final Map<String, Object> details = new LinkedHashMap<>();
             details.put(getIdentifierProvider().getName(), identifier);
             details.put(ENTITY_TYPE_MAP_KEY, AsmUtils.getClassifierFQName(statement.getInstance().getType()));
-            throw new ValidationException("Instance not found", Collections.singleton(FeedbackItem.builder()
+            throw new ValidationException("Instance not found", Collections.singleton(ValidationResult.builder()
                     .code("ENTITY_NOT_FOUND")
-                    .level(FeedbackItem.Level.ERROR)
+                    .level(ValidationResult.Level.ERROR)
                     .details(details)
                     .build()));
         } else {

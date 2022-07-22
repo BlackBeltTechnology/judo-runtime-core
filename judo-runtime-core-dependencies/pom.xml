@@ -203,6 +203,12 @@
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-validator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
                 <artifactId>judo-runtime-core-dao-rdbms-hsqldb</artifactId>
                 <version>${project.version}</version>
             </dependency>
