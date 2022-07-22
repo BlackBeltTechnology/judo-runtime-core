@@ -32,6 +32,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.runtime.core.security.*;
 import hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator;
+import hu.blackbelt.judo.runtime.core.validator.DefaultValidatorProvider;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
@@ -281,9 +282,14 @@ public class JudoDefaultSpringConfiguration {
     @Autowired(required = false)
     TokenValidator filestoreTokenValidator;
 
+
+    @Bean
+    public ValidatorProvider validatorProvider() {
+        return new DefaultValidatorProvider();
+    }
     @Bean
     @SuppressWarnings("unchecked")
-    public PayloadValidator getPayloadValidator() {
+    public PayloadValidator getPayloadValidator(ValidatorProvider validatorProvider) {
         // TODO: Parameters
         String requiredStringValidatorOption = "ACCEPT_NON_EMPTY";
 
@@ -293,7 +299,7 @@ public class JudoDefaultSpringConfiguration {
                 .asmUtils(asm)
                 .identifierProvider(identifierProvider)
                 .coercer(coercer)
-                .validatorProvider(new ValidatorProvider() {})
+                .validatorProvider(validatorProvider)
                 .requiredStringValidatorOption(DefaultPayloadValidator.RequiredStringValidatorOption.valueOf(requiredStringValidatorOption))
                 .build();
     }
@@ -305,7 +311,8 @@ public class JudoDefaultSpringConfiguration {
             AccessManager accessManager,
             IdentifierSigner identifierSigner,
             ActorResolver actorResolver,
-            PayloadValidator payloadValidator
+            PayloadValidator payloadValidator,
+            ValidatorProvider validatorProvider
     ) {
         // TODO: Parameters
         Boolean metricsReturned = true;
@@ -330,6 +337,7 @@ public class JudoDefaultSpringConfiguration {
                 .filestoreTokenValidator(filestoreTokenValidator)
                 .filestoreTokenIssuer(filestoreTokenIssuer)
                 .payloadValidator(payloadValidator)
+                .validatorProvider(validatorProvider)
                 .metricsReturned(metricsReturned)
                 .enableDefaultValidation(enableDefaultValidation)
                 .trimString(trimString)

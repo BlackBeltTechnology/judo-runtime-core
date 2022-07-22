@@ -186,10 +186,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.payloadValidator = payloadValidator;
 
         if (enableDefaultValidation == null || enableDefaultValidation) {
-            this.validatorProvider = Objects.requireNonNullElse(validatorProvider, new ValidatorProvider() {});
-            //validators.addAll(DEFAULT_VALIDATORS);
+            this.validatorProvider = Objects.requireNonNullElse(validatorProvider, new DefaultValidatorProvider());
             rangeValidator = new RangeValidator<>(dao, identifierProvider, context, transactionManager);
-            //validators.add(rangeValidator);
+            this.validatorProvider.addValidator(rangeValidator);
         } else {
             rangeValidator = new Validator() {
                 @Override
@@ -199,15 +198,11 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
                 @Override
                 public Collection<ValidationResult> validateValue(Payload payload, EStructuralFeature feature, Object value, Map<String, Object> context) {
-                    return null;
-                }
-            };
-            this.validatorProvider = new ValidatorProvider() {
-                @Override
-                public Collection<Validator> getValidators() {
                     return Collections.emptyList();
                 }
             };
+            this.validatorProvider = new DefaultValidatorProvider();
+            validatorProvider.getValidators().clear();
         }
 
 

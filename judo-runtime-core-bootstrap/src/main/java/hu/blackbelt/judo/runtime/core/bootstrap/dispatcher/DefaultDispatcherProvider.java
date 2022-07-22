@@ -69,6 +69,9 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     @Inject
     PayloadValidator payloadValidator;
 
+    @Inject
+    ValidatorProvider validatorProvider;
+
     @Inject(optional = true)
     @Nullable
     OpenIdConfigurationProvider openIdConfigurationProvider;
@@ -116,6 +119,7 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
                 .accessManager(accessManager)
                 .actorResolver(actorResolver)
                 .context(context)
+                .validatorProvider(validatorProvider)
                 .payloadValidator(payloadValidator)
                 .metricsCollector(metricsCollector)
                 .openIdConfigurationProvider(openIdConfigurationProvider)
