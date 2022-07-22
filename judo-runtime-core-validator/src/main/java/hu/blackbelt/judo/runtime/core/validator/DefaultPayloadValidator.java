@@ -58,50 +58,6 @@ public class DefaultPayloadValidator implements PayloadValidator {
     public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("[^a-zA-Z0-9_]", "_");
     public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("[^a-zA-Z0-9_]", "_");
 
-    public List<ValidationResult> validateInsert(final EClass transferObjectType, Payload input) throws ValidationException {
-        final Map<String, Object> validationContext = new TreeMap<>();
-        validationContext.put(LOCATION_KEY, "");
-        validationContext.put(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
-        validationContext.put(CREATE_REFERENCE_KEY, null);
-        return validatePayload(transferObjectType, input, validationContext, true);
-    }
-
-    public List<ValidationResult> validateUpdate(final EClass transferObjectType, Payload input) throws ValidationException {
-        final Map<String, Object> validationContext = new TreeMap<>();
-        validationContext.put(LOCATION_KEY, "");
-        validationContext.put(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
-        validationContext.put(CREATE_REFERENCE_KEY, null);
-        return validatePayload(transferObjectType, input, validationContext, true);
-    }
-
-    public List<ValidationResult> validateSetReference(final EClass transferObjectType, Payload input) throws ValidationException {
-        final Map<String, Object> validationContext = new TreeMap<>();
-        validationContext.put(NO_TRAVERSE_KEY, true);
-        validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext, true);
-    }
-
-    public List<ValidationResult> validateUnsetReference(final EClass transferObjectType, Payload input) throws ValidationException {
-        final Map<String, Object> validationContext = new TreeMap<>();
-        validationContext.put(NO_TRAVERSE_KEY, true);
-        validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext, true);
-    }
-
-    public List<ValidationResult> validateAddReference(final EClass transferObjectType, Payload input) throws ValidationException {
-        final Map<String, Object> validationContext = new TreeMap<>();
-        validationContext.put(NO_TRAVERSE_KEY, true);
-        validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext, true);
-    }
-
-    public List<ValidationResult> validateRemoveReference(final EClass transferObjectType, Payload input) throws ValidationException {
-        final Map<String, Object> validationContext = new TreeMap<>();
-        validationContext.put(NO_TRAVERSE_KEY, true);
-        validationContext.put(VALIDATE_MISSING_FEATURES_KEY, false);
-        return validatePayload(transferObjectType, input, validationContext, true);
-    }
-
     public List<ValidationResult> validatePayload(final EClass transferObjectType, final Payload input, final Map<String, Object> validationContext, boolean throwValidationException) throws ValidationException {
         final List<ValidationResult> validationResults = new ArrayList<>();
 
@@ -207,7 +163,6 @@ public class DefaultPayloadValidator implements PayloadValidator {
                      Iterator it = ((Collection) value).iterator(); it.hasNext(); idx++) {
                     final Map<String, Object> currentItemContext = new TreeMap<>(currentContext);
                     currentItemContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY) + "[" + idx + "]");
-
                     final Object item = it.next();
                     if (item == null) {
                         addValidationError(

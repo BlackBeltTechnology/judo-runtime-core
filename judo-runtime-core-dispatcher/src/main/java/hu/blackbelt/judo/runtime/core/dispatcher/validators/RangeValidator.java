@@ -24,6 +24,8 @@ import javax.transaction.TransactionManager;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
+
 @RequiredArgsConstructor
 @Slf4j
 public class RangeValidator<ID> implements Validator {
@@ -87,7 +89,7 @@ public class RangeValidator<ID> implements Validator {
                             IdentifierSigner.SIGNED_IDENTIFIER_KEY, Optional.ofNullable(((Payload) value).get(IdentifierSigner.SIGNED_IDENTIFIER_KEY)),
                             DefaultDispatcher.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultDispatcher.REFERENCE_ID_KEY))
                     ),
-                    validationContext.get(RequestConverter.LOCATION_KEY),
+                    validationContext.get(LOCATION_KEY),
                     validationResults,
                     "NOT_ACCEPTED_BY_RANGE");
         }

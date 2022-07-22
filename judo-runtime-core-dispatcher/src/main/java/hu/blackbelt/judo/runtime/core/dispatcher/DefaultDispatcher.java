@@ -37,6 +37,8 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.CREATE_REFERENCE_KEY;
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 import static java.util.Optional.ofNullable;
 
@@ -416,7 +418,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                             Validator.FEATURE_KEY, parameter.getName(),
                             SIZE_PARAMETER, parameterListSize
                         ),
-                        validationContext.get(RequestConverter.LOCATION_KEY),
+                        validationContext.get(LOCATION_KEY),
                         ValidationResults,
                         ERROR_TOO_FEW_PARAMETERS);
             } else if (parameterListSize > parameter.getUpperBound() && parameter.getUpperBound() != -1) {
@@ -424,14 +426,14 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         Validator.FEATURE_KEY, parameter.getName(),
                                 SIZE_PARAMETER, parameterListSize
                         ),
-                        validationContext.get(RequestConverter.LOCATION_KEY),
+                        validationContext.get(LOCATION_KEY),
                         ValidationResults,
                         ERROR_TOO_MANY_PARAMETERS);
             }
             int idx = 0;
             final List<Payload> payloadList = new ArrayList<>();
             for (Iterator<Map<String, Object>> it = parameterList.iterator(); it.hasNext(); idx++) {
-                validationContext.put(RequestConverter.LOCATION_KEY, parameter.getName() + "[" + idx + "]");
+                validationContext.put(LOCATION_KEY, parameter.getName() + "[" + idx + "]");
                 final Map<String, Object> input = it.next();
                 Optional<Payload> payload = Optional.empty();
                 if (input != null) {
@@ -445,7 +447,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 if (payload.isEmpty()) {
                     addValidationError(
                             ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
-                            validationContext.get(RequestConverter.LOCATION_KEY),
+                            validationContext.get(LOCATION_KEY),
                             ValidationResults,
                             ERROR_NULL_PARAMETER_ITEM_IS_NOT_SUPPORTED);
                 } else {
@@ -481,7 +483,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     }
                 } else if (parameter.isRequired()) {
                     addValidationError(ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
-                            validationContext.get(RequestConverter.LOCATION_KEY),
+                            validationContext.get(LOCATION_KEY),
                             ValidationResults,
                             ERROR_MISSING_REQUIRED_PARAMETER);
                 }
@@ -495,7 +497,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         if (AsmUtils.OperationBehaviour.CREATE_INSTANCE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.VALIDATE_CREATE.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
-            validationContext.put(RequestConverter.CREATE_REFERENCE_KEY, asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElse(null));
+            validationContext.put(CREATE_REFERENCE_KEY, asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElse(null));
         } else if (AsmUtils.OperationBehaviour.UPDATE_INSTANCE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.VALIDATE_UPDATE.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
@@ -625,7 +627,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     parameters.forEach(parameter -> {
                         final EClass transferObjectType = (EClass) parameter.getEType();
                         final Map<String, Object> validationContext = new TreeMap<>();
-                        validationContext.put(RequestConverter.LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
+                        validationContext.put(LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
                         processParameter(operation, parameter, transferObjectType, exchange, validationContext, ValidationResults);
                     });
 

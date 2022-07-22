@@ -31,4 +31,11 @@ public class ValidationException extends ClientException {
     public Object getDetails() {
         return validationResults;
     }
+
+    @Override
+    public String toString() {
+        String s = getClass().getName();
+        String message = getLocalizedMessage();
+        return (message != null) ? (s + ": " + message + " " + getDetails()) : (s + ": " + getDetails());
+    }
 }

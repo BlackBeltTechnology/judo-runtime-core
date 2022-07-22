@@ -29,6 +29,8 @@ import org.eclipse.emf.ecore.*;
 import java.util.*;
 import java.util.function.Function;
 
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.VALIDATION_RESULT_KEY;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 
 @Builder
@@ -64,9 +66,6 @@ public class RequestConverter {
     @Singular
     private final Collection<String> keepProperties;
 
-    public static final String VALIDATION_RESULT_KEY = "validationResult";
-    public static final String LOCATION_KEY = "location";
-    public static final String CREATE_REFERENCE_KEY = "createReference";
     public static final String NO_TRAVERSE_KEY = "noTraverse";
     public static final String VALIDATE_FOR_CREATE_OR_UPDATE_KEY = "validateForCreateOrUpdate";
     public static final String VALIDATE_MISSING_FEATURES_KEY = "validateMissingFeatures";
@@ -197,7 +196,7 @@ public class RequestConverter {
                 }
                 addValidationError(ImmutableMap.of(
                         DefaultDispatcher.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultDispatcher.REFERENCE_ID_KEY))),
-                        validationContext.get(RequestConverter.LOCATION_KEY),
+                        validationContext.get(LOCATION_KEY),
                         validationResults,
                         ERROR_INVALID_IDENTIFIER
                 );
