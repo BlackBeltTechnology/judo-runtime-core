@@ -1,13 +1,15 @@
 package hu.blackbelt.judo.runtime.core.exception;
 
+import hu.blackbelt.judo.dao.api.ValidationResult;
+
 public class AccessDeniedException extends ClientException {
 
 	private static final long serialVersionUID = -8619727759658375103L;
-	private final FeedbackItem feedbackItem;
+	private final ValidationResult validationResult;
 
-    public AccessDeniedException(FeedbackItem feedbackItem) {
+    public AccessDeniedException(ValidationResult validationResult) {
         super();
-        this.feedbackItem = feedbackItem;
+        this.validationResult = validationResult;
     }
 
     @Override
@@ -17,6 +19,6 @@ public class AccessDeniedException extends ClientException {
 
     @Override
     public Object getDetails() {
-        return feedbackItem;
+        return validationResult;
     }
 }
