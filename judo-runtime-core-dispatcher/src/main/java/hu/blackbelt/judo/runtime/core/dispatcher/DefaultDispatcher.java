@@ -19,7 +19,6 @@ import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.*;
 import hu.blackbelt.judo.runtime.core.dispatcher.converters.FileTypeFormatter;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
-import hu.blackbelt.judo.runtime.core.dispatcher.validators.*;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import hu.blackbelt.judo.runtime.core.validator.*;
 import hu.blackbelt.osgi.filestore.security.api.*;
@@ -101,8 +100,6 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final TokenValidator filestoreTokenValidator;
 
-    private final Validator rangeValidator;
-
     private final PayloadValidator payloadValidator;
 
     private final ValidatorProvider validatorProvider;
@@ -113,14 +110,11 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final Boolean caseInsensitiveLike;
 
-//    private final String requiredStringValidatorOption;
-
-//    private final Collection<Validator> validators = new ArrayList<>();
-
     private Set<BehaviourCall<ID>> behaviourCalls;
 
     private AsmUtils asmUtils;
 
+    private final Validator rangeValidator;
 
     @SuppressWarnings("unchecked")
 	private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
@@ -167,7 +161,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             AccessManager accessManager,
             TransactionManager transactionManager,
             Boolean metricsReturned,
-            Boolean enableDefaultValidation,
+            Boolean enableValidation,
             Boolean trimString,
             Boolean caseInsensitiveLike
         ) {
@@ -186,35 +180,19 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.context = context;
         this.metricsCollector = metricsCollector;
         this.payloadValidator = payloadValidator;
+        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider(dao, identifierProvider, context));
 
-        if (enableDefaultValidation == null || enableDefaultValidation) {
-            this.validatorProvider = Objects.requireNonNullElse(validatorProvider, new DefaultValidatorProvider());
-            rangeValidator = new RangeValidator<>(dao, identifierProvider, context, transactionManager);
-            this.validatorProvider.addValidator(rangeValidator);
-        } else {
-            rangeValidator = new Validator() {
-                @Override
-                public boolean isApplicable(EStructuralFeature feature) {
-                    return false;
-                }
-
-                @Override
-                public Collection<ValidationResult> validateValue(Payload payload, EStructuralFeature feature, Object value, Map<String, Object> context) {
-                    return Collections.emptyList();
-                }
-            };
-            this.validatorProvider = new DefaultValidatorProvider();
+        if (enableValidation != null && !enableValidation) {
             validatorProvider.getValidators().clear();
         }
 
+        rangeValidator = validatorProvider.getInstance(RangeValidator.class).orElseGet(DummyValidator::new);
 
         this.metricsReturned = Objects.requireNonNullElse(metricsReturned, true);
 
         this.trimString = Objects.requireNonNullElse(trimString, false);
 
         this.caseInsensitiveLike = Objects.requireNonNullElse(caseInsensitiveLike, false);
-
-//        this.requiredStringValidatorOption = Objects.requireNonNullElse(requiredStringValidatorOption, "ACCEPT_NON_EMPTY");
 
         this.openIdConfigurationProvider = openIdConfigurationProvider;
 
