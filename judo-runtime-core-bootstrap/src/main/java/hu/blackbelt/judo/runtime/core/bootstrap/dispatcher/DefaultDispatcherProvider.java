@@ -28,7 +28,7 @@ import javax.transaction.TransactionManager;
 public class DefaultDispatcherProvider implements Provider<Dispatcher> {
 
     public static final String DISPATCHER_METRICS_RETURNED = "dispatcherMetricsReturned";
-    public static final String DISPATCHER_ENABLE_DEFAULT_VALIDATION = "dispatcherEnableDefaultValidation";
+    public static final String DISPATCHER_ENABLE_VALIDATION = "dispatcherEnableDefaultValidation";
     public static final String DISPATCHER_TRIM_STRING = "dispatcherTrimString";
     public static final String DISPATCHER_CASE_INSENSITIVE_LIKE = "dispatcherCaseInsensitiveLike";
 
@@ -90,9 +90,9 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     Boolean metricsReturned;
 
     @Inject(optional = true)
-    @Named(DISPATCHER_ENABLE_DEFAULT_VALIDATION)
+    @Named(DISPATCHER_ENABLE_VALIDATION)
     @Nullable
-    Boolean enableDefaultValidation;
+    Boolean enableValidation;
 
     @Inject(optional = true)
     @Named(DISPATCHER_TRIM_STRING)
@@ -126,7 +126,7 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
                 .filestoreTokenValidator(filestoreTokenValidator)
                 .filestoreTokenIssuer(filestoreTokenIssuer)
                 .metricsReturned(metricsReturned)
-                .enableDefaultValidation(enableDefaultValidation)
+                .enableValidation(enableValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
                 .build();

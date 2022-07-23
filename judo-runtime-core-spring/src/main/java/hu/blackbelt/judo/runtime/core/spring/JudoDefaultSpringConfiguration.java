@@ -284,8 +284,8 @@ public class JudoDefaultSpringConfiguration {
 
 
     @Bean
-    public ValidatorProvider validatorProvider() {
-        return new DefaultValidatorProvider();
+    public ValidatorProvider validatorProvider(DAO dao) {
+        return new DefaultValidatorProvider(dao, identifierProvider, context);
     }
     @Bean
     @SuppressWarnings("unchecked")
@@ -316,7 +316,7 @@ public class JudoDefaultSpringConfiguration {
     ) {
         // TODO: Parameters
         Boolean metricsReturned = true;
-        Boolean enableDefaultValidation = true;
+        Boolean enableValidation = true;
         Boolean trimString = false;
         Boolean caseInsensitiveLike = false;
 
@@ -339,7 +339,7 @@ public class JudoDefaultSpringConfiguration {
                 .payloadValidator(payloadValidator)
                 .validatorProvider(validatorProvider)
                 .metricsReturned(metricsReturned)
-                .enableDefaultValidation(enableDefaultValidation)
+                .enableValidation(enableValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
                 .build();
