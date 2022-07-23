@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.PayloadValidator;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
@@ -30,6 +31,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
+import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
@@ -46,6 +48,7 @@ import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsDAOProvide
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultDispatcherProvider.*;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultIdentifierSignerProvider.IDENTIFIER_SIGNER_SECRET;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultMetricsCollectorProvider.*;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultPayloadValidatorProvider.PAYLOAD_VALIDATOR_REQUIRED_STRING_VALIDATOR_OPTION;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.ThreadContextProvider.THREAD_CONTEXT_DEBUG_THREAD_FORK;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.ThreadContextProvider.THREAD_CONTEXT_INHERITABLE_CONTEXT;
 
@@ -150,10 +153,14 @@ public class JudoDefaultModule extends AbstractModule {
 
         bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).asEagerSingleton();
         bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_METRICS_RETURNED)).toInstance(Boolean.FALSE);
-        bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_ENABLE_DEFAULT_VALIDATION)).toInstance(Boolean.FALSE);
+        bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_ENABLE_DEFAULT_VALIDATION)).toInstance(Boolean.TRUE);
         bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_TRIM_STRING)).toInstance(Boolean.FALSE);
         bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_CASE_INSENSITIVE_LIKE)).toInstance(Boolean.FALSE);
-        bind(String.class).annotatedWith(Names.named(DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION)).toInstance("ACCEPT_NON_EMPTY");
+
+        // Validator
+        bind(ValidatorProvider.class).toProvider(ValidatorProviderProvider.class).asEagerSingleton();
+        bind(PayloadValidator.class).toProvider(DefaultPayloadValidatorProvider.class).asEagerSingleton();
+        bind(String.class).annotatedWith(Names.named(PAYLOAD_VALIDATOR_REQUIRED_STRING_VALIDATOR_OPTION)).toInstance("ACCEPT_NON_EMPTY");
 
     }
 }
