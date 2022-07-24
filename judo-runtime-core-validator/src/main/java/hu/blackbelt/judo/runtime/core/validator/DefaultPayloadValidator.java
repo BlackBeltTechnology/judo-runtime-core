@@ -41,6 +41,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     public static final String REFERENCE_ID_KEY = "__referenceId";
     public static final String VERSION_KEY = "__version";
+    public static final String SIGNED_IDENTIFIER_KEY = "__signedIdentifier";
 
     public static final String VALIDATION_RESULT_KEY = "validationResult";
     public static final String LOCATION_KEY = "location";
