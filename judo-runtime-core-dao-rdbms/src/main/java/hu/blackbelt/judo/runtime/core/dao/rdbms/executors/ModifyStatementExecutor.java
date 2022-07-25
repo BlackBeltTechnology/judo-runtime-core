@@ -79,6 +79,17 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
+        CheckUniqueAttributeStatementExecutor<ID> checkUniqueAttributeStatementExecutor = CheckUniqueAttributeStatementExecutor.<ID>builder()
+                .asmModel(getAsmModel())
+                .rdbmsModel(getRdbmsModel())
+                .rdbmsResolver(getRdbmsResolver())
+                .transformationTraceService(getTransformationTraceService())
+                .rdbmsParameterMapper(getRdbmsParameterMapper())
+                .rdbmsResolver(getRdbmsResolver())
+                .coercer(getCoercer())
+                .identifierProvider(getIdentifierProvider())
+                .build();
+
         UpdateReferenceExecutor<ID> updateReferenceExecutor = UpdateReferenceExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
@@ -188,6 +199,25 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                         .collect(Collectors.toList())
         );
 
+        // Check identifier fields
+        checkUniqueAttributeStatementExecutor.executeUpdateStatements(
+                jdbcTemplate,
+                statements.stream()
+                        .filter(InsertStatement.class :: isInstance)
+                        .map(i -> mapInsertOrUpdateStatementToCheckUniquieAttributeStatement(i))
+                        .collect(Collectors.toList())
+
+        );
+
+        checkUniqueAttributeStatementExecutor.executeUpdateStatements(
+                jdbcTemplate,
+                statements.stream()
+                        .filter(UpdateStatement.class :: isInstance)
+                        .map(o -> (UpdateStatement<ID>) o)
+                        .map(u -> mapInsertOrUpdateStatementToCheckUniquieAttributeStatement(u))
+                        .collect(Collectors.toList())
+        );
+
         // Insert new entities
         insertStatementExecutor.executeInsertStatements(
                 jdbcTemplate,
@@ -240,5 +270,14 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
         );
 
         // TODO: Check boundary contraints on relations
+    }
+
+    private CheckUniqueAttributeStatement<ID> mapInsertOrUpdateStatementToCheckUniquieAttributeStatement(Statement<ID> statement) {
+        CheckUniqueAttributeStatement uniqueStatement = CheckUniqueAttributeStatement.<ID>buildCheckIdentifierStatement()
+                .identifier(statement.getInstance().getIdentifier())
+                .type(statement.getInstance().getType())
+                .build();
+        statement.getInstance().getAttributes().forEach(a -> uniqueStatement.getInstance().addAttributeValue(a.getAttribute(), a.getValue()));
+        return uniqueStatement;
     }
 }
