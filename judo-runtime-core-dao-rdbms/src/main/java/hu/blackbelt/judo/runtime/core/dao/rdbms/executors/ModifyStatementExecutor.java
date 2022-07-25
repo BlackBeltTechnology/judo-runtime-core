@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
 
+import com.google.common.collect.Streams;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -199,23 +200,17 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                         .collect(Collectors.toList())
         );
 
-        // Check identifier fields
-        checkUniqueAttributeStatementExecutor.executeUpdateStatements(
+        // Collect insert / update records
+        checkUniqueAttributeStatementExecutor.executeUniqueAttributeStatements(
                 jdbcTemplate,
-                statements.stream()
-                        .filter(InsertStatement.class :: isInstance)
-                        .map(i -> mapInsertOrUpdateStatementToCheckUniquieAttributeStatement(i))
-                        .collect(Collectors.toList())
-
-        );
-
-        checkUniqueAttributeStatementExecutor.executeUpdateStatements(
-                jdbcTemplate,
-                statements.stream()
-                        .filter(UpdateStatement.class :: isInstance)
-                        .map(o -> (UpdateStatement<ID>) o)
-                        .map(u -> mapInsertOrUpdateStatementToCheckUniquieAttributeStatement(u))
-                        .collect(Collectors.toList())
+                Streams.concat(
+                    statements.stream()
+                            .filter(InsertStatement.class :: isInstance)
+                            .map(CheckUniqueAttributeStatement::fromStatement),
+                    statements.stream()
+                            .filter(UpdateStatement.class :: isInstance)
+                            .map(CheckUniqueAttributeStatement::fromStatement))
+                    .collect(Collectors.toList())
         );
 
         // Insert new entities
@@ -240,7 +235,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                         .collect(Collectors.toList())
                 );
 
-        // Those addReferences which has removeRefereces too - which means update
+        // Those addReferences which has removeReferences too - which means update
         Collection<AddReferenceStatement<ID>> addReferenceStatementsExistsInRemoveReferenceStatements =
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
@@ -272,12 +267,4 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
         // TODO: Check boundary contraints on relations
     }
 
-    private CheckUniqueAttributeStatement<ID> mapInsertOrUpdateStatementToCheckUniquieAttributeStatement(Statement<ID> statement) {
-        CheckUniqueAttributeStatement uniqueStatement = CheckUniqueAttributeStatement.<ID>buildCheckIdentifierStatement()
-                .identifier(statement.getInstance().getIdentifier())
-                .type(statement.getInstance().getType())
-                .build();
-        statement.getInstance().getAttributes().forEach(a -> uniqueStatement.getInstance().addAttributeValue(a.getAttribute(), a.getValue()));
-        return uniqueStatement;
-    }
 }

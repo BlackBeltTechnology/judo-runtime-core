@@ -6,6 +6,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.CheckUniqueAttributeStatement;
+import hu.blackbelt.judo.runtime.core.dao.core.values.AttributeValue;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
@@ -19,12 +20,14 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getClassifierFQName;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isEntityType;
-import static java.util.stream.Collectors.toMap;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.*;
 import static org.jooq.lambda.Unchecked.consumer;
 
 /**
@@ -49,15 +52,56 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
     /**
      * It executes {@link CheckUniqueAttributeStatement} instances
      *
-     * It checks all Identifier type fields uniqueness. It checking it in one statement per table.
+     * It checks all Identifier type fields uniqueness. Checking is done by one statement per table.
      *
      * @param jdbcTemplate
      * @param checkUniqueAttributeStatements
      */
-    public void executeUpdateStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<CheckUniqueAttributeStatement<ID>> checkUniqueAttributeStatements) {
+    public void executeUniqueAttributeStatements(NamedParameterJdbcTemplate jdbcTemplate,
+                                                 Collection<CheckUniqueAttributeStatement<ID>> checkUniqueAttributeStatements) {
 
-        checkUniqueAttributeStatements.forEach(consumer(checkUniqueAttributeStatement -> {
+        // Search for duplication
+        Map<ID, CheckUniqueAttributeStatement<ID>> checkUniqueAttributeStatementsCompacted = new HashMap<ID, CheckUniqueAttributeStatement<ID>>();
+
+        checkUniqueAttributeStatements.forEach(item -> {
+            ID identifier = item.getInstance().getIdentifier();
+            if (!checkUniqueAttributeStatementsCompacted.containsKey(identifier)) {
+                checkUniqueAttributeStatementsCompacted.put(identifier, item);
+            } else {
+                CheckUniqueAttributeStatement previous = checkUniqueAttributeStatementsCompacted.get(identifier);
+                CheckUniqueAttributeStatement aggregatedItem = previous.mergeAttributes(item);
+                checkUniqueAttributeStatementsCompacted.put(identifier, aggregatedItem);
+            }
+        });
+
+        // Collecting same attributes and values with number of occurrences, and filters out where
+        // the occurrence more than 1
+        Map<EAttribute, Map<Object, Long>> attributesViolatesValueUniqueness = checkUniqueAttributeStatementsCompacted.values().stream()
+                .flatMap(e -> e.getInstance().getAttributes().stream()
+                        .filter(a -> a.getValue() != null)
+                        .collect(toMap(
+                                a -> a.getAttribute(),
+                                a -> a.getValue()))
+                        .entrySet().stream())
+                .collect(groupingBy(
+                        e -> e.getKey(),
+                        mapping(e -> e.getValue(),
+                                groupingBy(identity(), counting()))))
+                .entrySet().stream()
+                .filter(e -> e.getValue().entrySet().stream()
+                                .filter(e2 -> e2.getValue() > 1)
+                                .count() > 0)
+                .collect(toMap(e -> e.getKey(), e -> e.getValue()));
+
+        if (attributesViolatesValueUniqueness.size() != 0) {
+            throw new IllegalStateException("Identifier uniqueness violation(s): " + attributesViolatesValueUniqueness.entrySet()
+                    .stream()
+                    .map(e -> e.getKey().getName() + "=" + e.getValue().keySet().stream().findFirst().get())
+                    .collect(Collectors.joining(",")));
+        }
+
+
+        checkUniqueAttributeStatementsCompacted.values().forEach(consumer(checkUniqueAttributeStatement -> {
 
                     EClass entity = checkUniqueAttributeStatement.getInstance().getType();
                     ID identifier = checkUniqueAttributeStatement.getInstance().getIdentifier();
@@ -75,7 +119,7 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
                             entity.getEAllSuperTypes().stream()).filter(t -> isEntityType(t))
                             .forEach(entityForCurrentStatement -> {
 
-                                Map<EAttribute, Object> attributeMapforCurrentStatement = attributeMap.entrySet().stream()
+                                Map<EAttribute, Object> attributeMapForCurrentStatement = attributeMap.entrySet().stream()
                                         .filter(e -> e.getKey().eContainer().equals(entityForCurrentStatement))
                                         .filter(e -> AsmUtils.isIdentifier(e.getKey()))
                                         .collect(HashMap::new, (m,v) -> m.put(
@@ -83,18 +127,18 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
                                                 v.getValue()),
                                                 HashMap::putAll);
 
-                                if (attributeMapforCurrentStatement.size() > 0) {
+                                if (attributeMapForCurrentStatement.size() > 0) {
 
-                                    MapSqlParameterSource chekUniqueIdentifiersStatementNamedParameters = new MapSqlParameterSource();
+                                    MapSqlParameterSource checkUniqueIdentifiersStatementNamedParameters = new MapSqlParameterSource();
 
-                                    chekUniqueIdentifiersStatementNamedParameters.addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
+                                    checkUniqueIdentifiersStatementNamedParameters.addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
-                                    getRdbmsResolver().logAttributeParameters(attributeMapforCurrentStatement);
+                                    getRdbmsResolver().logAttributeParameters(attributeMapForCurrentStatement);
 
-                                    getRdbmsParameterMapper().mapAttributeParameters(chekUniqueIdentifiersStatementNamedParameters, attributeMapforCurrentStatement);
+                                    getRdbmsParameterMapper().mapAttributeParameters(checkUniqueIdentifiersStatementNamedParameters, attributeMapForCurrentStatement);
 
                                     Map<String, String> fields =
-                                            attributeMapforCurrentStatement.keySet().stream()
+                                            attributeMapForCurrentStatement.keySet().stream()
                                                     .collect(toMap(
                                                             e -> e.getName(),
                                                             e -> getRdbmsResolver().rdbmsField(e).getSqlName()))
@@ -116,9 +160,9 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
                                     log.debug("Check unique identifier: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
                                             " ID: " + identifier +
                                             " SQL: " + sql +
-                                            " Params: " + chekUniqueIdentifiersStatementNamedParameters.getValues());
+                                            " Params: " + checkUniqueIdentifiersStatementNamedParameters.getValues());
 
-                                    List<Map<String, Object>> violations = jdbcTemplate.queryForList(sql, chekUniqueIdentifiersStatementNamedParameters);
+                                    List<Map<String, Object>> violations = jdbcTemplate.queryForList(sql, checkUniqueIdentifiersStatementNamedParameters);
 
                                     if (violations.size() != 0) {
                                         throw new IllegalStateException("Identifier uniqueness violation(s): " + violations.get(0).entrySet()
