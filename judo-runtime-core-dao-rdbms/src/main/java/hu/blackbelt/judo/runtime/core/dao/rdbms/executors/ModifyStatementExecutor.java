@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
 
+import com.google.common.collect.Streams;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -69,6 +70,17 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .build();
 
         UpdateStatementExecutor<ID> updateStatementExecutor = UpdateStatementExecutor.<ID>builder()
+                .asmModel(getAsmModel())
+                .rdbmsModel(getRdbmsModel())
+                .rdbmsResolver(getRdbmsResolver())
+                .transformationTraceService(getTransformationTraceService())
+                .rdbmsParameterMapper(getRdbmsParameterMapper())
+                .rdbmsResolver(getRdbmsResolver())
+                .coercer(getCoercer())
+                .identifierProvider(getIdentifierProvider())
+                .build();
+
+        CheckUniqueAttributeStatementExecutor<ID> checkUniqueAttributeStatementExecutor = CheckUniqueAttributeStatementExecutor.<ID>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -188,6 +200,19 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                         .collect(Collectors.toList())
         );
 
+        // Collect insert / update records
+        checkUniqueAttributeStatementExecutor.executeUniqueAttributeStatements(
+                jdbcTemplate,
+                Streams.concat(
+                    statements.stream()
+                            .filter(InsertStatement.class :: isInstance)
+                            .map(CheckUniqueAttributeStatement::fromStatement),
+                    statements.stream()
+                            .filter(UpdateStatement.class :: isInstance)
+                            .map(CheckUniqueAttributeStatement::fromStatement))
+                    .collect(Collectors.toList())
+        );
+
         // Insert new entities
         insertStatementExecutor.executeInsertStatements(
                 jdbcTemplate,
@@ -210,7 +235,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                         .collect(Collectors.toList())
                 );
 
-        // Those addReferences which has removeRefereces too - which means update
+        // Those addReferences which has removeReferences too - which means update
         Collection<AddReferenceStatement<ID>> addReferenceStatementsExistsInRemoveReferenceStatements =
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
@@ -241,4 +266,5 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
 
         // TODO: Check boundary contraints on relations
     }
+
 }
