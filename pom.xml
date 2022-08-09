@@ -51,11 +51,11 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0.20220629_125448_94e78362_develop</judo-meta-rdbms-version>
         <judo-meta-asm-version>1.1.0.20220629_125026_5f754291_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220629_162820_56ca208c_develop</judo-meta-expression-version>
+        <judo-meta-expression-version>1.0.1.20220809_133507_92a7c4b0_feature_JNG_3793_Support_new_functions_defined_in_jsl_documentation</judo-meta-expression-version>
         <judo-meta-expression-asm-version>1.0.1.20220629_163131_1eb8b216_develop</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.0.20220629_125044_16e15b24_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220629_125038_89073da4_develop</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.0.20220629_125126_269cc4b1_develop</judo-meta-query-version>
+        <judo-meta-query-version>1.0.0.20220809_134403_42b86a96_feature_JNG_3793_Support_new_functions_defined_in_jsl_documentation</judo-meta-query-version>
         <judo-dao-api-version>1.0.2.20220722_142101_af9eb8e5_feature_JNG_3849_AddValidatorsToDAO</judo-dao-api-version>
         <judo-sdk-common-version>1.0.0.20220722_142500_5e43dbcb_feature_JNG_3849_AddValidatorsToDAO</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220301_152852_a63b2efa_develop</judo-dispatcher-api-version>
