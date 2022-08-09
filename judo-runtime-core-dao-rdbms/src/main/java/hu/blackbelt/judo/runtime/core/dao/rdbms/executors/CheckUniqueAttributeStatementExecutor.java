@@ -79,6 +79,7 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
         Map<EAttribute, Map<Object, Long>> attributesViolatesValueUniqueness = checkUniqueAttributeStatementsCompacted.values().stream()
                 .flatMap(e -> e.getInstance().getAttributes().stream()
                         .filter(a -> a.getValue() != null)
+                        .filter(a -> AsmUtils.isIdentifier(a.getAttribute()))
                         .collect(toMap(
                                 a -> a.getAttribute(),
                                 a -> a.getValue()))
