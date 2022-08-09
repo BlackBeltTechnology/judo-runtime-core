@@ -5,6 +5,7 @@ import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.PayloadValidator;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
@@ -16,6 +17,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
+import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
 
@@ -26,10 +28,9 @@ import javax.transaction.TransactionManager;
 public class DefaultDispatcherProvider implements Provider<Dispatcher> {
 
     public static final String DISPATCHER_METRICS_RETURNED = "dispatcherMetricsReturned";
-    public static final String DISPATCHER_ENABLE_DEFAULT_VALIDATION = "dispatcherEnableDefaultValidation";
+    public static final String DISPATCHER_ENABLE_VALIDATION = "dispatcherEnableDefaultValidation";
     public static final String DISPATCHER_TRIM_STRING = "dispatcherTrimString";
     public static final String DISPATCHER_CASE_INSENSITIVE_LIKE = "dispatcherCaseInsensitiveLike";
-    public static final String DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION = "dispatcherRequiredStringValidatorOption";
 
     @Inject
     JudoModelLoader models;
@@ -65,6 +66,12 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     @Inject
     MetricsCollector metricsCollector;
 
+    @Inject
+    PayloadValidator payloadValidator;
+
+    @Inject
+    ValidatorProvider validatorProvider;
+
     @Inject(optional = true)
     @Nullable
     OpenIdConfigurationProvider openIdConfigurationProvider;
@@ -83,9 +90,9 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     Boolean metricsReturned;
 
     @Inject(optional = true)
-    @Named(DISPATCHER_ENABLE_DEFAULT_VALIDATION)
+    @Named(DISPATCHER_ENABLE_VALIDATION)
     @Nullable
-    Boolean enableDefaultValidation;
+    Boolean enableValidation;
 
     @Inject(optional = true)
     @Named(DISPATCHER_TRIM_STRING)
@@ -96,11 +103,6 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     @Named(DISPATCHER_CASE_INSENSITIVE_LIKE)
     @Nullable
     Boolean caseInsensitiveLike;
-
-    @Inject(optional = true)
-    @Named(DISPATCHER_REQUIRED_STRING_VALIDATOR_OPTION)
-    @Nullable
-    String requiredStringValidatorOption;
 
     @Override
     @SuppressWarnings("unchecked")
@@ -117,15 +119,16 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
                 .accessManager(accessManager)
                 .actorResolver(actorResolver)
                 .context(context)
+                .validatorProvider(validatorProvider)
+                .payloadValidator(payloadValidator)
                 .metricsCollector(metricsCollector)
                 .openIdConfigurationProvider(openIdConfigurationProvider)
                 .filestoreTokenValidator(filestoreTokenValidator)
                 .filestoreTokenIssuer(filestoreTokenIssuer)
                 .metricsReturned(metricsReturned)
-                .enableDefaultValidation(enableDefaultValidation)
+                .enableValidation(enableValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
-                .requiredStringValidatorOption(requiredStringValidatorOption)
                 .build();
     }
 }

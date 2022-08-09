@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
@@ -10,7 +11,6 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.QueryCustomizerParameterProcessor;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -157,9 +157,9 @@ public class DefaultActorResolver<ID> implements ActorResolver {
             log.info("Operation failed, authenticated entity not found in database");
             final Map<String, Object> details = new LinkedHashMap<>();
             details.put("ACTOR", AsmUtils.getClassifierFQName(actorType));
-            throw new AccessDeniedException(FeedbackItem.builder()
+            throw new AccessDeniedException(ValidationResult.builder()
                     .code("AUTHENTICATED_ENTITY_NOT_FOUND")
-                    .level(FeedbackItem.Level.ERROR)
+                    .level(ValidationResult.Level.ERROR)
                     .details(details)
                     .build());
         }

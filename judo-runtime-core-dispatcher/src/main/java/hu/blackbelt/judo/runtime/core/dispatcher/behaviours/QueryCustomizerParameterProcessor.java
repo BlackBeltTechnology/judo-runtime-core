@@ -4,8 +4,8 @@ import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.runtime.core.exception.FeedbackItem;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
 import hu.blackbelt.judo.runtime.core.dispatcher.querymask.QueryMaskStringParser;
 import hu.blackbelt.mapper.api.Coercer;
@@ -201,9 +201,9 @@ public class QueryCustomizerParameterProcessor<ID> {
             } catch (RuntimeException ex) {
                 final Map<String, Object> details = new LinkedHashMap<>();
                 details.put("message", ex.getMessage());
-                throw new ValidationException("Invalid query mask", Collections.singleton(FeedbackItem.builder()
+                throw new ValidationException("Invalid query mask", Collections.singleton(ValidationResult.builder()
                         .code("INVALID_QUERY_MASK")
-                        .level(FeedbackItem.Level.ERROR)
+                        .level(ValidationResult.Level.ERROR)
                         .location("_mask")
                         .details(details)
                         .build()));
@@ -230,9 +230,9 @@ public class QueryCustomizerParameterProcessor<ID> {
         } catch (RuntimeException ex) {
             final Map<String, Object> details = new LinkedHashMap<>();
             details.put("message", ex.getMessage());
-            throw new ValidationException("Invalid identifier in filter", Collections.singleton(FeedbackItem.builder()
+            throw new ValidationException("Invalid identifier in filter", Collections.singleton(ValidationResult.builder()
                     .code("INVALID_IDENTIFIER_IN_QUERY_CUSTOMIZER")
-                    .level(FeedbackItem.Level.ERROR)
+                    .level(ValidationResult.Level.ERROR)
                     .location("_identifier")
                     .details(details)
                     .build()));
