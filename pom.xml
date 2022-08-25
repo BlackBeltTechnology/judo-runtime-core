@@ -63,7 +63,7 @@
 
         <structured-map-proxy-version>1.1.0.20220807_065738_525bb031_develop</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.0.20220724_140430_05f459e5_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.0.20220824_154240_4b990293_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.3.20220301_153541_5a46e1fe_develop</mapper-version>
         <osgi-filestore-version>1.2.1.20220703_224808_d6453dd2_develop</osgi-filestore-version>
