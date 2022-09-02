@@ -504,7 +504,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         //(from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : "") +
                         (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
                         joins.stream().map(j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))).collect(Collectors.joining()) +
-                        (!allConditions.isEmpty() ? "\nWHERE " + String.join(" AND ", allConditions) : "") +
+                        (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "") +
                         (group ? "\nGROUP BY " + prefix + RdbmsAliasUtil.AGGREGATE_PREFIX + query.getAlias() + "." + RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()) : "") +
                         (!group && !query.getSelect().isAggregated() && !orderByAttributes.isEmpty() ? "\nORDER BY " + orderByAttributes.stream().collect(Collectors.joining(", ")) : "") +
                         (limit != null ?
