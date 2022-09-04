@@ -150,7 +150,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
         final Map<String, Object> currentContext = new TreeMap<>(validationContext);
         currentContext.put(LOCATION_KEY, containerLocation + (containerLocation.isEmpty() || containerLocation.endsWith("/") ? "" : ".") + reference.getName());
         final EReference createReference = (EReference) validationContext.get(CREATE_REFERENCE_KEY);
-        final boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
+        boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
+
+        if (validateMissingFeatures && getIdentifier(instance) == null &&
+                reference.isChangeable() && AsmUtils.getExtensionAnnotationValue(reference, "default", false).isPresent()) {
+            validateMissingFeatures = false;
+        }
 
         if (reference.isMany()) {
             if (!ignoreInvalidValues && value instanceof Collection) {
@@ -260,8 +265,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     public Collection<ValidationResult> validateAttribute(final EAttribute attribute, final Payload instance, final Map<String, Object> validationContext) {
         final Object value = instance.get(attribute.getName());
+        boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
 
-        final boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
+        if (validateMissingFeatures && getIdentifier(instance) == null &&
+                attribute.isChangeable() && AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent()) {
+            validateMissingFeatures = false;
+        }
 
         final List<ValidationResult> validationResults = new ArrayList<>();
 
@@ -298,4 +307,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
         return validationResults;
     }
 
+
+    private Object getIdentifier(Payload instance) {
+        Object identifier = null;
+        if (identifierProvider != null) {
+            identifier = instance.get(identifierProvider.getName());
+        }
+        return identifier;
+    }
 }

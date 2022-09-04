@@ -93,6 +93,10 @@ public class JudoModelLoader {
     }
 
     public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect) throws Exception {
+        return loadFromDirectory(modelName, directory, dialect, true);
+    }
+
+    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean validate) throws Exception {
         if (directory == null) {
             throw new IllegalArgumentException("Directory is null");
         }
@@ -103,7 +107,7 @@ public class JudoModelLoader {
             throw new IllegalArgumentException("Given file is not directory: " + directory);
         }
 
-        return loadFromURL(modelName, directory.toURI(), dialect, true);
+        return loadFromURL(modelName, directory.toURI(), dialect, validate);
     }
 
     public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect) throws Exception {
