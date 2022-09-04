@@ -622,6 +622,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                             .orElseThrow(() -> new IllegalStateException("Default attribute not found: " + defaultFeatureName));
 
                     final Payload defaultValue = getStaticData(defaultAttribute);
+                    if (defaultValue.get(defaultAttribute.getName()) == null && a.isRequired()) {
+                        throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultFeatureName);
+                    }
                     template.put(a.getName(), defaultValue.get(defaultAttribute.getName()));
                 }));
 
@@ -638,6 +641,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                         template.put(r.getName(), defaultValues);
                     } else {
                         final Payload defaultValue = !defaultValues.isEmpty() ? defaultValues.get(0) : null;
+                        if (r.getLowerBound() > 0 && defaultValue == null) {
+                            throw new IllegalStateException("Default reference value is undefined on required reference: " + defaultReferenceName);
+                        }
                         template.put(r.getName(), defaultValue);
                     }
                 }));
