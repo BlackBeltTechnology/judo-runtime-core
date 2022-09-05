@@ -26,6 +26,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -58,16 +60,18 @@ public class UniqueAttributeValidator<ID> implements Validator {
     @NonNull
     Context context;
 
-    public UniqueAttributeValidator(@NonNull DAO<ID> dao, @NonNull AsmUtils asmUtils, @NonNull IdentifierProvider<ID> identifierProvider, @NonNull Context context) {
+    public UniqueAttributeValidator(@NonNull DAO<ID> dao, @NonNull AsmModel asmModel, @NonNull IdentifierProvider<ID> identifierProvider, @NonNull Context context) {
         this.dao = dao;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.identifierProvider = identifierProvider;
         this.context = context;
     }
 
     @Override
     public boolean isApplicable(final EStructuralFeature feature) {
-        return feature instanceof EAttribute && asmUtils.getMappedAttribute((EAttribute) feature).isPresent() && AsmUtils.isIdentifier((EAttribute) feature);
+        return feature instanceof EAttribute &&
+                asmUtils.getMappedAttribute((EAttribute) feature).isPresent() &&
+                AsmUtils.isIdentifier(asmUtils.getMappedAttribute((EAttribute) feature).get());
     }
 
     @Override
@@ -81,7 +85,7 @@ public class UniqueAttributeValidator<ID> implements Validator {
             return validationResults;
         }
 
-        final EAttribute filterAttribute = (EAttribute) feature;
+        final EAttribute filterAttribute = asmUtils.getMappedAttribute((EAttribute) feature).get();
 
         final String filter = convertFilterToJql(filterAttribute, value);
         final List<Payload> queryResult = dao.search(feature.getEContainingClass(), DAO.QueryCustomizer.<ID>builder()
@@ -92,6 +96,15 @@ public class UniqueAttributeValidator<ID> implements Validator {
                         .build())
                 .build());
 
+        if (queryResult.size() > 0) {
+            final ID originalId = instance.getAs(identifierProvider.getType(), identifierProvider.getName());
+            Set<ID> sameValuesIds = queryResult.stream()
+                    .map(i -> i.getAs(identifierProvider.getType(), identifierProvider.getName()))
+                    .collect(Collectors.toSet());
+            if (originalId == null || !sameValuesIds.contains(originalId) || queryResult.size() > 1) {
+
+            }
+        }
 
         /*
         final ID id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
