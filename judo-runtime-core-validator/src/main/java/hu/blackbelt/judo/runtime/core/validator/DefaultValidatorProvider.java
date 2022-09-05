@@ -24,6 +24,7 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import lombok.Builder;
 import lombok.NonNull;
 
@@ -43,19 +44,24 @@ public class DefaultValidatorProvider<ID> implements ValidatorProvider {
 
     final Collection<Validator> validators;
 
+    final AsmModel asmModel;
+
     public DefaultValidatorProvider() {
-        this(null, null, null);
+        this(null, null, null, null);
     }
 
     @Builder
-    public DefaultValidatorProvider(DAO dao, IdentifierProvider identifierProvider, Context context) {
+    public DefaultValidatorProvider(DAO dao, IdentifierProvider identifierProvider, AsmModel asmModel, Context context) {
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.context = context;
+        this.asmModel = asmModel;
         validators = new CopyOnWriteArrayList<>(Arrays.asList(new MaxLengthValidator(), new MinLengthValidator(), new PrecisionValidator(), new PatternValidator()));
         if (dao != null && identifierProvider != null && context != null) {
             validators.add(new RangeValidator<ID>(dao, identifierProvider, context));
-            validators.add(new UniqueAttributeValidator<>(dao, identifierProvider, context));
+            if (asmModel != null) {
+                validators.add(new UniqueAttributeValidator<>(dao, asmModel, identifierProvider, context));
+            }
         }
     }
 

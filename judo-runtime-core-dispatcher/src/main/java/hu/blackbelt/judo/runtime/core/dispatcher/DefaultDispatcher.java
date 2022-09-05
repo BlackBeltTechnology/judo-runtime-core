@@ -200,7 +200,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.context = context;
         this.metricsCollector = metricsCollector;
         this.payloadValidator = payloadValidator;
-        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider(dao, identifierProvider, context));
+        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider(dao, identifierProvider, asmModel, context));
 
         if (enableValidation != null && !enableValidation) {
             validatorProvider.getValidators().clear();
