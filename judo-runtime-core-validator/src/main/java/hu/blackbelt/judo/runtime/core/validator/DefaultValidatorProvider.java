@@ -55,6 +55,7 @@ public class DefaultValidatorProvider<ID> implements ValidatorProvider {
         validators = new CopyOnWriteArrayList<>(Arrays.asList(new MaxLengthValidator(), new MinLengthValidator(), new PrecisionValidator(), new PatternValidator()));
         if (dao != null && identifierProvider != null && context != null) {
             validators.add(new RangeValidator<ID>(dao, identifierProvider, context));
+            validators.add(new UniqueAttributeValidator<>(dao, identifierProvider, context));
         }
     }
 
