@@ -108,9 +108,7 @@ public class PrecisionValidator implements Validator {
     private Collection<ValidationResult> validateDecimal(final Payload instance, final EStructuralFeature feature, final Map<String, Object> context, final int precision, final int scale, final BigDecimal number) {
         final Collection<ValidationResult> validationResults = new ArrayList<>();
 
-        final String string = number.toString().replaceAll("\\D*", "");
-        final String fraction = number.toString().replaceAll(".*\\.\\D*", "");
-        if (precision < string.length()) {
+        if (precision < number.precision()) {
             addValidationError(ImmutableMap.of(
                             FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
@@ -122,11 +120,11 @@ public class PrecisionValidator implements Validator {
                     ERROR_PRECISION_VALIDATION_FAILED);
         }
 
-        if (scale < fraction.length()) {
+        if (scale < number.scale()) {
             addValidationError(ImmutableMap.of(
                             FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
-                            SCALE_CONSTRAINT_NAME, fraction,
+                            SCALE_CONSTRAINT_NAME, number.scale(),
                             VALUE_KEY, number,
                             DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                     ),
