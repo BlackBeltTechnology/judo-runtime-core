@@ -28,16 +28,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 import static org.eclipse.emf.ecore.util.builder.EcoreBuilders.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class PrecisionValidatorTest {
     private static String DOUBLE_ATTRIBUTE = "doubleAttr";
@@ -86,6 +83,19 @@ public class PrecisionValidatorTest {
     @Test
     void testValidateDecimalWithoutScale() {
         BigDecimal value = BigDecimal.valueOf(1234);
+        Map<String, Object> raw = new HashMap<>() {{
+            put(DOUBLE_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+
+        assertEquals(0, results.size());
+    }
+
+    @Test
+    void testValidateDecimalWithScale() {
+        BigDecimal value = BigDecimal.valueOf(1234.56);
         Map<String, Object> raw = new HashMap<>() {{
             put(DOUBLE_ATTRIBUTE, value);
         }};
