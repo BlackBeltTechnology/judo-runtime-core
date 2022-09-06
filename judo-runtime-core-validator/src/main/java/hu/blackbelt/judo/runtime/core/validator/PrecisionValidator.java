@@ -65,7 +65,7 @@ public class PrecisionValidator implements Validator {
 
         if (value instanceof Number) {
             if (value instanceof Float) {
-                validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, BigDecimal.valueOf((Float) value)));
+                validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, new BigDecimal(Float.toString((Float) value))));
             } else if (value instanceof Double) {
                 validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, BigDecimal.valueOf((Double) value)));
             } else if (value instanceof Short) {
