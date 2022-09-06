@@ -37,39 +37,62 @@ import static org.eclipse.emf.ecore.util.builder.EcoreBuilders.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PrecisionValidatorTest {
-    private static String DOUBLE_ATTRIBUTE = "doubleAttr";
+    private static final String PRECISION_CONSTRAINT_NAME = "precision";
+    private static final String SCALE_CONSTRAINT_NAME = "scale";
+    private static final String BIG_DECIMAL_ATTRIBUTE = "bigDecimalAttr";
+    private static final String FLOAT_ATTRIBUTE = "floatAttr";
+    private static final String DOUBLE_ATTRIBUTE = "doubleAttr";
 
-    private EcorePackage ecore;
-    private EPackage ePackage;
     private EClass eClass;
-    private EAnnotation doubleAnnotation;
 
     private PrecisionValidator validator;
 
     @BeforeEach
     void init() {
-        ecore = EcorePackage.eINSTANCE;
+        EcorePackage ecore = EcorePackage.eINSTANCE;
 
-        ePackage = newEPackageBuilder()
+        EPackage ePackage = newEPackageBuilder()
                 .withName("TestEpackage")
                 .withNsPrefix("test")
                 .withNsURI("http:///com.example.test.ecore")
                 .build();
 
-        doubleAnnotation = newEAnnotationBuilder()
+        final EAnnotation bigDecimalAttrAnnotation = newEAnnotationBuilder()
                 .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
                 .build();
-        doubleAnnotation.getDetails().put("precision", "6");
-        doubleAnnotation.getDetails().put("scale", "2");
+        bigDecimalAttrAnnotation.getDetails().put(PRECISION_CONSTRAINT_NAME, "6");
+        bigDecimalAttrAnnotation.getDetails().put(SCALE_CONSTRAINT_NAME, "2");
+
+        final EAnnotation doubleAnnotation = newEAnnotationBuilder()
+                .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
+                .build();
+        doubleAnnotation.getDetails().put(PRECISION_CONSTRAINT_NAME, "6");
+        doubleAnnotation.getDetails().put(SCALE_CONSTRAINT_NAME, "2");
+
+        final EAnnotation floatAnnotation = newEAnnotationBuilder()
+                .withSource("http://blackbelt.hu/judo/meta/ExtendedMetadata/constraints")
+                .build();
+        floatAnnotation.getDetails().put(PRECISION_CONSTRAINT_NAME, "6");
+        floatAnnotation.getDetails().put(SCALE_CONSTRAINT_NAME, "2");
 
         eClass = newEClassBuilder()
                 .withName("PrecisionValidatorTestClass")
                 .withEStructuralFeatures(
                         ImmutableList.of(
                                 newEAttributeBuilder()
+                                        .withName(BIG_DECIMAL_ATTRIBUTE)
+                                        .withEType(ecore.getEBigDecimal())
+                                        .withEAnnotations(bigDecimalAttrAnnotation)
+                                        .build(),
+                                newEAttributeBuilder()
                                         .withName(DOUBLE_ATTRIBUTE)
                                         .withEType(ecore.getEDouble())
                                         .withEAnnotations(doubleAnnotation)
+                                        .build(),
+                                newEAttributeBuilder()
+                                        .withName(FLOAT_ATTRIBUTE)
+                                        .withEType(ecore.getEFloat())
+                                        .withEAnnotations(floatAnnotation)
                                         .build()
                         )
                 )
@@ -81,70 +104,111 @@ public class PrecisionValidatorTest {
     }
 
     @Test
-    void testValidateDecimalWithoutScale() {
+    void testValidateBigDecimalWithoutScale() {
         BigDecimal value = BigDecimal.valueOf(1234);
         Map<String, Object> raw = new HashMap<>() {{
-            put(DOUBLE_ATTRIBUTE, value);
+            put(BIG_DECIMAL_ATTRIBUTE, value);
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
 
         assertEquals(0, results.size());
     }
 
     @Test
-    void testValidateDecimalWithScale() {
+    void testValidateBigDecimalWithScale() {
         BigDecimal value = BigDecimal.valueOf(1234.56);
         Map<String, Object> raw = new HashMap<>() {{
-            put(DOUBLE_ATTRIBUTE, value);
+            put(BIG_DECIMAL_ATTRIBUTE, value);
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
 
         assertEquals(0, results.size());
     }
 
     @Test
-    void testValidateDecimalPrecisionOverflow() {
+    void testValidateBigDecimalPrecisionOverflow() {
         BigDecimal value = BigDecimal.valueOf(1234567);
         Map<String, Object> raw = new HashMap<>() {{
-            put(DOUBLE_ATTRIBUTE, value);
+            put(BIG_DECIMAL_ATTRIBUTE, value);
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
         ValidationResult result = results.stream().findFirst().get();
 
         assertEquals(1, results.size());
         assertEquals(ERROR_PRECISION_VALIDATION_FAILED, result.getCode());
-        assertEquals("TestEpackage_PrecisionValidatorTestClass_doubleAttr", result.getDetails().get(FEATURE_KEY));
-        assertEquals(6, result.getDetails().get("precision"));
+        assertEquals("TestEpackage_PrecisionValidatorTestClass_bigDecimalAttr", result.getDetails().get(FEATURE_KEY));
+        assertEquals(6, result.getDetails().get(PRECISION_CONSTRAINT_NAME));
         assertEquals(value, result.getDetails().get(VALUE_KEY));
     }
 
     @Test
-    void testValidateDecimalScaleOverflow() {
+    void testValidateBigDecimalScaleOverflow() {
         BigDecimal value = BigDecimal.valueOf(1.23456);
         Map<String, Object> raw = new HashMap<>() {{
-            put(DOUBLE_ATTRIBUTE, value);
+            put(BIG_DECIMAL_ATTRIBUTE, value);
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
         ValidationResult result = results.stream().findFirst().get();
 
         assertEquals(1, results.size());
         assertEquals(ERROR_SCALE_VALIDATION_FAILED, result.getCode());
-        assertEquals("TestEpackage_PrecisionValidatorTestClass_doubleAttr", result.getDetails().get(FEATURE_KEY));
-        assertEquals(5, result.getDetails().get("scale"));
+        assertEquals("TestEpackage_PrecisionValidatorTestClass_bigDecimalAttr", result.getDetails().get(FEATURE_KEY));
+        assertEquals(5, result.getDetails().get(SCALE_CONSTRAINT_NAME));
         assertEquals(value, result.getDetails().get(VALUE_KEY));
     }
 
     @Test
-    void testValidateDecimalPrecisionAndScaleError() {
+    void testValidateBigDecimalPrecisionAndScaleError() {
         BigDecimal value = BigDecimal.valueOf(12.3456789);
+        Map<String, Object> raw = new HashMap<>() {{
+            put(BIG_DECIMAL_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(2, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
+    }
+
+    @Test
+    void testValidateFloatWithoutScale() {
+        Float value = 1234f;
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(FLOAT_ATTRIBUTE), value, raw);
+
+        assertEquals(0, results.size());
+    }
+
+    @Test
+    void testValidateFloatWithScale() {
+        Float value = 1234.56f;
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(FLOAT_ATTRIBUTE), value, raw);
+
+        assertEquals(0, results.size());
+    }
+
+    @Test
+    void testValidateDoubleWithoutScale() {
+        Double value = 1234.0;
         Map<String, Object> raw = new HashMap<>() {{
             put(DOUBLE_ATTRIBUTE, value);
         }};
@@ -152,8 +216,19 @@ public class PrecisionValidatorTest {
 
         Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
 
-        assertEquals(2, results.size());
-        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
-        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
+        assertEquals(0, results.size());
+    }
+
+    @Test
+    void testValidateDoubleWithScale() {
+        Double value = 1234.56;
+        Map<String, Object> raw = new HashMap<>() {{
+            put(DOUBLE_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+
+        assertEquals(0, results.size());
     }
 }
