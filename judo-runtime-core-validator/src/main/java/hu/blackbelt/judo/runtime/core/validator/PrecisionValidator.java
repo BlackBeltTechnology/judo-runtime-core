@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -65,7 +66,8 @@ public class PrecisionValidator implements Validator {
 
         if (value instanceof Number) {
             if (value instanceof Float) {
-                validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, new BigDecimal(Float.toString((Float) value))));
+                DecimalFormat floatFormat = new DecimalFormat("########.########");
+                validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, new BigDecimal(floatFormat.format(value))));
             } else if (value instanceof Double) {
                 validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, BigDecimal.valueOf((Double) value)));
             } else if (value instanceof Short) {
@@ -89,8 +91,8 @@ public class PrecisionValidator implements Validator {
     private Collection<ValidationResult> validateInteger(final Payload instance, final EStructuralFeature feature, final Map<String, Object> context, final int precision, final BigInteger number) {
         final Collection<ValidationResult> validationResults = new ArrayList<>();
 
-        final String string = number.toString().replaceAll("\\D*", "");
-        if (precision < string.length()) {
+        //final String string = number.toString().replaceAll("\\D*", "");
+        if (precision < new BigDecimal(number).precision()) {
             addValidationError(ImmutableMap.of(
                             FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,

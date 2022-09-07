@@ -148,6 +148,21 @@ public class PrecisionValidatorTest {
     }
 
     @Test
+    void testValidateBigDecimalRoundedWithPrecisionOverflow() {
+        BigDecimal value = BigDecimal.valueOf(12345670);
+
+        Map<String, Object> raw = new HashMap<>() {{
+            put(BIG_DECIMAL_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+    }
+
+    @Test
     void testValidateBigDecimalScaleOverflow() {
         BigDecimal value = BigDecimal.valueOf(1.23456);
         Map<String, Object> raw = new HashMap<>() {{
@@ -222,6 +237,20 @@ public class PrecisionValidatorTest {
     }
 
     @Test
+    void testValidateFloatRoundedWithPrecisionOverflow() {
+        Float value = 123456f;
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(FLOAT_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+    }
+
+    @Test
     void testValidateFloatWithScaleOverflow() {
         Float value = 1.23456f;
         Map<String, Object> raw = new HashMap<>() {{
@@ -229,7 +258,7 @@ public class PrecisionValidatorTest {
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(FLOAT_ATTRIBUTE), value, raw);
 
         assertEquals(1, results.size());
         assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
@@ -243,7 +272,7 @@ public class PrecisionValidatorTest {
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(FLOAT_ATTRIBUTE), value, raw);
 
         assertEquals(2, results.size());
         assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
@@ -281,11 +310,25 @@ public class PrecisionValidatorTest {
     void testValidateDoubleWithPrecisionOverflow() {
         Double value = Double.valueOf(1234567);
         Map<String, Object> raw = new HashMap<>() {{
-            put(FLOAT_ATTRIBUTE, value);
+            put(DOUBLE_ATTRIBUTE, value);
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+    }
+
+    @Test
+    void testValidateDoubleRoundedWithPrecisionOverflow() {
+        Double value = Double.valueOf(1234560);
+        Map<String, Object> raw = new HashMap<>() {{
+            put(DOUBLE_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
 
         assertEquals(1, results.size());
         assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
@@ -295,11 +338,11 @@ public class PrecisionValidatorTest {
     void testValidateDoubleWithScaleOverflow() {
         Double value = Double.valueOf(1.23456);
         Map<String, Object> raw = new HashMap<>() {{
-            put(FLOAT_ATTRIBUTE, value);
+            put(DOUBLE_ATTRIBUTE, value);
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
 
         assertEquals(1, results.size());
         assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
@@ -310,11 +353,11 @@ public class PrecisionValidatorTest {
         Double value = Double.valueOf(1234.567);
 
         Map<String, Object> raw = new HashMap<>() {{
-            put(FLOAT_ATTRIBUTE, value);
+            put(DOUBLE_ATTRIBUTE, value);
         }};
         Payload payload = Payload.asPayload(raw);
 
-        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
 
         assertEquals(2, results.size());
         assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
