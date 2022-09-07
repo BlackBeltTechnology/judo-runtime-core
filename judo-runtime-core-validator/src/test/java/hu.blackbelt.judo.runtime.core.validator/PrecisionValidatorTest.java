@@ -206,6 +206,50 @@ public class PrecisionValidatorTest {
         assertEquals(0, results.size());
     }
 
+
+    @Test
+    void testValidateFloatWithPrecisionOverflow() {
+        Float value = 1234567f;
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+    }
+
+    @Test
+    void testValidateFloatWithScaleOverflow() {
+        Float value = 1.23456f;
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
+    }
+
+    @Test
+    void testValidateFloatWithPrecisionAndScaleOverflow() {
+        Float value = 1234.567f;
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(2, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
+    }
+
     @Test
     void testValidateDoubleWithoutScale() {
         Double value = 1234.0;
@@ -231,4 +275,50 @@ public class PrecisionValidatorTest {
 
         assertEquals(0, results.size());
     }
+
+
+    @Test
+    void testValidateDoubleWithPrecisionOverflow() {
+        Double value = Double.valueOf(1234567);
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+    }
+
+    @Test
+    void testValidateDoubleWithScaleOverflow() {
+        Double value = Double.valueOf(1.23456);
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
+    }
+
+    @Test
+    void testValidateDoubleWithPrecisionAndScaleOverflow() {
+        Double value = Double.valueOf(1234.567);
+
+        Map<String, Object> raw = new HashMap<>() {{
+            put(FLOAT_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(BIG_DECIMAL_ATTRIBUTE), value, raw);
+
+        assertEquals(2, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_SCALE_VALIDATION_FAILED)).count());
+    }
+
 }
