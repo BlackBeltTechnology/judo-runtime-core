@@ -148,8 +148,8 @@ public class PrecisionValidatorTest {
     }
 
     @Test
-    void testValidateBigDecimalRoundedWithPrecisionOverflow() {
-        BigDecimal value = BigDecimal.valueOf(12345670);
+    void testValidateBigDecimalWholeNumberWithPrecisionOverflow() {
+        BigDecimal value = BigDecimal.valueOf(1234560);
 
         Map<String, Object> raw = new HashMap<>() {{
             put(BIG_DECIMAL_ATTRIBUTE, value);
@@ -176,7 +176,7 @@ public class PrecisionValidatorTest {
         assertEquals(1, results.size());
         assertEquals(ERROR_SCALE_VALIDATION_FAILED, result.getCode());
         assertEquals("TestEpackage_PrecisionValidatorTestClass_bigDecimalAttr", result.getDetails().get(FEATURE_KEY));
-        assertEquals(5, result.getDetails().get(SCALE_CONSTRAINT_NAME));
+        assertEquals(2, result.getDetails().get(SCALE_CONSTRAINT_NAME));
         assertEquals(value, result.getDetails().get(VALUE_KEY));
     }
 
@@ -237,8 +237,8 @@ public class PrecisionValidatorTest {
     }
 
     @Test
-    void testValidateFloatRoundedWithPrecisionOverflow() {
-        Float value = 123456f;
+    void testValidateFloatWholeNumberWithPrecisionOverflow() {
+        Float value = 1234560f;
         Map<String, Object> raw = new HashMap<>() {{
             put(FLOAT_ATTRIBUTE, value);
         }};
@@ -321,8 +321,22 @@ public class PrecisionValidatorTest {
     }
 
     @Test
-    void testValidateDoubleRoundedWithPrecisionOverflow() {
+    void testValidateDoubleWholeNumberWithPrecisionOverflow() {
         Double value = Double.valueOf(1234560);
+        Map<String, Object> raw = new HashMap<>() {{
+            put(DOUBLE_ATTRIBUTE, value);
+        }};
+        Payload payload = Payload.asPayload(raw);
+
+        Collection<ValidationResult> results = validator.validateValue(payload, eClass.getEStructuralFeature(DOUBLE_ATTRIBUTE), value, raw);
+
+        assertEquals(1, results.size());
+        assertEquals(1, (int) results.stream().filter(r -> r.getCode().equals(ERROR_PRECISION_VALIDATION_FAILED)).count());
+    }
+
+    @Test
+    void testValidateDoubleLargeNumberWithPrecisionOverflow() {
+        Double value = Double.valueOf(1234560.0);
         Map<String, Object> raw = new HashMap<>() {{
             put(DOUBLE_ATTRIBUTE, value);
         }};
