@@ -29,6 +29,7 @@ import org.eclipse.emf.ecore.EStructuralFeature;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
@@ -65,7 +66,8 @@ public class PrecisionValidator implements Validator {
 
         if (value instanceof Number) {
             if (value instanceof Float) {
-                validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, new BigDecimal(Float.toString((Float) value))));
+                validationResults.addAll(validateDecimal(instance, feature, context, precision, scale,
+                        new BigDecimal(new DecimalFormat("########.########").format(Double.valueOf(Float.toString((Float) value))))));
             } else if (value instanceof Double) {
                 validationResults.addAll(validateDecimal(instance, feature, context, precision, scale, BigDecimal.valueOf((Double) value)));
             } else if (value instanceof Short) {
@@ -89,8 +91,7 @@ public class PrecisionValidator implements Validator {
     private Collection<ValidationResult> validateInteger(final Payload instance, final EStructuralFeature feature, final Map<String, Object> context, final int precision, final BigInteger number) {
         final Collection<ValidationResult> validationResults = new ArrayList<>();
 
-        final String string = number.toString().replaceAll("\\D*", "");
-        if (precision < string.length()) {
+        if (precision < new BigDecimal(number).precision()) {
             addValidationError(ImmutableMap.of(
                             FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
@@ -108,7 +109,14 @@ public class PrecisionValidator implements Validator {
     private Collection<ValidationResult> validateDecimal(final Payload instance, final EStructuralFeature feature, final Map<String, Object> context, final int precision, final int scale, final BigDecimal number) {
         final Collection<ValidationResult> validationResults = new ArrayList<>();
 
-        if (precision < number.precision()) {
+        int valuePrecision = number.precision();
+        int valueScale = number.scale();
+        if (valueScale < 0) {
+            valuePrecision -= valueScale;
+            valueScale = 0;
+        }
+
+        if (precision < valuePrecision) {
             addValidationError(ImmutableMap.of(
                             FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
@@ -120,11 +128,11 @@ public class PrecisionValidator implements Validator {
                     ERROR_PRECISION_VALIDATION_FAILED);
         }
 
-        if (scale < number.scale()) {
+        if (scale < valueScale) {
             addValidationError(ImmutableMap.of(
                             FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                             PRECISION_CONSTRAINT_NAME, precision,
-                            SCALE_CONSTRAINT_NAME, number.scale(),
+                            SCALE_CONSTRAINT_NAME, scale,
                             VALUE_KEY, number,
                             DefaultPayloadValidator.REFERENCE_ID_KEY, Optional.ofNullable(instance.get(DefaultPayloadValidator.REFERENCE_ID_KEY))
                     ),
