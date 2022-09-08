@@ -171,9 +171,6 @@ public class UniqueAttributeValidator<ID> implements Validator {
             final String formattedTimestamp = ((OffsetDateTime) value).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             return THIS_NAME + "." + attribute.getName() + "==" + "`" + formattedTimestamp + "`";
         } else if (AsmUtils.isTime(attribute.getEAttributeType())) {
-            final String formattedTime = ((LocalTime) value).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-            return THIS_NAME + "." + attribute.getName() + "==" + "`" + formattedTime + "`";
-        } else if (AsmUtils.isTime(attribute.getEAttributeType())) {
             final String formattedTime = ((LocalTime) value).format(DateTimeFormatter.ISO_TIME);
             return THIS_NAME + "." + attribute.getName() + "==" + "`" + formattedTime + "`";
         } else if (AsmUtils.isEnumeration(attribute.getEAttributeType())) {
