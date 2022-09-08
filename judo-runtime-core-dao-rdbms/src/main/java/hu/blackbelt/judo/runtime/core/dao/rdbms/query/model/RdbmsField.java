@@ -82,7 +82,7 @@ public abstract class RdbmsField {
         if (domainConstraints == null) {
             typeCasting = "";
         } else if (domainConstraints.getPrecision() != null) {
-            typeCasting = "DECIMAL(" + domainConstraints.getPrecision() + (domainConstraints.getScale() != null ? "," + domainConstraints.getScale() : "") + ")";
+            typeCasting = "DECIMAL(" + domainConstraints.getPrecision() + (domainConstraints.getScale() != null ? 0 : domainConstraints.getScale()) + (domainConstraints.getScale() != null ? "," + domainConstraints.getScale() : "") + ")";
         } else if (domainConstraints.getMaxLength() != null) {
             typeCasting = "VARCHAR(" + domainConstraints.getMaxLength() + ")";
         } else {
