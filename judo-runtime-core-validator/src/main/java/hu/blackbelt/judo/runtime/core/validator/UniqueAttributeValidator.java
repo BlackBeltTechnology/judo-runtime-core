@@ -32,6 +32,7 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EEnum;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
 import java.time.LocalDate;
@@ -42,11 +43,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.GLOBAL_VALIDATION_CONTEXT;
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
 
 @Slf4j
 public class UniqueAttributeValidator<ID> implements Validator {
 
     public static final String THIS_NAME = "this";
+    public static final String UNIQUE_ATTRIBUTE_VALIDATOR_CONTEXT = "uniqueAttributeValidatorContext";
 
     @NonNull
     private final DAO<ID> dao;
@@ -77,6 +81,16 @@ public class UniqueAttributeValidator<ID> implements Validator {
     @Override
     public Collection<ValidationResult> validateValue(Payload instance, final EStructuralFeature feature, final Object value, final Map<String, Object> validationContext) {
 
+        Map<String, Object> globalValidationContext = (Map<String, Object>) validationContext.get(GLOBAL_VALIDATION_CONTEXT);
+
+        UniqueValidationContextInfo uniqueValidationContextInfo;
+        if (globalValidationContext.containsKey(UNIQUE_ATTRIBUTE_VALIDATOR_CONTEXT)) {
+            uniqueValidationContextInfo = (UniqueValidationContextInfo) globalValidationContext.get(UNIQUE_ATTRIBUTE_VALIDATOR_CONTEXT);
+        } else {
+            uniqueValidationContextInfo = new UniqueValidationContextInfo();
+            globalValidationContext.put(UNIQUE_ATTRIBUTE_VALIDATOR_CONTEXT, uniqueValidationContextInfo);
+        }
+
         final Collection<ValidationResult> validationResults = new ArrayList<>();
 
         if (!(feature instanceof EAttribute)
@@ -85,39 +99,53 @@ public class UniqueAttributeValidator<ID> implements Validator {
             return validationResults;
         }
 
-        final EAttribute filterAttribute = asmUtils.getMappedAttribute((EAttribute) feature).get();
+        final EAttribute mappedAttribute = asmUtils.getMappedAttribute((EAttribute) feature).get();
+        final ID originalId = instance.getAs(identifierProvider.getType(), identifierProvider.getName());
 
-        final String filter = convertFilterToJql(filterAttribute, value);
+        // When the attribute have to be inserted, heck the current value already presented in the insertable values
+        // If not present, insert it.
+        if (originalId == null) {
+            if (!uniqueValidationContextInfo.insertableUniqueValue.containsKey(mappedAttribute)) {
+                uniqueValidationContextInfo.insertableUniqueValue.put(mappedAttribute, new HashSet<>());
+                uniqueValidationContextInfo.insertableUniqueValue.get(mappedAttribute).add(value);
+            } else if (uniqueValidationContextInfo.insertableUniqueValue.get(mappedAttribute).contains(value)) {
+                Validator.addValidationError(ImmutableMap.of(
+                                FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                                VALUE_KEY, value
+                        ),
+                        validationContext.get(LOCATION_KEY),
+                        validationResults,
+                        ERROR_IDENTIFIER_ATTRIBUTE_UNIQUENESS_VIOLATION);
+            } else {
+                uniqueValidationContextInfo.insertableUniqueValue.get(mappedAttribute).add(value);
+            }
+        }
+
+        // Check in the persisted values
+        final String filter = convertFilterToJql(mappedAttribute, value);
         final List<Payload> queryResult = dao.search(feature.getEContainingClass(), DAO.QueryCustomizer.<ID>builder()
                 .filter(filter)
-                .mask(ImmutableMap.of(filterAttribute.getName(), true))
+                .mask(ImmutableMap.of(mappedAttribute.getName(), true))
                 .seek(DAO.Seek.builder()
                         .limit(2)
                         .build())
                 .build());
 
         if (queryResult.size() > 0) {
-            final ID originalId = instance.getAs(identifierProvider.getType(), identifierProvider.getName());
             Set<ID> sameValuesIds = queryResult.stream()
                     .map(i -> i.getAs(identifierProvider.getType(), identifierProvider.getName()))
                     .collect(Collectors.toSet());
-            if (originalId == null || !sameValuesIds.contains(originalId) || queryResult.size() > 1) {
 
+            if (originalId == null || !sameValuesIds.contains(originalId) || queryResult.size() > 1) {
+                Validator.addValidationError(ImmutableMap.of(
+                                FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
+                                VALUE_KEY, value
+                        ),
+                        validationContext.get(LOCATION_KEY),
+                        validationResults,
+                        ERROR_IDENTIFIER_ATTRIBUTE_UNIQUENESS_VIOLATION);
             }
         }
-
-        /*
-        final ID id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
-        if (id == null || !validIds.contains(id)) {
-            Validator.addValidationError(ImmutableMap.of(
-                            identifierProvider.getName(), id,
-                            SIGNED_IDENTIFIER_KEY, Optional.ofNullable(((Payload) value).get(SIGNED_IDENTIFIER_KEY)),
-                            REFERENCE_ID_KEY, Optional.ofNullable(instance.get(REFERENCE_ID_KEY))
-                    ),
-                    validationContext.get(LOCATION_KEY),
-                    validationResults,
-                    ERROR_NOT_ACCEPTED_BY_RANGE);
-        } */
 
         return validationResults;
     }
@@ -162,4 +190,8 @@ public class UniqueAttributeValidator<ID> implements Validator {
         }
     }
 
+
+    private static class UniqueValidationContextInfo {
+        Map<EAttribute, Set<Object>> insertableUniqueValue = new HashMap<>();
+    }
 }

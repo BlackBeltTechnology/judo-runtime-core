@@ -59,6 +59,8 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     private final ValidatorProvider validatorProvider;
 
+    public static final String GLOBAL_VALIDATION_CONTEXT = "globalValidationContext";
+
     public static final String REFERENCE_ID_KEY = "__referenceId";
     public static final String VERSION_KEY = "__version";
     public static final String SIGNED_IDENTIFIER_KEY = "__signedIdentifier";
@@ -81,6 +83,8 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     public List<ValidationResult> validatePayload(final EClass transferObjectType, final Payload input, final Map<String, Object> validationContext, boolean throwValidationException) throws ValidationException {
         final List<ValidationResult> validationResults = new ArrayList<>();
+
+        validationContext.put(GLOBAL_VALIDATION_CONTEXT, new HashMap<String, Object>());
 
         final Payload payload = Payload.asPayload(input);
 

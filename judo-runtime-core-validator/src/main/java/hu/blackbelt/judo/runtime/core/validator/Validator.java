@@ -52,6 +52,8 @@ public interface Validator {
 
     String ERROR_NOT_ACCEPTED_BY_RANGE = "NOT_ACCEPTED_BY_RANGE";
 
+    String ERROR_IDENTIFIER_ATTRIBUTE_UNIQUENESS_VIOLATION = "IDENTIFIER_ATTRIBUTE_UNIQUENESS_VIOLATION";
+
     String SIZE_PARAMETER = "size";
 
     String CONSTRAINTS = "constraints";
@@ -64,7 +66,7 @@ public interface Validator {
     Collection<ValidationResult> validateValue(Payload payload, EStructuralFeature feature, Object value, Map<String, Object> context);
 
 
-    public static void addValidationError(Map<String, Object> parameters,
+    static void addValidationError(Map<String, Object> parameters,
                                           Object location,
                                           Collection<ValidationResult> validationResults,
                                           String code) {
