@@ -96,6 +96,8 @@ public class RequestConverter {
     private static final boolean VALIDATE_MISSING_FEATURES_DEFAULT = true;
     private static final boolean IGNORE_INVALID_VALUES_DEFAULT = false;
 
+    public static final String GLOBAL_VALIDATION_CONTEXT = "globalValidationContext";
+
     public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("\\W", "_");
     public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("\\W", "_");
 
@@ -105,6 +107,9 @@ public class RequestConverter {
         }
 
         final Map<String, Object> rootContext = new TreeMap<>(validationContext);
+
+        rootContext.put(GLOBAL_VALIDATION_CONTEXT, new HashMap<String, Object>());
+
         final List<ValidationResult> validationResults = new ArrayList<>(validateIdentifier(transferObjectType, input, rootContext));
         final Payload payload = Payload.asPayload(input);
 

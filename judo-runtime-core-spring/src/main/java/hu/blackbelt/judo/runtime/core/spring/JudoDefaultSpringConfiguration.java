@@ -305,7 +305,7 @@ public class JudoDefaultSpringConfiguration {
 
     @Bean
     public ValidatorProvider validatorProvider(DAO dao) {
-        return new DefaultValidatorProvider(dao, identifierProvider, context);
+        return new DefaultValidatorProvider(dao, identifierProvider, asmModel, context);
     }
     @Bean
     @SuppressWarnings("unchecked")

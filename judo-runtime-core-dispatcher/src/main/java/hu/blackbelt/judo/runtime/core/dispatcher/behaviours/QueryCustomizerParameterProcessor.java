@@ -135,12 +135,12 @@ public class QueryCustomizerParameterProcessor<ID> {
         } else if (AsmUtils.isBoolean(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_BOOLEAN_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid boolean operator: " + operator);
-            checkArgument(value instanceof Boolean, "Value must be a number");
+            checkArgument(value instanceof Boolean, "Value must be a boolean");
             return (Boolean.TRUE.equals(value) ? "" : "not ") + THIS_NAME + "." + attribute.getName();
         } else if (AsmUtils.isString(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_STRING_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid string operator: " + operator);
-            checkArgument(value instanceof String, "Value must be a number");
+            checkArgument(value instanceof String, "Value must be a string");
             final String escaped = ((String) value).replace("\"", "\\\"");
             switch (jqlOperator) {
                 case "~":
@@ -153,7 +153,7 @@ public class QueryCustomizerParameterProcessor<ID> {
         } else if (AsmUtils.isDate(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid date operator: " + operator);
-            checkArgument(value instanceof LocalDate, "Value must be a number");
+            checkArgument(value instanceof LocalDate, "Value must be a local date");
             final String formattedDate = ((LocalDate) value).format(DateTimeFormatter.ISO_DATE);
             return THIS_NAME + "." + attribute.getName() + jqlOperator + "`" + formattedDate + "`";
         } else if (AsmUtils.isTimestamp(attribute.getEAttributeType())) {
