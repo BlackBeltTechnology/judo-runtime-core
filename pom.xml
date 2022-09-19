@@ -51,11 +51,11 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0.20220901_121010_a29f791e_develop</judo-meta-rdbms-version>
         <judo-meta-asm-version>1.1.0.20220901_121048_5b18a69d_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.1.20220902_155839_54554c59_develop</judo-meta-expression-version>
+        <judo-meta-expression-version>1.0.1-SNAPSHOT</judo-meta-expression-version>
         <judo-meta-expression-asm-version>1.0.1.20220902_160206_1b992c7a_develop</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.0.20220901_121041_607ea7b1_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.0.20220901_120945_56a9c436_develop</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.0.20220901_121241_c8b3f39f_develop</judo-meta-query-version>
+        <judo-meta-query-version>1.0.0-SNAPSHOT</judo-meta-query-version>
         <judo-dao-api-version>1.0.2.20220901_121014_d87d7719_develop</judo-dao-api-version>
         <judo-sdk-common-version>1.0.0.20220902_155840_4580d478_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2.20220901_121018_b6e9cf92_develop</judo-dispatcher-api-version>
