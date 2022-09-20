@@ -408,10 +408,6 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER), 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
-        functionBuilderMap.put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
-                c.builder.pattern("CAST(EXTRACT(EPOCH FROM (CAST({0} AS TIMESTAMP))) AS INTEGER)")
-                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
-
         functionBuilderMap.put(FunctionSignature.TO_DATE, c ->
                 c.builder.pattern("CAST(TO_DATE(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS  INTEGER) || ''-'' || CAST({2} AS INTEGER), ''YYYY-MM-DD'') AS DATE)")
                         .parameters(List.of(
