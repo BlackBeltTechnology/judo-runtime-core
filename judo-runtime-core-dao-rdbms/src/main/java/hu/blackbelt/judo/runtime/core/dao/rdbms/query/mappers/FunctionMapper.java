@@ -427,7 +427,6 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                 c.parameters.get(ParameterName.SECOND)
                         )));
 
-
         functionBuilderMap.put(FunctionSignature.TO_TIME, c ->
                 c.builder.pattern("CAST(CAST({0} AS INTEGER) || '':'' || CAST({1} AS INTEGER) || '':'' || CAST({2} AS INTEGER) AS TIME)")
                         .parameters(List.of(

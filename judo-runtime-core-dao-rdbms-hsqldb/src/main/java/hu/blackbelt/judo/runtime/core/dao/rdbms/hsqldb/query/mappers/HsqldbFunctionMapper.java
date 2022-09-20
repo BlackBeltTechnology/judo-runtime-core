@@ -31,7 +31,8 @@ import java.util.List;
 
 public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
 
-    @SuppressWarnings("unchecked") @Builder
+    @SuppressWarnings("unchecked")
+    @Builder
     public HsqldbFunctionMapper(@NonNull RdbmsBuilder<ID> rdbmsBuilder) {
         super(rdbmsBuilder);
 
@@ -42,6 +43,10 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
                 c.builder.pattern("(UNIX_MILLIS(CAST({0} AS TIMESTAMP)))")
                          .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS, c ->
+                c.builder.pattern("TIMESTAMP({0} / 1000)")
+                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
     }
 }
