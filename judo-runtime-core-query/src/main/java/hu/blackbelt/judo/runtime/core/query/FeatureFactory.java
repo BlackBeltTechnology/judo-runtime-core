@@ -78,7 +78,9 @@ public class FeatureFactory {
         converters.put(Empty.class, new EmptyToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(Exists.class, new ExistsToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(ExtractDateExpression.class, new ExtractDateExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(ExtractDateOfTimestampExpression.class, new ExtractDateOfTimestampExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ExtractTimeExpression.class, new ExtractTimeExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(ExtractTimeOfTimestampExpression.class, new ExtractTimeOfTimestampExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ExtractTimestampExpression.class, new ExtractTimestampExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ForAll.class, new ForAllToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(InstanceOfExpression.class, new InstanceOfExpressionToFeatureConverter(this, modelAdapter));
