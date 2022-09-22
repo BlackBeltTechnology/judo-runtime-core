@@ -45,7 +45,7 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                          .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS, c ->
-                c.builder.pattern("TIMESTAMP({0} / 1000)")
+                c.builder.pattern("DATEADD(MILLISECOND, MOD({0}, 1000), TIMESTAMP({0} / 1000))")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
     }
