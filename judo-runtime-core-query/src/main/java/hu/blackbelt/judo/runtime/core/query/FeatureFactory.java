@@ -116,9 +116,9 @@ public class FeatureFactory {
         converters.put(TimestampAdditionExpression.class, new TimestampAdditionExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampAggregatedExpression.class, new TimestampAggregatedExpressionToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(TimestampArithmeticExpression.class, new TimestampArithmeticExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(TimestampAsMillisecondsExpression.class, new TimestampAsMillisecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampComparison.class, new TimestampComparisonToFeatureConverter(this, modelAdapter));
         converters.put(TimestampConstructionExpression.class, new TimestampConstructionExpressionToFeatureConverter(this, modelAdapter));
-        converters.put(TimestampConversionExpression.class, new TimestampConversionExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampFromMillisecondsExpression.class, new TimestampFromMillisecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampDifferenceExpression.class, new TimestampDifferenceExpressionToFeatureConverter(this, modelAdapter));
         converters.put(Trim.class, new TrimToFeatureConverter(this, modelAdapter));
