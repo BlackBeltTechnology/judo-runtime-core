@@ -96,5 +96,54 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
                 c.builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER) % 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
+                c.builder.pattern("({0} + CAST({1} || '' years'' AS INTERVAL))")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.TIMESTAMP),
+                                 c.parameters.get(ParameterName.NUMBER)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_MONTHS, c ->
+                c.builder.pattern("({0} + CAST({1} || '' months'' AS INTERVAL))")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.TIMESTAMP),
+                                 c.parameters.get(ParameterName.NUMBER)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_DAYS, c ->
+                c.builder.pattern("({0} + CAST({1} || '' days'' AS INTERVAL))")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.TIMESTAMP),
+                                 c.parameters.get(ParameterName.NUMBER)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_HOURS, c ->
+                c.builder.pattern("({0} + CAST({1} || '' hours'' AS INTERVAL))")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.TIMESTAMP),
+                                 c.parameters.get(ParameterName.NUMBER)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_MINUTES, c ->
+                c.builder.pattern("({0} + CAST({1} || '' minutes'' AS INTERVAL))")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.TIMESTAMP),
+                                 c.parameters.get(ParameterName.NUMBER)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_SECONDS, c ->
+                c.builder.pattern("({0} + CAST({1} || '' seconds'' AS INTERVAL))")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.TIMESTAMP),
+                                 c.parameters.get(ParameterName.NUMBER)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_MILLISECONDS, c ->
+                c.builder.pattern("({0} + CAST(({1}::double precision / 1000) || '' seconds'' AS INTERVAL))")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.TIMESTAMP),
+                                 c.parameters.get(ParameterName.NUMBER)
+                         )));
     }
 }
