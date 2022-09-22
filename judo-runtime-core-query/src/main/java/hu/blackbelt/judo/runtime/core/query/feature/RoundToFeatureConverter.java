@@ -36,7 +36,7 @@ public class RoundToFeatureConverter extends ExpressionToFeatureConverter<RoundE
     @Override
     public Feature convert(final RoundExpression expression, final Context context, final FeatureTargetMapping targetMapping) {
         final Feature feature = QueryBuilders.newFunctionBuilder()
-                .withSignature(FunctionSignature.ROUND_DECIMAL)
+                .withSignature(FunctionSignature.ROUND)
                 .withParameters(QueryBuilders.newFunctionParameterBuilder()
                         .withParameterName(ParameterName.NUMBER)
                         .withParameterValue(factory.convert(expression.getExpression(), context, null))

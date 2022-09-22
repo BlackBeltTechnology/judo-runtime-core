@@ -133,7 +133,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
         functionBuilderMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionBuilderMap.get(FunctionSignature.OPPOSITE_INTEGER));
 
-        functionBuilderMap.put(FunctionSignature.ROUND_DECIMAL, c ->
+        functionBuilderMap.put(FunctionSignature.ROUND, c ->
                 c.builder.pattern("ROUND({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
