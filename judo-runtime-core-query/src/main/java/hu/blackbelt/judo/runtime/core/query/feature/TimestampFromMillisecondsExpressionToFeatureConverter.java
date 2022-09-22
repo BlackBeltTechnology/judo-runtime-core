@@ -17,13 +17,15 @@ public class TimestampFromMillisecondsExpressionToFeatureConverter extends Expre
 
     @Override
     public Feature convert(TimestampFromMillisecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
-        return newFunctionBuilder()
+        Feature feature = newFunctionBuilder()
                 .withSignature(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS)
                 .withParameters(QueryBuilders.newFunctionParameterBuilder()
                                              .withParameterName(ParameterName.NUMBER)
                                              .withParameterValue(factory.convert(expression.getMilliseconds(), context, null))
                                              .build())
                 .build();
+        context.addFeature(feature);
+        return feature;
     }
 
 }

@@ -25,13 +25,15 @@ public class TimestampConversionExpressionToFeatureConverter extends ExpressionT
             throw new IllegalArgumentException("Timestamp conversion not supported: " + expression.getTimestampConversion().getName());
         }
 
-        return newFunctionBuilder()
+        Feature feature = newFunctionBuilder()
                 .withSignature(signature)
                 .withParameters(newFunctionParameterBuilder()
                                         .withParameterName(ParameterName.TIMESTAMP)
                                         .withParameterValue(factory.convert(expression.getTimestamp(), context, null))
                                         .build())
                 .build();
+        context.addFeature(feature);
+        return feature;
     }
 
 }
