@@ -124,7 +124,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.8.1</version>
+                    <version>3.10.1</version>
                     <configuration>
                         <source>11</source>
                         <target>11</target>
@@ -135,32 +135,18 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-install-plugin</artifactId>
                     <version>2.5.2</version>
-                    <executions>
-                        <execution>
-                            <id>default-install</id>
-                            <configuration>
-                                <skip>${deployOnly}</skip>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>default-test</id>
-                            <configuration>
-                                <skip>${deployOnly}</skip>
-                            </configuration>
-                        </execution>
-                    </executions>
                 </plugin>
 
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
-                    <version>2.8.2</version>
+                    <version>3.0.0</version>
                 </plugin>
 
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.3.0</version>
                 </plugin>
 
                 <plugin>
@@ -183,7 +169,7 @@
                 <plugin>
                     <groupId>org.apache.felix</groupId>
                     <artifactId>maven-bundle-plugin</artifactId>
-                    <version>5.1.6</version>
+                    <version>5.1.8</version>
                     <extensions>true</extensions>
                     <configuration>
                         <instructions>
@@ -265,7 +251,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
-                <version>1.1.0</version>
+                <version>1.3.0</version>
                 <configuration>
                     <updatePomFile>true</updatePomFile>
                     <flattenMode>resolveCiFriendliesOnly</flattenMode>
@@ -337,7 +323,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.11</version>
+            <version>1.4.1</version>
         </dependency>
 
         <dependency>
@@ -400,7 +386,7 @@
         <dependency>
             <groupId>com.jcabi</groupId>
             <artifactId>jcabi-log</artifactId>
-            <version>0.18</version>
+            <version>0.22.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -414,21 +400,21 @@
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
-            <version>2.1</version>
+            <version>2.2</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>3.0.0</version>
+            <version>4.8.0</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.5.1</version>
+            <version>4.8.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
