@@ -133,7 +133,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
         functionBuilderMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionBuilderMap.get(FunctionSignature.OPPOSITE_INTEGER));
 
-        functionBuilderMap.put(FunctionSignature.ROUND_DECIMAL, c ->
+        functionBuilderMap.put(FunctionSignature.ROUND, c ->
                 c.builder.pattern("ROUND({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
@@ -416,6 +416,14 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                 c.parameters.get(ParameterName.DAY)
                         )));
 
+        functionBuilderMap.put(FunctionSignature.DATE_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(TO_DATE(" +
+                                  "CAST(EXTRACT(YEAR from CAST({0} AS TIMESTAMP)) AS INTEGER) || ''-'' || " +
+                                  "CAST(EXTRACT(MONTH from CAST({0} AS TIMESTAMP)) AS INTEGER) || ''-'' || " +
+                                  "CAST(EXTRACT(DAY from CAST({0} AS TIMESTAMP)) AS INTEGER), " +
+                                  "''YYYY-MM-DD'') AS DATE)")
+                        .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
+
         functionBuilderMap.put(FunctionSignature.TO_TIMESTAMP, c ->
                 c.builder.pattern("CAST(TO_TIMESTAMP(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL), ''YYYY-MM-DD HH24:MI:SS'') AS TIMESTAMP)")
                         .parameters(List.of(
@@ -427,7 +435,6 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                 c.parameters.get(ParameterName.SECOND)
                         )));
 
-
         functionBuilderMap.put(FunctionSignature.TO_TIME, c ->
                 c.builder.pattern("CAST(CAST({0} AS INTEGER) || '':'' || CAST({1} AS INTEGER) || '':'' || CAST({2} AS INTEGER) AS TIME)")
                         .parameters(List.of(
@@ -435,6 +442,14 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                 c.parameters.get(ParameterName.MINUTE),
                                 c.parameters.get(ParameterName.SECOND)
                         )));
+
+        functionBuilderMap.put(FunctionSignature.TIME_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(" +
+                                  "CAST(EXTRACT(HOUR from CAST({0} AS TIMESTAMP)) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(MINUTE from CAST({0} AS TIMESTAMP)) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER) " +
+                                  "AS TIME)")
+                        .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
     }
 
     @Override
