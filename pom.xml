@@ -46,7 +46,7 @@
         <jackson-version>2.11.4</jackson-version>
 
         <epsilon-runtime-version>1.5.0</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.0.20220901_121006_b2120b4c_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.0</judo-tatami-core-version>
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.0</judo-meta-rdbms-version>
@@ -54,12 +54,12 @@
         <judo-meta-expression-version>1.0.1</judo-meta-expression-version>
         <judo-meta-expression-asm-version>1.0.1</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.0</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.1</judo-meta-liquibase-version>
+        <judo-meta-liquibase-version>1.0.0</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.0</judo-meta-query-version>
-        <judo-dao-api-version>1.0.2.20220901_121014_d87d7719_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.0.20220902_155840_4580d478_develop</judo-sdk-common-version>
-        <judo-dispatcher-api-version>1.0.2.20220901_121018_b6e9cf92_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.0.20220902_155843_fae617e1_develop</judo-operation-utils-version>
+        <judo-dao-api-version>1.0.2</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.0</judo-sdk-common-version>
+        <judo-dispatcher-api-version>1.0.2</judo-dispatcher-api-version>
+        <judo-operation-utils-version>1.1.0</judo-operation-utils-version>
 
         <structured-map-proxy-version>1.1.0</structured-map-proxy-version>
 
@@ -365,19 +365,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.eclipse.emf</groupId>
-            <artifactId>org.eclipse.emf.ecore</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.emf</groupId>
-            <artifactId>org.eclipse.emf.common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.emf</groupId>
-            <artifactId>org.eclipse.emf.ecore.xmi</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.24</version>
@@ -479,30 +466,20 @@
 
             </modules>
         </profile>
+
         <profile>
             <id>sign-artifacts</id>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
+                        <groupId>org.simplify4u.plugins</groupId>
+                        <artifactId>sign-maven-plugin</artifactId>
+                        <version>1.0.1</version>
                         <executions>
                             <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
-                                <configuration>
-                                    <keyname>${gpg.keyname}</keyname>
-                                    <passphraseServerId>${gpg.keyname}</passphraseServerId>
-                                    <!-- This is necessary for gpg to not try to use the pinentry programs -->
-                                    <gpgArguments>
-                                        <arg>--pinentry-mode</arg>
-                                        <arg>loopback</arg>
-                                    </gpgArguments>
-                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -547,7 +524,6 @@
                     <plugin>
                         <groupId>org.sonatype.plugins</groupId>
                         <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.13</version>
                         <extensions>true</extensions>
                         <configuration>
                             <serverId>ossrh</serverId>
@@ -555,20 +531,6 @@
                             <autoReleaseAfterClose>true</autoReleaseAfterClose>
                             <stagingProgressTimeoutMinutes>15</stagingProgressTimeoutMinutes>
                         </configuration>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-source-plugin</artifactId>
-                        <version>3.2.1</version>
-                        <executions>
-                            <execution>
-                                <id>attach-sources</id>
-                                <goals>
-                                    <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                     </plugin>
                 </plugins>
             </build>
