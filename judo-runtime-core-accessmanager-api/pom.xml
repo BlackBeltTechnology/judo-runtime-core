@@ -10,7 +10,7 @@
     <artifactId>judo-runtime-core-accessmanager-api</artifactId>
     <packaging>bundle</packaging>
 
-    <name>JUDO Services Access Manager API</name>
+    <name>JUDO Runtime Core :: Access Manager API</name>
 
     <build>
         <plugins>
@@ -19,7 +19,7 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions>
-                        <Export-Package>hu.blackbelt.judo.services.accessmanager.api.*;version:=${project.version}</Export-Package>
+                        <Export-Package>hu.blackbelt.judo.runtime.core.accessmanager.api.*;version=${project.version}</Export-Package>
                     </instructions>
                 </configuration>
             </plugin>
