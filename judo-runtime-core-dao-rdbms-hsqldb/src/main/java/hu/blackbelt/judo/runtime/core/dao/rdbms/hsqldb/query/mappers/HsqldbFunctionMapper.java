@@ -31,6 +31,7 @@ import java.util.List;
 
 public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
 
+    @SuppressWarnings("unchecked")
     @Builder
     public HsqldbFunctionMapper(@NonNull RdbmsBuilder<ID> rdbmsBuilder) {
         super(rdbmsBuilder);
@@ -39,6 +40,62 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("(LOWER({0}) LIKE LOWER({1}))")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
 
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
+                c.builder.pattern("(UNIX_MILLIS(CAST({0} AS TIMESTAMP)))")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS, c ->
+                c.builder.pattern("DATEADD(MILLISECOND, MOD({0}, 1000), TIMESTAMP({0} / 1000))")
+                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
+                c.builder.pattern("DATEADD(YEAR, {0}, {1})")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.NUMBER),
+                                 c.parameters.get(ParameterName.TIMESTAMP)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_MONTHS, c ->
+                c.builder.pattern("DATEADD(MONTH, {0}, {1})")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.NUMBER),
+                                 c.parameters.get(ParameterName.TIMESTAMP)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_DAYS, c ->
+                c.builder.pattern("DATEADD(DAY, {0}, {1})")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.NUMBER),
+                                 c.parameters.get(ParameterName.TIMESTAMP)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_HOURS, c ->
+                c.builder.pattern("DATEADD(HOUR, {0}, {1})")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.NUMBER),
+                                 c.parameters.get(ParameterName.TIMESTAMP)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_MINUTES, c ->
+                c.builder.pattern("DATEADD(MINUTE, {0}, {1})")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.NUMBER),
+                                 c.parameters.get(ParameterName.TIMESTAMP)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_SECONDS, c ->
+                c.builder.pattern("DATEADD(SECOND, {0}, {1})")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.NUMBER),
+                                 c.parameters.get(ParameterName.TIMESTAMP)
+                         )));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_MILLISECONDS, c ->
+                c.builder.pattern("DATEADD(MILLISECOND, {0}, {1})")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.NUMBER),
+                                 c.parameters.get(ParameterName.TIMESTAMP)
+                         )));
+
     }
 }
-
