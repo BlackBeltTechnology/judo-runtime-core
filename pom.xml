@@ -40,7 +40,7 @@
         </osgi-transaction-import>
 
         <jose4j-version>0.7.2</jose4j-version>
-        <sonar-maven-plugin-version>3.7.0.1746</sonar-maven-plugin-version>
+        <sonar-maven-plugin-version>3.9.1.2184</sonar-maven-plugin-version>
         <jacoco.version>0.8.6</jacoco.version>
 
         <jackson-version>2.11.4</jackson-version>
