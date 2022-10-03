@@ -220,7 +220,10 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN), c.parameters.get(ParameterName.REPLACEMENT))));
 
         functionBuilderMap.put(FunctionSignature.SUBSTRING_STRING, c ->
-                c.builder.pattern("SUBSTRING({0}, CAST ({1} AS INTEGER), CAST({2} AS INTEGER))")
+                c.builder.pattern("(CASE " +
+                                  "WHEN {1} > LENGTH({0}) THEN '''' " +
+                                  "ELSE SUBSTRING({0}, {1}, {2}) " +
+                                  "END)")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.POSITION), c.parameters.get(ParameterName.LENGTH))));
 
         functionBuilderMap.put(FunctionSignature.ADD_DATE, c ->
