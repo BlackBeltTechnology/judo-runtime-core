@@ -192,7 +192,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
 
 //        functionBuilderMap.put(FunctionSignature.CAPITALIZE_STRING, c ->
-//                c.builder.pattern("(UPPER(SUBSTRING({0}, 1, 1)) || LOWER(SUBSTRING({0}, 2)))")
+//                c.builder.pattern("CAPITALIZE({0})")
 //                        .parameters(List.of(c.parameters.get(ParameterName.STRING))));
 
         functionBuilderMap.put(FunctionSignature.CONCATENATE_STRING, c ->
