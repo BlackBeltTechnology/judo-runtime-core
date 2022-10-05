@@ -48,8 +48,8 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.1.20220921_225003_7bd9d181_develop</judo-meta-rdbms-version>
         <judo-meta-asm-version>1.1.2.20220921_230227_7d158c9b_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.2.20221005_124208_4caf2979_feature_JNG_3795_Support_capitalize_on_strings</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.2.20221005_124535_68f571da_feature_JNG_3795_Support_capitalize_on_strings</judo-meta-expression-asm-version>
+        <judo-meta-expression-version>1.0.2.20221005_135846_bc0821eb_develop</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.2.20221005_140218_67fdfc1c_develop</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.1.20220921_224938_dbd1c8fa_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.1.20220921_224934_d7629408_develop</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.1.20220927_204332_7c89444a_develop</judo-meta-query-version>
@@ -60,7 +60,7 @@
 
         <structured-map-proxy-version>1.2.1.20220927_090501_89bce74f_develop</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.2.20221005_124817_b12dd004_feature_JNG_3795_Support_capitalize_on_strings</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.2.20221005_140502_f5620fb7_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20220927_072413_239dbbd8_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20220927_073253_8765e58f_develop</osgi-filestore-version>
