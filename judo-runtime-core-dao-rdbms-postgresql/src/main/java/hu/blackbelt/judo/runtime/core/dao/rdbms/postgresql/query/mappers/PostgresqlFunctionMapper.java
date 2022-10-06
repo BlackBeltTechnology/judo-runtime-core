@@ -39,6 +39,10 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("({0} % {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
+        getFunctionBuilderMap().put(FunctionSignature.MODULO_DECIMAL, c ->
+                c.builder.pattern("({0} % {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
+
         getFunctionBuilderMap().put(FunctionSignature.INTEGER_TO_STRING, c ->
                 c.builder.pattern("CAST({0} AS TEXT)")
                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
