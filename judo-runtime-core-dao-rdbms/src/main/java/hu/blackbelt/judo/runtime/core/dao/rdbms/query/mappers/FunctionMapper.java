@@ -154,7 +154,8 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c ->
-                c.builder.pattern(getDecimalType(c.function).map(type -> "( {0} - (FLOOR(CAST({0} AS " + type + ") / CAST({1} AS " + type + ")) * {1}) )").orElseThrow())
+                c.builder.pattern(getDecimalType(c.function).map(type -> "( {0} - (FLOOR(CAST({0} AS " + type + ") / CAST({1} AS " + type + ")) * {1}) )")
+                                                            .orElse("( {0} - (FLOOR(CAST({0} AS DECIMAL(19, 2)) / CAST({1} AS DECIMAL(19, 2))) * {1}) )"))
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.LENGTH_STRING, c ->
