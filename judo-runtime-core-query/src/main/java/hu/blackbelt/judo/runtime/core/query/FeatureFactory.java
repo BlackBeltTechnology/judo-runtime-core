@@ -97,9 +97,11 @@ public class FeatureFactory {
         converters.put(NegationExpression.class, new NegationExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ObjectComparison.class, new ObjectComparisonToFeatureConverter(this, modelAdapter));
         converters.put(ObjectVariableReference.class, new ObjectVariableReferenceToFeatureConverter(this, modelAdapter));
+        converters.put(PaddingExpression.class, new PaddingToFeatureConverter(this, modelAdapter));
         converters.put(Position.class, new PositionToFeatureConverter(this, modelAdapter));
         converters.put(Replace.class, new ReplaceToFeatureConverter(this, modelAdapter));
-        converters.put(RoundExpression.class, new RoundToFeatureConverter(this, modelAdapter));
+        converters.put(IntegerRoundExpression.class, new RoundToFeatureConverter(this, modelAdapter));
+        converters.put(DecimalRoundExpression.class, new RoundToFeatureConverter(this, modelAdapter));
         converters.put(AbsoluteExpression.class, new AbsoluteToFeatureConverter(this, modelAdapter));
         converters.put(CeilExpression.class, new CeilToFeatureConverter(this, modelAdapter));
         converters.put(FloorExpression.class, new FloorToFeatureConverter(this, modelAdapter));
@@ -109,9 +111,11 @@ public class FeatureFactory {
         converters.put(SubString.class, new SubStringToFeatureConverter(this, modelAdapter));
         converters.put(SwitchExpression.class, new SwitchExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimeAdditionExpression.class, new TimeAdditionExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(TimeAsSecondsExpression.class, new TimeAsSecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimeAggregatedExpression.class, new TimeAggregatedExpressionToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(TimeComparison.class, new TimeComparisonToFeatureConverter(this, modelAdapter));
         converters.put(TimeConstructionExpression.class, new TimeConstructionExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(TimeFromSecondsExpression.class, new TimeFromSecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimeDifferenceExpression.class, new TimeDifferenceExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampAdditionExpression.class, new TimestampAdditionExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampAggregatedExpression.class, new TimestampAggregatedExpressionToFeatureConverter(this, joinFactory, modelAdapter));
