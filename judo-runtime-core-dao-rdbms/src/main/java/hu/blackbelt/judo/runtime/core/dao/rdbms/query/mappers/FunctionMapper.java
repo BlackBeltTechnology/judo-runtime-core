@@ -133,9 +133,13 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
         functionBuilderMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionBuilderMap.get(FunctionSignature.OPPOSITE_INTEGER));
 
-        functionBuilderMap.put(FunctionSignature.ROUND, c ->
+        functionBuilderMap.put(FunctionSignature.INTEGER_ROUND, c ->
                 c.builder.pattern("ROUND({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+
+        functionBuilderMap.put(FunctionSignature.DECIMAL_ROUND, c ->
+                c.builder.pattern("ROUND({0}, {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.NUMBER), c.parameters.get(ParameterName.POSITION))));
 
         functionBuilderMap.put(FunctionSignature.ABSOLUTE_NUMERIC, c ->
                 c.builder.pattern("ABS({0})")
@@ -153,10 +157,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("MOD({0}, {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
-        functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c ->
-                c.builder.pattern(getDecimalType(c.function).map(type -> "( {0} - (FLOOR(CAST({0} AS " + type + ") / CAST({1} AS " + type + ")) * {1}) )")
-                                                            .orElse("( {0} - (FLOOR(CAST({0} AS DECIMAL(19, 2)) / CAST({1} AS DECIMAL(19, 2))) * {1}) )"))
-                        .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
+        functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c -> {
+            String type = getDecimalType(c.function).orElse("DECIMAL(19, 2)");
+            return c.builder.pattern("( {0} - (FLOOR(CAST({0} AS " + type + ") / CAST({1} AS " + type + ")) * {1}) )")
+                            .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)));
+        });
 
         functionBuilderMap.put(FunctionSignature.LENGTH_STRING, c ->
                 c.builder.pattern("LENGTH({0})")
@@ -177,6 +182,18 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.RIGHT_TRIM_STRING, c ->
                 c.builder.pattern("RTRIM({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
+
+        functionBuilderMap.put(FunctionSignature.LEFT_PAD, c ->
+                c.builder.pattern("LPAD({0}, {1}, {2})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING),
+                                            c.parameters.get(ParameterName.LENGTH),
+                                            c.parameters.get(ParameterName.REPLACEMENT))));
+
+        functionBuilderMap.put(FunctionSignature.RIGHT_PAD, c ->
+                c.builder.pattern("RPAD({0}, {1}, {2})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING),
+                                            c.parameters.get(ParameterName.LENGTH),
+                                            c.parameters.get(ParameterName.REPLACEMENT))));
 
         functionBuilderMap.put(FunctionSignature.INTEGER_TO_STRING, c ->
                 c.builder.pattern("CAST({0} AS LONGVARCHAR)")
@@ -410,6 +427,13 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
 
         functionBuilderMap.put(FunctionSignature.SECONDS_OF_TIME, c ->
                 c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)")
+                        .parameters(List.of(c.parameters.get(ParameterName.TIME))));
+
+        functionBuilderMap.put(FunctionSignature.TIME_AS_SECONDS, c ->
+                c.builder.pattern(String.format("((%s) * 3600 + (%s) * 60 + (%s))",
+                                                functionBuilderMap.get(FunctionSignature.HOURS_OF_TIME),
+                                                functionBuilderMap.get(FunctionSignature.MINUTES_OF_TIME),
+                                                functionBuilderMap.get(FunctionSignature.SECONDS_OF_TIME)))
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
         functionBuilderMap.put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
