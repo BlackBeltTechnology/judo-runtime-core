@@ -430,10 +430,9 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
         functionBuilderMap.put(FunctionSignature.TIME_AS_SECONDS, c ->
-                c.builder.pattern(String.format("((%s) * 3600 + (%s) * 60 + (%s))",
-                                                functionBuilderMap.get(FunctionSignature.HOURS_OF_TIME),
-                                                functionBuilderMap.get(FunctionSignature.MINUTES_OF_TIME),
-                                                functionBuilderMap.get(FunctionSignature.SECONDS_OF_TIME)))
+                c.builder.pattern("((CAST(EXTRACT(HOUR from CAST({0} AS TIME)) AS INTEGER)) * 3600 + " +
+                                  "(CAST(EXTRACT(MINUTE from CAST({0} AS TIME)) AS INTEGER)) * 60 + " +
+                                  "(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)))")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
         functionBuilderMap.put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
