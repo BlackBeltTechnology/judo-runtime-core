@@ -39,6 +39,10 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("({0} % {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
+        getFunctionBuilderMap().put(FunctionSignature.MODULO_DECIMAL, c ->
+                c.builder.pattern("({0} % {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
+
         getFunctionBuilderMap().put(FunctionSignature.INTEGER_TO_STRING, c ->
                 c.builder.pattern("CAST({0} AS TEXT)")
                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
@@ -92,6 +96,24 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS, c ->
                 c.builder.pattern("TO_TIMESTAMP({0}::double precision / 1000)")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIME_FROM_SECONDS, c ->
+                c.builder.pattern("CAST(" +
+                                  "CAST(EXTRACT(HOUR from TO_TIMESTAMP({0})) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(MINUTE from TO_TIMESTAMP({0})) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(SECOND from TO_TIMESTAMP({0})) AS INTEGER) " +
+                                  "AS TIME)")
+                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+
+        getFunctionBuilderMap().put(FunctionSignature.DAY_OF_WEEK_OF_DATE, c -> {
+            return c.builder.pattern(String.format("(CASE %1$s WHEN =1 THEN 7 ELSE (%1$s - 1) END)",
+                                                   "CAST(EXTRACT(DOW FROM {0}) AS INTEGER)"))
+                            .parameters(List.of(c.parameters.get(ParameterName.DATE)));
+        });
+
+        getFunctionBuilderMap().put(FunctionSignature.DAY_OF_YEAR_DATE, c ->
+                c.builder.pattern("CAST(EXTRACT(DOY FROM {0}) AS INTEGER)")
+                        .parameters(List.of(c.parameters.get(ParameterName.DATE))));
 
         getFunctionBuilderMap().put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
                 c.builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER) % 1000)")
