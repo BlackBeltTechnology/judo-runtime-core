@@ -57,7 +57,7 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
         getFunctionBuilderMap().put(FunctionSignature.DAY_OF_WEEK_OF_DATE, c -> {
-            return c.builder.pattern(String.format("(CASE %1$s WHEN =0 THEN 7 ELSE %1$s END)",
+            return c.builder.pattern(String.format("(CASE %1$s WHEN =1 THEN 7 ELSE (%1$s - 1) END)",
                                                    "CAST(EXTRACT(DAY_OF_WEEK FROM {0}) AS INTEGER)"))
                             .parameters(List.of(c.parameters.get(ParameterName.DATE)));
         });
