@@ -43,6 +43,7 @@ public class TimeFromSecondsExpressionToFeatureConverter extends ExpressionToFea
                                              .withParameterName(ParameterName.NUMBER)
                                              .withParameterValue(factory.convert(expression.getSeconds(), context, null))
                                              .build())
+                .withConstraints(getConstraints(targetMapping != null ? targetMapping.getTargetAttribute() : null))
                 .build();
         context.addFeature(feature);
         return feature;
