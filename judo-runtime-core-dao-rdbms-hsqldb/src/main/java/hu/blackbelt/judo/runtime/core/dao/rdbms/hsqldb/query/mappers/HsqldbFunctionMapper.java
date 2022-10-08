@@ -48,6 +48,24 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("DATEADD(MILLISECOND, MOD({0}, 1000), TIMESTAMP({0} / 1000))")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
+        getFunctionBuilderMap().put(FunctionSignature.TIME_FROM_SECONDS, c ->
+                c.builder.pattern("CAST(" +
+                                  "CAST(EXTRACT(HOUR from TIMESTAMP({0})) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(MINUTE from TIMESTAMP({0})) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(SECOND from TIMESTAMP({0})) AS INTEGER) " +
+                                  "AS TIME)")
+                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+
+        getFunctionBuilderMap().put(FunctionSignature.DAY_OF_WEEK_OF_DATE, c -> {
+            return c.builder.pattern(String.format("(CASE %1$s WHEN =1 THEN 7 ELSE (%1$s - 1) END)",
+                                                   "CAST(EXTRACT(DAY_OF_WEEK FROM {0}) AS INTEGER)"))
+                            .parameters(List.of(c.parameters.get(ParameterName.DATE)));
+        });
+
+        getFunctionBuilderMap().put(FunctionSignature.DAY_OF_YEAR_DATE, c ->
+                c.builder.pattern("CAST(EXTRACT(DAY_OF_YEAR FROM {0}) AS INTEGER)")
+                         .parameters(List.of(c.parameters.get(ParameterName.DATE))));
+
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
                 c.builder.pattern("DATEADD(YEAR, {0}, {1})")
                          .parameters(List.of(
