@@ -272,13 +272,9 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, CAST({1} AS TIMESTAMP), CAST({0} AS TIMESTAMP))")
                         .parameters(List.of(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START))));
 
-        functionBuilderMap.put(FunctionSignature.IS_UNDEFINED_ATTRIBUTE, c ->
+        functionBuilderMap.put(FunctionSignature.IS_UNDEFINED, c ->
                 c.builder.pattern("({0} IS NULL)")
-                        .parameters(List.of(c.parameters.get(ParameterName.ATTRIBUTE))));
-
-        functionBuilderMap.put(FunctionSignature.IS_UNDEFINED_OBJECT, c ->
-                c.builder.pattern("({0} IS NULL)")
-                        .parameters(List.of(c.parameters.get(ParameterName.RELATION))));
+                        .parameters(List.of(c.parameters.get(ParameterName.ITEM))));
 
         functionBuilderMap.put(FunctionSignature.INSTANCE_OF, c ->
                 c.builder.pattern("EXISTS (SELECT 1 FROM {1} WHERE " + StatementExecutor.ID_COLUMN_NAME + " = {0})")

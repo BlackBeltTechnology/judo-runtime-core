@@ -127,9 +127,7 @@ public class FeatureFactory {
         converters.put(TimestampDifferenceExpression.class, new TimestampDifferenceExpressionToFeatureConverter(this, modelAdapter));
         converters.put(Trim.class, new TrimToFeatureConverter(this, modelAdapter));
         converters.put(TypeOfExpression.class, new TypeOfExpressionToFeatureConverter(this, modelAdapter));
-        converters.put(UndefinedAttributeComparison.class, new UndefinedAttributeComparisonToFeatureConverter(this, modelAdapter));
-        converters.put(UndefinedEnvironmentVariableComparison.class, new UndefinedEnvironmentVariableComparisonToFeatureConverter(this, modelAdapter));
-        converters.put(UndefinedNavigationComparison.class, new UndefinedNavigationComparisonToFeatureConverter(this, modelAdapter));
+        converters.put(UndefinedComparison.class, new UndefinedComparisonToFeatureConverter(this, modelAdapter));
         converters.put(UpperCase.class, new UpperCaseToFeatureConverter(this, modelAdapter));
     }
 
