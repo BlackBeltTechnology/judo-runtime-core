@@ -200,7 +200,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         functionBuilderMap.put(FunctionSignature.DECIMAL_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.DATE_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
-        functionBuilderMap.put(FunctionSignature.TIME_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
+        functionBuilderMap.put(FunctionSignature.TIME_TO_STRING, c ->
+                c.builder.pattern("(CAST(EXTRACT(HOUR from {0}) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(MINUTE from {0}) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(SECOND from {0}) AS INTEGER))")
+                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         functionBuilderMap.put(FunctionSignature.LOGICAL_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.ENUM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.CUSTOM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
