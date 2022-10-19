@@ -20,8 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.expression.Expression;
-import hu.blackbelt.judo.meta.expression.StringExpression;
+import hu.blackbelt.judo.meta.expression.*;
 import hu.blackbelt.judo.meta.expression.logical.Like;
 import lombok.Builder;
 import lombok.NonNull;
@@ -41,7 +40,7 @@ public class LikeTranslator implements Function<Like, Like> {
         return newLikeBuilder()
                 .withExpression((StringExpression) translator.apply(likeExpression.getExpression()))
                 .withPattern((StringExpression) translator.apply(likeExpression.getPattern()))
-                .withCaseInsensitive(likeExpression.isCaseInsensitive())
+                .withCaseInsensitive((LogicalExpression) translator.apply(likeExpression.getCaseInsensitive()))
                 .build();
     }
 }
