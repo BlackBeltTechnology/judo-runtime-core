@@ -222,17 +222,12 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.LIKE, c ->
-                c.builder.pattern("(CASE " +
-                                   "WHEN {2} THEN (CASE " +
-                                                  "WHEN ({0} IS NULL or {1} IS NULL) THEN NULL " +
-                                                  "WHEN ({0} ILIKE {1}) THEN (1 = 1) " +
-                                                  "ELSE (1 = 0) END) " +
-                                   "ELSE (CASE " +
-                                         "WHEN ({0} IS NULL or {1} IS NULL) THEN NULL " +
-                                         "WHEN ({0} LIKE {1}) THEN (1 = 1) " +
-                                         "ELSE (1 = 0) END) " +
-                                   "END)")
-                        .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN), c.parameters.get(ParameterName.CONDITION))));
+                c.builder.pattern("({0} LIKE {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
+
+        functionBuilderMap.put(FunctionSignature.ILIKE, c ->
+                c.builder.pattern("({0} ILIKE {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
 
         functionBuilderMap.put(FunctionSignature.MATCHES_STRING, c ->
                 c.builder.pattern("REGEXP_MATCHES({0}, {1})")

@@ -26,8 +26,7 @@ import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 
-import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionBuilder;
-import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionParameterBuilder;
+import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 
 public class LikeToFeatureConverter extends ExpressionToFeatureConverter<Like> {
 
@@ -37,19 +36,23 @@ public class LikeToFeatureConverter extends ExpressionToFeatureConverter<Like> {
 
     @Override
     public Feature convert(final Like expression, final Context context, final FeatureTargetMapping targetMapping) {
+        Feature patternFeature = factory.convert(expression.getPattern(), context, null);
+        assert patternFeature instanceof Constant : "Pattern must be a constant";
+        Object patternValue = ((Constant) patternFeature).getValue();
+        assert patternValue instanceof String : "Pattern must be a string";
+
+        ParameterType pattern = expression.isCaseInsensitive()
+                                ? newConstantBuilder().withValue(((String) patternValue).toLowerCase()).build()
+                                : patternFeature;
         final Feature feature = newFunctionBuilder()
-                .withSignature(FunctionSignature.LIKE)
+                .withSignature(expression.isCaseInsensitive() ? FunctionSignature.ILIKE : FunctionSignature.LIKE)
                 .withParameters(newFunctionParameterBuilder()
                                         .withParameterName(ParameterName.STRING)
                                         .withParameterValue(factory.convert(expression.getExpression(), context, null))
                                         .build(),
                                 newFunctionParameterBuilder()
                                         .withParameterName(ParameterName.PATTERN)
-                                        .withParameterValue(factory.convert(expression.getPattern(), context, null))
-                                        .build(),
-                                newFunctionParameterBuilder()
-                                        .withParameterName(ParameterName.CONDITION)
-                                        .withParameterValue(factory.convert(expression.getCaseInsensitive(), context, null))
+                                        .withParameterValue(pattern)
                                         .build())
                 .build();
 
