@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  */
 
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
+import hu.blackbelt.judo.meta.expression.constant.util.builder.StringConstantBuilder;
 import hu.blackbelt.judo.meta.expression.logical.Like;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.query.Context;
@@ -43,9 +44,7 @@ public class LikeToFeatureConverter extends ExpressionToFeatureConverter<Like> {
         if (expression.isCaseInsensitive()) {
             Object patternValue = ((Constant) patternFeature).getValue();
             assert patternValue instanceof String : "Pattern must be a string";
-            Constant lowerCasedConstantFeature = newConstantBuilder().withValue(((String) patternValue).toLowerCase()).build();
-            context.addFeature(lowerCasedConstantFeature);
-            pattern = lowerCasedConstantFeature;
+            pattern = factory.convert(StringConstantBuilder.create().withValue(((String) patternValue).toLowerCase()).build(), context, null);
         } else {
             pattern = patternFeature;
         }

@@ -41,7 +41,7 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                          .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
 
         getFunctionBuilderMap().put(FunctionSignature.ILIKE, c ->
-                c.builder.pattern("(LOWER({0}) ILIKE {1})")
+                c.builder.pattern("(LOWER({0}) LIKE {1})")
                          .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
