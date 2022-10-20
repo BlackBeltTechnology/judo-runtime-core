@@ -36,9 +36,18 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
     public HsqldbFunctionMapper(@NonNull RdbmsBuilder<ID> rdbmsBuilder) {
         super(rdbmsBuilder);
 
-        getFunctionBuilderMap().put(FunctionSignature.ILIKE, c ->
-                c.builder.pattern("(LOWER({0}) LIKE LOWER({1}))")
-                        .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
+        getFunctionBuilderMap().put(FunctionSignature.LIKE, c ->
+                c.builder.pattern("(CASE " +
+                                   "WHEN {2} THEN (CASE " +
+                                                  "WHEN ({0} IS NULL or {1} IS NULL) THEN NULL " +
+                                                  "WHEN (LOWER({0}) LIKE LOWER({1})) THEN (1 = 1) " +
+                                                  "ELSE (1 = 0) END) " +
+                                   "ELSE (CASE " +
+                                         "WHEN ({0} IS NULL or {1} IS NULL) THEN NULL " +
+                                         "WHEN ({0} LIKE {1}) THEN (1 = 1) " +
+                                         "ELSE (1 = 0) END) " +
+                                   "END)")
+                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN), c.parameters.get(ParameterName.CONDITION))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
                 c.builder.pattern("(UNIX_MILLIS(CAST({0} AS TIMESTAMP)))")
