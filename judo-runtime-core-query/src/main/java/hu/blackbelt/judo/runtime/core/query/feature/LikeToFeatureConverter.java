@@ -38,12 +38,17 @@ public class LikeToFeatureConverter extends ExpressionToFeatureConverter<Like> {
     public Feature convert(final Like expression, final Context context, final FeatureTargetMapping targetMapping) {
         Feature patternFeature = factory.convert(expression.getPattern(), context, null);
         assert patternFeature instanceof Constant : "Pattern must be a constant";
-        Object patternValue = ((Constant) patternFeature).getValue();
-        assert patternValue instanceof String : "Pattern must be a string";
 
-        ParameterType pattern = expression.isCaseInsensitive()
-                                ? newConstantBuilder().withValue(((String) patternValue).toLowerCase()).build()
-                                : patternFeature;
+        ParameterType pattern;
+        if (expression.isCaseInsensitive()) {
+            Object patternValue = ((Constant) patternFeature).getValue();
+            assert patternValue instanceof String : "Pattern must be a string";
+            Constant lowerCasedConstantFeature = newConstantBuilder().withValue(((String) patternValue).toLowerCase()).build();
+            context.addFeature(lowerCasedConstantFeature);
+            pattern = lowerCasedConstantFeature;
+        } else {
+            pattern = patternFeature;
+        }
         final Feature feature = newFunctionBuilder()
                 .withSignature(expression.isCaseInsensitive() ? FunctionSignature.ILIKE : FunctionSignature.LIKE)
                 .withParameters(newFunctionParameterBuilder()
