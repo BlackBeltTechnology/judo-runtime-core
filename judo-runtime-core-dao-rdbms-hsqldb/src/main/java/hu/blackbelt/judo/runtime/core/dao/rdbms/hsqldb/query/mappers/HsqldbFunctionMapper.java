@@ -46,7 +46,7 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
 
         getFunctionBuilderMap().put(FunctionSignature.ILIKE, c ->
                 c.builder.pattern("(CASE " +
-                                      "WHEN (LOWER({0}) LIKE {1}) THEN (1 = 1) " +
+                                      "WHEN (LOWER({0}) LIKE {1}) THEN (1 = 1) " + // {1} is lowercase after feature conversion
                                       "WHEN ({0} IS NULL) THEN NULL " + // {1} is string constant => cannot be null (here)
                                       "ELSE (0 = 1) " +
                                   "END)")
