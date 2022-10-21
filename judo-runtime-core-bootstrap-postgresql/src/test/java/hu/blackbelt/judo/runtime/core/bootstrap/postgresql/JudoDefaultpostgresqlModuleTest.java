@@ -45,7 +45,7 @@ import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelReso
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoDefaultModule;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.JudoPostgresqlModules;
-import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlAtomikosDataSourceProvider;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlDataSourceProvider;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.*;
@@ -132,11 +132,11 @@ class JudoDefaultpostgresqlModuleTest {
 
         injector = Guice.createInjector(
                 Modules.override(JudoPostgresqlModules.builder().build()).with(binder -> {
-                    binder.bind(Integer.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_PORT)).toInstance(sqlContainer.getMappedPort(5432));
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_HOST)).toInstance(sqlContainer.getHost());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_USER)).toInstance(sqlContainer.getUsername());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(sqlContainer.getPassword());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlAtomikosDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(sqlContainer.getDatabaseName());
+                    binder.bind(Integer.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PORT)).toInstance(sqlContainer.getMappedPort(5432));
+                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_HOST)).toInstance(sqlContainer.getHost());
+                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_USER)).toInstance(sqlContainer.getUsername());
+                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(sqlContainer.getPassword());
+                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(sqlContainer.getDatabaseName());
                 }),
         		new JudoDefaultModule(this,
         				JudoModelLoader.builder()
