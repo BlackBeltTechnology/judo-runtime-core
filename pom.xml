@@ -48,8 +48,8 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.1.20221006_173508_36b41f9d_develop</judo-meta-rdbms-version>
         <judo-meta-asm-version>1.1.2.20221006_173554_3d80808b_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.2.20221020_171151_4353043e_feature_JNG_4169_Support_ilike_in_JSl</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.2.20221020_172117_54a2aff8_feature_JNG_4169_Support_ilike_in_JSl</judo-meta-expression-asm-version>
+        <judo-meta-expression-version>1.0.2.20221021_144126_3d442672_develop</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.2.20221021_211634_4a18fc40_develop</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.1.20221006_173431_e6b82cd6_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.1.20221006_170739_642ebbda_develop</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.1.20221011_175330_839334ea_develop</judo-meta-query-version>
@@ -60,7 +60,7 @@
 
         <structured-map-proxy-version>1.2.1.20220927_090501_89bce74f_develop</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.2.20221020_172402_9193f987_feature_JNG_4169_Support_ilike_in_JSl</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.2.20221021_211914_6029cb58_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20220927_072413_239dbbd8_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20221005_230706_7812eafc_develop</osgi-filestore-version>
