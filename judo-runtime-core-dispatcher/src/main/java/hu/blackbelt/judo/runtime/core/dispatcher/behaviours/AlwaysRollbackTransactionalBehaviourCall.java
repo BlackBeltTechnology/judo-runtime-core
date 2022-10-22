@@ -20,26 +20,23 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
-import hu.blackbelt.judo.dispatcher.api.Context;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import javax.transaction.Status;
-import javax.transaction.TransactionManager;
 import java.util.Map;
 
 @Slf4j
 public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
 
-    TransactionManager transactionManager;
-    Context context;
+    PlatformTransactionManager transactionManager;
 
-    private static final String ROLLBACK_KEY = "ROLLBACK";
-
-    public AlwaysRollbackTransactionalBehaviourCall(Context context, TransactionManager transactionManager) {
+    public AlwaysRollbackTransactionalBehaviourCall(PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
-        this.context = context;
     }
 
     public abstract Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation);
@@ -48,30 +45,38 @@ public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements Be
     @Override
     public Object call(Map<String, Object> exchange, EOperation operation) {
 
-        boolean transactionContext = false;
-
-        Object rollback = context.get(ROLLBACK_KEY);
+        TransactionStatus transactionStatus = null;
         if (transactionManager != null) {
-            if (transactionManager.getStatus() == Status.STATUS_NO_TRANSACTION) {
-                transactionManager.begin();
-                transactionContext = true;
-            }
-        } else {
-            log.warn("No transaction manager is registered, operation will NOT rollback.");
+            DefaultTransactionDefinition transactionDefinition = new DefaultTransactionDefinition();
+            //transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
-        context.put(ROLLBACK_KEY, Boolean.TRUE);
+
         try {
             return callInRollbackTransaction(exchange, operation);
-        } finally {
-            context.put(ROLLBACK_KEY, rollback);
-            if (transactionContext) {
+        } catch (Exception e) {
+            if (transactionStatus != null) {
                 try {
-                    transactionManager.rollback();
+                    if (transactionStatus.isNewTransaction()) {
+                        transactionManager.rollback(transactionStatus);
+                    }
                 } catch (Exception ex) {
-                    throw new IllegalStateException("Unable to rollback transaction", ex);
+                    throw new IllegalArgumentException("Unable to rollback transaction", ex);
+                } finally {
+                    transactionStatus = null;
+                }
+            }
+            throw e;
+        } finally {
+            if (transactionStatus != null) {
+                try {
+                    if (transactionStatus.isNewTransaction()) {
+                        transactionManager.rollback(transactionStatus);
+                    }
+                } catch (Exception ex) {
+                    throw new IllegalStateException("Unable to commit transaction", ex);
                 }
             }
         }
-
     }
 }

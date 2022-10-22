@@ -28,21 +28,21 @@ import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
+public class UpdateInstanceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final IdentifierProvider<ID> identifierProvider;
     final AsmUtils asmUtils;
     final Coercer coercer;
 
-    public UpdateInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager, Coercer coercer) {
+    public UpdateInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;

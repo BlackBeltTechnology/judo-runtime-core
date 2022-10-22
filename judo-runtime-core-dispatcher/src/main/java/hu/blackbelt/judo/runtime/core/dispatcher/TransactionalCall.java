@@ -26,48 +26,52 @@ import lombok.AllArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import javax.transaction.Status;
-import javax.transaction.TransactionManager;
 import java.util.function.Function;
 
 @AllArgsConstructor
 @Slf4j
 public class TransactionalCall implements Function<Payload, Payload> {
 
-    final TransactionManager transactionManager;
+    final PlatformTransactionManager transactionManager;
     final Function<Payload, Payload> functionToCall;
     final EOperation operation;
 
     @SneakyThrows
     @Override
     public Payload apply(Payload payload) {
-        boolean transactionContext = false;
 
+        TransactionStatus transactionStatus = null;
         if (transactionManager != null) {
-            if (transactionManager.getStatus() == Status.STATUS_NO_TRANSACTION) {
-                transactionManager.begin();
-                transactionContext = true;
+            DefaultTransactionDefinition transactionDefinition = new DefaultTransactionDefinition();
+            if (AsmUtils.isStateful(operation)) {
+                transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
             }
+            transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
+
         try {
             return functionToCall.apply(payload);
         } catch (Exception e) {
-            if (transactionContext) {
-                transactionContext = false;
+            if (transactionStatus != null) {
                 try {
-                    transactionManager.rollback();
+                    transactionManager.rollback(transactionStatus);
                 } catch (Exception ex) {
                     log.error("Unable to rollback transaction");
                 }
+                transactionStatus = null;
             }
             throw e;
         } finally {
-            if (transactionContext ) {
+            if (transactionStatus != null) {
                 if (AsmUtils.isStateful(operation)) {
-                    transactionManager.commit();
+                    transactionManager.commit(transactionStatus);
                 } else {
-                    transactionManager.rollback();
+                    transactionManager.rollback(transactionStatus);
                 }
             }
         }
