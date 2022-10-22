@@ -31,7 +31,7 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class CreateInstanceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final AsmUtils asmUtils;

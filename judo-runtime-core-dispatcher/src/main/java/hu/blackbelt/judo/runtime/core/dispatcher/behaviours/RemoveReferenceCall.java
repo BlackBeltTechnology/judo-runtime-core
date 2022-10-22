@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RemoveReferenceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class RemoveReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final AsmUtils asmUtils;

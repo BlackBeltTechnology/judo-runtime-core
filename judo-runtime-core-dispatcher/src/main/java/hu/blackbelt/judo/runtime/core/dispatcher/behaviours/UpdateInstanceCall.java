@@ -35,7 +35,7 @@ import java.util.Objects;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class UpdateInstanceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final IdentifierProvider<ID> identifierProvider;

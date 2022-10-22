@@ -31,7 +31,7 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class UnsetReferenceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final AsmUtils asmUtils;

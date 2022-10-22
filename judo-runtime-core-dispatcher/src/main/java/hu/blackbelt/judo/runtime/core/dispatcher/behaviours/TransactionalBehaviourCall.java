@@ -20,22 +20,20 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EOperation;
 
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.Map;
 
-public abstract class AlwaysCommitTransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
+public abstract class TransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
 
     PlatformTransactionManager transactionManager;
 
-    public AlwaysCommitTransactionalBehaviourCall(PlatformTransactionManager transactionManager) {
+    public TransactionalBehaviourCall(PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
 
@@ -48,9 +46,6 @@ public abstract class AlwaysCommitTransactionalBehaviourCall<ID> implements Beha
         TransactionStatus transactionStatus = null;
         if (transactionManager != null) {
             DefaultTransactionDefinition transactionDefinition = new DefaultTransactionDefinition();
-            if (AsmUtils.isStateful(operation)) {
-                transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-            }
             transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
 

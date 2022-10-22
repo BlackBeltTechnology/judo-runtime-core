@@ -31,7 +31,7 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class DeleteInstanceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final IdentifierProvider<ID> identifierProvider;
