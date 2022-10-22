@@ -20,14 +20,19 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms;
  * #L%
  */
 
-import com.atomikos.icatch.jta.UserTransactionManager;
+import com.google.inject.Inject;
 import com.google.inject.Provider;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+import javax.sql.DataSource;
 
-import javax.transaction.TransactionManager;
+public class PlatformTransactionManagerProvider implements Provider<PlatformTransactionManager> {
 
-public class AtomikosUserTransactionManagerProvider implements Provider<TransactionManager> {
+    @Inject
+    DataSource dataSource;
+
     @Override
-    public TransactionManager get() {
-        return new UserTransactionManager();
+    public PlatformTransactionManager get() {
+        return new DataSourceTransactionManager(dataSource);
     }
 }

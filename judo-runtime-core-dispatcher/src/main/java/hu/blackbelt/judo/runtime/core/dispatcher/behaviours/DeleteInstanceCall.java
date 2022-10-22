@@ -26,7 +26,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -37,7 +37,7 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
     final IdentifierProvider<ID> identifierProvider;
     final AsmUtils asmUtils;
 
-    public DeleteInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
+    public DeleteInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
