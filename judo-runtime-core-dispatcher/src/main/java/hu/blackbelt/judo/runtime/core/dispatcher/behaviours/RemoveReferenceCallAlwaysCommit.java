@@ -25,21 +25,20 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
-
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
+public class RemoveReferenceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public AddReferenceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
+    public RemoveReferenceCallAlwaysCommit(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -48,7 +47,7 @@ public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {
-        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.ADD_REFERENCE).isPresent();
+        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.REMOVE_REFERENCE).isPresent();
     }
 
     @Override
@@ -64,12 +63,13 @@ public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
         @SuppressWarnings("unchecked")
 		final ID instanceId = (ID) exchange.get(identifierProvider.getName());
+
         @SuppressWarnings("unchecked")
 		final Collection<ID> referencedIds = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
                 .map(i -> (ID) i.get(identifierProvider.getName()))
                 .collect(Collectors.toList());
 
-        dao.addReferences(owner, instanceId, referencedIds);
+        dao.removeReferences(owner, instanceId, referencedIds);
         return null;
     }
 }
