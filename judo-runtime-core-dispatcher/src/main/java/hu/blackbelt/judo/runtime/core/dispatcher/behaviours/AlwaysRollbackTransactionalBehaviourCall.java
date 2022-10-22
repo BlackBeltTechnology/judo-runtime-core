@@ -48,7 +48,7 @@ public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements Be
         TransactionStatus transactionStatus = null;
         if (transactionManager != null) {
             DefaultTransactionDefinition transactionDefinition = new DefaultTransactionDefinition();
-            transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            //transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
             transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
 
@@ -71,7 +71,7 @@ public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements Be
             if (transactionStatus != null) {
                 try {
                     if (transactionStatus.isNewTransaction()) {
-                        transactionManager.commit(transactionStatus);
+                        transactionManager.rollback(transactionStatus);
                     }
                 } catch (Exception ex) {
                     throw new IllegalStateException("Unable to commit transaction", ex);

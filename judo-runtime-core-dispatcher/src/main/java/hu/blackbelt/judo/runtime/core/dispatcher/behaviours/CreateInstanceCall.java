@@ -22,68 +22,53 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
-import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.mapper.api.Coercer;
-import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
-
+import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
-import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class UpdateInstanceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class CreateInstanceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
-    final IdentifierProvider<ID> identifierProvider;
     final AsmUtils asmUtils;
-    final Coercer coercer;
+    final IdentifierProvider<ID> identifierProvider;
 
-    public UpdateInstanceCallAlwaysCommit(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer) {
+    public CreateInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;
-        this.coercer = coercer;
     }
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {
-        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.UPDATE_INSTANCE).isPresent();
+        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.CREATE_INSTANCE).isPresent();
     }
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
-        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
         final boolean bound = AsmUtils.isBound(operation);
-        checkArgument(bound, "Operation must be bound");
-
-        @SuppressWarnings("unchecked")
-		final Payload payload = asPayload((Map<String, Object>) exchange.get(inputParameterName));
-        if (payload.get(identifierProvider.getName()) == null) {
-            payload.put(identifierProvider.getName(), exchange.get(identifierProvider.getName()));
+        
+        if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
+            checkArgument(!bound, "Operation must be unbound");
+            return dao.create(owner.getEReferenceType(),
+                    asPayload((Map<String, Object>) exchange.get(inputParameterName)), null);
         } else {
-            payload.put(identifierProvider.getName(),
-                    coercer.coerce(exchange.get(identifierProvider.getName()), identifierProvider.getType()));
-
-            @SuppressWarnings("unchecked")
-			final ID idInPayload = (ID) payload.get(identifierProvider.getName());
-            @SuppressWarnings("unchecked")
-			final ID idOfSubject = (ID) exchange.get(identifierProvider.getName());
-
-            if (!Objects.equals(idInPayload, idOfSubject)) {
-                throw new IllegalArgumentException("Identifier in payload must match operation subject");
-            }
+            checkArgument(bound, "Operation must be bound");
+            return dao.createNavigationInstanceAt((ID) exchange.get(identifierProvider.getName()),
+                    owner,
+                    asPayload((Map<String, Object>) exchange.get(inputParameterName)), null);
         }
-
-        return dao.update(owner, payload, null);
     }
 }

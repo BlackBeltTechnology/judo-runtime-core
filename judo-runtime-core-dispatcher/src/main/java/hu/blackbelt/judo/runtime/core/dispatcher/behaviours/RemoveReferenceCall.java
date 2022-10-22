@@ -32,13 +32,13 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RemoveReferenceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class RemoveReferenceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public RemoveReferenceCallAlwaysCommit(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
+    public RemoveReferenceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;

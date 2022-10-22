@@ -31,13 +31,13 @@ import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class UnsetReferenceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class UnsetReferenceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public UnsetReferenceCallAlwaysCommit(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
+    public UnsetReferenceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;

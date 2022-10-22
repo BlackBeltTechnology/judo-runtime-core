@@ -23,21 +23,22 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
-
+import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
+import java.util.Collection;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class DeleteInstanceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class AddReferenceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
-    final IdentifierProvider<ID> identifierProvider;
     final AsmUtils asmUtils;
+    final IdentifierProvider<ID> identifierProvider;
 
-    public DeleteInstanceCallAlwaysCommit(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
+    public AddReferenceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -46,20 +47,28 @@ public class DeleteInstanceCallAlwaysCommit<ID> extends AlwaysCommitTransactiona
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {
-        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.DELETE_INSTANCE).isPresent();
+        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.ADD_REFERENCE).isPresent();
     }
 
-    @SuppressWarnings("unchecked")
-	@Override
+    @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
-        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
+
+        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        dao.delete(owner, (ID) exchange.get(identifierProvider.getName()));
+        @SuppressWarnings("unchecked")
+		final ID instanceId = (ID) exchange.get(identifierProvider.getName());
+        @SuppressWarnings("unchecked")
+		final Collection<ID> referencedIds = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
+                .map(i -> (ID) i.get(identifierProvider.getName()))
+                .collect(Collectors.toList());
 
+        dao.addReferences(owner, instanceId, referencedIds);
         return null;
     }
 }

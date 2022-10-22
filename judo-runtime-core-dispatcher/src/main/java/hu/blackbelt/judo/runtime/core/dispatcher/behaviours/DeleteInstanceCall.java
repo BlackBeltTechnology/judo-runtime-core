@@ -23,21 +23,21 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
-import org.eclipse.emf.ecore.EReference;
+
 import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class CreateInstanceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class DeleteInstanceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
-    final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
+    final AsmUtils asmUtils;
 
-    public CreateInstanceCallAlwaysCommit(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
+    public DeleteInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -46,29 +46,20 @@ public class CreateInstanceCallAlwaysCommit<ID> extends AlwaysCommitTransactiona
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {
-        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.CREATE_INSTANCE).isPresent();
+        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.DELETE_INSTANCE).isPresent();
     }
 
     @SuppressWarnings("unchecked")
 	@Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
-        final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
-
         final boolean bound = AsmUtils.isBound(operation);
-        
-        if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
-            checkArgument(!bound, "Operation must be unbound");
-            return dao.create(owner.getEReferenceType(),
-                    asPayload((Map<String, Object>) exchange.get(inputParameterName)), null);
-        } else {
-            checkArgument(bound, "Operation must be bound");
-            return dao.createNavigationInstanceAt((ID) exchange.get(identifierProvider.getName()),
-                    owner,
-                    asPayload((Map<String, Object>) exchange.get(inputParameterName)), null);
-        }
+        checkArgument(bound, "Operation must be bound");
+
+        dao.delete(owner, (ID) exchange.get(identifierProvider.getName()));
+
+        return null;
     }
 }

@@ -22,37 +22,42 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.mapper.api.Coercer;
+import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
-import org.eclipse.emf.ecore.EReference;
+
 import org.springframework.transaction.PlatformTransactionManager;
-import java.util.Collection;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class AddReferenceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
+public class UpdateInstanceCall<ID> extends AlwaysCommitTransactionalBehaviourCall<ID> {
 
     final DAO<ID> dao;
-    final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
+    final AsmUtils asmUtils;
+    final Coercer coercer;
 
-    public AddReferenceCallAlwaysCommit(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
+    public UpdateInstanceCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer) {
         super(transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;
+        this.coercer = coercer;
     }
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {
-        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.ADD_REFERENCE).isPresent();
+        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.UPDATE_INSTANCE).isPresent();
     }
 
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
-        final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
@@ -62,13 +67,23 @@ public class AddReferenceCallAlwaysCommit<ID> extends AlwaysCommitTransactionalB
         checkArgument(bound, "Operation must be bound");
 
         @SuppressWarnings("unchecked")
-		final ID instanceId = (ID) exchange.get(identifierProvider.getName());
-        @SuppressWarnings("unchecked")
-		final Collection<ID> referencedIds = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
-                .map(i -> (ID) i.get(identifierProvider.getName()))
-                .collect(Collectors.toList());
+		final Payload payload = asPayload((Map<String, Object>) exchange.get(inputParameterName));
+        if (payload.get(identifierProvider.getName()) == null) {
+            payload.put(identifierProvider.getName(), exchange.get(identifierProvider.getName()));
+        } else {
+            payload.put(identifierProvider.getName(),
+                    coercer.coerce(exchange.get(identifierProvider.getName()), identifierProvider.getType()));
 
-        dao.addReferences(owner, instanceId, referencedIds);
-        return null;
+            @SuppressWarnings("unchecked")
+			final ID idInPayload = (ID) payload.get(identifierProvider.getName());
+            @SuppressWarnings("unchecked")
+			final ID idOfSubject = (ID) exchange.get(identifierProvider.getName());
+
+            if (!Objects.equals(idInPayload, idOfSubject)) {
+                throw new IllegalArgumentException("Identifier in payload must match operation subject");
+            }
+        }
+
+        return dao.update(owner, payload, null);
     }
 }
