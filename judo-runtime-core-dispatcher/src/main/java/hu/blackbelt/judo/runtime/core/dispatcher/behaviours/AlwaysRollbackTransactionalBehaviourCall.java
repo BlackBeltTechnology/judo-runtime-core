@@ -54,19 +54,6 @@ public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements Be
 
         try {
             return callInRollbackTransaction(exchange, operation);
-        } catch (Exception e) {
-            if (transactionStatus != null) {
-                try {
-                    if (transactionStatus.isNewTransaction()) {
-                        transactionManager.rollback(transactionStatus);
-                    }
-                } catch (Exception ex) {
-                    throw new IllegalArgumentException("Unable to rollback transaction", ex);
-                } finally {
-                    transactionStatus = null;
-                }
-            }
-            throw e;
         } finally {
             if (transactionStatus != null) {
                 try {
@@ -74,7 +61,7 @@ public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements Be
                         transactionManager.rollback(transactionStatus);
                     }
                 } catch (Exception ex) {
-                    throw new IllegalStateException("Unable to commit transaction", ex);
+                    throw new IllegalStateException("Unable to rollback transaction", ex);
                 }
             }
         }
