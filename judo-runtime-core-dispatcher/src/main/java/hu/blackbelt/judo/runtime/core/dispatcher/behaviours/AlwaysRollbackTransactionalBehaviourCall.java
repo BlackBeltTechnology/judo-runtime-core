@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
+import hu.blackbelt.judo.dispatcher.api.Context;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
@@ -32,11 +33,14 @@ import java.util.Map;
 
 @Slf4j
 public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
+    private static final String ROLLBACK_KEY = "ROLLBACK";
 
     PlatformTransactionManager transactionManager;
+    Context context;
 
-    public AlwaysRollbackTransactionalBehaviourCall(PlatformTransactionManager transactionManager) {
+    public AlwaysRollbackTransactionalBehaviourCall(Context context, PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
+        this.context = context;
     }
 
     public abstract Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation);
@@ -51,13 +55,16 @@ public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements Be
             //transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
             transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
-
+        if (transactionStatus.isNewTransaction()) {
+            context.put(ROLLBACK_KEY, Boolean.TRUE);
+        }
         try {
             return callInRollbackTransaction(exchange, operation);
         } finally {
             if (transactionStatus != null) {
                 try {
                     if (transactionStatus.isNewTransaction()) {
+                        context.put(ROLLBACK_KEY, Boolean.FALSE);
                         transactionManager.rollback(transactionStatus);
                     }
                 } catch (Exception ex) {

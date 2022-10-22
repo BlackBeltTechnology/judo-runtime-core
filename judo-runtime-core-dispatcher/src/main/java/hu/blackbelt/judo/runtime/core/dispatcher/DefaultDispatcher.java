@@ -140,19 +140,19 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 	private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
         behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
-                        new ListCall<>(dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
-                        new CreateInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new ValidateCreateCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new RefreshCall<>(dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new UpdateInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
-                        new ValidateUpdateCall<>(dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
-                        new DeleteInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new SetReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new UnsetReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new AddReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new RemoveReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new GetReferenceRangeCall<>(dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetInputRangeCall<>(dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new ListCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
+                        new CreateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new ValidateCreateCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new RefreshCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new UpdateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
+                        new ValidateUpdateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
+                        new DeleteInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new SetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new UnsetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new AddReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new RemoveReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new GetReferenceRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new GetInputRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
                         new GetPrincipalCall<>(dao, identifierProvider, asmUtils, actorResolver),
                         new GetTemplateCall<>(dao, asmUtils),
                         new GetMetadataCall<>(asmUtils, () -> openIdConfigurationProvider),
@@ -675,7 +675,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
                 // Custom / Script type calls have to be wrapped in transactional context and include this instance (payload)
                 if (SCRIPT.equals(callType) || SDK.equals(callType)) {
-                    operationCall = new TransactionalCall(transactionManager, operationCall, operation);
+                    operationCall = new TransactionalOperationCall(transactionManager, operationCall, operation);
 
                     if (AsmUtils.isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
                         final Payload thisMappedTransferObject = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation")));

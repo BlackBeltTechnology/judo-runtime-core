@@ -35,7 +35,7 @@ import java.util.function.Function;
 
 @AllArgsConstructor
 @Slf4j
-public class TransactionalCall implements Function<Payload, Payload> {
+public class TransactionalOperationCall implements Function<Payload, Payload> {
 
     final PlatformTransactionManager transactionManager;
     final Function<Payload, Payload> functionToCall;
@@ -48,9 +48,6 @@ public class TransactionalCall implements Function<Payload, Payload> {
         TransactionStatus transactionStatus = null;
         if (transactionManager != null) {
             DefaultTransactionDefinition transactionDefinition = new DefaultTransactionDefinition();
-            if (AsmUtils.isStateful(operation)) {
-                transactionDefinition.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-            }
             transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
 

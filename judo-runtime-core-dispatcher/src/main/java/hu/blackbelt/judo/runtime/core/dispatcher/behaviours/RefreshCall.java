@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EClass;
@@ -39,8 +40,8 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
     final AsmUtils asmUtils;
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public RefreshCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
-        super(transactionManager);
+    public RefreshCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
+        super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;

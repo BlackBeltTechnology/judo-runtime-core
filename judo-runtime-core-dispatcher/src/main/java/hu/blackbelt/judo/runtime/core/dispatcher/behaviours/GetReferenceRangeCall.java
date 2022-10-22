@@ -53,8 +53,8 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetReferenceRangeCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
-        super(transactionManager);
+    public GetReferenceRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
+        super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;

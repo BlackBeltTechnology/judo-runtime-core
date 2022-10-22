@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
@@ -55,8 +56,8 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetInputRangeCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
-        super(transactionManager);
+    public GetInputRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
+        super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;

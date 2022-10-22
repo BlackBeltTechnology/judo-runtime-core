@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
+import hu.blackbelt.judo.dispatcher.api.Context;
 import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -33,7 +34,7 @@ public abstract class TransactionalBehaviourCall<ID> implements BehaviourCall<ID
 
     PlatformTransactionManager transactionManager;
 
-    public TransactionalBehaviourCall(PlatformTransactionManager transactionManager) {
+    public TransactionalBehaviourCall(Context context, PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
 
