@@ -46,8 +46,8 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.slf4j.MDC;
+import org.springframework.transaction.PlatformTransactionManager;
 
-import javax.transaction.TransactionManager;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -106,7 +106,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final ActorResolver actorResolver;
 
-    private final TransactionManager transactionManager;
+    private final PlatformTransactionManager transactionManager;
 
     private final AccessManager accessManager;
 
@@ -141,16 +141,16 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
                         new ListCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
-                        new CreateInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager),
+                        new CreateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
                         new ValidateCreateCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
                         new RefreshCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new UpdateInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
+                        new UpdateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
                         new ValidateUpdateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
-                        new DeleteInstanceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new SetReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new UnsetReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new AddReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
-                        new RemoveReferenceCall<>(dao, identifierProvider, asmUtils, transactionManager),
+                        new DeleteInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new SetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new UnsetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new AddReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
+                        new RemoveReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
                         new GetReferenceRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
                         new GetInputRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
                         new GetPrincipalCall<>(dao, identifierProvider, asmUtils, actorResolver),
@@ -179,7 +179,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             TokenIssuer filestoreTokenIssuer,
             TokenValidator filestoreTokenValidator,
             AccessManager accessManager,
-            TransactionManager transactionManager,
+            PlatformTransactionManager transactionManager,
             Boolean metricsReturned,
             Boolean enableValidation,
             Boolean trimString,
@@ -675,7 +675,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
                 // Custom / Script type calls have to be wrapped in transactional context and include this instance (payload)
                 if (SCRIPT.equals(callType) || SDK.equals(callType)) {
-                    operationCall = new TransactionalCall(transactionManager, operationCall, operation);
+                    operationCall = new TransactionalOperationCall(transactionManager, operationCall, operation);
 
                     if (AsmUtils.isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
                         final Payload thisMappedTransferObject = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation")));
