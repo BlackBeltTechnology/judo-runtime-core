@@ -41,6 +41,7 @@
 
         <jose4j-version>0.7.2</jose4j-version>
         <jackson-version>2.11.4</jackson-version>
+        <spring-version>4.3.12.RELEASE</spring-version>
 
         <epsilon-runtime-version>1.5.1.20221005_230707_b5e4278d_develop</epsilon-runtime-version>
         <judo-tatami-core-version>1.1.1.20221005_231455_b8991e0d_develop</judo-tatami-core-version>
@@ -331,14 +332,14 @@
                     </execution>
                 </executions>
             </plugin>
-<!--
+
             <plugin>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok-maven-plugin</artifactId>
                 <version>1.18.20.0</version>
                 <configuration>
                     <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
-                    <outputDirectory>${project.basedir}/target/generated-sources/delombok</outputDirectory>
+                    <outputDirectory>${project.basedir}/target/delombok</outputDirectory>
                     <addOutputDirectory>false</addOutputDirectory>
                 </configuration>
                 <executions>
@@ -350,7 +351,7 @@
                     </execution>
                 </executions>
             </plugin>
--->
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -359,7 +360,7 @@
                     <source>8</source>
                     <detectJavaApiLink>false</detectJavaApiLink>
                     <sourcepath>
-                        ${project.basedir}/target/generated-sources/delombok,
+                        ${project.basedir}/target/delombok,
                         ${project.basedir}/target/generated-sources/antlr4
                     </sourcepath>
                     <tags>
