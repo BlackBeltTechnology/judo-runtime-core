@@ -27,8 +27,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
-
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
 import java.util.Optional;
 
@@ -41,7 +40,7 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
     final AsmUtils asmUtils;
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public RefreshCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
+    public RefreshCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;

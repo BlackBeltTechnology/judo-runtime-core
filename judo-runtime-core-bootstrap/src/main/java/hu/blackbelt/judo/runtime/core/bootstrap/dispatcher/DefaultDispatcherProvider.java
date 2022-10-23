@@ -40,9 +40,9 @@ import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.annotation.Nullable;
-import javax.transaction.TransactionManager;
 
 @SuppressWarnings("rawtypes")
 public class DefaultDispatcherProvider implements Provider<Dispatcher> {
@@ -66,7 +66,7 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
 
     @Inject(optional = true)
     @Nullable
-    TransactionManager transactionManager;
+    PlatformTransactionManager transactionManager;
 
     @Inject
     DataTypeManager dataTypeManager;

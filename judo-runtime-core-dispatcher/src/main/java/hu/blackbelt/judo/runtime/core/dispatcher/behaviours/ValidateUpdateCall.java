@@ -29,7 +29,7 @@ import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -44,7 +44,7 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateUpdateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager, Coercer coercer) {
+    public ValidateUpdateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
