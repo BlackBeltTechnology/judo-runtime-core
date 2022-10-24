@@ -24,6 +24,7 @@ import hu.blackbelt.judo.meta.expression.*;
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
 import hu.blackbelt.judo.meta.expression.string.AsString;
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.meta.query.util.builder.FunctionBuilder;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 import org.eclipse.emf.ecore.EEnum;
@@ -108,7 +109,15 @@ public class AsStringToFeatureConverter extends ExpressionToFeatureConverter<AsS
                 lastFeature = function;
             }
 
-            return feature;
+            Function trimmedResult = newFunctionBuilder()
+                    .withSignature(FunctionSignature.TRIM_STRING)
+                    .withParameters(newFunctionParameterBuilder()
+                                            .withParameterName(ParameterName.STRING)
+                                            .withParameterValue(feature))
+                    .build();
+            context.addFeature(trimmedResult);
+
+            return trimmedResult;
         } else {
             final FunctionSignature signature;
             if (expression.getExpression() instanceof IntegerExpression) {
