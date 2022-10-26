@@ -27,8 +27,7 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
-
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -42,7 +41,7 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateCreateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, TransactionManager transactionManager) {
+    public ValidateCreateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;

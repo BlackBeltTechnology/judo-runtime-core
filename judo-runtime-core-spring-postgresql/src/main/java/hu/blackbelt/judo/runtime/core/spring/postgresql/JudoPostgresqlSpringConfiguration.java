@@ -35,9 +35,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
-import javax.transaction.TransactionManager;
 
 @Configuration
 @ConditionalOnExpression("'${spring.datasource.url}'.contains('postgresql')")
@@ -47,7 +47,7 @@ public class JudoPostgresqlSpringConfiguration {
     private DataSource dataSource;
 
     @Autowired
-    private TransactionManager transactionManager;
+    private PlatformTransactionManager transactionManager;
 
     @Bean
     public PostgresqlDialect getPostgresqlDialect() {

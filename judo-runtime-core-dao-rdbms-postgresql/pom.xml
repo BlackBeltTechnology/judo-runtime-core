@@ -25,6 +25,7 @@
                         <Import-Package>
                             ${osgi-default-import},
                             org.springframework.jdbc*;version="[4,6)",
+                            org.springframework.transaction*;version="[4,6)",
                             *
                         </Import-Package>
                     </instructions>
@@ -126,6 +127,11 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
         </dependency>
 
         <dependency>

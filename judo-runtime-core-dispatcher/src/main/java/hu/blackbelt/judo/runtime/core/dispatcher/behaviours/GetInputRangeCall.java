@@ -32,7 +32,7 @@ import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -56,7 +56,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetInputRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, TransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
+    public GetInputRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
