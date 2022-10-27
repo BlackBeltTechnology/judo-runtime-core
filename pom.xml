@@ -109,6 +109,13 @@
         </license>
     </licenses>
 
+    <repositories>
+        <repository>
+            <id>ecentral</id>
+            <url>https://raw.githubusercontent.com/jmini/ecentral/HEAD/repo</url>
+        </repository>
+    </repositories>
+
     <build>
         <pluginManagement>
             <plugins>
