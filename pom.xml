@@ -108,7 +108,14 @@
             <url>https://www.eclipse.org/org/documents/epl-2.0/EPL-2.0.txt</url>
         </license>
     </licenses>
-
+	<!--
+    <repositories>
+        <repository>
+            <id>ecentral</id>
+            <url>https://raw.githubusercontent.com/jmini/ecentral/HEAD/repo</url>
+        </repository>
+    </repositories>
+	-->
     <build>
         <pluginManagement>
             <plugins>
@@ -352,17 +359,16 @@
                 </executions>
             </plugin>
 
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.4.1</version>
                 <configuration>
                     <source>8</source>
+                    <doclint>none</doclint>
+                    <failOnError>false</failOnError>
                     <detectJavaApiLink>false</detectJavaApiLink>
-                    <sourcepath>
-                        ${project.basedir}/target/delombok,
-                        ${project.basedir}/target/generated-sources/antlr4
-                    </sourcepath>
                     <tags>
                         <tag>
                             <name>model</name>
