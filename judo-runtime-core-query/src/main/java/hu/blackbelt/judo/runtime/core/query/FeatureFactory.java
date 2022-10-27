@@ -78,7 +78,9 @@ public class FeatureFactory {
         converters.put(Empty.class, new EmptyToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(Exists.class, new ExistsToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(ExtractDateExpression.class, new ExtractDateExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(ExtractDateOfTimestampExpression.class, new ExtractDateOfTimestampExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ExtractTimeExpression.class, new ExtractTimeExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(ExtractTimeOfTimestampExpression.class, new ExtractTimeOfTimestampExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ExtractTimestampExpression.class, new ExtractTimestampExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ForAll.class, new ForAllToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(InstanceOfExpression.class, new InstanceOfExpressionToFeatureConverter(this, modelAdapter));
@@ -95,9 +97,11 @@ public class FeatureFactory {
         converters.put(NegationExpression.class, new NegationExpressionToFeatureConverter(this, modelAdapter));
         converters.put(ObjectComparison.class, new ObjectComparisonToFeatureConverter(this, modelAdapter));
         converters.put(ObjectVariableReference.class, new ObjectVariableReferenceToFeatureConverter(this, modelAdapter));
+        converters.put(PaddingExpression.class, new PaddingToFeatureConverter(this, modelAdapter));
         converters.put(Position.class, new PositionToFeatureConverter(this, modelAdapter));
         converters.put(Replace.class, new ReplaceToFeatureConverter(this, modelAdapter));
-        converters.put(RoundExpression.class, new RoundToFeatureConverter(this, modelAdapter));
+        converters.put(IntegerRoundExpression.class, new RoundToFeatureConverter(this, modelAdapter));
+        converters.put(DecimalRoundExpression.class, new RoundToFeatureConverter(this, modelAdapter));
         converters.put(AbsoluteExpression.class, new AbsoluteToFeatureConverter(this, modelAdapter));
         converters.put(CeilExpression.class, new CeilToFeatureConverter(this, modelAdapter));
         converters.put(FloorExpression.class, new FloorToFeatureConverter(this, modelAdapter));
@@ -107,20 +111,23 @@ public class FeatureFactory {
         converters.put(SubString.class, new SubStringToFeatureConverter(this, modelAdapter));
         converters.put(SwitchExpression.class, new SwitchExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimeAdditionExpression.class, new TimeAdditionExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(TimeAsSecondsExpression.class, new TimeAsSecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimeAggregatedExpression.class, new TimeAggregatedExpressionToFeatureConverter(this, joinFactory, modelAdapter));
         converters.put(TimeComparison.class, new TimeComparisonToFeatureConverter(this, modelAdapter));
         converters.put(TimeConstructionExpression.class, new TimeConstructionExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(TimeFromSecondsExpression.class, new TimeFromSecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimeDifferenceExpression.class, new TimeDifferenceExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampAdditionExpression.class, new TimestampAdditionExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampAggregatedExpression.class, new TimestampAggregatedExpressionToFeatureConverter(this, joinFactory, modelAdapter));
+        converters.put(TimestampArithmeticExpression.class, new TimestampArithmeticExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(TimestampAsMillisecondsExpression.class, new TimestampAsMillisecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampComparison.class, new TimestampComparisonToFeatureConverter(this, modelAdapter));
         converters.put(TimestampConstructionExpression.class, new TimestampConstructionExpressionToFeatureConverter(this, modelAdapter));
+        converters.put(TimestampFromMillisecondsExpression.class, new TimestampFromMillisecondsExpressionToFeatureConverter(this, modelAdapter));
         converters.put(TimestampDifferenceExpression.class, new TimestampDifferenceExpressionToFeatureConverter(this, modelAdapter));
         converters.put(Trim.class, new TrimToFeatureConverter(this, modelAdapter));
         converters.put(TypeOfExpression.class, new TypeOfExpressionToFeatureConverter(this, modelAdapter));
-        converters.put(UndefinedAttributeComparison.class, new UndefinedAttributeComparisonToFeatureConverter(this, modelAdapter));
-        converters.put(UndefinedEnvironmentVariableComparison.class, new UndefinedEnvironmentVariableComparisonToFeatureConverter(this, modelAdapter));
-        converters.put(UndefinedNavigationComparison.class, new UndefinedNavigationComparisonToFeatureConverter(this, modelAdapter));
+        converters.put(UndefinedComparison.class, new UndefinedComparisonToFeatureConverter(this, modelAdapter));
         converters.put(UpperCase.class, new UpperCaseToFeatureConverter(this, modelAdapter));
     }
 

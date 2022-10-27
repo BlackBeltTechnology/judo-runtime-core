@@ -51,6 +51,9 @@ public class DecimalArithmeticExpressionToFeatureConverter extends ExpressionToF
             case DIVIDE:
                 signature = FunctionSignature.DIVIDE_DECIMAL;
                 break;
+            case MODULO:
+                signature = FunctionSignature.MODULO_DECIMAL;
+                break;
             default:
                 throw new UnsupportedOperationException("Unsupported decimal operation");
         }

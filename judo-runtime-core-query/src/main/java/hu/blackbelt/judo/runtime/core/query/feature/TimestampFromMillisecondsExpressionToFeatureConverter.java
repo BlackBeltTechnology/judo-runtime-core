@@ -2,7 +2,7 @@ package hu.blackbelt.judo.runtime.core.query.feature;
 
 /*-
  * #%L
- * JUDO Runtime Core :: Parent
+ * JUDO Runtime Core :: Query
  * %%
  * Copyright (C) 2018 - 2022 BlackBelt Technology
  * %%
@@ -21,31 +21,31 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  */
 
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
-import hu.blackbelt.judo.meta.expression.logical.UndefinedNavigationComparison;
+import hu.blackbelt.judo.meta.expression.temporal.TimestampFromMillisecondsExpression;
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.meta.query.util.builder.QueryBuilders;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionBuilder;
-import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionParameterBuilder;
 
-public class UndefinedNavigationComparisonToFeatureConverter extends ExpressionToFeatureConverter<UndefinedNavigationComparison> {
+public class TimestampFromMillisecondsExpressionToFeatureConverter extends ExpressionToFeatureConverter<TimestampFromMillisecondsExpression> {
 
-    public UndefinedNavigationComparisonToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
+    public TimestampFromMillisecondsExpressionToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
         super(factory, modelAdapter);
     }
 
     @Override
-    public Feature convert(final UndefinedNavigationComparison expression, final Context context, final FeatureTargetMapping targetMapping) {
-        final Feature feature = newFunctionBuilder()
-                .withSignature(FunctionSignature.IS_UNDEFINED_OBJECT)
-                .withParameters(newFunctionParameterBuilder()
-                        .withParameterName(ParameterName.RELATION)
-                        .withParameterValue(factory.convert(expression.getObjectNavigationExpression(), context, null))
-                        .build())
+    public Feature convert(TimestampFromMillisecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
+        Feature feature = newFunctionBuilder()
+                .withSignature(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS)
+                .withParameters(QueryBuilders.newFunctionParameterBuilder()
+                                             .withParameterName(ParameterName.NUMBER)
+                                             .withParameterValue(factory.convert(expression.getMilliseconds(), context, null))
+                                             .build())
                 .build();
-
         context.addFeature(feature);
         return feature;
     }
+
 }

@@ -20,18 +20,21 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
+import hu.blackbelt.judo.dispatcher.api.Context;
 import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EOperation;
 
-import javax.transaction.Status;
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+
 import java.util.Map;
 
 public abstract class TransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
 
-    TransactionManager transactionManager;
+    PlatformTransactionManager transactionManager;
 
-    public  TransactionalBehaviourCall(TransactionManager transactionManager) {
+    public TransactionalBehaviourCall(Context context, PlatformTransactionManager transactionManager) {
         this.transactionManager = transactionManager;
     }
 
@@ -40,31 +43,34 @@ public abstract class TransactionalBehaviourCall<ID> implements BehaviourCall<ID
     @SneakyThrows
     @Override
     public Object call(Map<String, Object> exchange, EOperation operation) {
-        boolean transactionContext = false;
 
+        TransactionStatus transactionStatus = null;
         if (transactionManager != null) {
-            if (transactionManager.getStatus() == Status.STATUS_NO_TRANSACTION) {
-                transactionManager.begin();
-                transactionContext = true;
-            }
+            DefaultTransactionDefinition transactionDefinition = new DefaultTransactionDefinition();
+            transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
+
         try {
             return callInTransaction(exchange, operation);
         } catch (Exception e) {
-            if (transactionContext) {
+            if (transactionStatus != null) {
                 try {
-                    transactionManager.rollback();
+                    if (transactionStatus.isNewTransaction()) {
+                        transactionManager.rollback(transactionStatus);
+                    }
                 } catch (Exception ex) {
                     throw new IllegalArgumentException("Unable to rollback transaction", ex);
                 } finally {
-                    transactionContext = false;
+                    transactionStatus = null;
                 }
             }
             throw e;
         } finally {
-            if (transactionContext) {
+            if (transactionStatus != null) {
                 try {
-                    transactionManager.commit();
+                    if (transactionStatus.isNewTransaction()) {
+                        transactionManager.commit(transactionStatus);
+                    }
                 } catch (Exception ex) {
                     throw new IllegalStateException("Unable to commit transaction", ex);
                 }
