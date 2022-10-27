@@ -133,9 +133,13 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
         functionBuilderMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionBuilderMap.get(FunctionSignature.OPPOSITE_INTEGER));
 
-        functionBuilderMap.put(FunctionSignature.ROUND_DECIMAL, c ->
+        functionBuilderMap.put(FunctionSignature.INTEGER_ROUND, c ->
                 c.builder.pattern("ROUND({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+
+        functionBuilderMap.put(FunctionSignature.DECIMAL_ROUND, c ->
+                c.builder.pattern("ROUND({0}, {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.NUMBER), c.parameters.get(ParameterName.POSITION))));
 
         functionBuilderMap.put(FunctionSignature.ABSOLUTE_NUMERIC, c ->
                 c.builder.pattern("ABS({0})")
@@ -152,6 +156,12 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.MODULO_INTEGER, c ->
                 c.builder.pattern("MOD({0}, {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
+
+        functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c -> {
+            String type = getDecimalType(c.function).orElse("DECIMAL(19, 2)");
+            return c.builder.pattern("( {0} - (FLOOR(CAST({0} AS " + type + ") / CAST({1} AS " + type + ")) * {1}) )")
+                            .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)));
+        });
 
         functionBuilderMap.put(FunctionSignature.LENGTH_STRING, c ->
                 c.builder.pattern("LENGTH({0})")
@@ -173,12 +183,28 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("RTRIM({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
 
+        functionBuilderMap.put(FunctionSignature.LEFT_PAD, c ->
+                c.builder.pattern("LPAD({0}, {1}, {2})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING),
+                                            c.parameters.get(ParameterName.LENGTH),
+                                            c.parameters.get(ParameterName.REPLACEMENT))));
+
+        functionBuilderMap.put(FunctionSignature.RIGHT_PAD, c ->
+                c.builder.pattern("RPAD({0}, {1}, {2})")
+                        .parameters(List.of(c.parameters.get(ParameterName.STRING),
+                                            c.parameters.get(ParameterName.LENGTH),
+                                            c.parameters.get(ParameterName.REPLACEMENT))));
+
         functionBuilderMap.put(FunctionSignature.INTEGER_TO_STRING, c ->
                 c.builder.pattern("CAST({0} AS LONGVARCHAR)")
                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         functionBuilderMap.put(FunctionSignature.DECIMAL_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.DATE_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
-        functionBuilderMap.put(FunctionSignature.TIME_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
+        functionBuilderMap.put(FunctionSignature.TIME_TO_STRING, c ->
+                c.builder.pattern("(CAST(EXTRACT(HOUR from {0}) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(MINUTE from {0}) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(SECOND from {0}) AS INTEGER))")
+                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         functionBuilderMap.put(FunctionSignature.LOGICAL_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.ENUM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.CUSTOM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
@@ -192,7 +218,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
 
 //        functionBuilderMap.put(FunctionSignature.CAPITALIZE_STRING, c ->
-//                c.builder.pattern("(UPPER(SUBSTRING({0}, 1, 1)) || LOWER(SUBSTRING({0}, 2)))")
+//                c.builder.pattern("CAPITALIZE({0})")
 //                        .parameters(List.of(c.parameters.get(ParameterName.STRING))));
 
         functionBuilderMap.put(FunctionSignature.CONCATENATE_STRING, c ->
@@ -220,7 +246,10 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN), c.parameters.get(ParameterName.REPLACEMENT))));
 
         functionBuilderMap.put(FunctionSignature.SUBSTRING_STRING, c ->
-                c.builder.pattern("SUBSTRING({0}, CAST ({1} AS INTEGER), CAST({2} AS INTEGER))")
+                c.builder.pattern("(CASE " +
+                                  "WHEN {1} > LENGTH({0}) THEN '''' " +
+                                  "ELSE SUBSTRING({0}, {1}, {2}) " +
+                                  "END)")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.POSITION), c.parameters.get(ParameterName.LENGTH))));
 
         functionBuilderMap.put(FunctionSignature.ADD_DATE, c ->
@@ -247,13 +276,9 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, CAST({1} AS TIMESTAMP), CAST({0} AS TIMESTAMP))")
                         .parameters(List.of(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START))));
 
-        functionBuilderMap.put(FunctionSignature.IS_UNDEFINED_ATTRIBUTE, c ->
+        functionBuilderMap.put(FunctionSignature.IS_UNDEFINED, c ->
                 c.builder.pattern("({0} IS NULL)")
-                        .parameters(List.of(c.parameters.get(ParameterName.ATTRIBUTE))));
-
-        functionBuilderMap.put(FunctionSignature.IS_UNDEFINED_OBJECT, c ->
-                c.builder.pattern("({0} IS NULL)")
-                        .parameters(List.of(c.parameters.get(ParameterName.RELATION))));
+                        .parameters(List.of(c.parameters.get(ParameterName.ITEM))));
 
         functionBuilderMap.put(FunctionSignature.INSTANCE_OF, c ->
                 c.builder.pattern("EXISTS (SELECT 1 FROM {1} WHERE " + StatementExecutor.ID_COLUMN_NAME + " = {0})")
@@ -404,6 +429,12 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
+        functionBuilderMap.put(FunctionSignature.TIME_AS_SECONDS, c ->
+                c.builder.pattern("((CAST(EXTRACT(HOUR from CAST({0} AS TIME)) AS INTEGER)) * 3600 + " +
+                                  "(CAST(EXTRACT(MINUTE from CAST({0} AS TIME)) AS INTEGER)) * 60 + " +
+                                  "(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)))")
+                        .parameters(List.of(c.parameters.get(ParameterName.TIME))));
+
         functionBuilderMap.put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
                 c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER), 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
@@ -416,6 +447,14 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                 c.parameters.get(ParameterName.DAY)
                         )));
 
+        functionBuilderMap.put(FunctionSignature.DATE_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(TO_DATE(" +
+                                  "CAST(EXTRACT(YEAR from CAST({0} AS TIMESTAMP)) AS INTEGER) || ''-'' || " +
+                                  "CAST(EXTRACT(MONTH from CAST({0} AS TIMESTAMP)) AS INTEGER) || ''-'' || " +
+                                  "CAST(EXTRACT(DAY from CAST({0} AS TIMESTAMP)) AS INTEGER), " +
+                                  "''YYYY-MM-DD'') AS DATE)")
+                        .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
+
         functionBuilderMap.put(FunctionSignature.TO_TIMESTAMP, c ->
                 c.builder.pattern("CAST(TO_TIMESTAMP(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL), ''YYYY-MM-DD HH24:MI:SS'') AS TIMESTAMP)")
                         .parameters(List.of(
@@ -427,7 +466,6 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                 c.parameters.get(ParameterName.SECOND)
                         )));
 
-
         functionBuilderMap.put(FunctionSignature.TO_TIME, c ->
                 c.builder.pattern("CAST(CAST({0} AS INTEGER) || '':'' || CAST({1} AS INTEGER) || '':'' || CAST({2} AS INTEGER) AS TIME)")
                         .parameters(List.of(
@@ -435,6 +473,14 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                 c.parameters.get(ParameterName.MINUTE),
                                 c.parameters.get(ParameterName.SECOND)
                         )));
+
+        functionBuilderMap.put(FunctionSignature.TIME_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST(" +
+                                  "CAST(EXTRACT(HOUR from CAST({0} AS TIMESTAMP)) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(MINUTE from CAST({0} AS TIMESTAMP)) AS INTEGER) || '':'' || " +
+                                  "CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER) " +
+                                  "AS TIME)")
+                        .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
     }
 
     @Override

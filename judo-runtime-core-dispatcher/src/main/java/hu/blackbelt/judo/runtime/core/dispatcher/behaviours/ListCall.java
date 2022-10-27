@@ -31,8 +31,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
-
-import javax.transaction.TransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,7 +48,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public ListCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, final TransactionManager transactionManager, final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
+    public ListCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, final PlatformTransactionManager transactionManager, final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
         super(context, transactionManager);
         this.dao = dao;
         this.identifierProvider = identifierProvider;

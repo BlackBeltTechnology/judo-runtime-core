@@ -107,8 +107,7 @@ public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterM
 
 
         typePredicates.put(LocalTime.class, vd -> vd.value instanceof LocalTime
-                && (vd.dataType != null
-                && AsmUtils.isTime(vd.dataType)));
+                || (vd.dataType != null && AsmUtils.isTime(vd.dataType)));
         sqlTypes.put(LocalTime.class, vd -> "TIME");
 
         typePredicates.put(java.sql.Date.class, vd -> (

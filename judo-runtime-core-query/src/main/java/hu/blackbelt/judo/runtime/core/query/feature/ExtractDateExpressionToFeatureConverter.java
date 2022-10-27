@@ -54,6 +54,14 @@ public class ExtractDateExpressionToFeatureConverter extends ExpressionToFeature
                 signature = FunctionSignature.DAYS_OF_DATE;
                 break;
             }
+            case DAY_OF_WEEK: {
+                signature = FunctionSignature.DAY_OF_WEEK_OF_DATE;
+                break;
+            }
+            case DAY_OF_YEAR: {
+                signature = FunctionSignature.DAY_OF_YEAR_DATE;
+                break;
+            }
             default:
                 throw new UnsupportedOperationException("Unsupported date part");
         }

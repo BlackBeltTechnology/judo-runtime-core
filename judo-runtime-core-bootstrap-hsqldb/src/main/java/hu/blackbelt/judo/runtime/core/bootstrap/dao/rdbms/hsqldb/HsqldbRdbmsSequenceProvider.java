@@ -29,12 +29,10 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsSequence;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
+import static hu.blackbelt.judo.runtime.core.bootstrap.JudoModule.*;
+
 @SuppressWarnings("rawtypes")
 public class HsqldbRdbmsSequenceProvider implements Provider<Sequence> {
-
-    public static final String RDBMS_SEQUENCE_START = "rdbmsSequenceStart";
-    public static final String RDBMS_SEQUENCE_INCREMENT = "rdbmsSequenceIncrement";
-    public static final String RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS = "rdbmsSequenceCreateIfNotExists";
 
     @Inject
     private DataSource dataSource;
