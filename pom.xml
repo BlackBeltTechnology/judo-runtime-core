@@ -44,20 +44,20 @@
         <spring-version>4.3.12.RELEASE</spring-version>
 
         <epsilon-runtime-version>1.5.0</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.1.20221027_003317_6fb393b8_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.2</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.1.20221027_003355_0e5f9290_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.2.20221027_003402_951ee793_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.2.20221027_003927_5b3734ed_develop</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.2.20221027_004252_1ce3484d_develop</judo-meta-expression-asm-version>
-        <judo-meta-measure-version>1.0.1.20221027_003339_c4dc6832_develop</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.1.20221027_003323_703bb530_develop</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.1.20221027_003327_f85119ce_develop</judo-meta-query-version>
-        <judo-dao-api-version>1.0.3.20220930_100653_2b31acaa_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.2.20221027_003656_90bb0e55_develop</judo-sdk-common-version>
-        <judo-dispatcher-api-version>1.0.3.20220926_012329_fb44a05f_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.1.20221027_003701_658c0821_develop</judo-operation-utils-version>
+        <judo-meta-rdbms-version>1.0.1</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.2</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.2</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.2</judo-meta-expression-asm-version>
+        <judo-meta-measure-version>1.0.1</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.1</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.1</judo-meta-query-version>
+        <judo-dao-api-version>1.0.2</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.2</judo-sdk-common-version>
+        <judo-dispatcher-api-version>1.0.2</judo-dispatcher-api-version>
+        <judo-operation-utils-version>1.1.1</judo-operation-utils-version>
 
         <structured-map-proxy-version>1.2.0</structured-map-proxy-version>
 
