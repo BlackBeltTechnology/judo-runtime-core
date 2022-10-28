@@ -9,28 +9,27 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
 
-import hu.blackbelt.judo.meta.expression.SwitchCase;
-import hu.blackbelt.judo.meta.expression.SwitchExpression;
+import hu.blackbelt.judo.meta.expression.*;
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
+import hu.blackbelt.judo.meta.expression.constant.StringConstant;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 
 import java.util.Iterator;
 
-import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionBuilder;
-import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionParameterBuilder;
+import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 
 public class SwitchExpressionToFeatureConverter extends ExpressionToFeatureConverter<SwitchExpression> {
 
@@ -54,7 +53,7 @@ public class SwitchExpressionToFeatureConverter extends ExpressionToFeatureConve
                             .build())
                     .withParameters(newFunctionParameterBuilder()
                             .withParameterName(ParameterName.LEFT)
-                            .withParameterValue(factory.convert(switchCase.getExpression(), context, null))
+                            .withParameterValue(wrapInSubstringIfStringConstant(switchCase.getExpression(), context))
                             .build())
                     .withConstraints(getConstraints(targetMapping != null ? targetMapping.getTargetAttribute() : null))
                     .build();
@@ -72,7 +71,7 @@ public class SwitchExpressionToFeatureConverter extends ExpressionToFeatureConve
                 if (expression.getDefaultExpression() != null) {
                     function.getParameters().add(newFunctionParameterBuilder()
                             .withParameterName(ParameterName.RIGHT)
-                            .withParameterValue(factory.convert(expression.getDefaultExpression(), context, null))
+                            .withParameterValue(wrapInSubstringIfStringConstant(expression.getDefaultExpression(), context))
                             .build());
                 } else {
                     final Feature undefined = newFunctionBuilder().withSignature(FunctionSignature.UNDEFINED).build();
@@ -88,4 +87,42 @@ public class SwitchExpressionToFeatureConverter extends ExpressionToFeatureConve
 
         return feature;
     }
+
+    private Feature wrapInSubstringIfStringConstant(Expression expression, Context context) {
+        if (expression instanceof StringConstant) {
+            StringConstant stringConstant = (StringConstant) expression;
+
+            Constant position = newConstantBuilder().withValue(1).build();
+            context.addFeature(position);
+
+            Function length = newFunctionBuilder()
+                    .withSignature(FunctionSignature.LENGTH_STRING)
+                    .withParameters(newFunctionParameterBuilder()
+                                            .withParameterName(ParameterName.STRING)
+                                            .withParameterValue(factory.convert(stringConstant, context, null)))
+                    .build();
+            context.addFeature(length);
+
+            Function wrappedFeature = newFunctionBuilder()
+                    .withSignature(FunctionSignature.SUBSTRING_STRING)
+                    .withParameters(newFunctionParameterBuilder()
+                                            .withParameterName(ParameterName.STRING)
+                                            .withParameterValue(factory.convert(stringConstant, context, null))
+                                            .build())
+                    .withParameters(newFunctionParameterBuilder()
+                                            .withParameterName(ParameterName.POSITION)
+                                            .withParameterValue(position)
+                                            .build())
+                    .withParameters(newFunctionParameterBuilder()
+                                            .withParameterName(ParameterName.LENGTH)
+                                            .withParameterValue(length)
+                                            .build())
+                    .build();
+            context.addFeature(wrappedFeature);
+            return wrappedFeature;
+        }
+
+        return factory.convert(expression, context, null);
+    }
+
 }
