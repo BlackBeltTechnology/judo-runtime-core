@@ -20,19 +20,13 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.expression.LogicalExpression;
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
 import hu.blackbelt.judo.meta.expression.logical.ContainsExpression;
-import hu.blackbelt.judo.meta.expression.operator.ObjectComparator;
 import hu.blackbelt.judo.meta.expression.variable.ObjectVariable;
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.query.Context;
-import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
-import hu.blackbelt.judo.runtime.core.query.JoinFactory;
+import hu.blackbelt.judo.runtime.core.query.*;
 import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 
-import static hu.blackbelt.judo.meta.expression.logical.util.builder.LogicalBuilders.newObjectComparisonBuilder;
 import static hu.blackbelt.judo.meta.expression.object.util.builder.ObjectBuilders.newObjectVariableReferenceBuilder;
 import static hu.blackbelt.judo.meta.query.runtime.QueryUtils.getNextSubSelectAlias;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
@@ -67,14 +61,6 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
 
         final ObjectVariable iteratorVariable = getCollectionIterator(expression.getCollectionExpression());
 
-        final LogicalExpression condition = newObjectComparisonBuilder()
-                .withLeft(EcoreUtil.copy(expression.getObjectExpression()))
-                .withOperator(ObjectComparator.EQUAL)
-                .withRight(newObjectVariableReferenceBuilder()
-                        .withVariable(iteratorVariable)
-                        .build())
-                .build();
-
         final String iteratorVariableName = expression.getCollectionExpression().getIteratorVariableName();
 
         final Filter filter = newFilterBuilder()
@@ -82,7 +68,22 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
                 .build();
         subSelect.getSelect().getFilters().add(filter);
         final Context filterContext = context.clone(iteratorVariableName, filter);
-        filter.setFeature(factory.convert(condition, filterContext, null));
+        Function condition = newFunctionBuilder()
+                .withSignature(FunctionSignature.EQUALS)
+                .withParameters(newFunctionParameterBuilder()
+                                        .withParameterName(ParameterName.LEFT)
+                                        .withParameterValue(factory.convert(expression.getObjectExpression(), filterContext, null))
+                                        .build())
+                .withParameters(newFunctionParameterBuilder()
+                                        .withParameterName(ParameterName.RIGHT)
+                                        .withParameterValue(factory.convert(newObjectVariableReferenceBuilder()
+                                                                                    .withVariable(iteratorVariable)
+                                                                                    .build(),
+                                                                            filterContext, null))
+                                        .build())
+                .build();
+        context.addFeature(condition);
+        filter.setFeature(condition);
 
         final Feature feature = newFunctionBuilder()
                 .withSignature(FunctionSignature.EXISTS)
