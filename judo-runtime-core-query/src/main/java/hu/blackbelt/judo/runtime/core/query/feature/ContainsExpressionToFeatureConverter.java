@@ -20,19 +20,13 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.expression.LogicalExpression;
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
 import hu.blackbelt.judo.meta.expression.logical.ContainsExpression;
-import hu.blackbelt.judo.meta.expression.operator.ObjectComparator;
 import hu.blackbelt.judo.meta.expression.variable.ObjectVariable;
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.query.Context;
-import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
-import hu.blackbelt.judo.runtime.core.query.JoinFactory;
+import hu.blackbelt.judo.runtime.core.query.*;
 import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.util.EcoreUtil;
 
-import static hu.blackbelt.judo.meta.expression.logical.util.builder.LogicalBuilders.newObjectComparisonBuilder;
 import static hu.blackbelt.judo.meta.expression.object.util.builder.ObjectBuilders.newObjectVariableReferenceBuilder;
 import static hu.blackbelt.judo.meta.query.runtime.QueryUtils.getNextSubSelectAlias;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
