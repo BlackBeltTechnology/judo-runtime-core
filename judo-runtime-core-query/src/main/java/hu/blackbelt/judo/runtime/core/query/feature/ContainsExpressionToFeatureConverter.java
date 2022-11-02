@@ -67,14 +67,6 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
 
         final ObjectVariable iteratorVariable = getCollectionIterator(expression.getCollectionExpression());
 
-        final LogicalExpression condition = newObjectComparisonBuilder()
-                .withLeft(EcoreUtil.copy(expression.getObjectExpression()))
-                .withOperator(ObjectComparator.EQUAL)
-                .withRight(newObjectVariableReferenceBuilder()
-                        .withVariable(iteratorVariable)
-                        .build())
-                .build();
-
         final String iteratorVariableName = expression.getCollectionExpression().getIteratorVariableName();
 
         final Filter filter = newFilterBuilder()
@@ -82,7 +74,22 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
                 .build();
         subSelect.getSelect().getFilters().add(filter);
         final Context filterContext = context.clone(iteratorVariableName, filter);
-        filter.setFeature(factory.convert(condition, filterContext, null));
+        Function condition = newFunctionBuilder()
+                .withSignature(FunctionSignature.EQUALS)
+                .withParameters(newFunctionParameterBuilder()
+                                        .withParameterName(ParameterName.LEFT)
+                                        .withParameterValue(factory.convert(expression.getObjectExpression(), filterContext, null))
+                                        .build())
+                .withParameters(newFunctionParameterBuilder()
+                                        .withParameterName(ParameterName.RIGHT)
+                                        .withParameterValue(factory.convert(newObjectVariableReferenceBuilder()
+                                                                                    .withVariable(iteratorVariable)
+                                                                                    .build(),
+                                                                            filterContext, null))
+                                        .build())
+                .build();
+        context.addFeature(condition);
+        filter.setFeature(condition);
 
         final Feature feature = newFunctionBuilder()
                 .withSignature(FunctionSignature.EXISTS)
