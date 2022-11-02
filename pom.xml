@@ -44,24 +44,24 @@
         <spring-version>4.3.12.RELEASE</spring-version>
 
         <epsilon-runtime-version>1.5.1.20221026_231334_709fc633_develop</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.3.20221028_180915_c975dd29_bugfix_JNG_4196_support_static_queries_for_sdk</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.3.20221027_020917_d7259d09_develop</judo-tatami-core-version>
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2.20221027_013544_ec519510_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.3.20221028_175510_1c2f2dc9_bugfix_JNG_4196_support_static_queries_for_sdk</judo-meta-asm-version>
+        <judo-meta-asm-version>1.1.3.20221027_013226_c155977f_develop</judo-meta-asm-version>
         <judo-meta-expression-version>1.0.3.20221027_022134_8acd0df6_develop</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.3.20221028_182051_6e0c62cf_bugfix_JNG_4196_support_static_queries_for_sdk</judo-meta-expression-asm-version>
+        <judo-meta-expression-asm-version>1.0.3.20221027_030126_b3fe8132_develop</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.2.20221027_013343_22169497_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20221027_013513_8594e071_develop</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.2.20221027_014417_ae576326_develop</judo-meta-query-version>
         <judo-dao-api-version>1.0.3.20220930_100653_2b31acaa_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.3.20221028_180803_1f07bcd8_bugfix_JNG_4196_support_static_queries_for_sdk</judo-sdk-common-version>
+        <judo-sdk-common-version>1.0.3.20221027_020948_13a32b55_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.3.20220926_012329_fb44a05f_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.2.20221028_181045_037daa38_bugfix_JNG_4196_support_static_queries_for_sdk</judo-operation-utils-version>
+        <judo-operation-utils-version>1.1.2.20221027_020740_f5ce49a7_develop</judo-operation-utils-version>
 
         <structured-map-proxy-version>1.2.1.20220927_090501_89bce74f_develop</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.3.20221101_001401_28a90769_bugfix_JNG_4196_support_static_queries_for_sdk</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.3.20221028_182712_cb90fbac_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20220927_072413_239dbbd8_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20221026_231336_9e2c7d96_develop</osgi-filestore-version>
