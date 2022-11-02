@@ -65,17 +65,24 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
         subSelect.getSelect().getTargets().add(subSelect.getSelect().getMainTarget());
         subSelect.getSelect().getMainTarget().setContainerWithIdFeature(subSelect.getSelect(), false);
 
-        final String iteratorVariableName = expression.getCollectionExpression().getIteratorVariableName();
+        final ObjectVariable iteratorVariable = getCollectionIterator(expression.getCollectionExpression());
+
         final LogicalExpression condition = newObjectComparisonBuilder()
                 .withLeft(EcoreUtil.copy(expression.getObjectExpression()))
                 .withOperator(ObjectComparator.EQUAL)
                 .withRight(newObjectVariableReferenceBuilder()
-                                   .withVariable(getCollectionIterator(expression.getCollectionExpression()))
-                                   .build())
+                        .withVariable(iteratorVariable)
+                        .build())
                 .build();
-        final Filter filter = newFilterBuilder().withAlias(iteratorVariableName).build();
+
+        final String iteratorVariableName = expression.getCollectionExpression().getIteratorVariableName();
+
+        final Filter filter = newFilterBuilder()
+                .withAlias(iteratorVariableName)
+                .build();
         subSelect.getSelect().getFilters().add(filter);
-        filter.setFeature(factory.convert(condition, context.clone(iteratorVariableName, filter), null));
+        final Context filterContext = context.clone(iteratorVariableName, filter);
+        filter.setFeature(factory.convert(condition, filterContext, null));
 
         final Feature feature = newFunctionBuilder()
                 .withSignature(FunctionSignature.EXISTS)
