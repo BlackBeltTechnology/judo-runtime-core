@@ -78,14 +78,14 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
                 .withSignature(FunctionSignature.EQUALS)
                 .withParameters(newFunctionParameterBuilder()
                                         .withParameterName(ParameterName.LEFT)
-                                        .withParameterValue(factory.convert(expression.getObjectExpression(), filterContext, null))
-                                        .build())
-                .withParameters(newFunctionParameterBuilder()
-                                        .withParameterName(ParameterName.RIGHT)
                                         .withParameterValue(factory.convert(newObjectVariableReferenceBuilder()
                                                                                     .withVariable(collectionIterator)
                                                                                     .build(),
                                                                             filterContext, null))
+                                        .build())
+                .withParameters(newFunctionParameterBuilder()
+                                        .withParameterName(ParameterName.RIGHT)
+                                        .withParameterValue(factory.convert(expression.getObjectExpression(), filterContext, null))
                                         .build())
                 .build();
         context.addFeature(containsCondition);
