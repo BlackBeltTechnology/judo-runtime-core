@@ -42,6 +42,12 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
 
     @Override
     public Feature convert(final ContainsExpression expression, final Context context, final FeatureTargetMapping targetMapping) {
+        /*
+         * e.g.: collectionOfA!contains(instanceOfB)
+         * Concept: query 'collectionOfA' and filter for 'instanceOfB'
+         *      For a filtering condition simple equality check is used in which the left operand is the instance argument itself (instanceOfB)
+         *      and the right argument is a collection iterator created during feature conversion.
+         */
         final EClass subSelectClass = (EClass) expression.getCollectionExpression().getObjectType(modelAdapter);
         final SubSelect subSelect = newSubSelectBuilder()
                 .withSelect(newSelectBuilder()
