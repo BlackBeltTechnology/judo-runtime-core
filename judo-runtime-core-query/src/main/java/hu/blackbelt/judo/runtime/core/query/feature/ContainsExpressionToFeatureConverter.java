@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- *
+ * 
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -42,39 +42,33 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
 
     @Override
     public Feature convert(final ContainsExpression expression, final Context context, final FeatureTargetMapping targetMapping) {
-        /*
-         * e.g.: collectionOfA!contains(instanceOfB)
-         * Concept: query 'collectionOfA' and filter for 'instanceOfB'
-         *      For a filtering condition simple equality check is used in which the left operand is the instance argument itself (instanceOfB)
-         *      and the right argument is a collection iterator created during feature conversion.
-         */
-        final EClass collectionClass = (EClass) expression.getCollectionExpression().getObjectType(modelAdapter);
-        final SubSelect collectionSelect = newSubSelectBuilder()
+        final EClass subSelectClass = (EClass) expression.getCollectionExpression().getObjectType(modelAdapter);
+        final SubSelect subSelect = newSubSelectBuilder()
                 .withSelect(newSelectBuilder()
-                                    .withFrom(collectionClass)
-                                    .withAlias(getNextSubSelectAlias(context.getSourceCounter()))
-                                    .withMainTarget(newTargetBuilder()
-                                                            .withType(collectionClass)
-                                                            .withIndex(context.getTargetCounter().incrementAndGet())
-                                                            .build())
-                                    .build())
+                        .withFrom(subSelectClass)
+                        .withAlias(getNextSubSelectAlias(context.getSourceCounter()))
+                        .withMainTarget(newTargetBuilder()
+                                .withType(subSelectClass)
+                                .withIndex(context.getTargetCounter().incrementAndGet())
+                                .build())
+                        .build())
                 .withAlias(getNextSubSelectAlias(context.getSourceCounter()))
                 .build();
-        joinFactory.convertNavigationToJoins(context, collectionSelect, expression.getCollectionExpression(), false);
-        collectionSelect.setEmbeddedSelect(collectionSelect.getSelect());
-        collectionSelect.getSelect().getTargets().add(collectionSelect.getSelect().getMainTarget());
-        collectionSelect.getSelect().getMainTarget().setContainerWithIdFeature(collectionSelect.getSelect(), false);
+        joinFactory.convertNavigationToJoins(context, subSelect, expression.getCollectionExpression(), false);
+        subSelect.setEmbeddedSelect(subSelect.getSelect());
+        subSelect.getSelect().getTargets().add(subSelect.getSelect().getMainTarget());
+        subSelect.getSelect().getMainTarget().setContainerWithIdFeature(subSelect.getSelect(), false);
 
-        final ObjectVariable collectionIterator = getCollectionIterator(expression.getCollectionExpression());
+        final ObjectVariable iteratorVariable = getCollectionIterator(expression.getCollectionExpression());
 
-        final String iteratorName = expression.getCollectionExpression().getIteratorVariableName();
+        final String iteratorVariableName = expression.getCollectionExpression().getIteratorVariableName();
 
-        final Filter containsFilter = newFilterBuilder()
-                .withAlias(iteratorName)
+        final Filter filter = newFilterBuilder()
+                .withAlias(iteratorVariableName)
                 .build();
-        collectionSelect.getSelect().getFilters().add(containsFilter);
-        final Context filterContext = context.clone(iteratorName, containsFilter);
-        Function containsCondition = newFunctionBuilder()
+        subSelect.getSelect().getFilters().add(filter);
+        final Context filterContext = context.clone(iteratorVariableName, filter);
+        Function condition = newFunctionBuilder()
                 .withSignature(FunctionSignature.EQUALS)
                 .withParameters(newFunctionParameterBuilder()
                                         .withParameterName(ParameterName.LEFT)
@@ -83,30 +77,29 @@ public class ContainsExpressionToFeatureConverter extends ExpressionToFeatureCon
                 .withParameters(newFunctionParameterBuilder()
                                         .withParameterName(ParameterName.RIGHT)
                                         .withParameterValue(factory.convert(newObjectVariableReferenceBuilder()
-                                                                                    .withVariable(collectionIterator)
+                                                                                    .withVariable(iteratorVariable)
                                                                                     .build(),
                                                                             filterContext, null))
                                         .build())
                 .build();
-        context.addFeature(containsCondition);
-        containsFilter.setFeature(containsCondition);
+        context.addFeature(condition);
+        filter.setFeature(condition);
 
-        final Feature exists = newFunctionBuilder()
+        final Feature feature = newFunctionBuilder()
                 .withSignature(FunctionSignature.EXISTS)
                 .withParameters(newFunctionParameterBuilder()
-                                        .withParameterName(ParameterName.COLLECTION)
-                                        .withParameterValue(collectionSelect)
-                                        .build())
+                        .withParameterName(ParameterName.COLLECTION)
+                        .withParameterValue(subSelect)
+                        .build())
                 .build();
 
         if (context.getNode() != null) {
-            context.getNode().getSubSelects().add(collectionSelect);
-            context.addFeature(exists);
+            context.getNode().getSubSelects().add(subSelect);
+            context.addFeature(feature);
         } else {
             throw new IllegalStateException("Not supported yet");
         }
 
-        return exists;
+        return feature;
     }
-
 }
