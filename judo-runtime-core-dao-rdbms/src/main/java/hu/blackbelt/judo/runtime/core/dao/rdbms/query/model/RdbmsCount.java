@@ -84,6 +84,18 @@ public class RdbmsCount<ID> {
                                 query.getBase().getFeatures().isEmpty() && query.getSelect().isAggregated())) ||
                         (query.getPartner() == null && query.eContainer() == null);
 
+        if (!query.getNavigationJoins().isEmpty()) {
+            final RdbmsNavigationJoin<ID> customJoin =
+                    RdbmsNavigationJoin.<ID>builder()
+                            .query(query)
+                            .parentIdFilterQuery(parentIdFilterQuery)
+                            .rdbmsBuilder(rdbmsBuilder)
+                            .withoutFeatures(true)
+                            .queryParameters(queryParameters)
+                            .build();
+            joins.add(customJoin);
+        }
+
         query.getFilters().forEach(filter ->
                 addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getPartner() != null ? query : query.getSelect(), query.getPartner() != null ? RdbmsAliasUtil.AGGREGATE_PREFIX : "", addJoinOfFilterFeature, queryParameters));
 

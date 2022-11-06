@@ -435,7 +435,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
 
             final SubSelect query;
-            if (queryCustomizer != null && queryCustomizer.getFilter() != null) {
+            if (queryCustomizer != null) {
                 if (_query.eContainer() != null) {
                     Node _container = (Node) clone(_query.eContainer());
                     query = _container.getSubSelects().stream()
@@ -468,7 +468,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             } else if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && instanceIds == null) {
                 instanceIds = queryCustomizer.getInstanceIds();
             }
-            return countQuery(jdbcTemplate, query, ids, instanceIds, queryCustomizer != null ? queryCustomizer.getParameters() : null);
+            return countQuery(jdbcTemplate, query, instanceIds, parentIds, queryCustomizer != null ? queryCustomizer.getParameters() : null);
         } finally {
             rdbmsBuilder.getConstantFields().remove();
         }
