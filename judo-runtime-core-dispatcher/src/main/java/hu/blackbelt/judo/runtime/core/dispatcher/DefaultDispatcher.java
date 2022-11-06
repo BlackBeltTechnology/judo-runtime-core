@@ -71,6 +71,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public static final String REFERENCE_ID_KEY = "__referenceId";
     public static final String VERSION_KEY = "__version";
     public static final String RECORD_COUNT_KEY = "__recordCount";
+    public static final String COUNT_QUERY_RECORD_KEY = "__countRecords";
     public static final String SDK = "sdk";
     public static final String SCRIPT = "script";
     public static final String BEHAVIOUR = "behaviour";
