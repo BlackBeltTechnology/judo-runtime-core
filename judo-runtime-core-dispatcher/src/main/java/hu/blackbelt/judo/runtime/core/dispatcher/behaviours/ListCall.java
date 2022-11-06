@@ -27,6 +27,7 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EOperation;
@@ -71,6 +72,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         Object result;
+        Long count = null;
 
 		final Optional<Map<String, Object>> queryCustomizerParameter = operation.getEParameters().stream().map(p -> p.getName())
                 .findFirst()
@@ -78,6 +80,8 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
         @SuppressWarnings("rawtypes")
 		final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
+
+        final boolean countRecords = Boolean.TRUE.equals(exchange.get("__countRecords"));
 
         if (AsmUtils.annotatedAsTrue(owner, "access") && owner.isDerived() && asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
             checkArgument(!bound, "Operation must be unbound");
@@ -94,13 +98,24 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
             final ID id = (ID) actor.get(identifierProvider.getName());
             result = extractResult(operation, dao.searchNavigationResultAt(id, owner, queryCustomizer));
+            if (countRecords) {
+                count = dao.countNavigationResultAt(id, owner, queryCustomizer);
+            }
+
         } else if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
             checkArgument(!bound, "Operation must be unbound");
             final List<Payload> resultList;
             if (AsmUtils.annotatedAsTrue(owner, "access") && !owner.isDerived()) {
                 resultList = dao.search(owner.getEReferenceType(), queryCustomizer);
+                if (countRecords) {
+                    count = dao.count(owner.getEReferenceType(), queryCustomizer);
+                }
             } else {
                 resultList = dao.searchReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
+                if (countRecords) {
+                    count = dao.countReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
+                }
+
             }
             result = extractResult(operation, resultList);
         } else {
@@ -114,7 +129,13 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
                 result = resultInThis.get().orElse(null);
             } else {
                 result = extractResult(operation, dao.searchNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer));
+                if (countRecords) {
+                    count = dao.countNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer);
+                }
             }
+        }
+        if (count != null) {
+            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, count);
         }
         return result;
     }

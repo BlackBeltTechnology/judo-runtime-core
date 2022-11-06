@@ -70,6 +70,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public static final String SELECTED_ITEM_KEY = "__selected";
     public static final String REFERENCE_ID_KEY = "__referenceId";
     public static final String VERSION_KEY = "__version";
+    public static final String RECORD_COUNT_KEY = "__recordCount";
     public static final String SDK = "sdk";
     public static final String SCRIPT = "script";
     public static final String BEHAVIOUR = "behaviour";
@@ -547,6 +548,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
 
             final boolean exposed = Boolean.TRUE.equals(exchange.remove("__exposed"));
+
             final Boolean stateful = context.getAs(Boolean.class, STATEFUL);
 
             // TODO - do not cleanup context of operations called by dispatcher
@@ -667,9 +669,18 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                                 .orElseThrow(() -> new UnsupportedOperationException("Not supported yet"))
                                 .call(exchange, operation);
 
-                        return operationType != null && behaviourOperationCallResult != null
+                        Payload payload = operationType != null && behaviourOperationCallResult != null
                                 ? Payload.map(outputParameterName.get(), behaviourOperationCallResult)
                                 : Payload.empty();
+
+                        if (exposed && exchange.containsKey(DefaultDispatcher.RECORD_COUNT_KEY)) {
+                            payload.putIfAbsent(Dispatcher.HEADERS_KEY, new ConcurrentHashMap<>());
+                            ((Map<String, Object>) payload.get(Dispatcher.HEADERS_KEY))
+                                    .put("X-Judo-Count", exchange.get(DefaultDispatcher.RECORD_COUNT_KEY));
+                            exchange.remove(DefaultDispatcher.RECORD_COUNT_KEY);
+                        }
+
+                        return payload;
                     };
                 }
 
