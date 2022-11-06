@@ -680,9 +680,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                             exchange.remove(DefaultDispatcher.RECORD_COUNT_KEY);
                         }
 
-                        return operationType != null && behaviourOperationCallResult != null
-                                ? Payload.map(outputParameterName.get(), behaviourOperationCallResult)
-                                : Payload.empty();
+                        return payload;
                     };
                 }
 
