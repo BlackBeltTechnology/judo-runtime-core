@@ -81,7 +81,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
         @SuppressWarnings("rawtypes")
 		final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
 
-        final boolean countRecords = Boolean.TRUE.equals(exchange.get("__countRecords"));
+        final boolean countRecords = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY));
 
         if (AsmUtils.annotatedAsTrue(owner, "access") && owner.isDerived() && asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
             checkArgument(!bound, "Operation must be unbound");
