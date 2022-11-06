@@ -238,6 +238,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    protected long countAll(EClass clazz) {
+        return selectStatementExecutor.countSelect(
+                        new NamedParameterJdbcTemplate(dataSource), clazz, null, null);
+    }
+
+    @Override
     protected List<Payload> searchByFilter(EClass clazz, QueryCustomizer<ID> queryCustomizer) {
         return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), clazz, null, queryCustomizer)
@@ -245,10 +251,22 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    protected long countByFilter(EClass clazz, QueryCustomizer<ID> queryCustomizer) {
+        return selectStatementExecutor.countSelect(
+                        new NamedParameterJdbcTemplate(dataSource), clazz, null, queryCustomizer);
+    }
+
+    @Override
     protected List<Payload> readAllReferences(EReference reference, Collection<ID> navigationSourceIdentifiers) {
         return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, null)
                 .stream().map(Payload::asPayload).collect(Collectors.toList());
+    }
+
+    @Override
+    protected long countAllReferences(EReference reference, Collection<ID> navigationSourceIdentifiers) {
+        return selectStatementExecutor.countSelect(
+                        new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, null);
     }
 
     @Override
@@ -271,6 +289,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, queryCustomizer)
                 .stream().map(Payload::asPayload).collect(Collectors.toList());
+    }
+
+    @Override
+    protected long countReferences(EReference reference, Collection<ID> navigationSourceIdentifiers, QueryCustomizer<ID> queryCustomizer) {
+        return selectStatementExecutor.countSelect(
+                        new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, queryCustomizer);
     }
 
     @Override
@@ -736,6 +760,39 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    protected long calculateNumberRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer) {
+        final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
+                .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
+                        .orElseThrow(() -> new IllegalStateException("Refence not found on containing class: " + rangeTransferRelationName)))
+                .orElseThrow(() -> new IllegalStateException("No range defined"));
+
+        ID instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
+
+        if (queryFactory.isStaticReference(rangeTransferRelation)) {
+            return countReferencedInstancesOf(rangeTransferRelation, rangeTransferRelation.getEReferenceType(), queryCustomizer);
+        } else {
+            final Payload temporaryInstance;
+            if (instanceId != null) {
+                temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                        .mask(Collections.emptyMap())
+                        .build(), false);
+            } else if (payload != null) {
+                temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                        .mask(Collections.emptyMap())
+                        .build(), false);
+                instanceId = temporaryInstance.getAs(identifierProvider.getType(), identifierProvider.getName());
+            } else {
+                throw new IllegalArgumentException("Missing input to get range");
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("Saved temporary instance {} with ID: {}", AsmUtils.getClassifierFQName(reference.getEContainingClass()), temporaryInstance.get(identifierProvider.getName()));
+            }
+            return countNavigationResultAt(instanceId, rangeTransferRelation, queryCustomizer);
+        }
+    }
+
+    @Override
     protected MetricsCollector getMetricsCollector() {
         return metricsCollector;
     }
@@ -793,5 +850,4 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             }
         };
     }
-
 }
