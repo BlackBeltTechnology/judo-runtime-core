@@ -27,6 +27,7 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
+import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EOperation;
@@ -98,6 +99,10 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
         final Collection<ID> idsToRemove = new HashSet<>();
         @SuppressWarnings("unchecked")
 		final Collection<Payload> result = dao.getRangeOf(inputRangeReference, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer);
+
+        if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
+            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, dao.countRangeOf(inputRangeReference, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer));
+        }
 
         // collect IDs that are created (temporary)
         result.forEach(p -> markedIdRemover.processAndCollect(p, idsToRemove));
