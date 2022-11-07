@@ -359,12 +359,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
         EClass typeOfNewInstance = reference.getEReferenceType();
         EReference mappedReference = getAsmUtils().getMappedReference(reference)
-                .orElseThrow(() -> new IllegalArgumentException("Mapping of transfer object relation not found: " + reference));
+                .orElseThrow(() -> new IllegalArgumentException("Mapping of transfer object relation not found: " + AsmUtils.getReferenceFQName(reference)));
         Payload result;
 
         if (mappedReference.isContainment()) {
             Payload container = getByIdentifier(reference.getEContainingClass(), identifier)
-                    .orElseThrow(() -> new IllegalArgumentException("Container not found: " + reference));
+                    .orElseThrow(() -> new IllegalArgumentException("Container not found: " + AsmUtils.getReferenceFQName(reference)));
             if (reference.isMany()) {
                 Collection<Payload> containments = container.getAsCollectionPayload(reference.getName());
                 if (reference.getUpperBound() == -1 || containments == null || containments.size() < reference.getUpperBound()) {
@@ -523,7 +523,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         // Check for containment entity could not add reference
         EReference entityReference = getAsmUtils()
                 .getMappedReference(mappedReference)
-                .orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + mappedReference));
+                .orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(mappedReference)));
 
         Collection<Statement<ID>> removeReferenceStatements;
 
@@ -685,7 +685,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     .filter(a -> template.get(a.getName()) == null && getAsmUtils().getMappedAttribute(a).isPresent())
                     .collect(Collectors.toMap(
                             identity(),
-                            a -> getAsmUtils().getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped entity not found: " + a))))
+                            a -> getAsmUtils().getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped attribute not found: " + AsmUtils.getAttributeFQName(a)))))
                     .entrySet().stream()
                     .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                     .collect(Collectors.toMap(
@@ -695,7 +695,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     .filter(r -> template.get(r.getName()) == null && getAsmUtils().getMappedReference(r).isPresent())
                     .collect(Collectors.toMap(
                             identity(),
-                            r -> getAsmUtils().getMappedReference(r).orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + r))))
+                            r -> getAsmUtils().getMappedReference(r).orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(r)))))
                     .entrySet().stream()
                     .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                     .collect(Collectors.toMap(

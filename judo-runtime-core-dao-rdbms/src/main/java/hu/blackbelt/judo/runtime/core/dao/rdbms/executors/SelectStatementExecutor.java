@@ -223,7 +223,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 	public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
-            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + mappedTransferObjectType.getName()));
+            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + AsmUtils.getClassifierFQName(mappedTransferObjectType)));
 
             final Select select;
             if (queryCustomizer != null && (queryCustomizer.getFilter() != null || queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null)) {
@@ -272,7 +272,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_COUNT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
-            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + mappedTransferObjectType.getName()));
+            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + AsmUtils.getClassifierFQName(mappedTransferObjectType)));
 
             final Select select;
             if (queryCustomizer != null && queryCustomizer.getFilter() != null) {
@@ -331,9 +331,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             final SubSelect _query;
             if (!AsmUtils.isEntityType(referenceHolder) && !asmUtils.isMappedTransferObjectType(referenceHolder)) {
-                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + reference.getName()));
+                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + AsmUtils.getReferenceFQName(reference)));
             } else {
-                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + reference.getEContainingClass().getName()));
+                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
 
                 final Optional<SubSelect> subSelect = base.getSubSelects().stream()
                         .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
@@ -422,9 +422,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             final SubSelect _query;
             if (!AsmUtils.isEntityType(referenceHolder) && !asmUtils.isMappedTransferObjectType(referenceHolder)) {
-                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + reference.getName()));
+                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + AsmUtils.getReferenceFQName(reference)));
             } else {
-                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + reference.getEContainingClass().getName()));
+                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
 
                 final Optional<SubSelect> subSelect = base.getSubSelects().stream()
                         .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
