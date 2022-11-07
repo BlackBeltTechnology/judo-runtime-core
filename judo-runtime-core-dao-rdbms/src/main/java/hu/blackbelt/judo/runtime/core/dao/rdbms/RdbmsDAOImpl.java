@@ -763,7 +763,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     protected long calculateNumberRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
-                        .orElseThrow(() -> new IllegalStateException("Refence not found on containing class: " + rangeTransferRelationName)))
+                        .orElseThrow(() -> new IllegalStateException("Reference: " + rangeTransferRelationName + " not found on containing class: "
+                                + AsmUtils.getClassifierFQName(reference.getEContainingClass()))))
                 .orElseThrow(() -> new IllegalStateException("No range defined"));
 
         ID instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
