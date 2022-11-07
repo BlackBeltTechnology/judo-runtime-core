@@ -50,6 +50,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsCount;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
@@ -67,6 +68,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -78,6 +80,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     private static final String METRICS_SELECT_PREPARE = "select-prepare";
     private static final String METRICS_SELECT_PROCESSING = "select-processing";
     private static final String METRICS_SELECT_QUERY = "select-query";
+
+    private static final String METRICS_COUNT_PREPARE = "count-prepare";
+    private static final String METRICS_COUNT_QUERY = "count-query";
 
     private final Translator translator = new Translator();
     private final MetricsCollector metricsCollector;
@@ -141,15 +146,17 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         EClass entityType;
         final MapSqlParameterSource parameters = new MapSqlParameterSource();
 
-        try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             entityType = asmUtils.getMappedEntityType(mappedTransferObjectType)
                     .orElseThrow(() -> new IllegalStateException("Invalid mapped transfer object type"));
 
-            parameters.addValue("id", getCoercer().coerce(id, rdbmsBuilder.getParameterMapper().getIdClassName()), rdbmsBuilder.getParameterMapper().getIdSqlType());
+            parameters.addValue("id",
+                    getCoercer().coerce(id, rdbmsBuilder.getParameterMapper().getIdClassName()),
+                    rdbmsBuilder.getParameterMapper().getIdSqlType());
         }
 
         final Collection<Map<String, Object>> results;
-        try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_QUERY)) {
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_QUERY)) {
             results = jdbcTemplate.queryForList("SELECT " + StatementExecutor.ID_COLUMN_NAME + ", " +
                     StatementExecutor.ENTITY_TYPE_COLUMN_NAME + ", " +
                     StatementExecutor.ENTITY_VERSION_COLUMN_NAME + ", " +
@@ -164,12 +171,12 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
 
         if (!results.isEmpty()) {
-            try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
+            try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
                 final Map<String, Object> record = results.iterator().next();
 
                 final java.util.function.Function<String, Object> extract = key -> record.entrySet().stream()
                         .filter(e -> key.equalsIgnoreCase(e.getKey()) && e.getValue() != null)
-                        .map(e -> e.getValue())
+                        .map(Map.Entry::getValue)
                         .findAny()
                         .orElse(null);
 
@@ -214,9 +221,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @return result set (list of records) that can has embedded result sets
      */
 	public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
-        try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
-            final Select _select = queryFactory.getQuery(mappedTransferObjectType).get();
+            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + AsmUtils.getClassifierFQName(mappedTransferObjectType)));
 
             final Select select;
             if (queryCustomizer != null && (queryCustomizer.getFilter() != null || queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null)) {
@@ -229,14 +236,14 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     .withAlias("")
                     .build();
 
-            applyQueryCustomizer(query, queryCustomizer);
+            applyQueryCustomizer(query, queryCustomizer, false);
             if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids != null) {
                 ids.addAll(queryCustomizer.getInstanceIds());
             } else if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids == null) {
                 ids = queryCustomizer.getInstanceIds();
             }
 
-            final EMap<Target, Map<ID, Payload>> result = runQuery(jdbcTemplate, query, ids, null, ECollections.emptyEList(), queryCustomizer != null ? queryCustomizer.getSeek() : null, queryCustomizer != null ? queryCustomizer.isWithoutFeatures() : false, queryCustomizer != null ? queryCustomizer.getMask() : null, queryCustomizer != null ? queryCustomizer.getParameters() : null, true);
+            final EMap<Target, Map<ID, Payload>> result = runQuery(jdbcTemplate, query, ids, null, ECollections.emptyEList(), queryCustomizer != null ? queryCustomizer.getSeek() : null, queryCustomizer != null && queryCustomizer.isWithoutFeatures(), queryCustomizer != null ? queryCustomizer.getMask() : null, queryCustomizer != null ? queryCustomizer.getParameters() : null, true);
 
             final Collection<Payload> ret = result.get(select.getMainTarget()).values();
             if (queryCustomizer != null && (queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null)) {
@@ -253,8 +260,46 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
     }
 
-	public Payload executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EAttribute attribute, final Map<String, Object> parameters) {
-        try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
+    /**
+     * Execute a logical query on a given JDBC template and return the number of records.
+     *
+     * @param jdbcTemplate             JDBC template
+     * @param mappedTransferObjectType transfer object type of results
+     * @param ids                      instance IDs
+     * @param queryCustomizer          query customizer
+     * @return number of records that can has embedded result sets
+     */
+    public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_COUNT_PREPARE)) {
+            rdbmsBuilder.getConstantFields().set(new HashMap<>());
+            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + AsmUtils.getClassifierFQName(mappedTransferObjectType)));
+
+            final Select select;
+            if (queryCustomizer != null && queryCustomizer.getFilter() != null) {
+                select = clone(_select);
+            } else {
+                select = _select;
+            }
+            final SubSelect query = newSubSelectBuilder()
+                    .withSelect(select)
+                    .withAlias("")
+                    .build();
+
+            applyQueryCustomizer(query, queryCustomizer, true);
+            if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids != null) {
+                ids.addAll(queryCustomizer.getInstanceIds());
+            } else if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids == null) {
+                ids = queryCustomizer.getInstanceIds();
+            }
+            return countQuery(jdbcTemplate, query, ids, ECollections.emptyEList(), queryCustomizer != null ? queryCustomizer.getParameters() : null);
+
+        } finally {
+            rdbmsBuilder.getConstantFields().remove();
+        }
+    }
+
+    public Payload executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EAttribute attribute, final Map<String, Object> parameters) {
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final SubSelect subSelect = queryFactory.getDataQuery(attribute).orElseThrow(() -> new IllegalStateException("Query for static data not prepared yet"));
 
@@ -280,15 +325,15 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @return result set (list of records) that can has embedded result sets
      */
 	public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
-        try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PREPARE)) {
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final EClass referenceHolder = reference.getEContainingClass();
 
             final SubSelect _query;
             if (!AsmUtils.isEntityType(referenceHolder) && !asmUtils.isMappedTransferObjectType(referenceHolder)) {
-                _query = queryFactory.getNavigation(reference).get();
+                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + AsmUtils.getReferenceFQName(reference)));
             } else {
-                final Select base = queryFactory.getQuery(reference.getEContainingClass()).get();
+                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
 
                 final Optional<SubSelect> subSelect = base.getSubSelects().stream()
                         .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
@@ -315,7 +360,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 query = _query;
             }
 
-            applyQueryCustomizer(query, queryCustomizer);
+            applyQueryCustomizer(query, queryCustomizer, false);
 
             Collection<ID> instanceIds;
             final Collection<ID> parentIds;
@@ -351,7 +396,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             });
 
             if (queryCustomizer != null && queryCustomizer.getSeek() != null && queryCustomizer.getSeek().isReverse()) {
-                Collections.reverse((List<Payload>) results);
+                if (results instanceof List) {
+                    Collections.reverse((List) results);
+                }
             }
             return results;
         } finally {
@@ -359,29 +406,99 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
     }
 
-    private void applyQueryCustomizer(final SubSelect query, final DAO.QueryCustomizer<ID> queryCustomizer) {
+    /**
+     * Execute a logical query on a given JDBC template and return number of records.
+     *
+     * @param jdbcTemplate    JDBC template
+     * @param reference       reference that is used by navigation from parents to get results
+     * @param ids             instance IDs (if reference is not set) or parent IDs (if reference is set)
+     * @param queryCustomizer query customizer
+     * @return number of records that can has embedded result sets
+     */
+    public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_COUNT_PREPARE)) {
+            rdbmsBuilder.getConstantFields().set(new HashMap<>());
+            final EClass referenceHolder = reference.getEContainingClass();
+
+            final SubSelect _query;
+            if (!AsmUtils.isEntityType(referenceHolder) && !asmUtils.isMappedTransferObjectType(referenceHolder)) {
+                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + AsmUtils.getReferenceFQName(reference)));
+            } else {
+                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
+
+                final Optional<SubSelect> subSelect = base.getSubSelects().stream()
+                        .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
+                        .findAny();
+
+                checkArgument(subSelect.isPresent(), "Subselect must be prepared by query factory");
+                _query = subSelect.get();
+            }
+
+            final SubSelect query;
+            if (queryCustomizer != null) {
+                if (_query.eContainer() != null) {
+                    Node _container = (Node) clone(_query.eContainer());
+                    query = _container.getSubSelects().stream()
+                            .filter(ss -> Objects.equals(ss.getAlias(), _query.getAlias()))
+                            .findAny()
+                            .orElseThrow(() -> new IllegalStateException("SubSelect not cloned correctly"));
+                } else {
+                    query = clone(_query);
+                }
+                final Select select = clone(_query.getSelect());
+                query.setSelect(select);
+            } else {
+                query = _query;
+            }
+
+            applyQueryCustomizer(query, queryCustomizer, true);
+
+            Collection<ID> instanceIds;
+            final Collection<ID> parentIds;
+            final boolean useIdsAsParents = reference != null && !(query.getNavigationJoins().isEmpty() && !queryFactory.isStaticReference(reference));
+            if (useIdsAsParents) {
+                instanceIds = null;
+                parentIds = ids;
+            } else {
+                instanceIds = ids;
+                parentIds = Collections.emptySet();
+            }
+            if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && instanceIds != null) {
+                instanceIds.addAll(queryCustomizer.getInstanceIds());
+            } else if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && instanceIds == null) {
+                instanceIds = queryCustomizer.getInstanceIds();
+            }
+            return countQuery(jdbcTemplate, query, instanceIds, parentIds, queryCustomizer != null ? queryCustomizer.getParameters() : null);
+        } finally {
+            rdbmsBuilder.getConstantFields().remove();
+        }
+    }
+    private void applyQueryCustomizer(final SubSelect query, final DAO.QueryCustomizer<ID> queryCustomizer, boolean applyFilterOnly) {
         final EClass mainTarget = query.getSelect().getMainTarget().getType();
 
         if (queryCustomizer != null && queryCustomizer.getFilter() != null) {
             final Filter filter = createFilter(mainTarget, query.getSelect(), queryCustomizer.getFilter());
             query.getSelect().getFilters().add(filter);
         }
-        final EMap<EAttribute, Feature> mainFeatures = ECollections.asEMap(query.getSelect().getFeatures().stream()
-                .filter(f -> (f instanceof Attribute || f instanceof Function || f instanceof SubSelectFeature) && f.getTargetMappings().stream().anyMatch(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())))
-                .collect(Collectors.toMap(f -> f.getTargetMappings().stream().filter(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())).findAny().get().getTargetAttribute(), f -> f)));
-        final boolean reverse = queryCustomizer != null && queryCustomizer.getSeek() != null ? queryCustomizer.getSeek().isReverse() : false;
-        if (queryCustomizer != null && queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty()) {
-            query.getNavigationJoins().forEach(j -> j.getOrderBys().clear());
-            query.getSelect().getOrderBys().clear();
-            query.getOrderBys().clear();
-            query.getSelect().getOrderBys().addAll(queryCustomizer.getOrderByList().stream()
-                    .map(o -> newOrderByBuilder().withFeature(mainFeatures.get(o.getAttribute())).withDescending(reverse ? !o.isDescending() : o.isDescending()).build())
-                    .collect(Collectors.toList()));
-        }
-        if (queryCustomizer != null && queryCustomizer.getSeek() != null) {
-            query.setLimit(queryCustomizer.getSeek().getLimit());
-            if (queryCustomizer.getSeek().getOffset() > 0) {
-                query.setOffset(queryCustomizer.getSeek().getOffset());
+        if (!applyFilterOnly) {
+            final boolean reverse = queryCustomizer != null && queryCustomizer.getSeek() != null ? queryCustomizer.getSeek().isReverse() : false;
+            if (queryCustomizer != null && queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty()) {
+                final EMap<EAttribute, Feature> mainFeatures = ECollections.asEMap(query.getSelect().getFeatures().stream()
+                        .filter(f -> (f instanceof Attribute || f instanceof Function || f instanceof SubSelectFeature) && f.getTargetMappings().stream().anyMatch(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())))
+                        .collect(Collectors.toMap(f -> f.getTargetMappings().stream().filter(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())).findAny().get().getTargetAttribute(), f -> f)));
+
+                query.getNavigationJoins().forEach(j -> j.getOrderBys().clear());
+                query.getSelect().getOrderBys().clear();
+                query.getOrderBys().clear();
+                query.getSelect().getOrderBys().addAll(queryCustomizer.getOrderByList().stream()
+                        .map(o -> newOrderByBuilder().withFeature(mainFeatures.get(o.getAttribute())).withDescending(reverse ? !o.isDescending() : o.isDescending()).build())
+                        .collect(Collectors.toList()));
+            }
+            if (queryCustomizer != null && queryCustomizer.getSeek() != null) {
+                query.setLimit(queryCustomizer.getSeek().getLimit());
+                if (queryCustomizer.getSeek().getOffset() > 0) {
+                    query.setOffset(queryCustomizer.getSeek().getOffset());
+                }
             }
         }
     }
@@ -442,7 +559,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     }
 
     /**
-     * Run logical logical subquery and return result set.
+     * Run logical subquery and return result set.
      * <p>
      * Result set is a map of which key is the target definition and value is map of records. Names may be different
      * from ASM model in result set because most of the RDBMS implementations are case-insensitive, the problem is
@@ -462,31 +579,31 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     @SuppressWarnings("unchecked")
 	private EMap<Target, Map<ID, Payload>> runQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final Collection<ID> instanceIds, final Collection<ID> parentIds, final EList<EReference> referenceChain, final DAO.Seek seek, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters, final boolean skipParents) {
         // map of sources, key is ID column alias, value is the source object (including SELECT and all JOINs)
-        final Map<String, Node> sources = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getIdColumnAlias(j), j -> j)));
+        final Map<String, Node> sources = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getIdColumnAlias, j -> j)));
         sources.put(RdbmsAliasUtil.getIdColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> types = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getTypeColumnAlias(j), j -> j)));
+        final Map<String, Node> types = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getTypeColumnAlias, j -> j)));
         types.put(RdbmsAliasUtil.getTypeColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> versions = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getVersionColumnAlias(j), j -> j)));
+        final Map<String, Node> versions = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getVersionColumnAlias, j -> j)));
         versions.put(RdbmsAliasUtil.getVersionColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> createUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getCreateUsernameColumnAlias(j), j -> j)));
+        final Map<String, Node> createUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateUsernameColumnAlias, j -> j)));
         createUsernames.put(RdbmsAliasUtil.getCreateUsernameColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> createUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getCreateUserIdColumnAlias(j), j -> j)));
+        final Map<String, Node> createUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateUserIdColumnAlias, j -> j)));
         createUserIds.put(RdbmsAliasUtil.getCreateUserIdColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> createTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getCreateTimestampColumnAlias(j), j -> j)));
+        final Map<String, Node> createTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateTimestampColumnAlias, j -> j)));
         createTimestamps.put(RdbmsAliasUtil.getCreateTimestampColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> updateUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getUpdateUsernameColumnAlias(j), j -> j)));
+        final Map<String, Node> updateUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateUsernameColumnAlias, j -> j)));
         updateUsernames.put(RdbmsAliasUtil.getUpdateUsernameColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> updateUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getUpdateUserIdColumnAlias(j), j -> j)));
+        final Map<String, Node> updateUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateUserIdColumnAlias, j -> j)));
         updateUserIds.put(RdbmsAliasUtil.getUpdateUserIdColumnAlias(query.getSelect()), query.getSelect());
 
-        final Map<String, Node> updateTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(j -> RdbmsAliasUtil.getUpdateTimestampColumnAlias(j), j -> j)));
+        final Map<String, Node> updateTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateTimestampColumnAlias, j -> j)));
         updateTimestamps.put(RdbmsAliasUtil.getUpdateTimestampColumnAlias(query.getSelect()), query.getSelect());
 
         // the map that will store results
@@ -568,14 +685,14 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     // Unset (NULL) target references in database
                     final EList<Target> nullTargets = ECollections.newBasicEList();
 
-                    query.getSelect().getTargets().stream()
+                    query.getSelect().getTargets()
                             .forEach(target -> recordsByTarget.put(target, Payload.asPayload(new ConcurrentHashMap<>())));
                     if (chunk.parentIds != null && parentKey != null) {
                         recordsByTarget.get(query.getSelect().getMainTarget()).put(parentKey, new HashSet<>());
                     }
 
                     // process fields of record
-                    record.entrySet().stream().forEach(field -> {
+                    record.entrySet().forEach(field -> {
                         log.trace("  - key: {}", field.getKey());
                         log.trace("  - value: {} ({})", field.getValue(), field.getValue() != null ? field.getValue().getClass().getName() : "-");
 
@@ -656,7 +773,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             recordsByTarget.get(query.getSelect().getMainTarget()).getAs(Collection.class, parentKey).add(id);
                         } else {
                             final Set<Target> foundTargets = new HashSet<>();
-                            query.getSelect().getTargets().stream().forEach(target -> {
+                            query.getSelect().getTargets().forEach(target -> {
                                 log.trace("   - target: {}", target);
                                 // get attribute the field is matching to
                                 final Optional<FeatureTargetMapping> featureTargetMapping = query.getSelect().getFeatures().stream()
@@ -774,6 +891,83 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         return results;
     }
 
+    /**
+     * Return the given query's record count.
+     * <p>
+     *
+     * @param jdbcTemplate    JDBC template
+     * @param query           logical (sub)query
+     * @param instanceIds     instance IDs to select
+     * @param parentIds       set of parent IDs that the subquery records are embedded in (as list items)
+     * @param queryParameters query parameters
+     * @return result set
+     */
+    private long countQuery(
+            final NamedParameterJdbcTemplate jdbcTemplate,
+            final SubSelect query,
+            final Collection<ID> instanceIds,
+            final Collection<ID> parentIds,
+            final Map<String, Object> queryParameters) {
+        // get JDBC result set and process the records
+        if (log.isTraceEnabled()) {
+            log.trace(" - logical query:\n{}", query.getSelect());
+        }
+        log.debug("Instance IDs: {}", instanceIds);
+        log.debug("Parent IDs: {}", parentIds);
+
+        final RdbmsCount<ID> resultSetHandler = RdbmsCount.<ID>builder()
+                .query(query)
+                .filterByInstances(instanceIds != null)
+                .parentIdFilterQuery(parentIds != null ? query : null)
+                .rdbmsBuilder(rdbmsBuilder)
+                .queryParameters(queryParameters)
+                .build();
+
+        final List<Chunk<ID>> chunks = new ArrayList<>();
+        if (parentIds != null) {
+            final List<List<ID>> _parentIds = parentIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(parentIds), chunkSize);
+            _parentIds.forEach(p -> {
+                if (instanceIds != null) {
+                    final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
+                    _instanceIds.forEach(i ->
+                            chunks.add(Chunk.<ID>builder().parentIds(p).instanceIds(i).build()));
+                } else {
+                    chunks.add(Chunk.<ID>builder().parentIds(p).build());
+                }
+            });
+        } else if (instanceIds != null) {
+            final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
+            _instanceIds.forEach(i ->
+                    chunks.add(Chunk.<ID>builder().instanceIds(i).build()));
+        } else {
+            chunks.add(Chunk.<ID>builder().build());
+        }
+
+        AtomicLong count = new AtomicLong(0);
+        chunks.forEach(chunk -> {
+            log.debug("Running chunk: {}", chunk);
+            final MapSqlParameterSource sqlParameters = new MapSqlParameterSource();
+            if (chunk.parentIds != null) {
+                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
+            }
+            if (chunk.instanceIds != null) {
+                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()), chunk.instanceIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
+            }
+
+            // key used to identify parent instance in subselects
+            final String sql = resultSetHandler.toSql("", getCoercer(), sqlParameters, ECollections.emptyEMap());
+
+            log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
+            log.debug("Parameters: {}", sqlParameters.getValues());
+
+            try (MetricsCancelToken ct = metricsCollector.start(METRICS_COUNT_QUERY)) {
+                count.addAndGet(jdbcTemplate.queryForObject(sql, sqlParameters, Integer.class));
+            }
+        });
+
+        return count.get();
+    }
+
     private void runSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> referenceChain, final EMap<Target, Map<ID, Payload>> results, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
         checkArgument(subSelect.getTransferRelation() != null, "SubSelect must have transfer relation");
 
@@ -781,7 +975,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         newReferenceChain.addAll(referenceChain);
         newReferenceChain.add(subSelect.getTransferRelation());
 
-        log.trace("Preparing subselect: {} joining {}", new Object[]{subSelect.getTransferRelation().getName(), subSelect.getNavigationJoins().stream().map(j -> (j instanceof ReferencedJoin) ? ((ReferencedJoin) j).getReference().getName() : "?").collect(Collectors.joining(", "))});
+        log.trace("Preparing subselect: {} joining {}", subSelect.getTransferRelation().getName(),
+                subSelect.getNavigationJoins().stream().map(j ->
+                        (j instanceof ReferencedJoin)
+                                ? ((ReferencedJoin) j).getReference().getName()
+                                : "?").collect(Collectors.joining(", ")));
 
         Optional<Target> subTarget = query.getSelect().getTargets().stream().filter(t -> AsmUtils.equals(t.getNode(), subSelect.getContainer())).findAny();
         if (subTarget.isPresent()) {
@@ -807,7 +1005,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         final EMap<Target, Map<ID, Payload>> subQueryResults = runQuery(jdbcTemplate, subSelect, null, ids, newReferenceChain, null, false, mask, queryParameters, false);
 
         if (log.isDebugEnabled()) {
-            log.debug("Processing subquery results: {}", newReferenceChain.stream().map(r -> r.getName()).collect(Collectors.joining(".")));
+            log.debug("Processing subquery results: {}", newReferenceChain.stream().map(ENamedElement::getName).collect(Collectors.joining(".")));
         }
 
         final Target subQueryTarget = subSelect.getSelect().getMainTarget();
@@ -871,7 +1069,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     ((Collection) containment).add(subQueryRecord);
                 } else if (!initialized && !many) {
                     container.put(subSelect.getTransferRelation().getName(), subQueryRecord);
-                } else if (!many && initialized) {
+                } else if (!many) {
                     log.info("Single containment is already set: {}", AsmUtils.getReferenceFQName(subSelect.getTransferRelation()));
                     final Object containmentId = ((Payload) containment).get(getIdentifierProvider().getName());
                     final Object subQueryRecordId = subQueryRecord.get(getIdentifierProvider().getName());
@@ -900,10 +1098,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
         final Map<EList<EReference>, Target> newTargets = processing.stream()
                 .filter(r -> !found.containsValue(r.getTarget()))
-                .collect(Collectors.toMap(r -> ECollections.asEList(ImmutableList.<EReference>builder().addAll(path).add(r.getReference()).build()), r -> r.getTarget()));
+                .collect(Collectors.toMap(r -> ECollections.asEList(ImmutableList.<EReference>builder().addAll(path).add(r.getReference()).build()), ReferencedTarget::getTarget));
         found.putAll(newTargets);
 
-        newTargets.entrySet().forEach(nt -> addReferencesToAllTargetPaths(found, nt.getKey(), nt.getValue().getReferencedTargets()));
+        newTargets.forEach((key, value) -> addReferencesToAllTargetPaths(found, key, value.getReferencedTargets()));
         return found;
     }
 
