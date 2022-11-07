@@ -205,6 +205,7 @@ public class QueryCustomizerParameterProcessor<ID> {
 			final Map<String, Object> _seek = (Map<String, Object>) queryCustomizerParameter.get("_seek");
             return DAO.Seek.builder()
                     .limit((Integer) _seek.get("limit"))
+                    .offset(_seek.get("offset") != null ? (Integer) _seek.get("offset") : -1)
                     .lastItem(_seek.get("lastItem") != null ? Payload.asPayload((Map<String, Object>) _seek.get("lastItem")) : null)
                     .reverse(_seek.get("reverse") != null ? (Boolean) _seek.get("reverse") : false)
                     .build();
