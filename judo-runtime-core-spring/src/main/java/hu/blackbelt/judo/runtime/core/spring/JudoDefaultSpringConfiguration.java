@@ -123,6 +123,10 @@ public class JudoDefaultSpringConfiguration {
     @Autowired
     private RdbmsParameterMapper rdbmsParameterMapper;
 
+    @Bean
+    AntlrCheckBeanRegistration antlrCheckBeanRegistration() {
+        return new AntlrCheckBeanRegistration();
+    }
 
     @Bean
     public AccessManager getAccessManager() {
@@ -391,5 +395,3 @@ public class JudoDefaultSpringConfiguration {
     }
 
 }
-
-
