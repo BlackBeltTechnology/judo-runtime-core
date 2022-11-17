@@ -37,13 +37,9 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -93,6 +89,11 @@ public class JudoModelLoader {
             } catch (Exception e) {
             }
         }
+
+        if (url == null) {
+            throw new FileNotFoundException(String.format("The model \"%s\" could not be found (possible file name and model name mismatch)!", modelName));
+        }
+
         return loadFromURL(modelName, url.toURI(), dialect, validate);
     }
 
