@@ -65,7 +65,10 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -122,12 +125,7 @@ public class JudoDefaultSpringConfiguration {
 
     @Autowired
     private RdbmsParameterMapper rdbmsParameterMapper;
-
-    @Bean
-    AntlrCheckBeanRegistration antlrCheckBeanRegistration() {
-        return new AntlrCheckBeanRegistration();
-    }
-
+    
     @Bean
     public AccessManager getAccessManager() {
         return DefaultAccessManager.builder()
