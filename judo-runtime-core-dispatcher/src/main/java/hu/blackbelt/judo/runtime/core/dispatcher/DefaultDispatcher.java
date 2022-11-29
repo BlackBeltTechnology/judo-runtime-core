@@ -56,8 +56,8 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.CREATE_REFERENCE_KEY;
-import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.OperationBehaviour.LIST;
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.*;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 import static java.util.Optional.ofNullable;
 
@@ -88,7 +88,6 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private static final String METRICS_SDK_CALL = "call-sdk";
     private static final String METRICS_JUDO_CALL = "call-judo";
 
-    private static final Collection<Validator> DEFAULT_VALIDATORS = Arrays.asList(new MaxLengthValidator(), new MinLengthValidator(), new PrecisionValidator(), new PatternValidator());
     public static final String ASM_EXTENSION_ANNOTATION_INPUT_RANGE = "inputRange";
     public static final String ASM_EXTENSION_ANNOTATION_BINDING = "binding";
 
@@ -628,6 +627,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     parameters.forEach(parameter -> {
                         final EClass transferObjectType = (EClass) parameter.getEType();
                         final Map<String, Object> validationContext = new TreeMap<>();
+                        validationContext.put(IGNORE_INVALID_VALUES_KEY, behaviour.map(b -> b.equals(LIST)).orElse(IGNORE_INVALID_VALUES_DEFAULT));
                         validationContext.put(LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
                         processParameter(operation, parameter, transferObjectType, exchange, validationContext, ValidationResults);
                     });
