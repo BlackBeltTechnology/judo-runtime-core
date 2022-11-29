@@ -54,8 +54,8 @@
         <judo-meta-measure-version>1.0.1</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.1</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.2.20221129_223712_d29461ec_develop</judo-meta-query-version>
-        <judo-dao-api-version>1.0.3</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.2</judo-sdk-common-version>
+        <judo-dao-api-version>1.0.4.20221129_165452_3f5cd33b_develop</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.3.20221125_224422_77de590e_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.2</judo-dispatcher-api-version>
         <judo-operation-utils-version>1.1.1</judo-operation-utils-version>
 
