@@ -76,7 +76,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
     private static final boolean VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT = false;
     private static final boolean NO_TRAVERSE_DEFAULT = false;
     private static final boolean VALIDATE_MISSING_FEATURES_DEFAULT = true;
-    public static final boolean IGNORE_INVALID_VALUES_DEFAULT = false;
+    private static final boolean IGNORE_INVALID_VALUES_DEFAULT = false;
 
     public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("[^a-zA-Z0-9_]", "_");
     public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("[^a-zA-Z0-9_]", "_");
