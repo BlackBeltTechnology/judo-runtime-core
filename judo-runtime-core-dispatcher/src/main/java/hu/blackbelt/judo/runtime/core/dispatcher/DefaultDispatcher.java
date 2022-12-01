@@ -56,8 +56,8 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.CREATE_REFERENCE_KEY;
-import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.OperationBehaviour.LIST;
+import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.*;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 import static java.util.Optional.ofNullable;
 
@@ -88,7 +88,6 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private static final String METRICS_SDK_CALL = "call-sdk";
     private static final String METRICS_JUDO_CALL = "call-judo";
 
-    private static final Collection<Validator> DEFAULT_VALIDATORS = Arrays.asList(new MaxLengthValidator(), new MinLengthValidator(), new PrecisionValidator(), new PatternValidator());
     public static final String ASM_EXTENSION_ANNOTATION_INPUT_RANGE = "inputRange";
     public static final String ASM_EXTENSION_ANNOTATION_BINDING = "binding";
 
@@ -495,7 +494,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private void setupValidationContextForBoundOperation(AsmUtils.OperationBehaviour operationBehaviour, EOperation operation, Map<String, Object> validationContext) {
         if (AsmUtils.OperationBehaviour.CREATE_INSTANCE.equals(operationBehaviour)
-                || AsmUtils.OperationBehaviour.VALIDATE_CREATE.equals(operationBehaviour)) {
+         || AsmUtils.OperationBehaviour.VALIDATE_CREATE.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
             validationContext.put(CREATE_REFERENCE_KEY, asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElse(null));
         } else if (AsmUtils.OperationBehaviour.UPDATE_INSTANCE.equals(operationBehaviour)
@@ -508,14 +507,13 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 || AsmUtils.OperationBehaviour.REMOVE_REFERENCE.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.NO_TRAVERSE_KEY, true);
             validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false);
-        } else if (AsmUtils.OperationBehaviour.GET_REFERENCE_RANGE.equals(operationBehaviour) || AsmUtils.OperationBehaviour.GET_INPUT_RANGE.equals(operationBehaviour)) {
+        } else if (AsmUtils.OperationBehaviour.GET_REFERENCE_RANGE.equals(operationBehaviour)
+                || AsmUtils.OperationBehaviour.GET_INPUT_RANGE.equals(operationBehaviour)
+                || AsmUtils.OperationBehaviour.LIST.equals(operationBehaviour)
+                || AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false).isPresent()) {
             validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false); // not necessary because optional type is used for owner instance
             validationContext.put(RequestConverter.IGNORE_INVALID_VALUES_KEY, true);
-        } else if (AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false).isPresent()) {
-            validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false);
-            validationContext.put(RequestConverter.IGNORE_INVALID_VALUES_KEY, true);
         }
-
     }
 
     private Optional<EClass> getEntityType(EClass mappedTransferObjectType, SignedIdentifier signedIdentifier) {
