@@ -9,7 +9,7 @@
     <description>JUDO runtime core reactor module</description>
 
     <properties>
-        <revision>1.0.5-SNAPSHOT</revision>
+        <revision>1.0.5</revision>
         <maven>3.8.3</maven>
         <maven.version>3.8.3</maven.version>
 
