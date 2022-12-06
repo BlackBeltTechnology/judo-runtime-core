@@ -164,7 +164,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
 
         if (!query.getNavigationJoins().isEmpty()) {
-            if (query.getContainer() != null && (group || !query.getSelect().isAggregated()) && !skipParents) {
+            if (query.getContainer() != null && (group || !query.getSelect().isAggregated()) && !skipParents && !query.getSelect().isSingleColumnedSelect()) {
                 // add parent ID to result set that will be used to move result records under their container records
                 columns.add(RdbmsColumn.builder()
                         .partnerTablePrefix(RdbmsAliasUtil.AGGREGATE_PREFIX)

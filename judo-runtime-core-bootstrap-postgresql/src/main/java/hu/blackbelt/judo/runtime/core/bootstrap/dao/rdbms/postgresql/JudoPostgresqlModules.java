@@ -27,12 +27,14 @@ import com.google.inject.name.Names;
 
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModule;
+import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.PlatformTransactionManagerProvider;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import lombok.Builder;
+import org.springframework.transaction.PlatformTransactionManager;
 
 public class JudoPostgresqlModules extends JudoModule {
 	
@@ -94,6 +96,7 @@ public class JudoPostgresqlModules extends JudoModule {
 		bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_USER)).toInstance(user);
 		bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(password);
 		bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(databaseName);
+		bind(PlatformTransactionManager.class).toProvider(new PlatformTransactionManagerProvider()).in(Singleton.class);
 	}
 
 	@Override

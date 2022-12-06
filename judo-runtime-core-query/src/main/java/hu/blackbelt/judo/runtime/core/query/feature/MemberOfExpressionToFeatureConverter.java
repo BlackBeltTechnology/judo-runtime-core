@@ -47,6 +47,7 @@ public class MemberOfExpressionToFeatureConverter extends ExpressionToFeatureCon
         final SubSelect subSelect = newSubSelectBuilder()
                 .withSelect(newSelectBuilder()
                         .withFrom(subSelectClass)
+                        .withSingleColumnedSelect(true)
                         .withAlias(getNextSubSelectAlias(context.getSourceCounter()))
                         .withMainTarget(newTargetBuilder()
                                 .withType(subSelectClass)
