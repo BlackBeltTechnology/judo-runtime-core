@@ -2,4 +2,5 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 hu.blackbelt.judo.runtime.core.spring.JudoModelLoaderConfiguration,\
 hu.blackbelt.judo.runtime.core.spring.JudoModelConfiguration,\
 hu.blackbelt.judo.runtime.core.spring.JudoDefaultSpringConfiguration,\
-hu.blackbelt.judo.runtime.core.spring.JudoBaseServiceConfiguration
+hu.blackbelt.judo.runtime.core.spring.JudoBaseServiceConfiguration,\
+hu.blackbelt.judo.runtime.core.spring.AntlrCheckConfiguration

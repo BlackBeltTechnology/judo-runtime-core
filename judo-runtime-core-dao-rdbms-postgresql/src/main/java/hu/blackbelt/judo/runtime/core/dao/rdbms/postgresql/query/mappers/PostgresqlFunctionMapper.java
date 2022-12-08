@@ -49,7 +49,9 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.DECIMAL_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.DATE_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.TIME_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
-        getFunctionBuilderMap().put(FunctionSignature.LOGICAL_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
+        getFunctionBuilderMap().put(FunctionSignature.LOGICAL_TO_STRING, c ->
+                c.builder.pattern("LOWER(CAST({0} AS TEXT))")
+                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         getFunctionBuilderMap().put(FunctionSignature.ENUM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.CUSTOM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
 
