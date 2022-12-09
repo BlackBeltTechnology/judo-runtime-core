@@ -35,7 +35,10 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -513,7 +516,17 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                                 ? "\nOFFSET " + offset
                                                 : "")
                                 : "");
-
+        saveSqlToFile(sql);
         return sql;
     }
+
+    private static void saveSqlToFile(String sql) {
+        new Thread(() -> {
+            File file = new File("/tmp/" + System.currentTimeMillis() + "_" + ThreadLocalRandom.current().nextInt(10000) + ".sql");
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.append(sql);
+            } catch (Exception ie) {}
+        }).start();
+    }
+
 }
