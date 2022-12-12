@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.query;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -43,17 +43,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.emf.common.notify.Notifier;
 import org.eclipse.emf.common.util.*;
-import org.eclipse.emf.ecore.EAttribute;
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.*;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.util.builder.EAttributeBuilder;
 import org.eclipse.emf.ecore.util.builder.EClassBuilder;
 
 import java.text.MessageFormat;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -188,86 +184,100 @@ public class QueryFactory {
      * - add references (as JOINs or SUBSELECTs)
      */
     private void createQueries() {
+        List<EClass> mappedTransferObjectTypes = getAsmElement(EClass.class)
+                .filter(c -> asmUtils.getMappedEntityType(c).isPresent())
+                .collect(Collectors.toList());
+        addSelectsWithMainTarget(mappedTransferObjectTypes);
+        addAttributesAndFiltersToSelects(mappedTransferObjectTypes);
+        addReferencesToSelects(mappedTransferObjectTypes);
+    }
+
+    private void addSelectsWithMainTarget(List<EClass> mappedTransferObjectTypes) {
         // create logical query templates (main target only!)
-        getAsmElement(EClass.class)
-                .filter(c -> asmUtils.getMappedEntityType(c).isPresent())
-                .forEach(mappedTransferObjectType -> {
-                    final Optional<MappedTransferObjectTypeBindings> node = transferObjectTypeBindingsCollector.getTransferObjectGraph(mappedTransferObjectType);
+        for (EClass mappedTransferObjectType : mappedTransferObjectTypes) {
+            Optional<MappedTransferObjectTypeBindings> node = transferObjectTypeBindingsCollector.getTransferObjectGraph(mappedTransferObjectType);
+            String fqName = AsmUtils.getClassifierFQName(mappedTransferObjectType);
 
-                    // mapped transfer object types that have no expression tree are ignored
-                    if (node.isPresent()) {
-                        if (log.isTraceEnabled()) {
-                            log.trace("Creating logical query skeleton for transfer object type: {}", AsmUtils.getClassifierFQName(mappedTransferObjectType));
-                        }
+            // mapped transfer object types that have no expression tree are ignored
+            if (node.isEmpty()) {
+                log.error("No root node of expression tree found for mapped transfer object type: {}, query not created", fqName);
+                continue;
+            }
 
-                        // create logical query base
-                        final Select select = newSelectBuilder()
-                                .withFrom(node.get().getEntityType())
-                                .withAlias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextSourceIndex.incrementAndGet()))
-                                .withMainTarget(newTargetBuilder()
-                                        .withType(mappedTransferObjectType)
-                                        .withIndex(nextTargetIndex.incrementAndGet())
-                                        .build())
-                                .build();
-                        select.getTargets().add(select.getMainTarget());
-                        select.getMainTarget().setContainerWithIdFeature(select, true);
+            if (log.isTraceEnabled()) {
+                log.trace("Creating logical query skeleton for transfer object type: {}", fqName);
+            }
 
-                        queryModelResourceSupport.addContent(select);
+            // create logical query base
+            Target mainTarget = newTargetBuilder()
+                    .withType(mappedTransferObjectType)
+                    .withIndex(nextTargetIndex.incrementAndGet())
+                    .build();
+            Select select = newSelectBuilder()
+                    .withTargets(mainTarget)
+                    .withMainTarget(mainTarget)
+                    .withFrom(node.get().getEntityType())
+                    .withAlias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextSourceIndex.incrementAndGet()))
+                    .build();
+            mainTarget.setContainerWithIdFeature(select, true);
 
-                        transferObjectQueries.put(mappedTransferObjectType, select);
-                    } else {
-                        log.error("No root node of expression tree found for mapped transfer object type: {}, query not created", AsmUtils.getClassifierFQName(mappedTransferObjectType));
-                    }
-                });
+            queryModelResourceSupport.addContent(select);
 
+            transferObjectQueries.put(mappedTransferObjectType, select);
+        }
+    }
+
+    private void addAttributesAndFiltersToSelects(List<EClass> mappedTransferObjectTypes) {
         // create logical query (without references)
-        getAsmElement(EClass.class)
-                .filter(c -> asmUtils.getMappedEntityType(c).isPresent())
-                .forEach(mappedTransferObjectType -> {
-                    final Optional<MappedTransferObjectTypeBindings> node = transferObjectTypeBindingsCollector.getTransferObjectGraph(mappedTransferObjectType);
+        for (EClass mappedTransferObjectType : mappedTransferObjectTypes) {
+            Optional<MappedTransferObjectTypeBindings> node = transferObjectTypeBindingsCollector.getTransferObjectGraph(mappedTransferObjectType);
+            String fqName = AsmUtils.getClassifierFQName(mappedTransferObjectType);
 
-                    if (node.isPresent()) {
-                        if (log.isTraceEnabled()) {
-                            log.trace("Setup logical query for transfer object type: {}", AsmUtils.getClassifierFQName(mappedTransferObjectType));
-                        }
+            if (node.isEmpty()) {
+                log.error("No root node of expression tree found for mapped transfer object type: {}, query not created", fqName);
+                continue;
+            }
 
-                        final Select select = transferObjectQueries.get(mappedTransferObjectType);
-                        final Context context = Context.builder()
-                                .queryModelResourceSupport(queryModelResourceSupport)
-                                .node(select)
-                                .sourceCounter(nextSourceIndex)
-                                .targetCounter(nextTargetIndex)
-                                .variables(Collections.singletonMap(JqlExpressionBuilder.SELF_NAME, select)).build();
-                        addAttributes(node.get(), context, select.getMainTarget()); // add all attributes to logical query
-                        addFilter(node.get(), context);
-                    } else {
-                        log.error("No root node of expression tree found for mapped transfer object type: {}, query not created", AsmUtils.getClassifierFQName(mappedTransferObjectType));
-                    }
-                });
+            if (log.isTraceEnabled()) {
+                log.trace("Setup logical query for transfer object type: {}", fqName);
+            }
 
+            Select select = transferObjectQueries.get(mappedTransferObjectType);
+            Context context = Context.builder()
+                                     .node(select)
+                                     .sourceCounter(nextSourceIndex)
+                                     .targetCounter(nextTargetIndex)
+                                     .queryModelResourceSupport(queryModelResourceSupport)
+                                     .variables(Collections.singletonMap(JqlExpressionBuilder.SELF_NAME, select))
+                                     .build();
+            addAttributes(node.get(), context, select.getMainTarget()); // add all attributes to logical query
+            addFilter(node.get(), context);
+        }
+    }
+
+    private void addReferencesToSelects(List<EClass> mappedTransferObjectTypes) {
         // add references (both single and multiple)
-        getAsmElement(EClass.class)
-                .filter(c -> asmUtils.getMappedEntityType(c).isPresent())
-                .forEach(mappedTransferObjectType -> {
-                    final Optional<MappedTransferObjectTypeBindings> node = transferObjectTypeBindingsCollector.getTransferObjectGraph(mappedTransferObjectType);
+        for (EClass mappedTransferObjectType : mappedTransferObjectTypes) {
+            Optional<MappedTransferObjectTypeBindings> node = transferObjectTypeBindingsCollector.getTransferObjectGraph(mappedTransferObjectType);
+            String fqName = AsmUtils.getClassifierFQName(mappedTransferObjectType);
 
-                    if (node.isPresent()) {
-                        if (log.isTraceEnabled()) {
-                            log.trace("Adding references of transfer object type: {}", AsmUtils.getClassifierFQName(mappedTransferObjectType));
-                        }
-                        final Select select = transferObjectQueries.get(mappedTransferObjectType);
-                        addReferences(node.get(), Context.builder()
-                                        .queryModelResourceSupport(queryModelResourceSupport)
-                                        .node(select)
-                                        .sourceCounter(nextSourceIndex)
-                                        .targetCounter(nextTargetIndex)
-                                        .variables(Collections.singletonMap(JqlExpressionBuilder.SELF_NAME, select)).build(),
-                                select.getMainTarget(),
-                                ECollections.emptyEList()); // add all references to logical query
-                    } else {
-                        log.error("No root node of expression tree found for mapped transfer object type: {}, reference not added", AsmUtils.getClassifierFQName(mappedTransferObjectType));
-                    }
-                });
+            if (node.isEmpty()) {
+                log.error("No root node of expression tree found for mapped transfer object type: {}, reference not added", fqName);
+                continue;
+            }
+
+            if (log.isTraceEnabled()) {
+                log.trace("Adding references of transfer object type: {}", fqName);
+            }
+            Select select = transferObjectQueries.get(mappedTransferObjectType);
+            Context context = Context.builder()
+                                     .node(select)
+                                     .sourceCounter(nextSourceIndex)
+                                     .targetCounter(nextTargetIndex)
+                                     .queryModelResourceSupport(queryModelResourceSupport)
+                                     .variables(Collections.singletonMap(JqlExpressionBuilder.SELF_NAME, select)).build();
+            addReferences(node.get(), context, select.getMainTarget(), ECollections.emptyEList()); // add all references to logical query
+        }
     }
 
     private void createNavigations() {
@@ -317,17 +327,18 @@ public class QueryFactory {
                             .withIndex(nextTargetIndex.incrementAndGet())
                             .withNode(select)
                             .build();
-                    final Feature feature = featureFactory.convert(dataExpression, Context.builder()
-                                    .queryModelResourceSupport(queryModelResourceSupport)
-                                    .node(select)
-                                    .sourceCounter(nextSourceIndex)
-                                    .targetCounter(nextTargetIndex)
-                                    .variables(Collections.emptyMap())
-                                    .build(),
-                            newFeatureTargetMappingBuilder()
-                                    .withTarget(mainTarget)
-                                    .withTargetAttribute(resultAttribute)
-                                    .build());
+                    Context context = Context.builder()
+                                             .node(select)
+                                             .sourceCounter(nextSourceIndex)
+                                             .targetCounter(nextTargetIndex)
+                                             .variables(Collections.emptyMap())
+                                             .queryModelResourceSupport(queryModelResourceSupport)
+                                             .build();
+                    FeatureTargetMapping targetMapping = newFeatureTargetMappingBuilder()
+                            .withTarget(mainTarget)
+                            .withTargetAttribute(resultAttribute)
+                            .build();
+                    final Feature feature = featureFactory.convert(dataExpression, context, targetMapping);
 
                     useSelect(select)
                             .withFeatures(feature)
@@ -402,14 +413,21 @@ public class QueryFactory {
                 });
     }
 
-    public Feature dataExpressionToFeature(final DataExpression dataExpression, final Context context, final Target target, final EAttribute targetAttribute) {
+    public Feature convertDataExpressionToFeature(final DataExpression dataExpression, final Context context, final Target target, final EAttribute targetAttribute) {
         if (log.isTraceEnabled()) {
-            log.trace(pad(context.getVariables().size()) + "- converting expression {} of {} to feature {} of {}", new Object[]{dataExpression, context.getVariables().get(JqlExpressionBuilder.SELF_NAME).getAlias(), targetAttribute != null ? targetAttribute.getName() : "undefined", target != null ? target : "undefined"});
+            log.trace(pad(context.getVariables().size()) + "- converting expression {} of {} to feature {} of {}",
+                      dataExpression, context.getVariables().get(JqlExpressionBuilder.SELF_NAME).getAlias(),
+                      Optional.ofNullable(targetAttribute).map(ENamedElement::getName).orElse("null"),
+                      target);
         }
-        return featureFactory.convert(dataExpression, context, target != null && targetAttribute != null ? newFeatureTargetMappingBuilder()
-                .withTarget(target)
-                .withTargetAttribute(targetAttribute)
-                .build() : null);
+        FeatureTargetMapping targetMapping = null;
+        if (target != null && targetAttribute != null) {
+            targetMapping = newFeatureTargetMappingBuilder()
+                    .withTarget(target)
+                    .withTargetAttribute(targetAttribute)
+                    .build();
+        }
+        return featureFactory.convert(dataExpression, context, targetMapping);
     }
 
     /**
@@ -425,11 +443,12 @@ public class QueryFactory {
         }
         log.trace("  - adding attributes of {} to {}", context.getVariables().get(JqlExpressionBuilder.SELF_NAME).getAlias(), target);
         mappedTransferObjectTypeBindings.getGetterAttributeExpressions().entrySet().stream()
-                .filter(e -> e.getKey().getEContainingClass().getEAllStructuralFeatures().stream()
-                        .noneMatch(f -> AsmUtils.getExtensionAnnotationValue(f, "default", false)
-                                .filter(d -> Objects.equals(d, e.getKey().getName()))
-                                .isPresent()))
-                .forEach(e -> dataExpressionToFeature(e.getValue(), context, target, e.getKey()));
+                                        // get all getter expressions where the expression is not a default expression ?
+                                        .filter(e -> e.getKey().getEContainingClass().getEAllStructuralFeatures().stream()
+                                                      .noneMatch(f -> AsmUtils.getExtensionAnnotationValue(f, "default", false)
+                                                                              .filter(d -> Objects.equals(d, e.getKey().getName()))
+                                                                              .isPresent()))
+                                        .forEach(e -> convertDataExpressionToFeature(e.getValue(), context, target, e.getKey()));
     }
 
     private void addFilter(final MappedTransferObjectTypeBindings mappedTransferObjectTypeBindings, final Context context) {
@@ -437,7 +456,7 @@ public class QueryFactory {
         if (mappedTransferObjectTypeBindings.getFilter() != null) {
             log.trace("  - adding filter of {}", self.getAlias());
 
-            final Feature feature = dataExpressionToFeature(mappedTransferObjectTypeBindings.getFilter(), context, null, null);
+            final Feature feature = convertDataExpressionToFeature(mappedTransferObjectTypeBindings.getFilter(), context, null, null);
             self.getFilters().add(newFilterBuilder()
                     .withAlias("f" + self.getAlias())
                     .withFeature(feature)
