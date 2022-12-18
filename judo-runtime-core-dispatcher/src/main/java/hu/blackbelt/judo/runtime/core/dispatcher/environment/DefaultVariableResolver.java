@@ -24,6 +24,7 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
+import hu.blackbelt.judo.runtime.core.dispatcher.VariableResolverManager;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,7 +36,7 @@ import java.util.function.Supplier;
 @NoArgsConstructor
 @RequiredArgsConstructor
 @Slf4j
-public class DefaultVariableResolver implements VariableResolver {
+public class DefaultVariableResolver implements VariableResolver, VariableResolverManager {
 
     @NonNull
     @Setter
@@ -79,6 +80,7 @@ public class DefaultVariableResolver implements VariableResolver {
     }
 
     @SuppressWarnings("unchecked")
+    @Override
 	public void registerSupplier(final String category, final String key, @SuppressWarnings("rawtypes") final Supplier supplier, final boolean cacheable) {
         suppliers.put(category + ":" + key, supplier);
         if (cacheable) {
@@ -87,6 +89,7 @@ public class DefaultVariableResolver implements VariableResolver {
     }
 
     @SuppressWarnings("unchecked")
+    @Override
 	public void registerFunction(final String category, @SuppressWarnings("rawtypes") final Function function, final boolean cacheable) {
         functions.put(category, function);
         if (cacheable) {
@@ -94,10 +97,12 @@ public class DefaultVariableResolver implements VariableResolver {
         }
     }
 
+    @Override
     public void unregisterSupplier(final String category, final String key) {
         suppliers.remove(category + ":" + key);
     }
 
+    @Override
     public void unregisterFunction(final String category) {
         functions.remove(category);
     }
