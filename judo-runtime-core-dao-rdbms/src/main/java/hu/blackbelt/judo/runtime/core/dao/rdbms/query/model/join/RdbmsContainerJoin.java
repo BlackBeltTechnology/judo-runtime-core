@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 
 /*-
  * #%L
@@ -48,6 +48,7 @@ public class RdbmsContainerJoin extends RdbmsJoin {
 
     @Override
     protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
+        aliasToCompareWith = prefix + alias;
         return tableName;
     }
 
@@ -60,6 +61,8 @@ public class RdbmsContainerJoin extends RdbmsJoin {
 
         checkArgument(!partners.isEmpty(), "Partner must not be empty");
 
+        joinConditionTableAliases.addAll(partners);
+        aliasToCompareWith = prefix + alias;
         if (partners.size() == 1) {
             return partners.get(0) + "." + partnerColumnName + " = " + prefix + alias + "." + columnName;
         } else {

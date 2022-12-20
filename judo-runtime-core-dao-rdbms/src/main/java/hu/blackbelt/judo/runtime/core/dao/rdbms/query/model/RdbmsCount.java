@@ -20,17 +20,16 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  * #L%
  */
 
-import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
 import org.eclipse.emf.common.util.*;
-import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
@@ -193,10 +192,19 @@ public class RdbmsCount<ID> {
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "SELECT COUNT (" + StatementExecutor.ID_COLUMN_NAME + ")" +
-                        (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
-                        joins.stream().map(j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))).collect(Collectors.joining()) +
-                        (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "");
+                (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
+                getJoin(prefix, coercer, sqlParameters, newPrefixes, firstJoin) +
+                (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "");
 
         return sql;
     }
+
+    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoin) {
+        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))));
+        return joins.stream()
+                    .sorted(new RdbmsJoinComparator(joins))
+                    .map(joinMap::get)
+                    .collect(Collectors.joining());
+    }
+
 }
