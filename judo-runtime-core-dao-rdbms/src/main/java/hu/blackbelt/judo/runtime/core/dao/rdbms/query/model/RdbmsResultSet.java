@@ -9,26 +9,27 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Builder;
-import lombok.NonNull;
+import lombok.*;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -36,11 +37,11 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
+import java.util.stream.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.AGGREGATE_PREFIX;
+import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.getParentIdColumnAlias;
 
 public class RdbmsResultSet<ID> extends RdbmsField {
 
@@ -65,6 +66,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final EList<Join> processedNodesForJoins = ECollections.newBasicEList();
 
     private final RdbmsBuilder<ID> rdbmsBuilder;
+
+    @Getter
+    private final Set<String> joinConditionPartnerTableAliases = new HashSet<>();
 
     @Builder
     private RdbmsResultSet(
@@ -167,10 +171,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             if (query.getContainer() != null && (group || !query.getSelect().isAggregated()) && !skipParents && !query.getSelect().isSingleColumnedSelect()) {
                 // add parent ID to result set that will be used to move result records under their container records
                 columns.add(RdbmsColumn.builder()
-                        .partnerTablePrefix(RdbmsAliasUtil.AGGREGATE_PREFIX)
+                        .partnerTablePrefix(AGGREGATE_PREFIX)
                         .partnerTable(query)
-                        .columnName(RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()))
-                        .alias(RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()))
+                        .columnName(getParentIdColumnAlias(query.getContainer()))
+                        .alias(getParentIdColumnAlias(query.getContainer()))
                         .build());
             }
 
@@ -246,7 +250,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         (query.getPartner() == null && query.eContainer() == null);
 
         query.getFilters().forEach(filter ->
-                addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getPartner() != null ? query : query.getSelect(), query.getPartner() != null ? RdbmsAliasUtil.AGGREGATE_PREFIX : "", addJoinOfFilterFeature, queryParameters));
+                addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getPartner() != null ? query : query.getSelect(), query.getPartner() != null ? AGGREGATE_PREFIX : "", addJoinOfFilterFeature, queryParameters));
 
         query.getSelect().getFilters().forEach(filter ->
                 addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getSelect(), "", true, queryParameters));
@@ -406,7 +410,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .partnerTablePrefix(partnerTablePrefix)
                     .partnerTable(partnerTable)
-                    .partnerColumnName(partnerTable instanceof SubSelect ? RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
+                    .partnerColumnName(partnerTable instanceof SubSelect ? getParentIdColumnAlias(query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
                     .alias(filter.getAlias())
                     .build());
             if (addJoinsOfFilterFeature) {
@@ -499,21 +503,77 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
         final String dual = rdbmsBuilder.getDialect().getDualTable();
-        final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
-                "SELECT " + (addDistinct ? "DISTINCT " : "") + columns.stream().map(c -> c.toSql(prefix, true, coercer, sqlParameters, newPrefixes)).collect(Collectors.joining(", ")) +
-                        //(from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : "") +
-                        (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
-                        joins.stream().map(j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))).collect(Collectors.joining()) +
-                        (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "") +
-                        (group ? "\nGROUP BY " + prefix + RdbmsAliasUtil.AGGREGATE_PREFIX + query.getAlias() + "." + RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()) : "") +
-                        (!group && !query.getSelect().isAggregated() && !orderByAttributes.isEmpty() ? "\nORDER BY " + orderByAttributes.stream().collect(Collectors.joining(", ")) : "") +
-                        (limit != null ?
-                                "\nLIMIT " + limit + (
-                                        offset != null && offset > 0
-                                                ? "\nOFFSET " + offset
-                                                : "")
-                                : "");
-
+        final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
+                           getFrom(prefix, dual) +
+                           getJoin(prefix, coercer, sqlParameters, newPrefixes, firstJoin) +
+                           getWhere(allConditions) +
+                           getGroupBy(prefix) +
+                           getOrderBy(orderByAttributes) +
+                           getLimit() +
+                           getOffset();
         return sql;
     }
+
+    private String getSelect(boolean addDistinct, String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes) {
+        String columns = this.columns.stream().map(c -> c.toSql(prefix, true, coercer, sqlParameters, newPrefixes)).collect(Collectors.joining(", "));
+        String distinct = addDistinct ? "DISTINCT " : "";
+        return "SELECT " + distinct + columns;
+    }
+
+    private String getFrom(String prefix, String dual) {
+        if (from != null) {
+            return "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias();
+        }
+        if (dual != null && joins.isEmpty()) {
+            return "\n FROM " + dual;
+        }
+        return "";
+    }
+
+    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoin) {
+        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))));
+        return joins.stream()
+                    .sorted(new RdbmsJoinComparator(joins))
+                    .map(j -> {
+                               joinConditionPartnerTableAliases.addAll(j.getJoinConditionPartnerTableAliases());
+                               return joinMap.get(j);
+                           })
+                    .collect(Collectors.joining());
+    }
+
+    private static String getWhere(Collection<String> allConditions) {
+        if (!allConditions.isEmpty()) {
+            return "\nWHERE (" + String.join(") AND (", allConditions) + ")";
+        }
+        return "";
+    }
+
+    private String getGroupBy(String prefix) {
+        if (group) {
+            return "\nGROUP BY " + prefix + AGGREGATE_PREFIX + query.getAlias() + "." + getParentIdColumnAlias(query.getContainer());
+        }
+        return "";
+    }
+
+    private String getOrderBy(List<String> orderByAttributes) {
+        if (!group && !query.getSelect().isAggregated() && !orderByAttributes.isEmpty()) {
+            return "\nORDER BY " + String.join(", ", orderByAttributes);
+        }
+        return "";
+    }
+
+    private String getLimit() {
+        if (limit != null) {
+            return "\nLIMIT " + limit;
+        }
+        return "";
+    }
+
+    private String getOffset() {
+        if (limit != null && offset != null && offset > 0) {
+            return "\nOFFSET " + offset;
+        }
+        return "";
+    }
+
 }

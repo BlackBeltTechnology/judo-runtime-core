@@ -52,7 +52,7 @@ public abstract class RdbmsField {
      *
      * @return SQL string
      */
-    abstract String toSql(String prefix, boolean includeAlias, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> prefixes);
+    public abstract String toSql(String prefix, boolean includeAlias, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> prefixes);
 
     protected String getWithAlias(final String sql, final boolean includeAlias) {
         return sql + (includeAlias && alias != null ? " AS " + getRdbmsAlias() : "");

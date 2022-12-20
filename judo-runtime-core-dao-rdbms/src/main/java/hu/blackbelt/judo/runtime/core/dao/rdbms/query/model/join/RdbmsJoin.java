@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 
 /*-
  * #%L
@@ -21,17 +21,14 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  */
 
 import hu.blackbelt.judo.meta.query.Node;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.NonNull;
-import lombok.Singular;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.emf.common.util.EMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -40,6 +37,7 @@ import java.util.stream.Collectors;
 @SuperBuilder
 @NoArgsConstructor
 public abstract class RdbmsJoin {
+
     protected String columnName;
 
     protected Node partnerTable;
@@ -54,6 +52,12 @@ public abstract class RdbmsJoin {
     @Getter
     protected String alias;
 
+    @Getter
+    protected String aliasToCompareWith;
+
+    @Getter
+    protected final Set<String> joinConditionPartnerTableAliases = new HashSet<>();
+
     protected boolean outer;
 
     @NonNull
@@ -67,9 +71,14 @@ public abstract class RdbmsJoin {
     public String toSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes, final boolean fromIsEmpty) {
         final String joinCondition = getJoinCondition(prefix, prefixes, coercer, sqlParameters);
 
-        return (fromIsEmpty ? "\nFROM " : (outer ? "\nLEFT OUTER JOIN " : "\nJOIN ")) + getTableNameOrSubQuery(prefix, coercer, sqlParameters, prefixes) +
-                " AS " + prefix + alias +
-                (fromIsEmpty ? "" : " ON (" + joinCondition + ")");
+        String table = getTableNameOrSubQuery(prefix, coercer, sqlParameters, prefixes) + " AS " + prefix + alias;
+        joinConditionPartnerTableAliases.add(prefix + alias);
+        aliasToCompareWith = prefix + alias;
+        if (fromIsEmpty) {
+            return "\nFROM " + table;
+        } else {
+            return (outer ? "\nLEFT OUTER JOIN " : "\nJOIN ") + table + " ON (" + joinCondition + ")";
+        }
     }
 
     protected String getPartnerTableName(final String prefix, final EMap<Node, String> prefixes) {
@@ -84,6 +93,9 @@ public abstract class RdbmsJoin {
             partnerTableName = null;
         }
 
+        if (partnerTableName != null) {
+            joinConditionPartnerTableAliases.add(partnerTableName);
+        }
         return partnerTableName;
     }
 
@@ -92,17 +104,24 @@ public abstract class RdbmsJoin {
 
         final String joinCondition;
         if (junctionTableName != null) {
-            joinCondition = "EXISTS (SELECT 1 FROM " + junctionTableName + " WHERE " + partnerTableName + "." + partnerColumnName + " = " + junctionTableName + "." + junctionOppositeColumnName + " AND " + junctionTableName + "." + junctionColumnName + " = " + prefix + alias + "." + columnName + ")";
+            joinCondition = "EXISTS (SELECT 1 FROM " + junctionTableName +
+                            " WHERE " + partnerTableName + "." + partnerColumnName + " = " + junctionTableName + "." + junctionOppositeColumnName +
+                            " AND " + junctionTableName + "." + junctionColumnName + " = " + prefix + alias + "." + columnName + ")";
+            joinConditionPartnerTableAliases.addAll(List.of(partnerTableName, junctionTableName, prefix + alias));
+            aliasToCompareWith = prefix + alias;
         } else if (partnerTableName != null && partnerColumnName != null && columnName != null) {
             joinCondition = partnerTableName + "." + partnerColumnName + " = " + prefix + alias + "." + columnName;
+            joinConditionPartnerTableAliases.addAll(List.of(partnerTableName, prefix + alias));
+            aliasToCompareWith = prefix + alias;
         } else {
             joinCondition = "1 = 1";
         }
 
         if (!onConditions.isEmpty()) {
+            joinConditionPartnerTableAliases.addAll(onConditions.stream().map(RdbmsField::getRdbmsAlias).collect(Collectors.toSet()));
             return joinCondition + " AND " + onConditions.stream()
-                    .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
-                    .collect(Collectors.joining(" AND "));
+                                                         .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
+                                                         .collect(Collectors.joining(" AND "));
         } else {
             return joinCondition;
         }
