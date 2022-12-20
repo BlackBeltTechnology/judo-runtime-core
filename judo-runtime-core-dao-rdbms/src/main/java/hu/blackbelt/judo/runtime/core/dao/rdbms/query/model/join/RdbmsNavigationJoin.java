@@ -274,12 +274,12 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
     private String getJoin(Coercer coercer, MapSqlParameterSource sqlParameters, String subSelectJoinPrefix, EMap<Node, String> newPrefixes) {
         Map<RdbmsJoin, String> joinMap = subJoins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(subSelectJoinPrefix, coercer, sqlParameters, newPrefixes, false)));
         return subJoins.stream()
-                    .sorted(new RdbmsJoinComparator(subJoins))
-                    .map(j -> {
-                        joinConditionPartnerTableAliases.addAll(j.getJoinConditionPartnerTableAliases());
-                        return joinMap.get(j);
-                    })
-                    .collect(Collectors.joining());
+                       .sorted(new RdbmsJoinComparator(subJoins))
+                       .map(j -> {
+                           joinConditionPartnerTableAliases.addAll(j.getJoinConditionPartnerTableAliases());
+                           return joinMap.get(j);
+                       })
+                       .collect(Collectors.joining());
     }
 
 }
