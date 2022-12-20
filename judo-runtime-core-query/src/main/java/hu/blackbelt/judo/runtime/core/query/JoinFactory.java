@@ -173,11 +173,12 @@ public abstract class JoinFactory {
                 final EClass containerType = navigation.getContainer();
 
                 final EClass lastPartnerType = lastPartner.getType();
-                final EList<EReference> references = ECollections.asEList(modelAdapter.getAsmUtils().all(EClass.class)
-                        .filter(c -> AsmUtils.equals(containerType, c) || c.getEAllSuperTypes().contains(containerType))
-                        .flatMap(c -> c.getEReferences().stream()
-                                .filter(r -> r.isContainment() && (AsmUtils.equals(r.getEReferenceType(), lastPartnerType) || lastPartnerType.getEAllSuperTypes().contains(r.getEReferenceType()))))
-                        .collect(Collectors.toList()));
+                final EList<EReference> references =
+                        ECollections.asEList(modelAdapter.getAsmUtils().all(EClass.class)
+                                                         .filter(c -> AsmUtils.equals(containerType, c) || c.getEAllSuperTypes().contains(containerType))
+                                                         .flatMap(c -> c.getEAllReferences().stream()
+                                                                        .filter(r -> r.isContainment() && (AsmUtils.equals(r.getEReferenceType(), lastPartnerType) || lastPartnerType.getEAllSuperTypes().contains(r.getEReferenceType()))))
+                                                         .collect(Collectors.toList()));
 
                 final Join join = newContainerJoinBuilder()
                         .withAlias(QueryUtils.getNextJoinAlias(context.getSourceCounter()))
