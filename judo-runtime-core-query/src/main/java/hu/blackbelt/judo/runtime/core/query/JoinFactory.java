@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
+import static org.eclipse.emf.common.util.ECollections.asEList;
 
 @Slf4j
 public abstract class JoinFactory {
@@ -174,11 +175,12 @@ public abstract class JoinFactory {
 
                 final EClass lastPartnerType = lastPartner.getType();
                 final EList<EReference> references =
-                        ECollections.asEList(modelAdapter.getAsmUtils().all(EClass.class)
-                                                         .filter(c -> AsmUtils.equals(containerType, c) || c.getEAllSuperTypes().contains(containerType))
-                                                         .flatMap(c -> c.getEAllReferences().stream()
-                                                                        .filter(r -> r.isContainment() && (AsmUtils.equals(r.getEReferenceType(), lastPartnerType) || lastPartnerType.getEAllSuperTypes().contains(r.getEReferenceType()))))
-                                                         .collect(Collectors.toList()));
+                        asEList(modelAdapter.getAsmUtils().all(EClass.class)
+                                            .filter(c -> AsmUtils.equals(containerType, c) || c.getEAllSuperTypes().contains(containerType))
+                                            .flatMap(c -> c.getEAllReferences().stream()
+                                                           .filter(r -> r.isContainment() && (AsmUtils.equals(r.getEReferenceType(), lastPartnerType)
+                                                                                              || lastPartnerType.getEAllSuperTypes().contains(r.getEReferenceType()))))
+                                            .collect(Collectors.toList()));
 
                 final Join join = newContainerJoinBuilder()
                         .withAlias(QueryUtils.getNextJoinAlias(context.getSourceCounter()))

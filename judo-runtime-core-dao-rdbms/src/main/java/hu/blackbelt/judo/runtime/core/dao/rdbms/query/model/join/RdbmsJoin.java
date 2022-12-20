@@ -104,9 +104,12 @@ public abstract class RdbmsJoin {
 
         final String joinCondition;
         if (junctionTableName != null) {
-            joinCondition = "EXISTS (SELECT 1 FROM " + junctionTableName +
-                            " WHERE " + partnerTableName + "." + partnerColumnName + " = " + junctionTableName + "." + junctionOppositeColumnName +
-                            " AND " + junctionTableName + "." + junctionColumnName + " = " + prefix + alias + "." + columnName + ")";
+            joinCondition = "EXISTS (" +
+                            "   SELECT 1" +
+                            "   FROM " + junctionTableName +
+                            "   WHERE " + partnerTableName + "." + partnerColumnName + " = " + junctionTableName + "." + junctionOppositeColumnName +
+                            "       AND " + junctionTableName + "." + junctionColumnName + " = " + prefix + alias + "." + columnName +
+                            ")";
             joinConditionTableAliases.addAll(List.of(partnerTableName, junctionTableName, prefix + alias));
             aliasToCompareWith = prefix + alias;
         } else if (partnerTableName != null && partnerColumnName != null && columnName != null) {
@@ -118,7 +121,6 @@ public abstract class RdbmsJoin {
         }
 
         if (!onConditions.isEmpty()) {
-            joinConditionTableAliases.addAll(onConditions.stream().map(RdbmsField::getRdbmsAlias).collect(Collectors.toSet()));
             return joinCondition + " AND " + onConditions.stream()
                                                          .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
                                                          .collect(Collectors.joining(" AND "));
