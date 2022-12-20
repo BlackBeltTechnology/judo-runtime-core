@@ -21,6 +21,8 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  */
 
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsQueryJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
@@ -30,10 +32,7 @@ import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -135,10 +134,19 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "SELECT 1 " +
                 (from != null ? " FROM " + from + " AS " + filterPrefix + filter.getAlias() : "") +
-                joins.stream().map(j -> j.toSql(filterPrefix, coercer, sqlParameters, newPrefixes, from == null)).collect(Collectors.joining()) +
+                getJoin(coercer, sqlParameters, filterPrefix, newPrefixes) +
                 "\nWHERE " + prefix + partnerAlias + "." + StatementExecutor.ID_COLUMN_NAME + " = " + filterPrefix + filter.getAlias() + "." + StatementExecutor.ID_COLUMN_NAME +
                 joins.stream().flatMap(j -> j.conditionToSql(filterPrefix, coercer, sqlParameters, newPrefixes).stream().map(c -> " AND " + c)).collect(Collectors.joining()) +
                 conditions.stream().map(c -> " AND " + c.toSql(filterPrefix, false, coercer, sqlParameters, newPrefixes)).collect(Collectors.joining());
         return sql;
     }
+
+    private String getJoin(Coercer coercer, MapSqlParameterSource sqlParameters, String filterPrefix, EMap<Node, String> newPrefixes) {
+        String join = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(filterPrefix, coercer, sqlParameters, newPrefixes, from == null))).entrySet()
+                              .stream().sorted((l, r) -> RdbmsJoin.RDBMS_JOIN_COMPARATOR.compare(l.getKey(), r.getKey()))
+                              .map(Map.Entry::getValue)
+                              .collect(Collectors.joining());
+        return join;
+    }
+
 }
