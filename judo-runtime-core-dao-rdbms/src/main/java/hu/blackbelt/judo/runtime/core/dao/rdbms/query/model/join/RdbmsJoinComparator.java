@@ -29,12 +29,12 @@ public class RdbmsJoinComparator implements Comparator<RdbmsJoin> {
         }
 
         // left depends on right
-        if (right.joinConditionPartnerTableAliases.contains(leftAliasToCompare)) {
+        if (right.joinConditionTableAliases.contains(leftAliasToCompare)) {
             return -1;
         }
 
         // right depends on left
-        if (left.joinConditionPartnerTableAliases.contains(rightAliasToCompare)) {
+        if (left.joinConditionTableAliases.contains(rightAliasToCompare)) {
             return 1;
         }
 

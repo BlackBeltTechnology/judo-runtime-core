@@ -56,7 +56,7 @@ public abstract class RdbmsJoin {
     protected String aliasToCompareWith;
 
     @Getter
-    protected final Set<String> joinConditionPartnerTableAliases = new HashSet<>();
+    protected final Set<String> joinConditionTableAliases = new HashSet<>();
 
     protected boolean outer;
 
@@ -72,7 +72,7 @@ public abstract class RdbmsJoin {
         final String joinCondition = getJoinCondition(prefix, prefixes, coercer, sqlParameters);
 
         String table = getTableNameOrSubQuery(prefix, coercer, sqlParameters, prefixes) + " AS " + prefix + alias;
-        joinConditionPartnerTableAliases.add(prefix + alias);
+        joinConditionTableAliases.add(prefix + alias);
         aliasToCompareWith = prefix + alias;
         if (fromIsEmpty) {
             return "\nFROM " + table;
@@ -94,7 +94,7 @@ public abstract class RdbmsJoin {
         }
 
         if (partnerTableName != null) {
-            joinConditionPartnerTableAliases.add(partnerTableName);
+            joinConditionTableAliases.add(partnerTableName);
         }
         return partnerTableName;
     }
@@ -107,18 +107,18 @@ public abstract class RdbmsJoin {
             joinCondition = "EXISTS (SELECT 1 FROM " + junctionTableName +
                             " WHERE " + partnerTableName + "." + partnerColumnName + " = " + junctionTableName + "." + junctionOppositeColumnName +
                             " AND " + junctionTableName + "." + junctionColumnName + " = " + prefix + alias + "." + columnName + ")";
-            joinConditionPartnerTableAliases.addAll(List.of(partnerTableName, junctionTableName, prefix + alias));
+            joinConditionTableAliases.addAll(List.of(partnerTableName, junctionTableName, prefix + alias));
             aliasToCompareWith = prefix + alias;
         } else if (partnerTableName != null && partnerColumnName != null && columnName != null) {
             joinCondition = partnerTableName + "." + partnerColumnName + " = " + prefix + alias + "." + columnName;
-            joinConditionPartnerTableAliases.addAll(List.of(partnerTableName, prefix + alias));
+            joinConditionTableAliases.addAll(List.of(partnerTableName, prefix + alias));
             aliasToCompareWith = prefix + alias;
         } else {
             joinCondition = "1 = 1";
         }
 
         if (!onConditions.isEmpty()) {
-            joinConditionPartnerTableAliases.addAll(onConditions.stream().map(RdbmsField::getRdbmsAlias).collect(Collectors.toSet()));
+            joinConditionTableAliases.addAll(onConditions.stream().map(RdbmsField::getRdbmsAlias).collect(Collectors.toSet()));
             return joinCondition + " AND " + onConditions.stream()
                                                          .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
                                                          .collect(Collectors.joining(" AND "));

@@ -37,7 +37,7 @@ public class RdbmsQueryJoin<ID> extends RdbmsJoin {
     @Override
     protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
         String resultSetSql = resultSet.toSql(prefix, true, coercer, sqlParameters, prefixes);
-        joinConditionPartnerTableAliases.addAll(resultSet.getJoinConditionPartnerTableAliases());
+        joinConditionTableAliases.addAll(resultSet.getJoinConditionTableAliases());
         return "(" + resultSetSql + ")";
     }
 }

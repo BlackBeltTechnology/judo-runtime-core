@@ -145,9 +145,9 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     private String getJoin(Coercer coercer, MapSqlParameterSource sqlParameters, String filterPrefix, EMap<Node, String> newPrefixes) {
         Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(filterPrefix, coercer, sqlParameters, newPrefixes, from == null)));
         return joins.stream()
-                .sorted(new RdbmsJoinComparator(joins))
-                .map(joinMap::get)
-                .collect(Collectors.joining());
+                    .sorted(new RdbmsJoinComparator(joins))
+                    .map(joinMap::get)
+                    .collect(Collectors.joining());
     }
 
 }

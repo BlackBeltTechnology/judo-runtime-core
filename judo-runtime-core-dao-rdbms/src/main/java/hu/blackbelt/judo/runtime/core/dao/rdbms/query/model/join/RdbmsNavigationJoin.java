@@ -276,7 +276,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         return subJoins.stream()
                        .sorted(new RdbmsJoinComparator(subJoins))
                        .map(j -> {
-                           joinConditionPartnerTableAliases.addAll(j.getJoinConditionPartnerTableAliases());
+                           joinConditionTableAliases.addAll(j.getJoinConditionTableAliases());
                            return joinMap.get(j);
                        })
                        .collect(Collectors.joining());

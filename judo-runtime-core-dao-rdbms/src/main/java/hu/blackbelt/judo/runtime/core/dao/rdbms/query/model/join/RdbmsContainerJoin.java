@@ -61,7 +61,7 @@ public class RdbmsContainerJoin extends RdbmsJoin {
 
         checkArgument(!partners.isEmpty(), "Partner must not be empty");
 
-        joinConditionPartnerTableAliases.addAll(partners);
+        joinConditionTableAliases.addAll(partners);
         aliasToCompareWith = prefix + alias;
         if (partners.size() == 1) {
             return partners.get(0) + "." + partnerColumnName + " = " + prefix + alias + "." + columnName;

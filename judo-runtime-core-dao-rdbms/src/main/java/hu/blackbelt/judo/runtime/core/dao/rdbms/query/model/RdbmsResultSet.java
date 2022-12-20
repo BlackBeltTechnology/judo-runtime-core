@@ -68,7 +68,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final RdbmsBuilder<ID> rdbmsBuilder;
 
     @Getter
-    private final Set<String> joinConditionPartnerTableAliases = new HashSet<>();
+    private final Set<String> joinConditionTableAliases = new HashSet<>();
 
     @Builder
     private RdbmsResultSet(
@@ -535,7 +535,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(j -> {
-                               joinConditionPartnerTableAliases.addAll(j.getJoinConditionPartnerTableAliases());
+                               joinConditionTableAliases.addAll(j.getJoinConditionTableAliases());
                                return joinMap.get(j);
                            })
                     .collect(Collectors.joining());
