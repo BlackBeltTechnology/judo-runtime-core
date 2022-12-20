@@ -68,63 +68,6 @@ public abstract class RdbmsJoin {
     @Singular
     protected Collection<RdbmsField> onConditions = new ArrayList<>();
 
-    public static final Comparator<RdbmsJoin> RDBMS_JOIN_COMPARATOR = new Comparator<>() {
-        /**
-         * Compares 2 {@link RdbmsJoin} objects to check if there is a dependency between them. In case there is no dependency between
-         * the compared objects, their aliases are compared to ensure consistent results.
-         *
-         * @param left  the first object to be compared.
-         * @param right the second object to be compared.
-         *
-         * @return
-         * <p>If 'right' depends on 'left' returns -1.</p>
-         * <p>If 'left' depends on 'right' returns 1.</p>
-         * <p>If there is no dependency comparison returns a String comparison between their aliases.</p>
-         */
-        @Override
-        public int compare(RdbmsJoin left, RdbmsJoin right) {
-            if (left == null || right == null) {
-                throw new IllegalArgumentException("Compared arguments cannot be null");
-            }
-            if (left.alias == null || left.alias.isBlank() || right.alias == null || right.alias.isBlank()) {
-                throw new IllegalArgumentException("Compared arguments' aliases cannot be null/empty");
-            }
-
-            String leftAliasToCompare = left.alias;
-            if (left.aliasToCompareWith != null && !left.aliasToCompareWith.isBlank()) {
-                leftAliasToCompare = left.aliasToCompareWith;
-            }
-
-            String rightAliasToCompare = left.alias;
-            if (right.aliasToCompareWith != null && !right.aliasToCompareWith.isBlank()) {
-                rightAliasToCompare = right.aliasToCompareWith;
-            }
-
-
-            if (leftAliasToCompare.equals(rightAliasToCompare)) {
-                return 0;
-            }
-
-            if (right.joinConditionPartnerTableAliases.contains(leftAliasToCompare)) {
-                return -1;
-            }
-
-            if (left.joinConditionPartnerTableAliases.contains(rightAliasToCompare)) {
-                return 1;
-            }
-
-            // string comparison must be truncated into a range of -1..1 to prevent string comparison from compromising the order
-            // in case there are no explicit dependency
-            int stringComparison = leftAliasToCompare.compareTo(rightAliasToCompare);
-            if (stringComparison < 0) {
-                stringComparison = -1;
-            } else if (stringComparison > 0) {
-                stringComparison = 1;
-            }
-            return stringComparison;
-        }
-    };
-
     public String toSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes, final boolean fromIsEmpty) {
         final String joinCondition = getJoinCondition(prefix, prefixes, coercer, sqlParameters);
 

@@ -531,13 +531,14 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoin) {
-        String join = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin)))).entrySet()
-                              .stream().sorted((l, r) -> RdbmsJoin.RDBMS_JOIN_COMPARATOR.compare(l.getKey(), r.getKey()))
-                              .map(e -> {
-                                  joinConditionPartnerTableAliases.addAll(e.getKey().getJoinConditionPartnerTableAliases());
-                                  return e.getValue();
-                              })
-                              .collect(Collectors.joining());
+        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))));
+        String join = joins.stream()
+                           .sorted(new RdbmsJoinComparator(joins))
+                           .map(j -> {
+                               joinConditionPartnerTableAliases.addAll(j.getJoinConditionPartnerTableAliases());
+                               return joinMap.get(j);
+                           })
+                           .collect(Collectors.joining());
         return join;
     }
 

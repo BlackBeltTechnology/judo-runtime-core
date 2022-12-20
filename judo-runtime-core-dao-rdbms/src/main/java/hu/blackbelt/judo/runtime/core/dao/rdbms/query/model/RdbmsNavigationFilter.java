@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoinComparator;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsQueryJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
@@ -142,11 +143,11 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     }
 
     private String getJoin(Coercer coercer, MapSqlParameterSource sqlParameters, String filterPrefix, EMap<Node, String> newPrefixes) {
-        String join = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(filterPrefix, coercer, sqlParameters, newPrefixes, from == null))).entrySet()
-                              .stream().sorted((l, r) -> RdbmsJoin.RDBMS_JOIN_COMPARATOR.compare(l.getKey(), r.getKey()))
-                              .map(Map.Entry::getValue)
-                              .collect(Collectors.joining());
-        return join;
+        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(filterPrefix, coercer, sqlParameters, newPrefixes, from == null)));
+        return joins.stream()
+                .sorted(new RdbmsJoinComparator(joins))
+                .map(joinMap::get)
+                .collect(Collectors.joining());
     }
 
 }
