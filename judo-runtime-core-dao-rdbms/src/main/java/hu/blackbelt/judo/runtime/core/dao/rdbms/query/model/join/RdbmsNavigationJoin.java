@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 
 /*-
  * #%L
@@ -22,13 +22,12 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NonNull;
+import lombok.*;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -248,6 +247,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
     @Override
     protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
         final String subSelectJoinPrefix = prefix + RdbmsAliasUtil.getNavigationSubSelectAlias(query);
+        aliasToCompareWith = prefix + alias;
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
         newPrefixes.putAll(prefixes);
@@ -264,11 +264,22 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "(" + "SELECT DISTINCT " + subFeatures.stream().map(o -> o.toSql(subSelectJoinPrefix, true, coercer, sqlParameters, newPrefixes)).collect(Collectors.joining(", ")) +
                 "\n    FROM " + subFrom + (query.getBase() != null ? " AS " + subSelectJoinPrefix + query.getBase().getAlias() : "") +
-                subJoins.stream().map(j -> "    " + j.toSql(subSelectJoinPrefix, coercer, sqlParameters, newPrefixes, false)).collect(Collectors.joining()) +
+                getJoin(coercer, sqlParameters, subSelectJoinPrefix, newPrefixes) +
                 (!allConditions.isEmpty() ? "\n    WHERE " + String.join(" AND ", allConditions) : "") +
                 (aggregatedNavigation ? "\nGROUP BY " + subFeatures.stream().map(f -> f.getRdbmsAlias()).collect(Collectors.joining(", ")) : "") +
                 ")";
-
         return sql;
     }
+
+    private String getJoin(Coercer coercer, MapSqlParameterSource sqlParameters, String subSelectJoinPrefix, EMap<Node, String> newPrefixes) {
+        Map<RdbmsJoin, String> joinMap = subJoins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(subSelectJoinPrefix, coercer, sqlParameters, newPrefixes, false)));
+        return subJoins.stream()
+                       .sorted(new RdbmsJoinComparator(subJoins))
+                       .map(j -> {
+                           joinConditionTableAliases.addAll(j.getJoinConditionTableAliases());
+                           return joinMap.get(j);
+                       })
+                       .collect(Collectors.joining());
+    }
+
 }
