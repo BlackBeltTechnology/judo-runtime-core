@@ -38,7 +38,6 @@ public class RdbmsCustomJoin extends RdbmsJoin {
 
     @Override
     protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        // TODO: conditionPartnerTableAliases
         return "(" + sql + ")";
     }
 }
