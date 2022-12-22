@@ -33,6 +33,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
@@ -86,7 +87,7 @@ public class RdbmsBuilder<ID> {
     @Getter
     private final AsmUtils asmUtils;
 
-	private final Map<Class<?>, RdbmsMapper<? extends ParameterType>> mappers;
+	private final Map<Class<?>, RdbmsMapper<?>> mappers;
 
     private final Rules rules;
 

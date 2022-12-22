@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 
 /*-
  * #%L
