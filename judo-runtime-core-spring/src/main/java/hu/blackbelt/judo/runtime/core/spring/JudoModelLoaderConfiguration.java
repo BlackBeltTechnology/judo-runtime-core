@@ -62,7 +62,7 @@ public class JudoModelLoaderConfiguration {
             }
         }
         if (modelName == null || modelName.isBlank()) {
-            throw new IllegalArgumentException("modelName is not set and could not determinate");
+            throw new IllegalArgumentException("modelName is not set and could not be determined");
         }
 
         JudoModelLoader modelHolder = JudoModelLoader.
