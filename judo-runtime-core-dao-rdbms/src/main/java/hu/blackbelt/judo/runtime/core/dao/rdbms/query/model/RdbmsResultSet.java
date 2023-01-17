@@ -483,8 +483,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
                 .collect(Collectors.toMap(join -> join, join -> prefix)));
 
-        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
-
         final Collection<String> allConditions = Stream
                 .concat(joins.stream().flatMap(j -> j.conditionToSql(prefix, coercer, sqlParameters, newPrefixes).stream()),
                         conditions.stream().map(c -> c.toSql(prefix, false, coercer, sqlParameters, newPrefixes)))
@@ -502,6 +500,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
+        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
                            getFrom(prefix, dual) +
@@ -530,8 +529,20 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         return "";
     }
 
-    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoin) {
-        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))));
+    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoinForFrom) {
+        // get "root" join -> a join that joins to the original FROM table (if exists) -> its partner table's alias is not in current joins' aliases
+        List<RdbmsJoin> rootJoins =
+                joins.stream()
+                     .filter(j -> joins.stream().map(RdbmsJoin::getAlias).noneMatch(a -> j.getPartnerTable() != null && a.equals(j.getPartnerTable().getAlias())))
+                     .collect(Collectors.toList());
+        if (rootJoins.size() == 1) {
+            RdbmsJoin rootJoin = rootJoins.get(0);
+            if (rootJoin != null && rootJoin.getPartnerTable() != null && !rootJoin.getPartnerTable().equals(query.getSelect())) {
+                rootJoin.setPartnerTable(query.getSelect());
+                rootJoin.setPartnerColumnName(null);
+            }
+        }
+        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoinForFrom))));
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(j -> {

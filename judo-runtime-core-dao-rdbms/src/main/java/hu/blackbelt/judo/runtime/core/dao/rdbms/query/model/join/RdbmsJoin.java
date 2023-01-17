@@ -40,9 +40,11 @@ public abstract class RdbmsJoin {
 
     protected String columnName;
 
+    @Setter @Getter
     protected Node partnerTable;
     protected String partnerTablePrefix;
     protected String partnerTablePostfix;
+    @Setter @Getter
     protected String partnerColumnName;
 
     protected String junctionTableName;
