@@ -530,18 +530,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoinForFrom) {
-        // get "root" join -> a join that joins to the original FROM table (if exists) -> its partner table's alias is not in current joins' aliases
-        List<RdbmsJoin> rootJoins =
-                joins.stream()
-                     .filter(j -> joins.stream().map(RdbmsJoin::getAlias).noneMatch(a -> j.getPartnerTable() != null && a.equals(j.getPartnerTable().getAlias())))
-                     .collect(Collectors.toList());
-        if (rootJoins.size() == 1) {
-            RdbmsJoin rootJoin = rootJoins.get(0);
-            if (rootJoin != null && rootJoin.getPartnerTable() != null && !rootJoin.getPartnerTable().equals(query.getSelect())) {
-                rootJoin.setPartnerTable(query.getSelect());
-                rootJoin.setPartnerColumnName(null);
-            }
-        }
+        fixStaticJoins();
         Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoinForFrom))));
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
@@ -550,6 +539,23 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                return joinMap.get(j);
                            })
                     .collect(Collectors.joining());
+    }
+
+    private void fixStaticJoins() {
+        // get "root" joins -> joins that join to the original FROM table (if exists) -> their partner tables' aliases are not in current joins' aliases
+        List<RdbmsJoin> rootJoins =
+                joins.stream()
+                     .filter(j -> joins.stream().map(RdbmsJoin::getAlias).noneMatch(a -> j.getPartnerTable() != null && a.equals(j.getPartnerTable().getAlias())))
+                     .collect(Collectors.toList());
+        for (RdbmsJoin rootJoin : rootJoins) {
+            // if root joins' partner table is not the "from" table, fix it and clear partner column name (because there is no column to connect to)
+            // additionally overwrite outer property, because static navigation might return an empty collection
+            if (!query.getSelect().equals(rootJoin.getPartnerTable())) {
+                rootJoin.setPartnerTable(query.getSelect());
+                rootJoin.setPartnerColumnName(null);
+                rootJoin.setOuter(true);
+            }
+        }
     }
 
     private static String getWhere(Collection<String> allConditions) {

@@ -40,11 +40,11 @@ public abstract class RdbmsJoin {
 
     protected String columnName;
 
-    @Setter @Getter
+    @Getter @Setter
     protected Node partnerTable;
     protected String partnerTablePrefix;
     protected String partnerTablePostfix;
-    @Setter @Getter
+    @Getter @Setter
     protected String partnerColumnName;
 
     protected String junctionTableName;
@@ -60,6 +60,7 @@ public abstract class RdbmsJoin {
     @Getter
     protected final Set<String> joinConditionTableAliases = new HashSet<>();
 
+    @Getter @Setter
     protected boolean outer;
 
     @NonNull
