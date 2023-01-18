@@ -550,7 +550,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         for (RdbmsJoin rootJoin : rootJoins) {
             // if root joins' partner table is not the "from" table, fix it and clear partner column name (because there is no column to connect to)
             // additionally overwrite outer property, because static navigation might return an empty collection
-            if (!query.getSelect().equals(rootJoin.getPartnerTable())) {
+            if (!query.getSelect().equals(rootJoin.getPartnerTable())) { // TODO: AsmUtils#equals
                 rootJoin.setPartnerTable(query.getSelect());
                 rootJoin.setPartnerColumnName(null);
                 rootJoin.setOuter(true);
