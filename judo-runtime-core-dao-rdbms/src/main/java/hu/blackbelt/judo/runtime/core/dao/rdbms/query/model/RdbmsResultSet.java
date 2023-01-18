@@ -483,6 +483,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
                 .collect(Collectors.toMap(join -> join, join -> prefix)));
 
+        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
+
         final Collection<String> allConditions = Stream
                 .concat(joins.stream().flatMap(j -> j.conditionToSql(prefix, coercer, sqlParameters, newPrefixes).stream()),
                         conditions.stream().map(c -> c.toSql(prefix, false, coercer, sqlParameters, newPrefixes)))
@@ -500,7 +502,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
-        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
                            getFrom(prefix, dual) +
