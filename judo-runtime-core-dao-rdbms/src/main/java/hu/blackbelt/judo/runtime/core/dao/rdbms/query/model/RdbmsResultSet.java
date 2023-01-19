@@ -543,19 +543,29 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private void fixStaticJoins() {
-        // get "root" joins -> joins that join to the original FROM table (if exists) -> their partner tables' aliases are not in current joins' aliases
-        List<RdbmsJoin> rootJoins =
+        // get joins where the partner table is not the main select nor another join in the list
+        List<RdbmsJoin> staticJoins =
                 joins.stream()
-                     .filter(j -> joins.stream().map(RdbmsJoin::getAlias).noneMatch(a -> j.getPartnerTable() != null && a.equals(j.getPartnerTable().getAlias())))
+                     .filter(j -> !AsmUtils.equals(query.getSelect(), j.getPartnerTable())
+                                  && joins.stream()
+                                          .noneMatch(jj -> j.getPartnerTable() != null
+                                                           && jj.getAlias().equals(j.getPartnerTable().getAlias())))
                      .collect(Collectors.toList());
-        for (RdbmsJoin rootJoin : rootJoins) {
-            // if root joins' partner table is not the "from" table, fix it and clear partner column name (because there is no column to connect to)
-            // additionally overwrite outer property, because static navigation might return an empty collection
-            if (!AsmUtils.equals(query.getSelect(), rootJoin.getPartnerTable())) {
-                rootJoin.setPartnerTable(query.getSelect());
-                rootJoin.setPartnerColumnName(null);
-                rootJoin.setOuter(true);
+        for (RdbmsJoin staticJoin : staticJoins) {
+            // collect joins depending on current join
+            List<RdbmsJoin> dependantJoins = joins.stream().filter(j -> j.getPartnerTable() != null
+                                                                        && j.getPartnerTable().getAlias().equals(staticJoin.getAlias()))
+                                                  .collect(Collectors.toList());
+
+            // disconnect current static join and convert dependant join to a static join
+            for (RdbmsJoin dependantJoin : dependantJoins) {
+                dependantJoin.setPartnerTable(query.getSelect());
+                dependantJoin.setPartnerColumnName(null);
+                dependantJoin.setOuter(true);
             }
+
+            // remove unnecessary join
+            joins.remove(staticJoin);
         }
     }
 
