@@ -483,8 +483,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
                 .collect(Collectors.toMap(join -> join, join -> prefix)));
 
-        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
-
         final Collection<String> allConditions = Stream
                 .concat(joins.stream().flatMap(j -> j.conditionToSql(prefix, coercer, sqlParameters, newPrefixes).stream()),
                         conditions.stream().map(c -> c.toSql(prefix, false, coercer, sqlParameters, newPrefixes)))
@@ -505,7 +503,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
                            getFrom(prefix, dual) +
-                           getJoin(prefix, coercer, sqlParameters, newPrefixes, firstJoin) +
+                           getJoin(prefix, coercer, sqlParameters, newPrefixes) +
                            getWhere(allConditions) +
                            getGroupBy(prefix) +
                            getOrderBy(orderByAttributes) +
@@ -530,9 +528,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         return "";
     }
 
-    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoinForFrom) {
+    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes) {
         fixStaticJoins();
-        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoinForFrom))));
+        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
+        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))));
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(j -> {
@@ -543,18 +542,26 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private void fixStaticJoins() {
-        // get "root" joins -> joins that join to the original FROM table (if exists) -> their partner tables' aliases are not in current joins' aliases
-        List<RdbmsJoin> rootJoins =
+        List<RdbmsJoin> staticJoins =
                 joins.stream()
-                     .filter(j -> joins.stream().map(RdbmsJoin::getAlias).noneMatch(a -> j.getPartnerTable() != null && a.equals(j.getPartnerTable().getAlias())))
+                     .filter(j -> query.getSelect() != null && j.getPartnerTable() != null
+                                  && !AsmUtils.equals(query.getSelect(), j.getPartnerTable())
+
+                                  // current join is not a partner table to any other join in this scope
+                                  && joins.stream().noneMatch(jj -> j.getPartnerTable() != null
+                                                                    && jj.getAlias().equals(j.getPartnerTable().getAlias())))
                      .collect(Collectors.toList());
-        for (RdbmsJoin rootJoin : rootJoins) {
-            // if root joins' partner table is not the "from" table, fix it and clear partner column name (because there is no column to connect to)
-            // additionally overwrite outer property, because static navigation might return an empty collection
-            if (!AsmUtils.equals(query.getSelect(), rootJoin.getPartnerTable())) {
-                rootJoin.setPartnerTable(query.getSelect());
-                rootJoin.setPartnerColumnName(null);
-                rootJoin.setOuter(true);
+        for (RdbmsJoin staticJoin : staticJoins) {
+            List<RdbmsJoin> dependantJoins = joins.stream().filter(j -> j.getPartnerTable() != null
+                                                                        && j.getPartnerTable().getAlias().equals(staticJoin.getAlias()))
+                                                  .collect(Collectors.toList());
+            if (!dependantJoins.isEmpty()) {
+                for (RdbmsJoin dependantJoin : dependantJoins) {
+                    dependantJoin.setPartnerTable(query.getSelect());
+                    dependantJoin.setPartnerColumnName(null);
+                    dependantJoin.setOuter(true);
+                }
+                joins.remove(staticJoin);
             }
         }
     }
