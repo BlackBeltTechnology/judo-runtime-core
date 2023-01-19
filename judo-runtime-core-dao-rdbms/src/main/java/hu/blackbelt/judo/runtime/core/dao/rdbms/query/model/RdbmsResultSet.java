@@ -483,8 +483,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
                 .collect(Collectors.toMap(join -> join, join -> prefix)));
 
-        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
-
         final Collection<String> allConditions = Stream
                 .concat(joins.stream().flatMap(j -> j.conditionToSql(prefix, coercer, sqlParameters, newPrefixes).stream()),
                         conditions.stream().map(c -> c.toSql(prefix, false, coercer, sqlParameters, newPrefixes)))
@@ -505,7 +503,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
                            getFrom(prefix, dual) +
-                           getJoin(prefix, coercer, sqlParameters, newPrefixes, firstJoin) +
+                           getJoin(prefix, coercer, sqlParameters, newPrefixes) +
                            getWhere(allConditions) +
                            getGroupBy(prefix) +
                            getOrderBy(orderByAttributes) +
@@ -530,7 +528,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         return "";
     }
 
-    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes, RdbmsJoin firstJoin) {
+    private String getJoin(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes) {
+        fixStaticJoins();
+        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
         Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(prefix, coercer, sqlParameters, newPrefixes, from == null && Objects.equals(j, firstJoin))));
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
@@ -539,6 +539,31 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                return joinMap.get(j);
                            })
                     .collect(Collectors.joining());
+    }
+
+    private void fixStaticJoins() {
+        List<RdbmsJoin> staticJoins =
+                joins.stream()
+                     .filter(j -> query.getSelect() != null && j.getPartnerTable() != null
+                                  && !AsmUtils.equals(query.getSelect(), j.getPartnerTable())
+
+                                  // current join is not a partner table to any other join in this scope
+                                  && joins.stream().noneMatch(jj -> j.getPartnerTable() != null
+                                                                    && jj.getAlias().equals(j.getPartnerTable().getAlias())))
+                     .collect(Collectors.toList());
+        for (RdbmsJoin staticJoin : staticJoins) {
+            List<RdbmsJoin> dependantJoins = joins.stream().filter(j -> j.getPartnerTable() != null
+                                                                        && j.getPartnerTable().getAlias().equals(staticJoin.getAlias()))
+                                                  .collect(Collectors.toList());
+            if (!dependantJoins.isEmpty()) {
+                for (RdbmsJoin dependantJoin : dependantJoins) {
+                    dependantJoin.setPartnerTable(query.getSelect());
+                    dependantJoin.setPartnerColumnName(null);
+                    dependantJoin.setOuter(true);
+                }
+                joins.remove(staticJoin);
+            }
+        }
     }
 
     private static String getWhere(Collection<String> allConditions) {
