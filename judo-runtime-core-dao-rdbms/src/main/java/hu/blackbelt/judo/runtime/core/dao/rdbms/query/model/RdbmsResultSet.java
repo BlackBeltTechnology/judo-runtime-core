@@ -500,9 +500,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
-        final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
-                           getFrom(prefix, dual) +
+                           getFrom(prefix, rdbmsBuilder.getDialect().getDualTable()) +
                            getJoin(prefix, coercer, sqlParameters, newPrefixes) +
                            getWhere(allConditions) +
                            getGroupBy(prefix) +
@@ -513,7 +512,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private String getSelect(boolean addDistinct, String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes) {
-        String columns = this.columns.stream().map(c -> c.toSql(prefix, true, coercer, sqlParameters, newPrefixes)).collect(Collectors.joining(", "));
+        String columns = this.columns.stream()
+                                     .map(c -> c.toSql(prefix, true, coercer, sqlParameters, newPrefixes))
+                                     .sorted() // sorting serves only debugging purposes
+                                     .collect(Collectors.joining(", "));
         String distinct = addDistinct ? "DISTINCT " : "";
         return "SELECT " + distinct + columns;
     }
