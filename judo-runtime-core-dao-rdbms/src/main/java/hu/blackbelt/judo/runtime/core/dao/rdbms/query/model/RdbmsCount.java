@@ -191,7 +191,7 @@ public class RdbmsCount<ID> {
 
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
-                "SELECT COUNT (" + StatementExecutor.ID_COLUMN_NAME + ")" +
+                "SELECT COUNT (1)" +
                 (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
                 getJoin(prefix, coercer, sqlParameters, newPrefixes, firstJoin) +
                 (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "");
