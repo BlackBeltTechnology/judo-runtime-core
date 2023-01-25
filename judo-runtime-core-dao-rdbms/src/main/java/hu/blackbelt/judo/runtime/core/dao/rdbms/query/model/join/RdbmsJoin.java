@@ -26,6 +26,7 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.emf.common.util.EMap;
+import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
@@ -42,7 +43,11 @@ public abstract class RdbmsJoin {
 
     @Getter @Setter
     protected Node partnerTable;
+    @Getter
+    protected EClass type;
+    @Getter
     protected String partnerTablePrefix;
+    @Getter
     protected String partnerTablePostfix;
     @Getter @Setter
     protected String partnerColumnName;

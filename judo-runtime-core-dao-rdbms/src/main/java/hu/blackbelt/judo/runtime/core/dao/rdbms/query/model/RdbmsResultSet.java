@@ -70,6 +70,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     @Getter
     private final Set<String> joinConditionTableAliases = new HashSet<>();
 
+    public Optional<EClass> getType() {
+        return Optional.ofNullable(query.getType());
+    }
+
     @Builder
     private RdbmsResultSet(
             @NonNull final SubSelect query,
@@ -130,25 +134,28 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             query.getSelect().getFeatures().stream().anyMatch(f ->
                                     f.getNodes().stream().anyMatch(n ->
                                             AsmUtils.equals(n, s.getSelect()) || s.getSelect().getJoins().contains(n))))
-                    .map(s -> RdbmsQueryJoin.<ID>builder()
-                            .resultSet(
-                                    RdbmsResultSet.<ID>builder()
-                                            .query(s)
-                                            .filterByInstances(false)
-                                            .parentIdFilterQuery(parentIdFilterQuery)
-                                            .rdbmsBuilder(rdbmsBuilder)
-                                            .seek(null)
-                                            .withoutFeatures(withoutFeatures)
-                                            .mask(null)
-                                            .queryParameters(queryParameters)
-                                            .skipParents(false)
-                                            .build())
-                            .outer(true)
-                            .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(s.getContainer()))
-                            .partnerTable(s.getNavigationJoins().isEmpty() ? null : s.getContainer())
-                            .partnerColumnName(s.getNavigationJoins().isEmpty() ? null : StatementExecutor.ID_COLUMN_NAME)
-                            .alias(s.getAlias())
-                            .build())
+                    .map(s -> {
+                        RdbmsResultSet<ID> resultSet = RdbmsResultSet.<ID>builder()
+                                                                 .query(s)
+                                                                 .filterByInstances(false)
+                                                                 .parentIdFilterQuery(parentIdFilterQuery)
+                                                                 .rdbmsBuilder(rdbmsBuilder)
+                                                                 .seek(null)
+                                                                 .withoutFeatures(withoutFeatures)
+                                                                 .mask(null)
+                                                                 .queryParameters(queryParameters)
+                                                                 .skipParents(false)
+                                                                 .build();
+                        return RdbmsQueryJoin.<ID>builder()
+                                .resultSet(resultSet)
+                                .type(resultSet.getType().orElse(null))
+                                .outer(true)
+                                .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(s.getContainer()))
+                                .partnerTable(s.getNavigationJoins().isEmpty() ? null : s.getContainer())
+                                .partnerColumnName(s.getNavigationJoins().isEmpty() ? null : StatementExecutor.ID_COLUMN_NAME)
+                                .alias(s.getAlias())
+                                .build();
+                    })
                     .collect(Collectors.toList()));
         }
 
@@ -193,6 +200,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             query.getOrderBys().stream().forEach(orderBy -> {
                 joins.add(RdbmsTableJoin.builder()
                         .tableName(rdbmsBuilder.getTableName(orderBy.getType()))
+                        .type(orderBy.getType())
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
                         .partnerTable(query.getSelect())
                         .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
@@ -407,6 +415,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
             joins.add(RdbmsTableJoin.builder()
                     .tableName(rdbmsBuilder.getTableName(filter.getType()))
+                    .type(filter.getType())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .partnerTablePrefix(partnerTablePrefix)
                     .partnerTable(partnerTable)
@@ -450,25 +459,28 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         joins.addAll(filter.getFeatures().stream()
                 .filter(f -> f instanceof SubSelectFeature).map(f -> (SubSelectFeature) f)
                 .filter(f -> !joins.stream().anyMatch(j -> Objects.equals(f.getSubSelect().getAlias(), j.getAlias())))
-                .map(f -> RdbmsQueryJoin.<ID>builder()
-                        .resultSet(
-                                RdbmsResultSet.<ID>builder()
-                                        .query(f.getSubSelect())
-                                        .filterByInstances(false)
-                                        .parentIdFilterQuery(parentIdFilterQuery)
-                                        .rdbmsBuilder(rdbmsBuilder)
-                                        .seek(null)
-                                        .withoutFeatures(true)
-                                        .mask(null)
-                                        .queryParameters(queryParameters)
-                                        .skipParents(false)
-                                        .build())
-                        .outer(true)
-                        .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(f.getSubSelect().getContainer()))
-                        .partnerTable(f.getSubSelect().getNavigationJoins().isEmpty() ? null : f.getSubSelect().getContainer())
-                        .partnerColumnName(f.getSubSelect().getNavigationJoins().isEmpty() ? null : StatementExecutor.ID_COLUMN_NAME)
-                        .alias(f.getSubSelect().getAlias())
-                        .build())
+                .map(f -> {
+                    RdbmsResultSet<ID> resultSet = RdbmsResultSet.<ID>builder()
+                                                             .query(f.getSubSelect())
+                                                             .filterByInstances(false)
+                                                             .parentIdFilterQuery(parentIdFilterQuery)
+                                                             .rdbmsBuilder(rdbmsBuilder)
+                                                             .seek(null)
+                                                             .withoutFeatures(true)
+                                                             .mask(null)
+                                                             .queryParameters(queryParameters)
+                                                             .skipParents(false)
+                                                             .build();
+                    return RdbmsQueryJoin.<ID>builder()
+                            .resultSet(resultSet)
+                            .type(resultSet.getType().orElse(null))
+                            .outer(true)
+                            .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(f.getSubSelect().getContainer()))
+                            .partnerTable(f.getSubSelect().getNavigationJoins().isEmpty() ? null : f.getSubSelect().getContainer())
+                            .partnerColumnName(f.getSubSelect().getNavigationJoins().isEmpty() ? null : StatementExecutor.ID_COLUMN_NAME)
+                            .alias(f.getSubSelect().getAlias())
+                            .build();
+                })
                 .collect(Collectors.toList()));
         conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), ancestors, parentIdFilterQuery, queryParameters).collect(Collectors.toList()));
         joins.addAll(rdbmsBuilder.getAdditionalJoins(filter, ancestors, joins));
@@ -499,6 +511,26 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             }
         }
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
+
+        List<RdbmsColumn> danglingColumns = columns.stream()
+                                                   .map(c -> (RdbmsColumn) c)
+                                                   .filter(c -> c.targetAttribute != null
+                                                                && !c.originalTargetAttribute.getEContainingClass().getName().equals(c.target.getType().getName()))
+                                                   .collect(Collectors.toList());
+
+
+        // FIXME
+//        for (RdbmsColumn danglingColumn : danglingColumns) {
+//            List<RdbmsJoin> potentialJoins = joins.stream()
+//                                           .filter(j -> j.getType() != null && j.getType().equals(danglingColumn.originalTargetAttribute.getEContainingClass()))
+//                                           .collect(Collectors.toList());
+//            if (!potentialJoins.isEmpty()) {
+//                RdbmsJoin joinToConnectDanglingColumnTo = potentialJoins.get(potentialJoins.size() - 1);
+//                danglingColumn.setPartnerTablePrefix(joinToConnectDanglingColumnTo.getPartnerTablePrefix());
+//                danglingColumn.setPartnerTable(joinToConnectDanglingColumnTo.getPartnerTable());
+//                danglingColumn.setPartnerTablePostfix(joinToConnectDanglingColumnTo.getPartnerTablePostfix());
+//            }
+//        }
 
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
                            getFrom(prefix, rdbmsBuilder.getDialect().getDualTable()) +
