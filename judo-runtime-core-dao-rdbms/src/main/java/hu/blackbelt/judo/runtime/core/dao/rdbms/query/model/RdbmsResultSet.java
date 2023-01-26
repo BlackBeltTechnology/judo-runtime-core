@@ -512,26 +512,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
-        List<RdbmsColumn> danglingColumns = columns.stream()
-                                                   .map(c -> (RdbmsColumn) c)
-                                                   .filter(c -> c.targetAttribute != null
-                                                                && !c.originalTargetAttribute.getEContainingClass().getName().equals(c.target.getType().getName()))
-                                                   .collect(Collectors.toList());
-
-
-        // FIXME
-//        for (RdbmsColumn danglingColumn : danglingColumns) {
-//            List<RdbmsJoin> potentialJoins = joins.stream()
-//                                           .filter(j -> j.getType() != null && j.getType().equals(danglingColumn.originalTargetAttribute.getEContainingClass()))
-//                                           .collect(Collectors.toList());
-//            if (!potentialJoins.isEmpty()) {
-//                RdbmsJoin joinToConnectDanglingColumnTo = potentialJoins.get(potentialJoins.size() - 1);
-//                danglingColumn.setPartnerTablePrefix(joinToConnectDanglingColumnTo.getPartnerTablePrefix());
-//                danglingColumn.setPartnerTable(joinToConnectDanglingColumnTo.getPartnerTable());
-//                danglingColumn.setPartnerTablePostfix(joinToConnectDanglingColumnTo.getPartnerTablePostfix());
-//            }
-//        }
-
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
                            getFrom(prefix, rdbmsBuilder.getDialect().getDualTable()) +
                            getJoin(prefix, coercer, sqlParameters, newPrefixes) +
