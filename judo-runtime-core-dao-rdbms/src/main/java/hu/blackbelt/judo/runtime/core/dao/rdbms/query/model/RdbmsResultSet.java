@@ -526,7 +526,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private String getSelect(boolean addDistinct, String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes) {
         String columns = this.columns.stream()
                                      .map(c -> c.toSql(prefix, true, coercer, sqlParameters, newPrefixes))
-                                     .sorted() // sorting serves only debugging purposes
+                                     .sorted() // sorting serves debugging purposes only
                                      .collect(Collectors.joining(", "));
         String distinct = addDistinct ? "DISTINCT " : "";
         return "SELECT " + distinct + columns;
