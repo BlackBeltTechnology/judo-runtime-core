@@ -186,7 +186,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         .build());
             }
 
-            final RdbmsNavigationJoin<ID> customJoin =
+            final RdbmsNavigationJoin<ID> navigationJoin =
                     RdbmsNavigationJoin.<ID>builder()
                             .query(query)
                             .parentIdFilterQuery(parentIdFilterQuery)
@@ -194,9 +194,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .withoutFeatures(withoutFeatures)
                             .queryParameters(queryParameters)
                             .build();
-            orderBys.addAll(customJoin.getExposedOrderBys());
+            orderBys.addAll(navigationJoin.getExposedOrderBys());
 
-            joins.add(customJoin);
+            joins.add(navigationJoin);
         } else {
             query.getOrderBys().stream().forEach(orderBy -> {
                 joins.add(RdbmsTableJoin.builder()

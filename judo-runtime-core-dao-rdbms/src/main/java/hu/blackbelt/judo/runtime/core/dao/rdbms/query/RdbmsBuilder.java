@@ -162,14 +162,57 @@ public class RdbmsBuilder<ID> {
         } else if (join instanceof ContainerJoin) {
             return processContainerJoin((ContainerJoin) join, ancestors, parentIdFilterQuery, queryParameters);
         } else if (join instanceof CastJoin) {
-			RdbmsTableJoin.RdbmsJoinBuilder builder = RdbmsTableJoin.builder()
-                    .tableName(rdbmsResolver.rdbmsTable(join.getType()).getSqlName())
-                    .alias(join.getAlias())
-                    .type(join.getType())
-                    .columnName(StatementExecutor.ID_COLUMN_NAME)
-                    .partnerTable(((CastJoin) join).getPartner())
-                    .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
-                    .outer(true);
+            // TODO: instead of a simple table join, add a query join containing all supertypes
+            //      custom join to partner
+//			RdbmsTableJoin.RdbmsJoinBuilder builder = RdbmsTableJoin.builder()
+//                    .tableName(rdbmsResolver.rdbmsTable(join.getType()).getSqlName())
+//                    .alias(join.getAlias())
+//                    .type(join.getType())
+//                    .columnName(StatementExecutor.ID_COLUMN_NAME)
+//                    .partnerTable(((CastJoin) join).getPartner())
+//                    .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
+//                    .outer(true);
+
+            EClass castTargetType = join.getType();
+            Set<EClass> castSuperTypes = new HashSet<>(castTargetType.getEAllSuperTypes());
+            castSuperTypes.add(castTargetType);
+
+            List<EClass> types = castSuperTypes.stream().sorted((l, r) -> {
+                if (l.getEAllSuperTypes().contains(r)) {
+                    return 1;
+                }
+                if (r.getEAllSuperTypes().contains(l)) {
+                    return -1;
+                }
+                return 0;
+            }).collect(Collectors.toList());
+
+            List<String> joins = new ArrayList<>(List.of("SELECT sj1." + StatementExecutor.ID_COLUMN_NAME));
+            String lastAlias = null;
+            int sjCounter = 0;
+            for (EClass superType : types) {
+                String alias = "sj" + (++sjCounter);
+                String sqlName = rdbmsResolver.rdbmsTable(superType).getSqlName();
+                if (lastAlias == null) {
+                    joins.add("FROM " + sqlName + " " + alias);
+                } else {
+                    joins.add("LEFT OUTER JOIN " + sqlName + " " + alias + " " +
+                              "ON (" + alias + "." + StatementExecutor.ID_COLUMN_NAME + " = sj1." + StatementExecutor.ID_COLUMN_NAME + ")");
+                }
+                lastAlias = alias;
+            }
+
+            RdbmsCustomJoin.RdbmsCustomJoinBuilder builder =
+                    RdbmsCustomJoin.builder()
+                                   .sql(String.join(" ", joins))
+                                   .alias(join.getAlias())
+                                   .type(castTargetType)
+                                   .sourceIdSetParameterName("")
+                                   .columnName(StatementExecutor.ID_COLUMN_NAME)
+                                   .partnerTable(((CastJoin) join).getPartner())
+                                   .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
+                    ;
+
             if (!join.getFilters().isEmpty() && join.getFilters().stream().noneMatch(filter -> filter.getFeatures().stream().anyMatch(feature -> feature instanceof SubSelectFeature))) {
                 builder.onConditions(join.getFilters().stream()
                         .map(f -> RdbmsFunction.builder()
@@ -184,8 +227,7 @@ public class RdbmsBuilder<ID> {
                                 .build())
                         .collect(Collectors.toList()));
             }
-            return Collections.singletonList(builder
-                    .build());
+            return Collections.singletonList(builder.build());
         } else if (join instanceof SubSelectJoin) {
             final SubSelect subSelect = ((SubSelectJoin) join).getSubSelect();
             subSelect.getFilters().addAll(join.getFilters());
