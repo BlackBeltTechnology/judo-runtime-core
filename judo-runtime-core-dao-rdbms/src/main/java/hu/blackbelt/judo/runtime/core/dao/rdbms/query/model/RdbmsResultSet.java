@@ -45,6 +45,7 @@ import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUti
 
 public class RdbmsResultSet<ID> extends RdbmsField {
 
+    private final EClass type;
     private SubSelect query;
 
     // map of ancestors (the are holder of an attribute) of a given source
@@ -71,7 +72,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final Set<String> joinConditionTableAliases = new HashSet<>();
 
     public Optional<EClass> getType() {
-        return Optional.ofNullable(query.getType());
+        return Optional.ofNullable(type);
     }
 
     @Builder
@@ -89,7 +90,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         this.skipParents = skipParents;
         this.rdbmsBuilder = rdbmsBuilder;
 
-        final EClass type = query.getSelect().getType();
+        type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
         final EMap<Target, Collection<String>> targetMask = mask != null ? getTargetMask(query.getSelect().getMainTarget(), mask, new BasicEMap<>()) : ECollections.emptyEMap();

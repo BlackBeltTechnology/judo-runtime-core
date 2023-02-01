@@ -162,7 +162,6 @@ public class RdbmsBuilder<ID> {
         } else if (join instanceof ContainerJoin) {
             return processContainerJoin((ContainerJoin) join, ancestors, parentIdFilterQuery, queryParameters);
         } else if (join instanceof CastJoin) {
-            @SuppressWarnings("rawtypes")
 			RdbmsTableJoin.RdbmsJoinBuilder builder = RdbmsTableJoin.builder()
                     .tableName(rdbmsResolver.rdbmsTable(join.getType()).getSqlName())
                     .alias(join.getAlias())
