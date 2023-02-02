@@ -495,7 +495,7 @@ public class RdbmsBuilder<ID> {
             // first type is the original target type therefore postfix it not needed
             if (!rdbmsTableJoins.isEmpty()) {
                 builder.alias(join.getAlias() + rdbmsBuilder.getAncestorPostfix(type));
-
+            } else {
                 // on condition part can only be interpreted for the original target
                 List<Filter> joinFilters = join.getFilters();
                 boolean joinFiltersWithoutSubSelectFeatures =
