@@ -474,7 +474,7 @@ public class RdbmsBuilder<ID> {
                                         }
                                         return 0;
                                     })
-                                    .collect(Collectors.toList());
+                                    .collect(Collectors.toUnmodifiableList());
 
         List<RdbmsJoin> rdbmsTableJoins = new ArrayList<>();
         for (EClass type : types) {
