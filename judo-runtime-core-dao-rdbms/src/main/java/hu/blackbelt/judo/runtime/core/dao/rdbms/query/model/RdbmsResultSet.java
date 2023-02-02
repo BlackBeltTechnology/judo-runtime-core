@@ -178,7 +178,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         .build());
             }
 
-            final RdbmsNavigationJoin<ID> customJoin =
+            final RdbmsNavigationJoin<ID> navigationJoin =
                     RdbmsNavigationJoin.<ID>builder()
                             .query(query)
                             .parentIdFilterQuery(parentIdFilterQuery)
@@ -186,9 +186,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .withoutFeatures(withoutFeatures)
                             .queryParameters(queryParameters)
                             .build();
-            orderBys.addAll(customJoin.getExposedOrderBys());
+            orderBys.addAll(navigationJoin.getExposedOrderBys());
 
-            joins.add(customJoin);
+            joins.add(navigationJoin);
         } else {
             query.getOrderBys().stream().forEach(orderBy -> {
                 joins.add(RdbmsTableJoin.builder()
@@ -500,9 +500,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
-        final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = getSelect(addDistinct, prefix, coercer, sqlParameters, newPrefixes) +
-                           getFrom(prefix, dual) +
+                           getFrom(prefix, rdbmsBuilder.getDialect().getDualTable()) +
                            getJoin(prefix, coercer, sqlParameters, newPrefixes) +
                            getWhere(allConditions) +
                            getGroupBy(prefix) +
@@ -513,7 +512,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private String getSelect(boolean addDistinct, String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> newPrefixes) {
-        String columns = this.columns.stream().map(c -> c.toSql(prefix, true, coercer, sqlParameters, newPrefixes)).collect(Collectors.joining(", "));
+        String columns = this.columns.stream()
+                                     .map(c -> c.toSql(prefix, true, coercer, sqlParameters, newPrefixes))
+                                     .sorted() // sorting serves debugging purposes only
+                                     .collect(Collectors.joining(", "));
         String distinct = addDistinct ? "DISTINCT " : "";
         return "SELECT " + distinct + columns;
     }

@@ -457,64 +457,65 @@ public class QueryFactory {
         mappedTransferObjectTypeBindings.getReferences().entrySet().stream()
                 .filter(c -> mappedTransferObjectTypeBindings.getGetterReferenceExpressions().containsKey(c.getKey()))
                 .forEach(c -> {
+                    EReference reference = c.getKey();
+
                     final EList<EReference> newReferenceChain = new BasicEList<>();
                     newReferenceChain.addAll(referenceChain);
-                    newReferenceChain.add(c.getKey());
+                    newReferenceChain.add(reference);
 
                     if (log.isTraceEnabled()) {
                         log.trace(pad(referenceChain.size()) + "- adding SUBQUERY reference: {}", newReferenceChain.stream().map(r -> r.getName()).collect(Collectors.joining(".")));
                     }
 
-                    // add additional JOINs that specifies the role (navigation expressions of navigation properties)
-                    final ReferenceExpression referenceExpression = mappedTransferObjectTypeBindings.getGetterReferenceExpressions().get(c.getKey());
-
                     // create SUBSELECT for multiple reference including logical query of the reference
                     final SubSelect subSelect = newSubSelectBuilder()
                             .withAlias(getNextSubSelectAlias(nextSourceIndex))
-                            .withSelect(transferObjectQueries.get(c.getKey().getEReferenceType()))
-                            .withTransferRelation(c.getKey())
+                            .withSelect(transferObjectQueries.get(reference.getEReferenceType()))
+                            .withTransferRelation(reference)
                             .build();
 
-                    if (customJoinDefinitions.get(c.getKey()) != null && c.getKey().isDerived()) {
-                        final EClass entityType = asmUtils.getMappedEntityType(c.getKey().getEReferenceType()).orElseThrow(() -> new IllegalStateException("Entity type not found"));
+                    if (customJoinDefinitions.get(reference) != null && reference.isDerived()) {
+                        final EClass entityType = asmUtils.getMappedEntityType(reference.getEReferenceType()).orElseThrow(() -> new IllegalStateException("Entity type not found"));
 
                         final CustomJoin customJoin = newCustomJoinBuilder()
                                 .withAlias("custom" + context.getSourceCounter().incrementAndGet())
                                 .withPartner(context.getNode())
-                                .withTransferRelation(c.getKey())
+                                .withTransferRelation(reference)
                                 .withType(entityType)
-                                .withNavigationSql(customJoinDefinitions.get(c.getKey()).getNavigationSql())
+                                .withNavigationSql(customJoinDefinitions.get(reference).getNavigationSql())
                                 .build();
-                        if (customJoinDefinitions.get(c.getKey()).getSourceIdParameterName() != null) {
-                            customJoin.setSourceIdParameter(customJoinDefinitions.get(c.getKey()).getSourceIdParameterName());
+                        if (customJoinDefinitions.get(reference).getSourceIdParameterName() != null) {
+                            customJoin.setSourceIdParameter(customJoinDefinitions.get(reference).getSourceIdParameterName());
                         }
-                        if (customJoinDefinitions.get(c.getKey()).getSourceIdSetParameterName() != null) {
-                            customJoin.setSourceIdSetParameter(customJoinDefinitions.get(c.getKey()).getSourceIdSetParameterName());
+                        if (customJoinDefinitions.get(reference).getSourceIdSetParameterName() != null) {
+                            customJoin.setSourceIdSetParameter(customJoinDefinitions.get(reference).getSourceIdSetParameterName());
                         }
                         subSelect.setBase(context.getNode());
                         subSelect.getJoins().add(customJoin);
                         subSelect.setPartner(customJoin);
                     } else {
+                        // add additional JOINs that specifies the role (navigation expressions of navigation properties)
+                        final ReferenceExpression referenceExpression = mappedTransferObjectTypeBindings.getGetterReferenceExpressions().get(reference);
                         final JoinFactory.PathEnds pathEnds = joinFactory.convertNavigationToJoins(context, subSelect, referenceExpression, false);
                         if (pathEnds.isOrdered()) {
-                            orderedTransferRelations.add(c.getKey());
+                            orderedTransferRelations.add(reference);
                         }
                     }
 
-                    final boolean includedByJoin = !c.getKey().isMany() &&
-                            !referenceChain.contains(c.getKey()) &&
-                            !subSelect.getNavigationJoins().stream().anyMatch(j -> j instanceof SubSelectJoin && isCircularAggregation(referenceChain, c.getKey())) && // TODO - check condition is necessary
-                            AsmUtils.equals(subSelect.getBase(), context.getNode());
+                    final boolean includedByJoin = !reference.isMany() &&
+                                                   !referenceChain.contains(reference) &&
+                                                   !subSelect.getNavigationJoins().stream().anyMatch(j -> j instanceof SubSelectJoin && isCircularAggregation(referenceChain, reference)) && // TODO - check condition is necessary
+                                                   AsmUtils.equals(subSelect.getBase(), context.getNode());
                     subSelect.setExcluding(includedByJoin);
 
                     if (!includedByJoin) {
                         // add main target to the reference to target list of base select
                         final Target subSelectTarget = subSelect.getSelect().getMainTarget();
                         target.getReferencedTargets().add(newReferencedTargetBuilder()
-                                .withReference(c.getKey())
+                                .withReference(reference)
                                 .withTarget(subSelectTarget)
                                 .build());
-                        subSelectReferences.add(c.getKey());
+                        subSelectReferences.add(reference);
                     }
 
                     context.getVariables().get(JqlExpressionBuilder.SELF_NAME).getSubSelects().add(subSelect);
@@ -524,35 +525,38 @@ public class QueryFactory {
         mappedTransferObjectTypeBindings.getReferences().entrySet().stream()
                 .filter(c -> AsmUtils.isEmbedded(c.getKey()) && !subSelectReferences.contains(c.getKey()) && mappedTransferObjectTypeBindings.getGetterReferenceExpressions().containsKey(c.getKey()))
                 .forEach(c -> {
+                    EReference reference = c.getKey();
+                    MappedTransferObjectTypeBindings transferObjectTypeBindings = c.getValue();
+
                     final EList<EReference> newReferenceChain = new BasicEList<>();
                     newReferenceChain.addAll(referenceChain);
-                    newReferenceChain.add(c.getKey());
+                    newReferenceChain.add(reference);
 
                     if (log.isTraceEnabled()) {
                         log.trace(pad(referenceChain.size()) + "- adding JOIN reference: {}", newReferenceChain.stream().map(r -> r.getName()).collect(Collectors.joining(".")));
                     }
 
-                    // get logical query of single reference, several elements will be copies from it
-                    final Select joinedSelect = transferObjectQueries.get(c.getKey().getEReferenceType());
+                    // get logical query of single reference, several elements will be copied from it
+                    final Select joinedSelect = transferObjectQueries.get(reference.getEReferenceType());
 
                     final Node self = context.getVariables().get(JqlExpressionBuilder.SELF_NAME);
                     final Node nextNode;
 
-                    if (customJoinDefinitions.get(c.getKey()) != null && c.getKey().isDerived()) {
-                        final EClass entityType = asmUtils.getMappedEntityType(c.getKey().getEReferenceType()).orElseThrow(() -> new IllegalStateException("Entity type not found"));
+                    if (customJoinDefinitions.get(reference) != null && reference.isDerived()) {
+                        final EClass entityType = asmUtils.getMappedEntityType(reference.getEReferenceType()).orElseThrow(() -> new IllegalStateException("Entity type not found"));
 
                         final CustomJoin customJoin = newCustomJoinBuilder()
                                 .withAlias("custom" + context.getSourceCounter().incrementAndGet())
                                 .withPartner(context.getNode())
-                                .withTransferRelation(c.getKey())
+                                .withTransferRelation(reference)
                                 .withType(entityType)
-                                .withNavigationSql(customJoinDefinitions.get(c.getKey()).getNavigationSql())
+                                .withNavigationSql(customJoinDefinitions.get(reference).getNavigationSql())
                                 .build();
-                        if (customJoinDefinitions.get(c.getKey()).getSourceIdParameterName() != null) {
-                            customJoin.setSourceIdParameter(customJoinDefinitions.get(c.getKey()).getSourceIdParameterName());
+                        if (customJoinDefinitions.get(reference).getSourceIdParameterName() != null) {
+                            customJoin.setSourceIdParameter(customJoinDefinitions.get(reference).getSourceIdParameterName());
                         }
-                        if (customJoinDefinitions.get(c.getKey()).getSourceIdSetParameterName() != null) {
-                            customJoin.setSourceIdSetParameter(customJoinDefinitions.get(c.getKey()).getSourceIdSetParameterName());
+                        if (customJoinDefinitions.get(reference).getSourceIdSetParameterName() != null) {
+                            customJoin.setSourceIdSetParameter(customJoinDefinitions.get(reference).getSourceIdSetParameterName());
                         }
                         self.getJoins().add(customJoin);
 
@@ -564,10 +568,10 @@ public class QueryFactory {
                         self.getJoins().add((Join) nextNode);
                     } else {
                         // add additional JOINs that specifies the role (navigation expressions of navigation properties)
-                        final ReferenceExpression referenceExpression = mappedTransferObjectTypeBindings.getGetterReferenceExpressions().get(c.getKey());
+                        final ReferenceExpression referenceExpression = mappedTransferObjectTypeBindings.getGetterReferenceExpressions().get(reference);
                         final JoinFactory.PathEnds pathEnds = joinFactory.convertNavigationToJoins(context, self, referenceExpression, false);
                         if (pathEnds.isOrdered()) {
-                            orderedTransferRelations.add(c.getKey());
+                            orderedTransferRelations.add(reference);
                         }
                         nextNode = pathEnds.getPartner();
                     }
@@ -588,13 +592,13 @@ public class QueryFactory {
 
                     // add main target of the reference to target list of base select
                     target.getReferencedTargets().add(newReferencedTargetBuilder()
-                            .withReference(c.getKey())
+                            .withReference(reference)
                             .withTarget(joinedTarget)
                             .build());
 
-                    addReferences(c.getValue(), context.clone(JqlExpressionBuilder.SELF_NAME, nextNode), joinedTarget, newReferenceChain);
-                    addAttributes(c.getValue(), context.clone(JqlExpressionBuilder.SELF_NAME, nextNode), joinedTarget); // add joined attributes to logical query
-                    addFilter(c.getValue(), context.clone(JqlExpressionBuilder.SELF_NAME, nextNode));
+                    addReferences(transferObjectTypeBindings, context.clone(JqlExpressionBuilder.SELF_NAME, nextNode), joinedTarget, newReferenceChain);
+                    addAttributes(transferObjectTypeBindings, context.clone(JqlExpressionBuilder.SELF_NAME, nextNode), joinedTarget); // add joined attributes to logical query
+                    addFilter(transferObjectTypeBindings, context.clone(JqlExpressionBuilder.SELF_NAME, nextNode));
                 });
     }
 
