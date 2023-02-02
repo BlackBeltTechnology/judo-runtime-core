@@ -78,6 +78,7 @@ public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
                 .columnName(rdbmsBuilder.getColumnName(attribute.getSourceAttribute()))
                 .target(t.getTarget())
                 .targetAttribute(t.getTargetAttribute())
+                .originalTargetAttribute(sourceAttribute)
                 .alias(t.getAlias())
                 .sourceDomainConstraints(RdbmsField.getDomainConstraints(attribute.getSourceAttribute()))
                 .build());
