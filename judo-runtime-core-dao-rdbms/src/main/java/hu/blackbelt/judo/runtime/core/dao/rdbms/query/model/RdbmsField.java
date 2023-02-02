@@ -114,4 +114,12 @@ public abstract class RdbmsField {
         private final Integer scale;
         private final Integer maxLength;
     }
+
+    @Override
+    public String toString() {
+        return "RdbmsField{" +
+               "alias='" + alias + '\'' +
+               '}';
+    }
+
 }
