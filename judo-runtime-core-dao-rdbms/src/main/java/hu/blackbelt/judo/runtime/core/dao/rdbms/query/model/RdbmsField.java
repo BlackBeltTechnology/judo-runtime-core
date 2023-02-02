@@ -46,8 +46,6 @@ public abstract class RdbmsField {
 
     @Getter
     protected EAttribute targetAttribute;
-    @Getter
-    protected EAttribute originalTargetAttribute;
 
     /**
      * Convert field definition to SQL format.

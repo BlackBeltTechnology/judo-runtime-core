@@ -22,8 +22,6 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.emf.common.util.EMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -38,11 +36,8 @@ import java.util.regex.Pattern;
 public class RdbmsColumn extends RdbmsField {
 
     private String pattern;
-    @Getter @Setter
     private String partnerTablePrefix;
-    @Getter @Setter
     private Node partnerTable;
-    @Getter @Setter
     private String partnerTablePostfix;
     private String columnName;
 

@@ -178,7 +178,6 @@ public class RdbmsBuilder<ID> {
             if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
                 result.add(RdbmsTableJoin.builder()
                         .tableName(rdbmsBuilder.getTableName(subSelect.getBase().getType()))
-                        .type(subSelect.getBase().getType())
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
                         .partnerTable(((SubSelectJoin) join).getPartner())
                         .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
@@ -188,7 +187,6 @@ public class RdbmsBuilder<ID> {
 
             result.add(RdbmsQueryJoin.<ID>builder()
                     .resultSet(resultSetHandler)
-                    .type(resultSetHandler.getType().orElse(null))
                     .outer(true)
                     .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
 //                    .partnerTable(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), join) ? subSelect.getBase() : null)
@@ -206,7 +204,6 @@ public class RdbmsBuilder<ID> {
             result.add(RdbmsTableJoin.builder()
                     .tableName(rdbmsResolver.rdbmsTable(join.getType()).getSqlName())
                     .alias(join.getAlias())
-                    .type(join.getType())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .partnerTable(subSelect)
                     .partnerColumnName(selectorTarget.get().getAlias() + "_" + selectorTarget.get().getTarget().getIndex())
@@ -237,7 +234,6 @@ public class RdbmsBuilder<ID> {
                     .alias(join.getAlias())
                     .columnName(customJoin.getSourceIdParameter())
                     .partnerTable(customJoin.getPartner())
-                    .type(customJoin.getType())
                     .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
                     .outer(true)
                     .build());
@@ -316,7 +312,6 @@ public class RdbmsBuilder<ID> {
                 .outer(true)
                 .tableName(tableName)
                 .alias(join.getAlias() + postfix)
-                .type(join.getType())
                 .partnerTable(node);
 
         final Rule rule;
@@ -451,7 +446,6 @@ public class RdbmsBuilder<ID> {
         result.add(RdbmsContainerJoin.builder()
                 .outer(true)
                 .tableName(rdbmsResolver.rdbmsTable(targetType).getSqlName())
-                .type(targetType)
                 .alias(join.getAlias())
                 .partnerTable(node)
                 .columnName(StatementExecutor.ID_COLUMN_NAME)
@@ -485,7 +479,6 @@ public class RdbmsBuilder<ID> {
         for (EClass type : types) {
             RdbmsTableJoin.RdbmsTableJoinBuilder builder =
                     RdbmsTableJoin.builder()
-                                  .type(type)
                                   .outer(true)
                                   .alias(join.getAlias())
                                   .partnerTable(((CastJoin) join).getPartner())
@@ -541,7 +534,6 @@ public class RdbmsBuilder<ID> {
                 .filter(ancestor -> joins.stream().noneMatch(j -> Objects.equals(node.getAlias() + getAncestorPostfix(ancestor), j.getAlias())))
                 .map(ancestor -> RdbmsTableJoin.builder()
                         .tableName(rdbmsResolver.rdbmsTable(ancestor).getSqlName())
-                        .type(ancestor)
                         .alias(node.getAlias() + getAncestorPostfix(ancestor))
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
                         .partnerTable(node)

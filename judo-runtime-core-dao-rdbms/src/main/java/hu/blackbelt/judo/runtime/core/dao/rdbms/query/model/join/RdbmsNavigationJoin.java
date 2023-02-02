@@ -63,7 +63,6 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                 final Map<String, Object> queryParameters) {
         super();
         this.query = query;
-        type = query.getType();
 
         outer = false;
 
@@ -110,7 +109,6 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 if (!joinedOrderByAliases.contains(orderBy.getAlias())) {
                     subJoins.add(RdbmsTableJoin.builder()
                             .tableName(rdbmsBuilder.getTableName(orderBy.getType()))
-                            .type(orderBy.getType())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .partnerTable(navigationJoin)
                             .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
@@ -147,28 +145,25 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         });
 
         subJoins.addAll(aggregations.stream()
-                .map(subSelect -> {
-                    RdbmsResultSet<ID> resultSet = RdbmsResultSet.<ID>builder()
-                                                             .query(subSelect)
-                                                             .filterByInstances(false)
-                                                             .parentIdFilterQuery(parentIdFilterQuery)
-                                                             .rdbmsBuilder(rdbmsBuilder)
-                                                             .seek(null)
-                                                             .withoutFeatures(withoutFeatures)
-                                                             .mask(null)
-                                                             .queryParameters(queryParameters)
-                                                             .skipParents(false)
-                                                             .build();
-                    return RdbmsQueryJoin.<ID>builder()
-                            .resultSet(resultSet)
-                            .type(resultSet.getType().orElse(null))
-                            .outer(true)
-                            .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
-                            .partnerTable(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), subSelect.getContainer()) ? subSelect.getBase() : null)
-                            .partnerColumnName(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), subSelect.getContainer()) ? StatementExecutor.ID_COLUMN_NAME : null)
-                            .alias(subSelect.getAlias())
-                            .build();
-                })
+                .map(subSelect -> RdbmsQueryJoin.<ID>builder()
+                        .resultSet(
+                                RdbmsResultSet.<ID>builder()
+                                        .query(subSelect)
+                                        .filterByInstances(false)
+                                        .parentIdFilterQuery(parentIdFilterQuery)
+                                        .rdbmsBuilder(rdbmsBuilder)
+                                        .seek(null)
+                                        .withoutFeatures(withoutFeatures)
+                                        .mask(null)
+                                        .queryParameters(queryParameters)
+                                        .skipParents(false)
+                                        .build())
+                        .outer(true)
+                        .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
+                        .partnerTable(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), subSelect.getContainer()) ? subSelect.getBase() : null)
+                        .partnerColumnName(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), subSelect.getContainer()) ? StatementExecutor.ID_COLUMN_NAME : null)
+                        .alias(subSelect.getAlias())
+                        .build())
                 .collect(Collectors.toList()));
 
         // TODO - add subFilterFeatures

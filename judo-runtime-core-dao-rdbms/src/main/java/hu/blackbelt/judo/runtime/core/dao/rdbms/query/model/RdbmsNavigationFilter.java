@@ -88,26 +88,26 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                         group = false;
                     }
 
-                    RdbmsResultSet<ID> resultSet = RdbmsResultSet.<ID>builder()
-                                                             .query(subSelect)
-                                                             .filterByInstances(false)
-                                                             .parentIdFilterQuery(parentIdFilterQuery)
-                                                             .rdbmsBuilder(rdbmsBuilder)
-                                                             .seek(null)
-                                                             .withoutFeatures(true)
-                                                             .mask(null)
-                                                             .queryParameters(queryParameters)
-                                                             .skipParents(false)
-                                                             .build();
                     final RdbmsQueryJoin<ID> queryJoin = RdbmsQueryJoin.<ID>builder()
-                                                                       .resultSet(resultSet)
-                                                                       .type(resultSet.getType().orElse(null))
-                                                                       .outer(true)
-                                                                       .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(filter))
-                                                                       .partnerTable(group ? subSelect.getBase() : null)
-                                                                       .partnerColumnName(group ? StatementExecutor.ID_COLUMN_NAME : null)
-                                                                       .alias(subSelect.getAlias())
-                                                                       .build();
+                            .resultSet(
+                                    RdbmsResultSet.<ID>builder()
+                                            .query(subSelect)
+                                            .filterByInstances(false)
+                                            .parentIdFilterQuery(parentIdFilterQuery)
+                                            .rdbmsBuilder(rdbmsBuilder)
+                                            .seek(null)
+                                            .withoutFeatures(true)
+                                            .mask(null)
+                                            .queryParameters(queryParameters)
+                                            .skipParents(false)
+                                            .build()
+                            )
+                            .outer(true)
+                            .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(filter))
+                            .partnerTable(group ? subSelect.getBase() : null)
+                            .partnerColumnName(group ? StatementExecutor.ID_COLUMN_NAME : null)
+                            .alias(subSelect.getAlias())
+                            .build();
                     return queryJoin;
                 })
                 .collect(Collectors.toList()));
