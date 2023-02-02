@@ -46,6 +46,8 @@ public abstract class RdbmsField {
 
     @Getter
     protected EAttribute targetAttribute;
+    @Getter
+    protected EAttribute originalTargetAttribute;
 
     /**
      * Convert field definition to SQL format.
@@ -114,4 +116,12 @@ public abstract class RdbmsField {
         private final Integer scale;
         private final Integer maxLength;
     }
+
+    @Override
+    public String toString() {
+        return "RdbmsField{" +
+               "alias='" + alias + '\'' +
+               '}';
+    }
+
 }
