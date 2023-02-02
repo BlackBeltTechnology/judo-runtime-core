@@ -464,7 +464,8 @@ public class RdbmsBuilder<ID> {
 
         List<EClass> types = typeSet.stream()
                                     .sorted((l, r) -> {
-                                        // "supertype > subtype"
+                                        // ascending order
+                                        // type < supertype
                                         if (l.getEAllSuperTypes().contains(r)) {
                                             return -1;
                                         }
@@ -486,8 +487,7 @@ public class RdbmsBuilder<ID> {
                                   .tableName(rdbmsResolver.rdbmsTable(type).getSqlName())
                                   .partnerColumnName(SelectStatementExecutor.ID_COLUMN_NAME);
             if (rdbmsTableJoins.isEmpty()) {
-                // on condition part can only be interpreted for the original target and since only the first join is outer join
-                //      filtering will remain effective
+                // additional conditions can only be interpreted for the original target
                 List<Filter> joinFilters = join.getFilters();
                 boolean joinFiltersWithoutSubSelectFeatures =
                         !joinFilters.isEmpty()
@@ -510,7 +510,7 @@ public class RdbmsBuilder<ID> {
                 }
             } else {
                 // to prevent the same aliases and to align with SELECT generating logic at the same time,
-                //      ancestor postfixes should be added to manually added joins
+                //      ancestor postfixes are added to supertype joins
                 builder.alias(join.getAlias() + rdbmsBuilder.getAncestorPostfix(type));
             }
 
