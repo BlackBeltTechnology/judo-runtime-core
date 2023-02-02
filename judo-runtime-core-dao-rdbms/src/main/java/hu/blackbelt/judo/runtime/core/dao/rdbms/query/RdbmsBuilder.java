@@ -479,10 +479,8 @@ public class RdbmsBuilder<ID> {
         for (EClass type : types) {
             RdbmsTableJoin.RdbmsTableJoinBuilder builder =
                     RdbmsTableJoin.builder()
+                                  .outer(true)
                                   .alias(join.getAlias())
-                                  // for the first join (original target), it should be an outer join
-                                  // later on, additional joins MUST be successful, since those joins are for supertypes
-                                  .outer(rdbmsTableJoins.isEmpty())
                                   .partnerTable(((CastJoin) join).getPartner())
                                   .columnName(SelectStatementExecutor.ID_COLUMN_NAME)
                                   .tableName(rdbmsResolver.rdbmsTable(type).getSqlName())
