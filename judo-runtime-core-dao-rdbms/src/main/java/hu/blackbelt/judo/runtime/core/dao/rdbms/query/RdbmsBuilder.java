@@ -479,17 +479,17 @@ public class RdbmsBuilder<ID> {
         for (EClass type : types) {
             RdbmsTableJoin.RdbmsTableJoinBuilder builder =
                     RdbmsTableJoin.builder()
-                                  .outer(true)
                                   .alias(join.getAlias())
+                                  // for the first join (original target), it should be an outer join
+                                  // later on, additional joins MUST be successful, since those joins are for supertypes
+                                  .outer(rdbmsTableJoins.isEmpty())
                                   .partnerTable(((CastJoin) join).getPartner())
                                   .columnName(SelectStatementExecutor.ID_COLUMN_NAME)
                                   .tableName(rdbmsResolver.rdbmsTable(type).getSqlName())
                                   .partnerColumnName(SelectStatementExecutor.ID_COLUMN_NAME);
-            // first type is the original target type therefore postfix it not needed
-            if (!rdbmsTableJoins.isEmpty()) {
-                builder.alias(join.getAlias() + rdbmsBuilder.getAncestorPostfix(type));
-            } else {
-                // on condition part can only be interpreted for the original target
+            if (rdbmsTableJoins.isEmpty()) {
+                // on condition part can only be interpreted for the original target and since only the first join is outer join
+                //      filtering will remain effective
                 List<Filter> joinFilters = join.getFilters();
                 boolean joinFiltersWithoutSubSelectFeatures =
                         !joinFilters.isEmpty()
@@ -510,6 +510,10 @@ public class RdbmsBuilder<ID> {
                                                                            .build())
                                                     .collect(Collectors.toList()));
                 }
+            } else {
+                // to prevent the same aliases and to align with SELECT generating logic at the same time,
+                //      ancestor postfixes should be added to manually added joins
+                builder.alias(join.getAlias() + rdbmsBuilder.getAncestorPostfix(type));
             }
 
             rdbmsTableJoins.add(builder.build());
