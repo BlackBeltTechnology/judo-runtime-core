@@ -24,17 +24,47 @@ import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Slf4j
 @SuperBuilder
 public class RdbmsTableJoin extends RdbmsJoin {
 
     @NonNull
     private final String tableName;
 
+    private final RdbmsTableJoin rdbmsPartnerTable;
+
     @Override
     protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
         return tableName;
     }
+
+    @Override
+    protected String getJoinCondition(String prefix, EMap<Node, String> prefixes, Coercer coercer, MapSqlParameterSource sqlParameters) {
+        if (rdbmsPartnerTable != null && partnerTable != null) {
+            log.warn("Both rdbmsPartnerTable and partnerTable are set for RdbmsTableJoin, rdbmsPartnerTable will be used instead of partnerTable");
+        }
+        if (rdbmsPartnerTable != null) {
+            final String joinCondition = prefix + rdbmsPartnerTable.alias + "." + rdbmsPartnerTable.columnName + " = " + prefix + alias + "." + columnName;
+            joinConditionTableAliases.addAll(List.of(prefix + rdbmsPartnerTable.alias, prefix + alias));
+            aliasToCompareWith = prefix + alias;
+
+            if (!onConditions.isEmpty()) {
+                return joinCondition + " AND " + onConditions.stream()
+                                                             .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
+                                                             .collect(Collectors.joining(" AND "));
+            }
+
+            return joinCondition;
+        } else {
+            return super.getJoinCondition(prefix, prefixes, coercer, sqlParameters);
+        }
+    }
+
 }
