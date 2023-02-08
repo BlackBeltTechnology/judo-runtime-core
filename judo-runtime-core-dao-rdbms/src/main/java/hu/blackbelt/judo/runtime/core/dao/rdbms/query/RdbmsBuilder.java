@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- *
+ * 
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- *
+ * 
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -72,15 +72,15 @@ public class RdbmsBuilder<ID> {
     private final AncestorNameFactory ancestorNameFactory;
 
     @Getter
-    private final VariableResolver variableResolver;
+    private final  VariableResolver variableResolver;
 
     @Getter
-    private final RdbmsModel rdbmsModel;
+    private final  RdbmsModel rdbmsModel;
 
     @Getter
     private final AsmUtils asmUtils;
 
-    private final Map<Class<?>, RdbmsMapper<?>> mappers;
+	private final Map<Class<?>, RdbmsMapper<?>> mappers;
 
     private final Rules rules;
 
@@ -119,8 +119,8 @@ public class RdbmsBuilder<ID> {
 
     }
 
-    @SuppressWarnings("unchecked")
-    public Stream<RdbmsField> mapFeatureToRdbms(final ParameterType value, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+	@SuppressWarnings("unchecked")
+	public Stream<RdbmsField> mapFeatureToRdbms(final ParameterType value, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
         return mappers.entrySet().stream()
                 .filter(c -> c.getKey().isAssignableFrom(value.getClass()))
                 .flatMap(mapper -> ((RdbmsMapper<ParameterType>) mapper.getValue()).map(value, ancestors, parentIdFilterQuery, queryParameters));
@@ -146,11 +146,10 @@ public class RdbmsBuilder<ID> {
      * @param parentIdFilterQuery
      * @param rdbmsBuilder
      * @param mask
-     *
      * @return RDBMS JOIN definition(s)
      */
     @SuppressWarnings("unchecked")
-    public List<RdbmsJoin> processJoin(final Node join, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final RdbmsBuilder<ID> rdbmsBuilder, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
+	public List<RdbmsJoin> processJoin(final Node join, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final RdbmsBuilder<ID> rdbmsBuilder, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
         if (join instanceof ReferencedJoin) {
             return processSimpleJoin("", (ReferencedJoin) join, ((ReferencedJoin) join).getReference(), ((ReferencedJoin) join).getReference().getEOpposite(), ancestors, parentIdFilterQuery, queryParameters);
         } else if (join instanceof ContainerJoin) {
@@ -294,7 +293,7 @@ public class RdbmsBuilder<ID> {
     }
 
     @SuppressWarnings("unchecked")
-    private List<RdbmsJoin> processSimpleJoin(final String postfix, final Join join, final EReference reference, final EReference opposite, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+	private List<RdbmsJoin> processSimpleJoin(final String postfix, final Join join, final EReference reference, final EReference opposite, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
         final EClass targetType = join.getType();
         final Node node = join.getPartner();
         final EClass sourceType = node.getType();

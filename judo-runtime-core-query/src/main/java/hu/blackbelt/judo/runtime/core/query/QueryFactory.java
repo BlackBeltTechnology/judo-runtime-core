@@ -503,9 +503,9 @@ public class QueryFactory {
                     }
 
                     final boolean includedByJoin = !reference.isMany() &&
-                                                   !referenceChain.contains(reference) &&
-                                                   !subSelect.getNavigationJoins().stream().anyMatch(j -> j instanceof SubSelectJoin && isCircularAggregation(referenceChain, reference)) && // TODO - check condition is necessary
-                                                   AsmUtils.equals(subSelect.getBase(), context.getNode());
+                            !referenceChain.contains(reference) &&
+                            !subSelect.getNavigationJoins().stream().anyMatch(j -> j instanceof SubSelectJoin && isCircularAggregation(referenceChain, reference)) && // TODO - check condition is necessary
+                            AsmUtils.equals(subSelect.getBase(), context.getNode());
                     subSelect.setExcluding(includedByJoin);
 
                     if (!includedByJoin) {
