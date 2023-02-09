@@ -27,26 +27,19 @@ import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbmsRules.Rule;
 import hu.blackbelt.judo.meta.rdbmsRules.Rules;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NonNull;
+import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.common.util.UniqueEList;
-import org.eclipse.emf.ecore.EAttribute;
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.common.util.*;
+import org.eclipse.emf.ecore.*;
 
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
@@ -162,30 +155,7 @@ public class RdbmsBuilder<ID> {
         } else if (join instanceof ContainerJoin) {
             return processContainerJoin((ContainerJoin) join, ancestors, parentIdFilterQuery, queryParameters);
         } else if (join instanceof CastJoin) {
-            @SuppressWarnings("rawtypes")
-			RdbmsTableJoin.RdbmsJoinBuilder builder = RdbmsTableJoin.builder()
-                    .tableName(rdbmsResolver.rdbmsTable(join.getType()).getSqlName())
-                    .alias(join.getAlias())
-                    .columnName(StatementExecutor.ID_COLUMN_NAME)
-                    .partnerTable(((CastJoin) join).getPartner())
-                    .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
-                    .outer(true);
-            if (!join.getFilters().isEmpty() && join.getFilters().stream().noneMatch(filter -> filter.getFeatures().stream().anyMatch(feature -> feature instanceof SubSelectFeature))) {
-                builder.onConditions(join.getFilters().stream()
-                        .map(f -> RdbmsFunction.builder()
-                                .pattern("EXISTS ({0})")
-                                .parameter(
-                                        RdbmsNavigationFilter.<ID>builder()
-                                                .filter(f)
-                                                .rdbmsBuilder(this)
-                                                .parentIdFilterQuery(parentIdFilterQuery)
-                                                .queryParameters(queryParameters)
-                                                .build())
-                                .build())
-                        .collect(Collectors.toList()));
-            }
-            return Collections.singletonList(builder
-                    .build());
+            return processCastJoin(join, parentIdFilterQuery, rdbmsBuilder, queryParameters);
         } else if (join instanceof SubSelectJoin) {
             final SubSelect subSelect = ((SubSelectJoin) join).getSubSelect();
             subSelect.getFilters().addAll(join.getFilters());
@@ -473,11 +443,9 @@ public class RdbmsBuilder<ID> {
             result.addAll(processSimpleJoin(RdbmsContainerJoin.POSTFIX + index++, join, null, r, ancestors, parentIdFilterQuery, queryParameters));
         }
 
-        final String tableName = rdbmsResolver.rdbmsTable(targetType).getSqlName();
-
         result.add(RdbmsContainerJoin.builder()
                 .outer(true)
-                .tableName(tableName)
+                .tableName(rdbmsResolver.rdbmsTable(targetType).getSqlName())
                 .alias(join.getAlias())
                 .partnerTable(node)
                 .columnName(StatementExecutor.ID_COLUMN_NAME)
@@ -486,6 +454,75 @@ public class RdbmsBuilder<ID> {
                 .build());
 
         return result;
+    }
+
+    private List<RdbmsJoin> processCastJoin(Node join, SubSelect parentIdFilterQuery, RdbmsBuilder<ID> rdbmsBuilder, Map<String, Object> queryParameters) {
+        EClass castTargetType = join.getType();
+        Set<EClass> typeSet = new HashSet<>(castTargetType.getEAllSuperTypes());
+        typeSet.add(castTargetType);
+
+        List<EClass> types = typeSet.stream()
+                                    .sorted((l, r) -> {
+                                        // ascending order
+                                        // type < supertype
+                                        if (l.getEAllSuperTypes().contains(r)) {
+                                            return -1;
+                                        }
+                                        if (r.getEAllSuperTypes().contains(l)) {
+                                            return 1;
+                                        }
+                                        return 0;
+                                    })
+                                    .collect(Collectors.toUnmodifiableList());
+
+        List<RdbmsJoin> rdbmsTableJoins = new ArrayList<>();
+        for (EClass type : types) {
+            String alias = join.getAlias();
+            Node partnerTable = ((CastJoin) join).getPartner();
+            List<RdbmsFunction> onConditions = new ArrayList<>();
+            RdbmsTableJoin rdbmsPartnerTable = null;
+
+            if (rdbmsTableJoins.isEmpty()) {
+                // original, first join
+                List<Filter> joinFilters = join.getFilters();
+                boolean joinFiltersWithoutSubSelectFeatures =
+                        !joinFilters.isEmpty()
+                        && joinFilters.stream()
+                                      .noneMatch(filter -> filter.getFeatures().stream()
+                                                                 .anyMatch(feature -> feature instanceof SubSelectFeature));
+                if (joinFiltersWithoutSubSelectFeatures) {
+                    onConditions = joinFilters.stream()
+                                              .map(f -> RdbmsFunction.builder()
+                                                                     .pattern("EXISTS ({0})")
+                                                                     .parameter(RdbmsNavigationFilter.<ID>builder()
+                                                                                                     .filter(f)
+                                                                                                     .rdbmsBuilder(this)
+                                                                                                     .queryParameters(queryParameters)
+                                                                                                     .parentIdFilterQuery(parentIdFilterQuery)
+                                                                                                     .build())
+                                                                     .build())
+                                              .collect(Collectors.toList());
+                }
+            } else {
+                // additional join for supertypes
+                alias += rdbmsBuilder.getAncestorPostfix(type);
+                partnerTable = null;
+                rdbmsPartnerTable = (RdbmsTableJoin) rdbmsTableJoins.get(rdbmsTableJoins.size() - 1);
+            }
+
+            rdbmsTableJoins.add(RdbmsTableJoin.builder()
+                                              .outer(true)
+                                              .alias(alias)
+                                              .partnerTable(partnerTable)
+                                              .onConditions(onConditions)
+                                              .rdbmsPartnerTable(rdbmsPartnerTable)
+                                              .columnName(SelectStatementExecutor.ID_COLUMN_NAME)
+                                              .tableName(rdbmsResolver.rdbmsTable(type).getSqlName())
+                                              .partnerColumnName(SelectStatementExecutor.ID_COLUMN_NAME)
+                                              .build());
+        }
+
+        return rdbmsTableJoins;
     }
 
     public Collection<RdbmsJoin> getAdditionalJoins(final Node node, final EMap<Node, EList<EClass>> ancestors, final Collection<RdbmsJoin> joins) {
