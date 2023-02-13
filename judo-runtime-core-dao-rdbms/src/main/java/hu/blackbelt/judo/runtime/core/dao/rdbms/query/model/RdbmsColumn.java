@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Getter;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.emf.common.util.EMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -43,7 +44,7 @@ public class RdbmsColumn extends RdbmsField {
 
     private boolean skipLastPrefix;
 
-    @SuppressWarnings("unused")
+    @Getter
 	private DomainConstraints sourceDomainConstraints;
 
     private static final String DEFAULT_PATTERN = "{0}.{1}";
