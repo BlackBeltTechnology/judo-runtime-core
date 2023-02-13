@@ -118,7 +118,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.SUBTRACT_INTEGER, functionBuilderMap.get(FunctionSignature.SUBTRACT_DECIMAL));
 
         functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c ->
-                c.builder.pattern(getDecimalType(c.function).map(type -> "CAST({0} * {1} AS " + type + ")").orElse("({0} * {1})"))
+                c.builder.pattern("CAST({0} * {1} AS " + getDecimalType(c.function) + ")")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
         functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, functionBuilderMap.get(FunctionSignature.MULTIPLE_DECIMAL));
 
@@ -127,7 +127,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.DIVIDE_DECIMAL, c ->
-                c.builder.pattern(getDecimalType(c.function).map(type -> "(CAST({0} as " + type + ") / {1})").orElse("(CAST({0} as DECIMAL(35,20)) / {1})"))
+                c.builder.pattern("(CAST({0} as " + getDecimalType(c.function) + ") / {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.OPPOSITE_INTEGER, c ->
@@ -164,7 +164,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c -> {
-            String type = getDecimalType(c.function).orElse("DECIMAL(19, 2)");
+            String type = getDecimalType(c.function);
             return c.builder.pattern("( {0} - (FLOOR(CAST({0} AS " + type + ") / CAST({1} AS " + type + ")) * {1}) )")
                             .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)));
         });
@@ -520,7 +520,12 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         });
     }
 
-    private Optional<String> getDecimalType(Function function) {
+    /**
+     * <p>Extract decimal type information from {@link Function}</p>
+     * <p>Default value for precision is {@link FunctionMapper#DEFAULT_PRECISION}, for scale is {@link FunctionMapper#DEFAULT_SCALE}</p>
+     * @return Return "DECIMAL(precision, scale)" string where if any of the arguments is null on provided function, default values will be used.
+     */
+    private static String getDecimalType(Function function) {
         final Optional<Integer> precision = function.getConstraints().stream()
                                                     .filter(c -> ResultConstraint.PRECISION.equals(c.getResultConstraint()))
                                                     .map(c -> Integer.parseInt(c.getValue()))
@@ -529,7 +534,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                                 .filter(c -> ResultConstraint.SCALE.equals(c.getResultConstraint()))
                                                 .map(c -> Integer.parseInt(c.getValue()))
                                                 .findAny();
-        return precision.flatMap(p -> scale.map(s -> String.format(DECIMAL_PATTERN, p, s)));
+        return String.format(DECIMAL_PATTERN, precision.orElse(DEFAULT_PRECISION), scale.orElse(DEFAULT_SCALE));
     }
 
     /**
