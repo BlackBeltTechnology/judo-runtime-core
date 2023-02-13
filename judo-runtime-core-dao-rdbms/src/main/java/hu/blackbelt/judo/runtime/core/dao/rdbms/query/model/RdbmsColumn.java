@@ -70,4 +70,13 @@ public class RdbmsColumn extends RdbmsField {
         final String sql = cast(MessageFormat.format(pattern != null ? pattern : DEFAULT_PATTERN, new Object[]{partnerTableName, columnName}), null, targetAttribute);
         return getWithAlias(sql, includeAlias);
     }
+
+    @Override
+    public String toString() {
+        return "RdbmsColumn{" +
+               "columnName='" + columnName + '\'' +
+               ", alias='" + alias + '\'' +
+               '}';
+    }
+
 }

@@ -9,26 +9,27 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.Builder;
-import lombok.NonNull;
+import lombok.*;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
@@ -38,12 +39,13 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import java.io.File;
 import java.io.FileWriter;
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.AGGREGATE_PREFIX;
+import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.getParentIdColumnAlias;
 
 public class RdbmsResultSet<ID> extends RdbmsField {
 
@@ -68,6 +70,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final EList<Join> processedNodesForJoins = ECollections.newBasicEList();
 
     private final RdbmsBuilder<ID> rdbmsBuilder;
+
+    @Getter
+    private final Set<String> joinConditionTableAliases = new HashSet<>();
 
     @Builder
     private RdbmsResultSet(
@@ -170,14 +175,14 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             if (query.getContainer() != null && (group || !query.getSelect().isAggregated()) && !skipParents && !query.getSelect().isSingleColumnedSelect()) {
                 // add parent ID to result set that will be used to move result records under their container records
                 columns.add(RdbmsColumn.builder()
-                        .partnerTablePrefix(RdbmsAliasUtil.AGGREGATE_PREFIX)
+                        .partnerTablePrefix(AGGREGATE_PREFIX)
                         .partnerTable(query)
-                        .columnName(RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()))
-                        .alias(RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()))
+                        .columnName(getParentIdColumnAlias(query.getContainer()))
+                        .alias(getParentIdColumnAlias(query.getContainer()))
                         .build());
             }
 
-            final RdbmsNavigationJoin<ID> customJoin =
+            final RdbmsNavigationJoin<ID> navigationJoin =
                     RdbmsNavigationJoin.<ID>builder()
                             .query(query)
                             .parentIdFilterQuery(parentIdFilterQuery)
@@ -185,9 +190,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .withoutFeatures(withoutFeatures)
                             .queryParameters(queryParameters)
                             .build();
-            orderBys.addAll(customJoin.getExposedOrderBys());
+            orderBys.addAll(navigationJoin.getExposedOrderBys());
 
-            joins.add(customJoin);
+            joins.add(navigationJoin);
         } else {
             query.getOrderBys().stream().forEach(orderBy -> {
                 joins.add(RdbmsTableJoin.builder()
@@ -249,7 +254,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         (query.getPartner() == null && query.eContainer() == null);
 
         query.getFilters().forEach(filter ->
-                addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getPartner() != null ? query : query.getSelect(), query.getPartner() != null ? RdbmsAliasUtil.AGGREGATE_PREFIX : "", addJoinOfFilterFeature, queryParameters));
+                addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getPartner() != null ? query : query.getSelect(), query.getPartner() != null ? AGGREGATE_PREFIX : "", addJoinOfFilterFeature, queryParameters));
 
         query.getSelect().getFilters().forEach(filter ->
                 addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getSelect(), "", true, queryParameters));
@@ -409,7 +414,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .partnerTablePrefix(partnerTablePrefix)
                     .partnerTable(partnerTable)
-                    .partnerColumnName(partnerTable instanceof SubSelect ? RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
+                    .partnerColumnName(partnerTable instanceof SubSelect ? getParentIdColumnAlias(query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
                     .alias(filter.getAlias())
                     .build());
             if (addJoinsOfFilterFeature) {
@@ -482,8 +487,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
                 .collect(Collectors.toMap(join -> join, join -> prefix)));
 
-        final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
-
         final Collection<String> allConditions = Stream
                 .concat(joins.stream().flatMap(j -> j.conditionToSql(prefix, coercer, sqlParameters, newPrefixes).stream()),
                         conditions.stream().map(c -> c.toSql(prefix, false, coercer, sqlParameters, newPrefixes)))
@@ -516,17 +519,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                                 ? "\nOFFSET " + offset
                                                 : "")
                                 : "");
-        saveSqlToFile(sql);
+
         return sql;
     }
-
-    private static void saveSqlToFile(String sql) {
-        new Thread(() -> {
-            File file = new File("/tmp/" + System.currentTimeMillis() + "_" + ThreadLocalRandom.current().nextInt(10000) + ".sql");
-            try (FileWriter writer = new FileWriter(file)) {
-                writer.append(sql);
-            } catch (Exception ie) {}
-        }).start();
-    }
-
 }

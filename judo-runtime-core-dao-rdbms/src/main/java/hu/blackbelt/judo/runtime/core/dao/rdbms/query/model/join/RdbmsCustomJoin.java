@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 
 /*-
  * #%L
@@ -28,13 +28,16 @@ import org.eclipse.emf.common.util.EMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 @SuperBuilder
-public class RdbmsTableJoin extends RdbmsJoin {
+public class RdbmsCustomJoin extends RdbmsJoin {
 
     @NonNull
-    private final String tableName;
+    private final String sql;
+
+    @NonNull
+    private final String sourceIdSetParameterName;
 
     @Override
     protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        return tableName;
+        return "(" + sql + ")";
     }
 }
