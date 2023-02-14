@@ -580,7 +580,12 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                                     .findAny()
                                     .orElse(DEFAULT_SCALE);
 
-        return String.format(DECIMAL_PATTERN, Math.max(paramPrecision, resultPrecision), Math.max(paramScale, resultScale));
+        if (resultPrecision < paramPrecision) {
+            throw new IllegalArgumentException("Parameter's type's precision (" + paramPrecision + ") cannot be higher than " +
+                                               "function's type's precision (" + resultPrecision + ")");
+        }
+
+        return String.format(DECIMAL_PATTERN, resultPrecision, Math.max(paramScale, resultScale));
     }
 
 }
