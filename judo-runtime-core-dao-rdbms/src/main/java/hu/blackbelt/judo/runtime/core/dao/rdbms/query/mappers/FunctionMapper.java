@@ -362,9 +362,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("MAX({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
-        functionBuilderMap.put(FunctionSignature.AVG_DECIMAL, c ->
-                c.builder.pattern("AVG({0})")
-                        .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+        functionBuilderMap.put(FunctionSignature.AVG_DECIMAL, c -> {
+            RdbmsField param0 = c.parameters.get(ParameterName.NUMBER);
+            return c.builder.pattern("AVG(CAST({0} AS " + getAverageParameterType(c, param0) + "))")
+                            .parameters(List.of(param0));
+        });
 
         functionBuilderMap.put(FunctionSignature.AVG_DATE, c ->
                 c.builder.pattern("AVG({0})")
@@ -554,6 +556,31 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
             }
         }
         return result;
+    }
+
+    private static String getAverageParameterType(FunctionContext c, RdbmsField param0) {
+        int paramPrecision = DEFAULT_PRECISION;
+        int paramScale = DEFAULT_SCALE;
+        if (param0 instanceof RdbmsColumn) {
+            DomainConstraints constraints = ((RdbmsColumn) param0).getSourceDomainConstraints();
+            if (constraints != null) {
+                paramPrecision = Objects.requireNonNullElse(constraints.getPrecision(), DEFAULT_PRECISION);
+                paramScale = Objects.requireNonNullElse(constraints.getScale(), DEFAULT_SCALE);
+            }
+        }
+
+        int resultPrecision = c.function.getConstraints().stream()
+                                        .filter(constraint -> ResultConstraint.PRECISION.equals(constraint.getResultConstraint()))
+                                        .map(constraint -> Integer.parseInt(constraint.getValue()))
+                                        .findAny()
+                                        .orElse(DEFAULT_PRECISION);
+        int resultScale = c.function.getConstraints().stream()
+                                    .filter(constraint -> ResultConstraint.SCALE.equals(constraint.getResultConstraint()))
+                                    .map(constraint -> Integer.parseInt(constraint.getValue()))
+                                    .findAny()
+                                    .orElse(DEFAULT_SCALE);
+
+        return String.format(DECIMAL_PATTERN, Math.max(paramPrecision, resultPrecision), Math.max(paramScale, resultScale));
     }
 
 }
