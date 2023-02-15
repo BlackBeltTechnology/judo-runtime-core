@@ -70,11 +70,6 @@ public class RdbmsDecimalType {
         RdbmsDecimalType rdbmsDecimalType = new RdbmsDecimalType();
 
         if (expansionTarget != null) {
-            if (expansionTarget.getPrecisionOrDefault() < this.getPrecisionOrDefault()) {
-                throw new IllegalArgumentException("Expanded type's precision (" + expansionTarget.getPrecisionOrDefault() + ") " +
-                                                   "cannot be smaller than current precision (" + this.getPrecisionOrDefault() + ")");
-            }
-
             rdbmsDecimalType = new RdbmsDecimalType(Math.max(this.getPrecisionOrDefault(), expansionTarget.getPrecisionOrDefault()),
                                                     Math.max(this.getScaleOrDefault(), expansionTarget.getScaleOrDefault()));
         }
