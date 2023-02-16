@@ -47,6 +47,8 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
     @Getter
     private final Map<FunctionSignature, java.util.function.Function<FunctionContext, RdbmsFunction.RdbmsFunctionBuilder>> functionBuilderMap = new LinkedHashMap<>();
 
+    private final String DEFAULT_DECIMAL_TYPE = new RdbmsDecimalType().toSql();
+
     @AllArgsConstructor
     @Builder
     public static class FunctionContext {
@@ -114,7 +116,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.SUBTRACT_INTEGER, functionBuilderMap.get(FunctionSignature.SUBTRACT_DECIMAL));
 
         functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c ->
-                c.builder.pattern("CAST({0} * {1} AS " + RdbmsDecimalType.of(c.function).toSql() + ")")
+                c.builder.pattern("(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + ") * {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
         functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, functionBuilderMap.get(FunctionSignature.MULTIPLE_DECIMAL));
 
@@ -122,37 +124,22 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("FLOOR({0} / {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
-        functionBuilderMap.put(FunctionSignature.DIVIDE_DECIMAL, c -> {
-            RdbmsDecimalType functionType = RdbmsDecimalType.of(c.function);
-            RdbmsField paramLeft = c.parameters.get(ParameterName.LEFT);
-            RdbmsDecimalType paramLeftType = RdbmsDecimalType.of(paramLeft);
-
-            return c.builder.pattern("(CAST({0} as " + paramLeftType.expandWith(functionType).toSql() + ") / {1})")
-                            .parameters(List.of(paramLeft, c.parameters.get(ParameterName.RIGHT)));
-        });
+        functionBuilderMap.put(FunctionSignature.DIVIDE_DECIMAL, c ->
+                c.builder.pattern("(CAST({0} as " + DEFAULT_DECIMAL_TYPE + ") / {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.OPPOSITE_INTEGER, c ->
                 c.builder.pattern("(0 - {0})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
         functionBuilderMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionBuilderMap.get(FunctionSignature.OPPOSITE_INTEGER));
 
-        functionBuilderMap.put(FunctionSignature.INTEGER_ROUND, c -> {
-            RdbmsDecimalType functionType = RdbmsDecimalType.of(c.function);
-            RdbmsField paramNumber = c.parameters.get(ParameterName.NUMBER);
-            RdbmsDecimalType paramNumberType = RdbmsDecimalType.of(paramNumber);
+        functionBuilderMap.put(FunctionSignature.INTEGER_ROUND, c ->
+                c.builder.pattern("ROUND(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + "))")
+                        .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
-            return c.builder.pattern("ROUND(CAST({0} AS " + paramNumberType.expandWith(functionType).toSql() + "))")
-                            .parameters(List.of(paramNumber));
-        });
-
-        functionBuilderMap.put(FunctionSignature.DECIMAL_ROUND, c -> {
-            RdbmsDecimalType functionType = RdbmsDecimalType.of(c.function);
-            RdbmsField paramNumber = c.parameters.get(ParameterName.NUMBER);
-            RdbmsDecimalType paramNumberType = RdbmsDecimalType.of(paramNumber);
-
-            return c.builder.pattern("ROUND(CAST({0} as " + paramNumberType.expandWith(functionType).toSql() + "), {1})")
-                            .parameters(List.of(paramNumber, c.parameters.get(ParameterName.POSITION)));
-        });
+        functionBuilderMap.put(FunctionSignature.DECIMAL_ROUND, c ->
+                c.builder.pattern("ROUND(CAST({0} as " + DEFAULT_DECIMAL_TYPE + "), {1})")
+                        .parameters(List.of(c.parameters.get(ParameterName.NUMBER), c.parameters.get(ParameterName.POSITION))));
 
         functionBuilderMap.put(FunctionSignature.ABSOLUTE_NUMERIC, c ->
                 c.builder.pattern("ABS({0})")
@@ -170,18 +157,9 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("MOD({0}, {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
-        functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c -> {
-            RdbmsDecimalType functionType = RdbmsDecimalType.of(c.function);
-            RdbmsField paramLeft = c.parameters.get(ParameterName.LEFT);
-            RdbmsDecimalType paramLeftType = RdbmsDecimalType.of(paramLeft);
-            RdbmsField paramRight = c.parameters.get(ParameterName.RIGHT);
-            RdbmsDecimalType paramRightType = RdbmsDecimalType.of(paramRight);
-
-            return c.builder.pattern(String.format("(CAST({0} as %1$s) - (FLOOR(CAST({0} AS %1$s) / CAST({1} AS %2$s)) * CAST({1} AS %2$s)))",
-                                                   paramLeftType.expandWith(functionType).toSql(),
-                                                   paramRightType.expandWith(functionType).toSql()))
-                            .parameters(List.of(paramLeft, paramRight));
-        });
+        functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c ->
+                c.builder.pattern("({0} - (FLOOR(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + ") / CAST({1} AS " + DEFAULT_DECIMAL_TYPE + ")) * {1}))")
+                        .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.LENGTH_STRING, c ->
                 c.builder.pattern("LENGTH({0})")
@@ -376,14 +354,9 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                 c.builder.pattern("MAX({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
-        functionBuilderMap.put(FunctionSignature.AVG_DECIMAL, c -> {
-            RdbmsDecimalType functionType = RdbmsDecimalType.of(c.function);
-            RdbmsField paramNumber = c.parameters.get(ParameterName.NUMBER);
-            RdbmsDecimalType paramNumberType = RdbmsDecimalType.of(paramNumber);
-
-            return c.builder.pattern("AVG(CAST({0} AS " + paramNumberType.expandWith(functionType).toSql() + "))")
-                            .parameters(List.of(paramNumber));
-        });
+        functionBuilderMap.put(FunctionSignature.AVG_DECIMAL, c ->
+                c.builder.pattern("AVG(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + "))")
+                        .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
         functionBuilderMap.put(FunctionSignature.AVG_DATE, c ->
                 c.builder.pattern("AVG({0})")

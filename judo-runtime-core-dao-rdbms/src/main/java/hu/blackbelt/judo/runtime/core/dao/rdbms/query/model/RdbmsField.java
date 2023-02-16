@@ -94,15 +94,19 @@ public abstract class RdbmsField {
 
     protected String cast(final String sql, final String typeName, final EAttribute targetAttribute) {
         final String sqlType;
+        final DomainConstraints domainConstraints;
         if (targetAttribute != null) {
-            sqlType = convertDomainConstraintsToSqlType(getDomainConstraints(targetAttribute));
+            domainConstraints = getDomainConstraints(targetAttribute);
+            sqlType = convertDomainConstraintsToSqlType(domainConstraints);
         } else {
+            domainConstraints = null;
             sqlType = "";
         }
         if (typeName != null && !typeName.isBlank()) {
             return "CAST(" + sql + " AS " + typeName + ")";
-        } else if (sqlType != null && !sqlType.isBlank()) {
-            return "CAST(" + sql + " AS " + sqlType + ")";
+        } else if (sqlType != null && !sqlType.isBlank() && domainConstraints != null && domainConstraints.getScale() != null) {
+            // casting before rounding is required to be "compatible" for supported dialects
+            return String.format("CAST(ROUND(CAST(%s AS %s), %d) AS %s)", sql, new RdbmsDecimalType().toSql(), domainConstraints.getScale(), sqlType);
         } else {
             return sql;
         }
