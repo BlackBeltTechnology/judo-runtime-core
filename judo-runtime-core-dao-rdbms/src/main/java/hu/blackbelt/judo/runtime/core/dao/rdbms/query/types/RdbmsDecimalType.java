@@ -12,15 +12,28 @@ public class RdbmsDecimalType {
 
     public static final int DEFAULT_PRECISION = 35;
     public static final int DEFAULT_SCALE = 20;
-    public static final String DECIMAL_PATTERN = "DECIMAL(%d,%d)";
+
+    private static final String DECIMAL_PATTERN = "DECIMAL(%d,%d)";
 
     private final Integer precision;
     private final Integer scale;
 
+    /**
+     * Create an instance of {@link RdbmsDecimalType} with default precision ({@link RdbmsDecimalType#DEFAULT_PRECISION})
+     * and scale {@link RdbmsDecimalType#DEFAULT_SCALE}.
+     */
     public RdbmsDecimalType() {
         this(DEFAULT_PRECISION, DEFAULT_SCALE);
     }
 
+    /**
+     * Create an instance of {@link RdbmsDecimalType}.
+     *
+     * @param precision {@link Integer}
+     * @param scale     {@link Integer}
+     *
+     * @throws IllegalArgumentException If neither precision nor scale is null and precision < scale, or precision is null and DEFAULT_PRECISION < scale.
+     */
     public RdbmsDecimalType(Integer precision, Integer scale) {
         if (precision != null && scale != null && precision < scale) {
             throw new IllegalArgumentException("Precision (" + precision + ") cannot be smaller than scale (" + scale + ")");
@@ -33,6 +46,14 @@ public class RdbmsDecimalType {
         this.scale = scale;
     }
 
+    /**
+     * Construct an {@link RdbmsDecimalType} of {@link RdbmsField} if it's an instance of an {@link RdbmsColumn} and has {@link DomainConstraints}.
+     *
+     * @param rdbmsField {@link RdbmsField}
+     *
+     * @return If <i>rdbmsField</i> is an {@link RdbmsColumn} and has {@link DomainConstraints} returns an {@link RdbmsDecimalType} with precision and scale based on {@link DomainConstraints}.
+     * Otherwise, returns a default {@link RdbmsDecimalType}.
+     */
     public static RdbmsDecimalType of(RdbmsField rdbmsField) {
         RdbmsDecimalType rdbmsDecimalType = new RdbmsDecimalType();
 
@@ -46,6 +67,13 @@ public class RdbmsDecimalType {
         return rdbmsDecimalType;
     }
 
+    /**
+     * Construct an {@link RdbmsDecimalType} of {@link Function}.
+     *
+     * @param function {@link Function}
+     *
+     * @return An {@link RdbmsDecimalType} based on <i>function</i>'s precision and scale properties.
+     */
     public static RdbmsDecimalType of(Function function) {
         RdbmsDecimalType rdbmsDecimalType = new RdbmsDecimalType();
 
@@ -66,6 +94,13 @@ public class RdbmsDecimalType {
         return rdbmsDecimalType;
     }
 
+    /**
+     * Expand current instance of {@link RdbmsDecimalType} with another instance by selecting the max of their precision and scale
+     *
+     * @param expansionTarget {@link RdbmsDecimalType}
+     *
+     * @return Expanded {@link RdbmsDecimalType} with current's- and <i>expansionTarget</i>'s max of precision and scale
+     */
     public RdbmsDecimalType expandWith(RdbmsDecimalType expansionTarget) {
         RdbmsDecimalType rdbmsDecimalType = new RdbmsDecimalType();
 
@@ -82,6 +117,11 @@ public class RdbmsDecimalType {
         return precision;
     }
 
+    /**
+     * Get precision or it's null get {@link RdbmsDecimalType#DEFAULT_PRECISION}
+     *
+     * @return precision it no null, {@link RdbmsDecimalType#DEFAULT_PRECISION} otherwise
+     */
     public Integer getPrecisionOrDefault() {
         return Objects.requireNonNullElse(precision, DEFAULT_PRECISION);
     }
@@ -90,17 +130,34 @@ public class RdbmsDecimalType {
         return scale;
     }
 
+    /**
+     * Get scale or it's null get {@link RdbmsDecimalType#DEFAULT_SCALE}
+     *
+     * @return scale it no null, {@link RdbmsDecimalType#DEFAULT_SCALE} otherwise
+     */
     public Integer getScaleOrDefault() {
         return Objects.requireNonNullElse(scale, DEFAULT_SCALE);
     }
 
+    /**
+     * <p>Generate SQL type from {@link RdbmsDecimalType} instance. To comply mathematical rules, for result precision current instance's precision and scale is added.</p>
+     * <p>E.g.: precision: 10, scale: 2 => DECIMAL(12, 2)</p>
+     *
+     * @return {@link String} containing SQL type from {@link RdbmsDecimalType} instance.
+     */
     public String toSql() {
-        return String.format(DECIMAL_PATTERN, getPrecisionOrDefault(), getScaleOrDefault());
+        Integer scale = getScaleOrDefault();
+        return String.format(DECIMAL_PATTERN, getPrecisionOrDefault() + scale, scale);
     }
 
+    /**
+     * Get current instance of {@link RdbmsDecimalType} in {@link String} form containing actual precision and scale and additionally future sql result.
+     *
+     * @return {@link String} containing actual precision and scale and additionally future sql result. E.g.: "DECIMAL(10, 2) (=> DECIMAL(12, 2))"
+     */
     @Override
     public String toString() {
-        return String.format(DECIMAL_PATTERN, precision, scale);
+        return String.format("%s (=> %s)", String.format(DECIMAL_PATTERN, precision, scale), toSql());
     }
 
 }
