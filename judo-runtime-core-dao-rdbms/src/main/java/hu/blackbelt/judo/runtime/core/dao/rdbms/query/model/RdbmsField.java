@@ -104,9 +104,13 @@ public abstract class RdbmsField {
         }
         if (typeName != null && !typeName.isBlank()) {
             return "CAST(" + sql + " AS " + typeName + ")";
-        } else if (sqlType != null && !sqlType.isBlank() && domainConstraints != null && domainConstraints.getScale() != null) {
-            // casting before rounding is required to be "compatible" for supported dialects
-            return String.format("CAST(ROUND(CAST(%s AS %s), %d) AS %s)", sql, new RdbmsDecimalType().toSql(), domainConstraints.getScale(), sqlType);
+        } else if (sqlType != null && !sqlType.isBlank()) {
+            if (domainConstraints != null && domainConstraints.getScale() != null) {
+                // casting before rounding is required to be "compatible" for supported dialects
+                return String.format("CAST(ROUND(CAST(%s AS %s), %d) AS %s)", sql, new RdbmsDecimalType().toSql(), domainConstraints.getScale(), sqlType);
+            } else {
+                return "CAST(" + sql + " AS " + sqlType + ")";
+            }
         } else {
             return sql;
         }

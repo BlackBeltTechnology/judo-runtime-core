@@ -116,7 +116,8 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.SUBTRACT_INTEGER, functionBuilderMap.get(FunctionSignature.SUBTRACT_DECIMAL));
 
         functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c ->
-                c.builder.pattern("(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + ") * {1})")
+                // date addition relies on decimal multiplication with FIXED decimal properties
+                c.builder.pattern("CAST({0} * {1} AS " + RdbmsDecimalType.of(c.function).toSql() + ")")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
         functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, functionBuilderMap.get(FunctionSignature.MULTIPLE_DECIMAL));
 

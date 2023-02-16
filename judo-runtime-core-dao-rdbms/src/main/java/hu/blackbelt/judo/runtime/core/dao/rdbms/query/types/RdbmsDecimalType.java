@@ -1,11 +1,14 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.query.types;
 
+import hu.blackbelt.judo.meta.query.Function;
+import hu.blackbelt.judo.meta.query.ResultConstraint;
+
 import java.util.Objects;
 
 public class RdbmsDecimalType {
 
     // TODO: env
-    public static final int MAX_PRECISION = 60; // default
+    public static final int MAX_PRECISION = 100; // default
     public static final int MAX_SCALE = 30; // default
 
     private static final String DECIMAL_PATTERN = "DECIMAL(%d,%d)";
@@ -50,6 +53,33 @@ public class RdbmsDecimalType {
 
         this.precision = precision;
         this.scale = scale;
+    }
+
+    /**
+     * Construct an {@link RdbmsDecimalType} of {@link Function}.
+     *
+     * @param function {@link Function}
+     *
+     * @return An {@link RdbmsDecimalType} based on <i>function</i>'s precision and scale properties.
+     */
+    public static RdbmsDecimalType of(Function function) {
+        RdbmsDecimalType rdbmsDecimalType = new RdbmsDecimalType();
+
+        if (function != null) {
+            final Integer precision = function.getConstraints().stream()
+                                              .filter(c -> ResultConstraint.PRECISION.equals(c.getResultConstraint()))
+                                              .map(c -> Integer.parseInt(c.getValue()))
+                                              .findAny()
+                                              .orElse(null);
+            final Integer scale = function.getConstraints().stream()
+                                          .filter(c -> ResultConstraint.SCALE.equals(c.getResultConstraint()))
+                                          .map(c -> Integer.parseInt(c.getValue()))
+                                          .findAny()
+                                          .orElse(null);
+            rdbmsDecimalType = new RdbmsDecimalType(precision, scale);
+        }
+
+        return rdbmsDecimalType;
     }
 
     public Integer getPrecision() {
