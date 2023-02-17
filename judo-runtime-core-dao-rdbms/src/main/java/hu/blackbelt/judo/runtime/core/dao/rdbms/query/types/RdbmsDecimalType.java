@@ -25,9 +25,7 @@ public class RdbmsDecimalType {
     }
 
     /**
-     * <p>Create an instance of {@link RdbmsDecimalType}.</p>
-     * <p>{@link RdbmsDecimalType} handles precision and scale as if scale is part of precision. E.g.: in case of precision: 5 and scale 2
-     * the maximum values are <i>99999.0</i>, <i>9999.9</i>, <i>999.99</i></p>
+     * Create an instance of {@link RdbmsDecimalType}.
      *
      * @param precision {@link Integer}
      * @param scale     {@link Integer}
