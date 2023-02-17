@@ -30,10 +30,11 @@ public class RdbmsDecimalType {
      * @param precision {@link Integer}
      * @param scale     {@link Integer}
      *
-     * @throws IllegalArgumentException If <i>precision</i> is not null and <i>precision</i> > {@link RdbmsDecimalType#MAX_PRECISION}.
-     * @throws IllegalArgumentException If <i>scale</i> is not null and <i>scale</i> > {@link RdbmsDecimalType#MAX_SCALE}.
-     * @throws IllegalArgumentException If <i>precision</i> is not null, <i>scale</i> is not null and <i>precision</i> < <i>scale</i>.
-     * @throws IllegalArgumentException If <i>precision</i> is null, <i>scale</i> is not null and {@link RdbmsDecimalType#MAX_PRECISION} < <i>scale</i>.
+     * @throws IllegalArgumentException
+     * <p>If <i>precision</i> is not null and <i>precision</i> > {@link RdbmsDecimalType#MAX_PRECISION}.</p>
+     * <p>If <i>scale</i> is not null and <i>scale</i> > {@link RdbmsDecimalType#MAX_SCALE}.</p>
+     * <p>If <i>precision</i> is not null, <i>scale</i> is not null and <i>precision</i> < <i>scale</i>.</p>
+     * <p>If <i>precision</i> is null, <i>scale</i> is not null and {@link RdbmsDecimalType#MAX_PRECISION} < <i>scale</i>.</p>
      */
     public RdbmsDecimalType(Integer precision, Integer scale) {
         if (precision != null && precision > MAX_PRECISION) {
