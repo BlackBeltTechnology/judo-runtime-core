@@ -85,9 +85,9 @@ public class RdbmsDecimalType {
     }
 
     /**
-     * Get precision or it's null get {@link RdbmsDecimalType#MAX_PRECISION}
+     * Get precision or if it's null get {@link RdbmsDecimalType#MAX_PRECISION}
      *
-     * @return precision it no null, {@link RdbmsDecimalType#MAX_PRECISION} otherwise
+     * @return precision if not null, {@link RdbmsDecimalType#MAX_PRECISION} otherwise
      */
     public Integer getPrecisionOrDefault() {
         return Objects.requireNonNullElse(precision, MAX_PRECISION);
@@ -98,9 +98,9 @@ public class RdbmsDecimalType {
     }
 
     /**
-     * Get scale or it's null get {@link RdbmsDecimalType#MAX_SCALE}
+     * Get scale or if it's null get {@link RdbmsDecimalType#MAX_SCALE}
      *
-     * @return scale it no null, {@link RdbmsDecimalType#MAX_SCALE} otherwise
+     * @return scale if not null, {@link RdbmsDecimalType#MAX_SCALE} otherwise
      */
     public Integer getScaleOrDefault() {
         return Objects.requireNonNullElse(scale, MAX_SCALE);
