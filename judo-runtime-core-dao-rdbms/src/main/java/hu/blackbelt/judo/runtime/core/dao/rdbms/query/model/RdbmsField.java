@@ -83,7 +83,7 @@ public abstract class RdbmsField {
         if (domainConstraints == null) {
             sqlType = "";
         } else if (domainConstraints.getPrecision() != null) {
-            sqlType = new RdbmsDecimalType(domainConstraints.getPrecision(), domainConstraints.getScale()).toSql();
+            sqlType = new RdbmsDecimalType(domainConstraints.getPrecision() + domainConstraints.getScale(), domainConstraints.getScale()).toSql();
         } else if (domainConstraints.getMaxLength() != null) {
             sqlType = "VARCHAR(" + domainConstraints.getMaxLength() + ")";
         } else {
