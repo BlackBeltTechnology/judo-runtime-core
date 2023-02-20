@@ -24,6 +24,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.Target;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.types.RdbmsDecimalType;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
@@ -77,31 +78,39 @@ public abstract class RdbmsField {
         }
     }
 
-    private String convertDomainConstraintsToCast(final DomainConstraints domainConstraints) {
-        final String typeCasting;
+    private String convertDomainConstraintsToSqlType(final DomainConstraints domainConstraints) {
+        final String sqlType;
         if (domainConstraints == null) {
-            typeCasting = "";
+            sqlType = "";
         } else if (domainConstraints.getPrecision() != null) {
-            typeCasting = "DECIMAL(" + domainConstraints.getPrecision() + (domainConstraints.getScale() != null ? 0 : domainConstraints.getScale()) + (domainConstraints.getScale() != null ? "," + domainConstraints.getScale() : "") + ")";
+            sqlType = new RdbmsDecimalType(domainConstraints.getPrecision() + domainConstraints.getScale(), domainConstraints.getScale()).toSql();
         } else if (domainConstraints.getMaxLength() != null) {
-            typeCasting = "VARCHAR(" + domainConstraints.getMaxLength() + ")";
+            sqlType = "VARCHAR(" + domainConstraints.getMaxLength() + ")";
         } else {
-            typeCasting = "";
+            sqlType = "";
         }
-        return typeCasting;
+        return sqlType;
     }
 
     protected String cast(final String sql, final String typeName, final EAttribute targetAttribute) {
-        final String typeCasting;
+        final String sqlType;
+        final DomainConstraints domainConstraints;
         if (targetAttribute != null) {
-            typeCasting = convertDomainConstraintsToCast(getDomainConstraints(targetAttribute));
+            domainConstraints = getDomainConstraints(targetAttribute);
+            sqlType = convertDomainConstraintsToSqlType(domainConstraints);
         } else {
-            typeCasting = "";
+            domainConstraints = null;
+            sqlType = "";
         }
-        if (typeName != null && typeName.length() > 0) {
+        if (typeName != null && !typeName.isBlank()) {
             return "CAST(" + sql + " AS " + typeName + ")";
-        } else if (typeCasting != null && typeCasting.length() > 0) {
-            return "CAST(" + sql + " AS " + typeCasting + ")";
+        } else if (sqlType != null && !sqlType.isBlank()) {
+            if (domainConstraints != null && domainConstraints.getScale() != null) {
+                // casting before rounding is required to be "compatible" for supported dialects
+                return String.format("CAST(ROUND(CAST(%s AS %s), %d) AS %s)", sql, new RdbmsDecimalType().toSql(), domainConstraints.getScale(), sqlType);
+            } else {
+                return "CAST(" + sql + " AS " + sqlType + ")";
+            }
         } else {
             return sql;
         }

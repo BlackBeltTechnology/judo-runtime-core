@@ -24,6 +24,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.TypeMapping;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.types.RdbmsDecimalType;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Getter;
 import lombok.NonNull;
@@ -77,7 +78,7 @@ public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterM
         sqlTypes.put(BigDecimal.class, vd -> {
             final int precision = ((BigDecimal) vd.value).precision();
             final int scale = ((BigDecimal) vd.value).scale();
-            return "DECIMAL(" + (precision > scale ? precision : scale + 1) + "," + max(scale, 0) + ")";
+            return new RdbmsDecimalType(precision > scale ? precision : scale + 1, max(scale, 0)).toSql();
         });
 
         typePredicates.put(BigInteger.class, vd -> vd.value instanceof BigInteger);
