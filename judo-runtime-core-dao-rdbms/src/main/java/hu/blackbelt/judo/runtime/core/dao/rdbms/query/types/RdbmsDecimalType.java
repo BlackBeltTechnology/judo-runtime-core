@@ -7,9 +7,11 @@ import java.util.Objects;
 
 public class RdbmsDecimalType {
 
-    // TODO: JNG-4468 - Default (and max) precision and scale should be configured with environment variables
-    public static final int MAX_PRECISION = 100; // default
-    public static final int MAX_SCALE = 30; // default
+    // TODO: JNG-4468 - Default (and max) precision and scale should be configured with environment/application variables
+    private static final int MAX_PRECISION = 130;
+    private static final int MAX_SCALE = 30;
+    public static final int DEFAULT_PRECISION = MAX_PRECISION - MAX_SCALE; // considered as maximum value for caller
+    public static final int DEFAULT_SCALE = MAX_PRECISION - DEFAULT_PRECISION; // considered as maximum value for caller
 
     private static final String DECIMAL_PATTERN = "DECIMAL(%d,%d)";
 
@@ -17,11 +19,11 @@ public class RdbmsDecimalType {
     private final Integer scale;
 
     /**
-     * Create an instance of {@link RdbmsDecimalType} with default precision ({@link RdbmsDecimalType#MAX_PRECISION})
-     * and scale {@link RdbmsDecimalType#MAX_SCALE}.
+     * Create an instance of {@link RdbmsDecimalType} with default precision ({@link RdbmsDecimalType#DEFAULT_PRECISION})
+     * and scale {@link RdbmsDecimalType#DEFAULT_SCALE}.
      */
     public RdbmsDecimalType() {
-        this(MAX_PRECISION, MAX_SCALE);
+        this(DEFAULT_PRECISION, DEFAULT_SCALE);
     }
 
     /**
@@ -30,24 +32,37 @@ public class RdbmsDecimalType {
      * @param precision {@link Integer}
      * @param scale     {@link Integer}
      *
-     * @throws IllegalArgumentException
-     * <p>If <i>precision</i> is not null and <i>precision</i> > {@link RdbmsDecimalType#MAX_PRECISION}.</p>
-     * <p>If <i>scale</i> is not null and <i>scale</i> > {@link RdbmsDecimalType#MAX_SCALE}.</p>
-     * <p>If <i>precision</i> is not null, <i>scale</i> is not null and <i>precision</i> < <i>scale</i>.</p>
-     * <p>If <i>precision</i> is null, <i>scale</i> is not null and {@link RdbmsDecimalType#MAX_PRECISION} < <i>scale</i>.</p>
+     * @throws IllegalArgumentException TODO
      */
     public RdbmsDecimalType(Integer precision, Integer scale) {
-        if (precision != null && precision > MAX_PRECISION) {
-            throw new IllegalArgumentException("Precision (" + precision + ") cannot be higher than allowed maximum (" + MAX_PRECISION + ")");
+        // precision check
+        if (precision != null && DEFAULT_PRECISION < precision) {
+            throw new IllegalArgumentException("Precision (" + precision + ") cannot be higher than allowed maximum (" + DEFAULT_PRECISION + ")");
         }
-        if (scale != null && scale > MAX_SCALE) {
-            throw new IllegalArgumentException("Scale (" + scale + ") cannot be higher than allowed maximum (" + MAX_SCALE + ")");
+
+        // scale check
+        if (scale != null && DEFAULT_SCALE < scale) {
+            throw new IllegalArgumentException("Scale (" + scale + ") cannot be higher than allowed maximum (" + DEFAULT_SCALE + ")");
         }
+
+        // precision vs scale
         if (precision != null && scale != null && precision < scale) {
             throw new IllegalArgumentException("Precision (" + precision + ") cannot be less than scale (" + scale + ")");
         }
-        if (precision == null && scale != null && MAX_PRECISION < scale) {
-            throw new IllegalArgumentException("Scale (" + scale + ") cannot be higher than maximum precision (" + MAX_PRECISION + ")");
+
+        // precision vs DEFAULT_SCALE
+        if (precision != null && scale == null && precision < DEFAULT_SCALE) {
+            throw new IllegalArgumentException("Precision (" + precision + ") cannot be less than scale (" + DEFAULT_SCALE + ")");
+        }
+
+        // DEFAULT_PRECISION vs scale
+        if (precision == null && scale != null && DEFAULT_PRECISION < scale) {
+            throw new IllegalArgumentException("Precision (" + DEFAULT_PRECISION + ") cannot be less than scale (" + scale + ")");
+        }
+
+        // DEFAULT_PRECISION vs DEFAULT_SCALE
+        if (precision == null && scale == null && DEFAULT_PRECISION < DEFAULT_SCALE) {
+            throw new IllegalArgumentException("Precision (" + DEFAULT_PRECISION + ") cannot be less than scale (" + DEFAULT_SCALE + ")");
         }
 
         this.precision = precision;
@@ -86,12 +101,12 @@ public class RdbmsDecimalType {
     }
 
     /**
-     * Get precision or if it's null get {@link RdbmsDecimalType#MAX_PRECISION}
+     * Get precision or if it's null get {@link RdbmsDecimalType#DEFAULT_PRECISION}
      *
-     * @return precision if not null, {@link RdbmsDecimalType#MAX_PRECISION} otherwise
+     * @return precision if not null, {@link RdbmsDecimalType#DEFAULT_PRECISION} otherwise
      */
     public Integer getPrecisionOrDefault() {
-        return Objects.requireNonNullElse(precision, MAX_PRECISION);
+        return Objects.requireNonNullElse(precision, DEFAULT_PRECISION);
     }
 
     public Integer getScale() {
@@ -99,12 +114,12 @@ public class RdbmsDecimalType {
     }
 
     /**
-     * Get scale or if it's null get {@link RdbmsDecimalType#MAX_SCALE}
+     * Get scale or if it's null get {@link RdbmsDecimalType#DEFAULT_SCALE}
      *
-     * @return scale if not null, {@link RdbmsDecimalType#MAX_SCALE} otherwise
+     * @return scale if not null, {@link RdbmsDecimalType#DEFAULT_SCALE} otherwise
      */
     public Integer getScaleOrDefault() {
-        return Objects.requireNonNullElse(scale, MAX_SCALE);
+        return Objects.requireNonNullElse(scale, DEFAULT_SCALE);
     }
 
     /**
@@ -114,6 +129,20 @@ public class RdbmsDecimalType {
      */
     public String toSql() {
         return String.format(DECIMAL_PATTERN, getPrecisionOrDefault(), getScaleOrDefault());
+    }
+
+    /**
+     * Cut result according to target scale
+     */
+    public static String cutResult(String result, String targetSqlType, Integer scale) {
+        String defaultType = new RdbmsDecimalType().toSql();
+        if (scale != null && scale == 0) {
+            return String.format("CAST(FLOOR(CAST(%s AS %s)) AS %s)", result, defaultType, targetSqlType);
+        } else {
+            String zeros = "0".repeat(Objects.requireNonNullElse(scale, DEFAULT_SCALE));
+            return String.format("CAST(CAST(FLOOR(CAST(%s AS %s) * 1%s) AS %s) / 1%s AS %s)",
+                                 result, defaultType, zeros, defaultType, zeros, targetSqlType);
+        }
     }
 
     /**

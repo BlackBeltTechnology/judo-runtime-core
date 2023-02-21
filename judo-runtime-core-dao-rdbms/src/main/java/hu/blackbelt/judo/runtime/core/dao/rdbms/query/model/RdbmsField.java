@@ -106,8 +106,7 @@ public abstract class RdbmsField {
             return "CAST(" + sql + " AS " + typeName + ")";
         } else if (sqlType != null && !sqlType.isBlank()) {
             if (domainConstraints != null && domainConstraints.getScale() != null) {
-                // casting before rounding is required to be "compatible" for supported dialects
-                return String.format("CAST(ROUND(CAST(%s AS %s), %d) AS %s)", sql, new RdbmsDecimalType().toSql(), domainConstraints.getScale(), sqlType);
+                return RdbmsDecimalType.cutResult(sql, sqlType, domainConstraints.getScale());
             } else {
                 return "CAST(" + sql + " AS " + sqlType + ")";
             }
