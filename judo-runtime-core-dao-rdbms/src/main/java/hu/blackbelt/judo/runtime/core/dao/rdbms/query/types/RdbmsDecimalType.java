@@ -8,7 +8,7 @@ import java.util.Objects;
 public class RdbmsDecimalType {
 
     // TODO: JNG-4468 - Default (and max) precision and scale should be configured with environment/application variables
-    private static final int MAX_PRECISION = 100;
+    private static final int MAX_PRECISION = 130;
     private static final int MAX_SCALE = 30;
     public static final int DEFAULT_PRECISION = MAX_PRECISION - MAX_SCALE; // considered as maximum value for caller
     public static final int DEFAULT_SCALE = MAX_PRECISION - DEFAULT_PRECISION; // considered as maximum value for caller
