@@ -34,6 +34,7 @@ import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EObject;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -114,10 +115,22 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
         functionBuilderMap.put(FunctionSignature.SUBTRACT_INTEGER, functionBuilderMap.get(FunctionSignature.SUBTRACT_DECIMAL));
 
-        functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c ->
-                // date addition relies on decimal multiplication with FIXED decimal properties
-                c.builder.pattern("CAST({0} * {1} AS " + RdbmsDecimalType.of(c.function).toSql() + ")")
-                        .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
+        functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c -> {
+            String pattern= "({0} * {1})";
+
+            EObject functionContainer = c.function.eContainer();
+
+            if (functionContainer instanceof Function) {
+                switch (((Function) functionContainer).getSignature()) {
+                    case ADD_TIME: case ADD_DATE: case ADD_TIMESTAMP:
+                        // date addition relies on decimal multiplication with FIXED decimal properties
+                        pattern = "CAST({0} * {1} AS " + RdbmsDecimalType.of(c.function).toSql() + ")";
+                }
+            }
+
+            return c.builder.pattern(pattern)
+                            .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)));
+        });
 
         functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, c ->
                 c.builder.pattern("({0} * {1})")
@@ -137,7 +150,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionBuilderMap.get(FunctionSignature.OPPOSITE_INTEGER));
 
         functionBuilderMap.put(FunctionSignature.INTEGER_ROUND, c ->
-                c.builder.pattern("ROUND(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + "))")
+                c.builder.pattern("ROUND({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
         functionBuilderMap.put(FunctionSignature.DECIMAL_ROUND, c ->
