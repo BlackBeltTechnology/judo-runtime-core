@@ -115,26 +115,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
         functionBuilderMap.put(FunctionSignature.SUBTRACT_INTEGER, functionBuilderMap.get(FunctionSignature.SUBTRACT_DECIMAL));
 
-        functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c -> {
-            String pattern= "({0} * {1})";
-
-            EObject functionContainer = c.function.eContainer();
-
-            if (functionContainer instanceof Function) {
-                switch (((Function) functionContainer).getSignature()) {
-                    case ADD_TIME: case ADD_DATE: case ADD_TIMESTAMP:
-                        // date addition relies on decimal multiplication with FIXED decimal properties
-                        pattern = "CAST({0} * {1} AS " + RdbmsDecimalType.of(c.function).toSql() + ")";
-                }
-            }
-
-            return c.builder.pattern(pattern)
-                            .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)));
-        });
-
-        functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, c ->
-                c.builder.pattern("({0} * {1})")
+        functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c ->
+                // date addition relies on decimal multiplication with FIXED decimal properties
+                c.builder.pattern("CAST({0} * {1} AS " + RdbmsDecimalType.of(c.function).toSql() + ")")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
+        functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, functionBuilderMap.get(FunctionSignature.MULTIPLE_DECIMAL));
 
         functionBuilderMap.put(FunctionSignature.DIVIDE_INTEGER, c ->
                 c.builder.pattern("FLOOR({0} / {1})")
