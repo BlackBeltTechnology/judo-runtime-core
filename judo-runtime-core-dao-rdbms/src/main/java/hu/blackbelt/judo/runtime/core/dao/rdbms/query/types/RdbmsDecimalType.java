@@ -1,9 +1,5 @@
 package hu.blackbelt.judo.runtime.core.dao.rdbms.query.types;
 
-import hu.blackbelt.judo.meta.query.Function;
-import hu.blackbelt.judo.meta.query.ResultConstraint;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField.DomainConstraints;
-
 import java.util.Objects;
 
 public class RdbmsDecimalType {
@@ -109,20 +105,6 @@ public class RdbmsDecimalType {
      */
     public String toSql() {
         return String.format(DECIMAL_PATTERN, getPrecisionOrDefault(), getScaleOrDefault());
-    }
-
-    /**
-     * Cut result according to target scale
-     */
-    public static String cutResult(String result, String targetSqlType, Integer scale) {
-        String defaultType = new RdbmsDecimalType().toSql();
-        if (scale != null && scale == 0) {
-            return String.format("CAST(FLOOR(CAST(%s AS %s)) AS %s)", result, defaultType, targetSqlType);
-        } else {
-            String zeros = "0".repeat(Objects.requireNonNullElse(scale, DEFAULT_SCALE));
-            return String.format("CAST(CAST(FLOOR(CAST(%s AS %s) * 1%s) AS %s) / 1%s AS %s)",
-                                 result, defaultType, zeros, defaultType, zeros, targetSqlType);
-        }
     }
 
     /**

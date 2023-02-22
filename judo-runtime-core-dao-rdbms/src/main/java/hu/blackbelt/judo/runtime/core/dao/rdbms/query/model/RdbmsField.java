@@ -111,7 +111,14 @@ public abstract class RdbmsField {
         } else if (sqlType != null && !sqlType.isBlank()) {
             if (domainConstraints != null && domainConstraints.getPrecision() != null && domainConstraints.getScale() != null
                 && (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION || domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE)) {
-                return RdbmsDecimalType.cutResult(sql, sqlType, domainConstraints.getScale());
+                String defaultType = new RdbmsDecimalType().toSql();
+                if (domainConstraints.getScale() == 0) {
+                    return String.format("CAST(FLOOR(CAST(%s AS %s)) AS %s)", sql, defaultType, sqlType);
+                } else {
+                    String zeros = "0".repeat(domainConstraints.getScale());
+                    return String.format("CAST(CAST(FLOOR(CAST(%s AS %s) * 1%s) AS %s) / 1%s AS %s)",
+                                         sql, defaultType, zeros, defaultType, zeros, sqlType);
+                }
             } else {
                 return "CAST(" + sql + " AS " + sqlType + ")";
             }
