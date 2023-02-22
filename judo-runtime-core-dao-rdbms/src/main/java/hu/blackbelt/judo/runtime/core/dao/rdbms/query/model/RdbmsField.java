@@ -41,6 +41,10 @@ import java.util.Optional;
 @NoArgsConstructor
 public abstract class RdbmsField {
 
+    // TODO: environment/application variable
+    private static final int FLOATING_POINT_TYPE_MAX_PRECISION = 15;
+    private static final int FLOATING_POINT_TYPE_MAX_SCALE = 4;
+
     protected String alias;
 
     protected Target target;
@@ -105,7 +109,8 @@ public abstract class RdbmsField {
         if (typeName != null && !typeName.isBlank()) {
             return "CAST(" + sql + " AS " + typeName + ")";
         } else if (sqlType != null && !sqlType.isBlank()) {
-            if (domainConstraints != null && domainConstraints.getScale() != null) {
+            if (domainConstraints != null && domainConstraints.getPrecision() != null && domainConstraints.getScale() != null
+                && (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION || domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE)) {
                 return RdbmsDecimalType.cutResult(sql, sqlType, domainConstraints.getScale());
             } else {
                 return "CAST(" + sql + " AS " + sqlType + ")";
