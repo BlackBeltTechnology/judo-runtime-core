@@ -26,6 +26,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.types.RdbmsDecimalType;
+import hu.blackbelt.judo.runtime.core.query.Constants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -112,14 +113,35 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.SUBTRACT_DECIMAL, c ->
                 c.builder.pattern("({0} - {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
-
         functionBuilderMap.put(FunctionSignature.SUBTRACT_INTEGER, functionBuilderMap.get(FunctionSignature.SUBTRACT_DECIMAL));
 
-        functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c ->
-                // date addition relies on decimal multiplication with FIXED decimal properties
-                c.builder.pattern("CAST({0} * {1} AS " + RdbmsDecimalType.of(c.function).toSql() + ")")
+        functionBuilderMap.put(FunctionSignature.MULTIPLE_DECIMAL, c -> {
+            Optional<Integer> measurePrecision =
+                    c.function.getConstraints().stream()
+                              .filter(cc -> cc.getResultConstraint().equals(ResultConstraint.PRECISION)
+                                            && cc.getValue().equals(String.valueOf(Constants.MEASURE_CONVERTING_PRECISION)))
+                              .map(cc -> Integer.valueOf(cc.getValue()))
+                              .findAny();
+            Optional<Integer> measureScale =
+                    c.function.getConstraints().stream()
+                              .filter(cc -> cc.getResultConstraint().equals(ResultConstraint.SCALE)
+                                            && cc.getValue().equals(String.valueOf(Constants.MEASURE_CONVERTING_SCALE)))
+                              .map(cc -> Integer.valueOf(cc.getValue()))
+                              .findAny();
+            final String pattern;
+            if (measurePrecision.isPresent() && measureScale.isPresent()) {
+                // timestamp, date and time arithmetics rely on certain, predefined precision and scale properties
+                pattern = "CAST({0} * {1} AS " + new RdbmsDecimalType(measurePrecision.get(), measureScale.get()).toSql() + ")";
+            } else {
+                pattern = "({0} * {1})";
+            }
+            return c.builder.pattern(pattern)
+                            .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT)));
+        });
+
+        functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, c ->
+                c.builder.pattern("({0} * {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
-        functionBuilderMap.put(FunctionSignature.MULTIPLE_INTEGER, functionBuilderMap.get(FunctionSignature.MULTIPLE_DECIMAL));
 
         functionBuilderMap.put(FunctionSignature.DIVIDE_INTEGER, c ->
                 c.builder.pattern("FLOOR({0} / {1})")
@@ -135,11 +157,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.OPPOSITE_DECIMAL, functionBuilderMap.get(FunctionSignature.OPPOSITE_INTEGER));
 
         functionBuilderMap.put(FunctionSignature.INTEGER_ROUND, c ->
-                c.builder.pattern("ROUND(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + "))")
+                c.builder.pattern("ROUND({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
         functionBuilderMap.put(FunctionSignature.DECIMAL_ROUND, c ->
-                c.builder.pattern("ROUND(CAST({0} as " + DEFAULT_DECIMAL_TYPE + "), {1})")
+                c.builder.pattern("ROUND({0}, {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER), c.parameters.get(ParameterName.POSITION))));
 
         functionBuilderMap.put(FunctionSignature.ABSOLUTE_NUMERIC, c ->
@@ -159,7 +181,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.MODULO_DECIMAL, c ->
-                c.builder.pattern("({0} - (FLOOR(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + ") / CAST({1} AS " + DEFAULT_DECIMAL_TYPE + ")) * {1}))")
+                c.builder.pattern("({0} - (FLOOR(CAST({0} AS " + DEFAULT_DECIMAL_TYPE + ") / {1}) * {1}))")
                         .parameters(List.of(c.parameters.get(ParameterName.LEFT), c.parameters.get(ParameterName.RIGHT))));
 
         functionBuilderMap.put(FunctionSignature.LENGTH_STRING, c ->
