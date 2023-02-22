@@ -33,7 +33,13 @@ public class RdbmsDecimalType {
      * @param precision {@link Integer}
      * @param scale     {@link Integer}
      *
-     * @throws IllegalArgumentException TODO
+     * @throws IllegalArgumentException
+     * <p>precision is not null and {@link RdbmsDecimalType#DEFAULT_PRECISION} < precision</p>
+     * <p>OR scale is not null and {@link RdbmsDecimalType#DEFAULT_SCALE} < scale</p>
+     * <p>OR precision is not null, scale is not null and precision < scale</p>
+     * <p>OR precision is not null, scale is null and precision < {@link RdbmsDecimalType#DEFAULT_SCALE}</p>
+     * <p>OR precision is null, scale is not null and {@link RdbmsDecimalType#DEFAULT_PRECISION} < scale</p>
+     * <p>OR precision is null, scale is null and {@link RdbmsDecimalType#DEFAULT_PRECISION} < {@link RdbmsDecimalType#DEFAULT_SCALE}</p>
      */
     public RdbmsDecimalType(Integer precision, Integer scale) {
         // precision check
