@@ -41,6 +41,10 @@ import java.util.Optional;
 @NoArgsConstructor
 public abstract class RdbmsField {
 
+    // TODO: JNG-4561: Floating point type's max precision and scale should be configured with environment/application variable
+    private static final int FLOATING_POINT_TYPE_MAX_PRECISION = 15;
+    private static final int FLOATING_POINT_TYPE_MAX_SCALE = 4;
+
     protected String alias;
 
     protected Target target;
@@ -105,9 +109,16 @@ public abstract class RdbmsField {
         if (typeName != null && !typeName.isBlank()) {
             return "CAST(" + sql + " AS " + typeName + ")";
         } else if (sqlType != null && !sqlType.isBlank()) {
-            if (domainConstraints != null && domainConstraints.getScale() != null) {
-                // casting before rounding is required to be "compatible" for supported dialects
-                return String.format("CAST(ROUND(CAST(%s AS %s), %d) AS %s)", sql, new RdbmsDecimalType().toSql(), domainConstraints.getScale(), sqlType);
+            if (domainConstraints != null && domainConstraints.getPrecision() != null && domainConstraints.getScale() != null
+                && (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION || domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE)) {
+                String defaultType = new RdbmsDecimalType().toSql();
+                if (domainConstraints.getScale() == 0) {
+                    return String.format("CAST(FLOOR(CAST(%s AS %s)) AS %s)", sql, defaultType, sqlType);
+                } else {
+                    String zeros = "0".repeat(domainConstraints.getScale());
+                    return String.format("CAST(CAST(FLOOR(CAST(%s AS %s) * 1%s) AS %s) / 1%s AS %s)",
+                                         sql, defaultType, zeros, defaultType, zeros, sqlType);
+                }
             } else {
                 return "CAST(" + sql + " AS " + sqlType + ")";
             }
