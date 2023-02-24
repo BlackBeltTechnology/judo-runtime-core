@@ -49,8 +49,8 @@
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2.20230224_005027_7ac14387_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-rdbms-version>
         <judo-meta-asm-version>1.1.4.20230224_005051_9e26dc01_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20230224_005259_ed65bb73_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.5.20230223_142240_49c15c5d_develop</judo-meta-expression-asm-version>
+        <judo-meta-expression-version>1.0.5.20230224_012518_d8634027_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.5.20230224_021018_4b26b063_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.2.20230224_005004_f1433f2a_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20230224_004951_997835a7_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.3.20230224_004959_458dcb77_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-meta-query-version>
@@ -61,7 +61,7 @@
 
         <structured-map-proxy-version>1.2.0</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.6.20230220_171051_377914d1_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20230224_021226_671cb32e_feature_JNG_4269_SemiAutomaticSchemaUpgrade</judo-tatami-base-version>
 
         <mapper-version>1.0.3</mapper-version>
         <osgi-filestore-version>1.3.1.20230131_040907_5db51bf4_develop</osgi-filestore-version>
