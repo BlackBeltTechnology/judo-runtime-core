@@ -45,6 +45,7 @@ import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.JudoHsqldbModules;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 import org.junit.jupiter.api.*;
 
 import java.util.HashMap;
@@ -73,12 +74,13 @@ class JudoDefaultHsqldbModuleTest {
     	    	
 
         AsmModel asmModel = AsmModel.buildAsmModel()
-                .name("judo")
                 .resourceSet(AsmModelResourceSupport.createAsmResourceSet())
                 .build();
 
+        asmModel.getAsmModelResourceSupport().addContent(EPackageBuilder.create()
+                .withName("judo").withNsPrefix("judo").withNsURI("http://blackbelt.hu/test/judo/judo").build());
+
         RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name("judo")
                 .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
                 .build();
 
@@ -92,17 +94,17 @@ class JudoDefaultHsqldbModuleTest {
         }
 
         MeasureModel measureModel = MeasureModel.buildMeasureModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(MeasureModelResourceSupport.createMeasureResourceSet())
                 .build();
 
         ExpressionModel expressionModel = ExpressionModel.buildExpressionModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
                 .build();
 
         LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
                 .build();
 
