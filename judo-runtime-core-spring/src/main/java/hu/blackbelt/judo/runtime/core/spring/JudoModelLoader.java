@@ -133,7 +133,6 @@ public class JudoModelLoader {
                 .validateModel(validate));
 
         RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name(asmModel.getName())
                 .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
                 .build();
 
@@ -146,8 +145,7 @@ public class JudoModelLoader {
                 .resourceSet(rdbmsModel.getResourceSet())
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-rdbms_" + dialect.getName() +".model").toURL().openStream())
                 .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-rdbms_" + dialect.getName() + ".model"))
-                .validateModel(validate)
-                .name(asmModel.getName()));
+                .validateModel(validate));
 
         MeasureModel measureModel = MeasureModel.loadMeasureModel(MeasureModel.LoadArguments.measureLoadArgumentsBuilder()
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-measure.model").toURL().openStream())

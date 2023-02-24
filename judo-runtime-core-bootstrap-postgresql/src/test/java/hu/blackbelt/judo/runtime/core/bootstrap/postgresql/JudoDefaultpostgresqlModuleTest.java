@@ -98,7 +98,6 @@ class JudoDefaultpostgresqlModuleTest {
                 .withName("judo").withNsPrefix("judo").withNsURI("http://blackbelt.hu/test/judo/judo").build());
 
         RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name("judo")
                 .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
                 .build();
 
@@ -112,17 +111,17 @@ class JudoDefaultpostgresqlModuleTest {
         }
 
         MeasureModel measureModel = MeasureModel.buildMeasureModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(MeasureModelResourceSupport.createMeasureResourceSet())
                 .build();
 
         ExpressionModel expressionModel = ExpressionModel.buildExpressionModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
                 .build();
 
         LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
                 .build();
 
