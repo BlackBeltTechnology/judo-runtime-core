@@ -48,6 +48,7 @@ import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.JudoPostgre
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql.PostgresqlDataSourceProvider;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -89,12 +90,14 @@ class JudoDefaultpostgresqlModuleTest {
         sqlContainer.start();
 
         AsmModel asmModel = AsmModel.buildAsmModel()
-                .name("judo")
                 .resourceSet(AsmModelResourceSupport.createAsmResourceSet())
                 .build();
 
+
+        asmModel.getAsmModelResourceSupport().addContent(EPackageBuilder.create()
+                .withName("judo").withNsPrefix("judo").withNsURI("http://blackbelt.hu/test/judo/judo").build());
+
         RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name("judo")
                 .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
                 .build();
 
@@ -108,17 +111,17 @@ class JudoDefaultpostgresqlModuleTest {
         }
 
         MeasureModel measureModel = MeasureModel.buildMeasureModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(MeasureModelResourceSupport.createMeasureResourceSet())
                 .build();
 
         ExpressionModel expressionModel = ExpressionModel.buildExpressionModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
                 .build();
 
         LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
-                .name("judo")
+                .name(asmModel.getName())
                 .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
                 .build();
 

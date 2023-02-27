@@ -130,34 +130,9 @@ public class JudoModelLoader {
         AsmModel asmModel = AsmModel.loadAsmModel(asmLoadArgumentsBuilder()
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-asm.model").toURL().openStream())
                 .uri(org.eclipse.emf.common.util.URI.createURI(modelName + "-asm.model"))
-                .validateModel(validate)
-                .name(modelName));
-
-        String modelNameFromAsm;
-
-        if (asmModel.getResourceSet().getResources().get(0).getAllContents().hasNext()) {
-            EObject o = asmModel.getResourceSet().getResources().get(0).getAllContents().next();
-            if (o instanceof EPackage) {
-                EPackage ePackage = (EPackage) o;
-                modelNameFromAsm = ePackage.getName();
-            } else {
-                throw new IllegalStateException("Illegal ASM model, root package must be EPackage");
-            }
-        } else {
-            throw new IllegalStateException("Illegal ASM model, empty model");
-        }
-
-        if (!modelNameFromAsm.equals(modelName)) {
-            asmModel = AsmModel.loadAsmModel(asmLoadArgumentsBuilder()
-                    .inputStream(calculateRelativeURI(uri, "/" + modelName + "-asm.model").toURL().openStream())
-                    .uri(org.eclipse.emf.common.util.URI.createURI(modelNameFromAsm + "-asm.model"))
-                    .validateModel(validate)
-                    .name(modelNameFromAsm));
-        }
-
+                .validateModel(validate));
 
         RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .name(modelNameFromAsm)
                 .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
                 .build();
 
@@ -169,27 +144,26 @@ public class JudoModelLoader {
         RdbmsModel.loadRdbmsModel(RdbmsModel.LoadArguments.rdbmsLoadArgumentsBuilder()
                 .resourceSet(rdbmsModel.getResourceSet())
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-rdbms_" + dialect.getName() +".model").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI(modelNameFromAsm+"-rdbms_" + dialect.getName() + ".model"))
-                .validateModel(validate)
-                .name(modelNameFromAsm));
+                .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-rdbms_" + dialect.getName() + ".model"))
+                .validateModel(validate));
 
         MeasureModel measureModel = MeasureModel.loadMeasureModel(MeasureModel.LoadArguments.measureLoadArgumentsBuilder()
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-measure.model").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI(modelNameFromAsm+"-measure.model"))
+                .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-measure.model"))
                 .validateModel(validate)
-                .name(modelNameFromAsm));
+                .name(asmModel.getName()));
 
         ExpressionModel expressionModel = ExpressionModel.loadExpressionModel(ExpressionModel.LoadArguments.expressionLoadArgumentsBuilder()
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-expression.model").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI(modelNameFromAsm+"-expression.model"))
+                .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-expression.model"))
                 .validateModel(validate)
-                .name(modelNameFromAsm));
+                .name(asmModel.getName()));
 
         LiquibaseModel liquibaseModel = LiquibaseModel.loadLiquibaseModel(LiquibaseModel.LoadArguments.liquibaseLoadArgumentsBuilder()
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-liquibase_" + dialect.getName() + ".changelog.xml").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI(modelNameFromAsm+"-liquibase_" + dialect.getName() + ".changelog.xml"))
+                .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-liquibase_" + dialect.getName() + ".changelog.xml"))
                 .validateModel(validate)
-                .name(modelNameFromAsm));
+                .name(asmModel.getName()));
 
         Asm2RdbmsTransformationTrace asm2rdbms  = Asm2RdbmsTransformationTrace.fromModelsAndTrace(modelName,
                 asmModel, rdbmsModel,
