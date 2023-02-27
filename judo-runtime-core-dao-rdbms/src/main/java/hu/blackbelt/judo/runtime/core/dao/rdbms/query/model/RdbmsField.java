@@ -110,7 +110,7 @@ public abstract class RdbmsField {
             return "CAST(" + sql + " AS " + typeName + ")";
         } else if (sqlType != null && !sqlType.isBlank()) {
             if (domainConstraints != null && domainConstraints.getPrecision() != null && domainConstraints.getScale() != null
-                && (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION || domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE)) {
+                && (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION || domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE || domainConstraints.getScale() == 0)) {
                 String defaultType = new RdbmsDecimalType().toSql();
                 if (domainConstraints.getScale() == 0) {
                     return String.format("CAST(FLOOR(CAST(%s AS %s)) AS %s)", sql, defaultType, sqlType);
