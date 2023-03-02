@@ -234,36 +234,37 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
 
         functionBuilderMap.put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
             String year = "EXTRACT(YEAR FROM {0})";
-            String month = "LPAD(EXTRACT(MONTH FROM {0}), 2, ''0'')";
-            String day = "LPAD(EXTRACT(DAY FROM {0}), 2, ''0'')";
-            String hour = "LPAD(EXTRACT(HOUR FROM {0}), 2, ''0'')";
-            String minute = "LPAD(EXTRACT(MINUTE FROM {0}), 2, ''0'')";
-            String second = "LPAD(FLOOR(EXTRACT(SECOND FROM {0})), 2, ''0'')";
-            String millis = "MOD(FLOOR(EXTRACT(SECOND FROM {0}) * 1000), 1000)";
-            String timezoneHourSign = "(CASE " +
-                                      "WHEN EXTRACT(TIMEZONE_HOUR FROM {0}) < 0 THEN ''-'' " +
+            String monthPadded = "LPAD(EXTRACT(MONTH FROM {0}), 2, ''0'')";
+            String dayPadded = "LPAD(EXTRACT(DAY FROM {0}), 2, ''0'')";
+
+            String hourPadded = "LPAD(EXTRACT(HOUR FROM {0}), 2, ''0'')";
+            String minutePadded = "LPAD(EXTRACT(MINUTE FROM {0}), 2, ''0'')";
+
+            String milli = "MOD(FLOOR(EXTRACT(SECOND FROM {0}) * 1000), 1000)";
+            String milliPadded = "LPAD(" + milli + ", 3, ''0'')";
+            String secondPadded = "LPAD(FLOOR(EXTRACT(SECOND FROM {0})), 2, ''0'')";
+            String second = "(CASE " +
+                                "WHEN " + milli + " > 0 THEN " + secondPadded + " || ''.'' || " + milliPadded + " " +
+                                "ELSE " + secondPadded +
+                            "END)";
+
+            String timezoneHour = "EXTRACT(TIMEZONE_HOUR FROM {0})";
+            String timezoneMinute = "EXTRACT(TIMEZONE_MINUTE FROM {0})";
+            String timezoneSign = "(CASE " +
+                                      "WHEN " + timezoneHour + " < 0 OR " + timezoneMinute + " < 0 THEN ''-'' " +
                                       "ELSE ''+'' " +
-                                      "END)";
-            String timezoneHour = "LPAD(ABS(EXTRACT(TIMEZONE_HOUR FROM {0})), 2, ''0'')";
-            String timezoneMinute = "LPAD(EXTRACT(TIMEZONE_MINUTE FROM {0}), 2, ''0'')";
+                                  "END)";
+            String timezoneHourPadded = "LPAD(ABS(" + timezoneHour + "), 2, ''0'')";
+            String timezoneMinutePadded = "LPAD(ABS(" + timezoneMinute + "), 2, ''0'')";
+
             return c.builder.pattern("(" +
-                                     year + " ||" +
-                                     "''-'' ||" +
-                                     month + " ||" +
-                                     "''-'' ||" +
-                                     day + " ||" +
-                                     "''T'' ||" +
-                                     hour + " ||" +
-                                     "'':'' ||" +
-                                     minute + " ||" +
-                                     "'':'' ||" +
-                                     second + " ||" +
-                                     "''.'' ||" +
-                                     millis + " ||" +
-                                     timezoneHourSign + " ||" +
-                                     timezoneHour + " ||" +
-                                     "'':'' ||" +
-                                     timezoneMinute +
+                                         year + " || ''-'' || " + monthPadded + " || ''-'' || " + dayPadded + " || " +
+                                         "''T'' || " +
+                                         hourPadded + " || '':'' || " + minutePadded + " || '':'' || " + second + " || " +
+                                         "(CASE " +
+                                             "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
+                                             "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
+                                         "END)" +
                                      ")")
                             .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
         });
@@ -465,11 +466,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.SECONDS_OF_TIMESTAMP, c ->
-                c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                c.builder.pattern("FLOOR(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)))")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.MILLISECONDS_OF_TIMESTAMP, c ->
-                c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER), 1000)")
+                c.builder.pattern("MOD(FLOOR(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000), 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.HOURS_OF_TIME, c ->
