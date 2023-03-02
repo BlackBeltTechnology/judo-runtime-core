@@ -55,10 +55,6 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.ENUM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.CUSTOM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
 
-        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c ->
-                c.builder.pattern("REPLACE(CAST({0} AS TEXT), '' '', ''T'')")
-                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
-
         getFunctionBuilderMap().put(FunctionSignature.MATCHES_STRING, c ->
                 c.builder.pattern("({0} ~ {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));

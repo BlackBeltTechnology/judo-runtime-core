@@ -232,9 +232,41 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.ENUM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.CUSTOM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
 
-        functionBuilderMap.put(FunctionSignature.TIMESTAMP_TO_STRING, c ->
-                c.builder.pattern("REPLACE(CAST({0} AS LONGVARCHAR), '' '', ''T'')")
-                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
+        functionBuilderMap.put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
+            String year = "EXTRACT(YEAR FROM {0})";
+            String month = "LPAD(EXTRACT(MONTH FROM {0}), 2, ''0'')";
+            String day = "LPAD(EXTRACT(DAY FROM {0}), 2, ''0'')";
+            String hour = "LPAD(EXTRACT(HOUR FROM {0}), 2, ''0'')";
+            String minute = "LPAD(EXTRACT(MINUTE FROM {0}), 2, ''0'')";
+            String second = "LPAD(FLOOR(EXTRACT(SECOND FROM {0})), 2, ''0'')";
+            String millis = "MOD(FLOOR(EXTRACT(SECOND FROM {0}) * 1000), 1000)";
+            String timezoneHourSign = "(CASE " +
+                                      "WHEN EXTRACT(TIMEZONE_HOUR FROM {0}) < 0 THEN ''-'' " +
+                                      "ELSE ''+'' " +
+                                      "END)";
+            String timezoneHour = "LPAD(ABS(EXTRACT(TIMEZONE_HOUR FROM {0})), 2, ''0'')";
+            String timezoneMinute = "LPAD(EXTRACT(TIMEZONE_MINUTE FROM {0}), 2, ''0'')";
+            return c.builder.pattern("(" +
+                                     year + " ||" +
+                                     "''-'' ||" +
+                                     month + " ||" +
+                                     "''-'' ||" +
+                                     day + " ||" +
+                                     "''T'' ||" +
+                                     hour + " ||" +
+                                     "'':'' ||" +
+                                     minute + " ||" +
+                                     "'':'' ||" +
+                                     second + " ||" +
+                                     "''.'' ||" +
+                                     millis + " ||" +
+                                     timezoneHourSign + " ||" +
+                                     timezoneHour + " ||" +
+                                     "'':'' ||" +
+                                     timezoneMinute +
+                                     ")")
+                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
+        });
 
         functionBuilderMap.put(FunctionSignature.UPPER_STRING, c ->
                 c.builder.pattern("UPPER({0})")
