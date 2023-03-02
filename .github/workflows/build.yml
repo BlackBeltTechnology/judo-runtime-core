@@ -125,7 +125,7 @@ jobs:
         continue-on-error: true
         run: |-
           ./mvnw -B -Dstyle.color=always \
-          -Dsonar.projectKey=judo-rumtime-core \
+          -Dsonar.projectKey=judo-runtime-core \
           -Dsonar.host.url=https://sonar.judo.technology \
           -Dsonar.login=${{ secrets.JUDO_SONAR_TOKEN }} \
           sonar:sonar
