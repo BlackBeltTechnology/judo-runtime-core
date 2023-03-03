@@ -96,6 +96,18 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("({0} ~ {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
 
+        getFunctionBuilderMap().put(FunctionSignature.LEFT_PAD, c ->
+                c.builder.pattern("LPAD({0}, {1}, {2})")
+                         .parameters(List.of(c.parameters.get(ParameterName.STRING),
+                                             c.parameters.get(ParameterName.LENGTH),
+                                             c.parameters.get(ParameterName.REPLACEMENT))));
+
+        getFunctionBuilderMap().put(FunctionSignature.RIGHT_PAD, c ->
+                c.builder.pattern("RPAD({0}, {1}, {2})")
+                         .parameters(List.of(c.parameters.get(ParameterName.STRING),
+                                             c.parameters.get(ParameterName.LENGTH),
+                                             c.parameters.get(ParameterName.REPLACEMENT))));
+
         getFunctionBuilderMap().put(FunctionSignature.ADD_DATE, c ->
                 c.builder.pattern("({0} + CAST({1} || '' days'' AS INTERVAL))")
                         .parameters(List.of(c.parameters.get(ParameterName.DATE), c.parameters.get(ParameterName.ADDITION))));

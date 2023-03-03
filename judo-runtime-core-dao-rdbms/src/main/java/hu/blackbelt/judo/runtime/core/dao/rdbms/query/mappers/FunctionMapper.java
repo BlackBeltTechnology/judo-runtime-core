@@ -205,13 +205,13 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
 
         functionBuilderMap.put(FunctionSignature.LEFT_PAD, c ->
-                c.builder.pattern("LPAD({0}, {1}, {2})")
+                c.builder.pattern("LPAD(SUBSTRING({0}, 1, {1}), {1}, {2})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING),
                                             c.parameters.get(ParameterName.LENGTH),
                                             c.parameters.get(ParameterName.REPLACEMENT))));
 
         functionBuilderMap.put(FunctionSignature.RIGHT_PAD, c ->
-                c.builder.pattern("RPAD({0}, {1}, {2})")
+                c.builder.pattern("RPAD(SUBSTRING({0}, 1, {1}), {1}, {2})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING),
                                             c.parameters.get(ParameterName.LENGTH),
                                             c.parameters.get(ParameterName.REPLACEMENT))));
