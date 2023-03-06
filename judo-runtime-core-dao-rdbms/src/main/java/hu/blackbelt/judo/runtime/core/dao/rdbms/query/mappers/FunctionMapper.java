@@ -232,10 +232,6 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.ENUM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.CUSTOM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
 
-        functionBuilderMap.put(FunctionSignature.TIMESTAMP_TO_STRING, c ->
-                c.builder.pattern("REPLACE(CAST({0} AS LONGVARCHAR), '' '', ''T'')")
-                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
-
         functionBuilderMap.put(FunctionSignature.UPPER_STRING, c ->
                 c.builder.pattern("UPPER({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
@@ -433,11 +429,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.SECONDS_OF_TIMESTAMP, c ->
-                c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                c.builder.pattern("FLOOR(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)))")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.MILLISECONDS_OF_TIMESTAMP, c ->
-                c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER), 1000)")
+                c.builder.pattern("MOD(FLOOR(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000), 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.HOURS_OF_TIME, c ->

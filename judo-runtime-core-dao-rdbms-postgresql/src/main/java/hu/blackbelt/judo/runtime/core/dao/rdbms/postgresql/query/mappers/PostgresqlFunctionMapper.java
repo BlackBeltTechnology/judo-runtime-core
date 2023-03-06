@@ -55,9 +55,48 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.ENUM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.CUSTOM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
 
-        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c ->
-                c.builder.pattern("REPLACE(CAST({0} AS TEXT), '' '', ''T'')")
-                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
+            String year = "EXTRACT(YEAR FROM CAST({0} AS TIMESTAMPTZ))";
+            String month = "EXTRACT(MONTH FROM CAST({0} AS TIMESTAMPTZ))";
+            String monthPadded = "LPAD(CAST(" + month + " AS VARCHAR), 2, ''0'')";
+            String day = "EXTRACT(DAY FROM CAST({0} AS TIMESTAMPTZ))";
+            String dayPadded = "LPAD(CAST(" + day + " AS VARCHAR), 2, ''0'')";
+
+            String hour = "EXTRACT(HOUR FROM CAST({0} AS TIMESTAMPTZ))";
+            String hourPadded = "LPAD(CAST(" + hour + " AS VARCHAR), 2, ''0'')";
+            String minute = "EXTRACT(MINUTE FROM CAST({0} AS TIMESTAMPTZ))";
+            String minutePadded = "LPAD(CAST(" + minute + " AS VARCHAR), 2, ''0'')";
+
+            String milli = "MOD(FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMPTZ)) * 1000), 1000)";
+            String milliPadded = "LPAD(CAST(" + milli + " AS VARCHAR), 3, ''0'')";
+            String second = "EXTRACT(SECOND FROM CAST({0} AS TIMESTAMPTZ)))";
+            String secondPadded = "LPAD(CAST(FLOOR(" + second + " AS VARCHAR), 2, ''0'')";
+            // empty string concatenation actually concatenates a whitespace => slightly confusing CASE-WHEN as workaround
+            String secondFormatted = "(CASE " +
+                                         "WHEN " + milli + " > 0 THEN " + secondPadded + " || ''.'' || " + milliPadded + " " +
+                                         "ELSE " + secondPadded +
+                                     "END)";
+
+            String timezoneHour = "EXTRACT(TIMEZONE_HOUR FROM CAST({0} AS TIMESTAMPTZ))";
+            String timezoneMinute = "EXTRACT(TIMEZONE_MINUTE FROM CAST({0} AS TIMESTAMPTZ))";
+            String timezoneSign = "(CASE " +
+                                      "WHEN " + timezoneHour + " < 0 OR " + timezoneMinute + " < 0 THEN ''-'' " +
+                                      "ELSE ''+'' " +
+                                  "END)";
+            String timezoneHourPadded = "LPAD(CAST(ABS(" + timezoneHour + ") AS VARCHAR), 2, ''0'')";
+            String timezoneMinutePadded = "LPAD(CAST(ABS(" + timezoneMinute + ") AS VARCHAR), 2, ''0'')";
+
+            return c.builder.pattern("(" +
+                                         year + " || ''-'' || " + monthPadded + " || ''-'' || " + dayPadded + " || " +
+                                         "''T'' || " +
+                                         hourPadded + " || '':'' || " + minutePadded + " || '':'' || " + secondFormatted + " || " +
+                                         "(CASE " +
+                                             "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
+                                             "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
+                                         "END)" +
+                                     ")")
+                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
+        });
 
         getFunctionBuilderMap().put(FunctionSignature.MATCHES_STRING, c ->
                 c.builder.pattern("({0} ~ {1})")
