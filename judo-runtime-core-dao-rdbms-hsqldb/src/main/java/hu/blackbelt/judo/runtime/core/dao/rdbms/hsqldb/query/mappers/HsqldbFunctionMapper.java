@@ -103,20 +103,22 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
             String timezoneHour = "EXTRACT(TIMEZONE_HOUR FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
             String timezoneMinute = "EXTRACT(TIMEZONE_MINUTE FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
             String timezoneSign = "(CASE " +
-                                  "WHEN " + timezoneHour + " < 0 OR " + timezoneMinute + " < 0 THEN ''-'' " +
-                                  "ELSE ''+'' " +
+                                      "WHEN " + timezoneHour + " < 0 OR " + timezoneMinute + " < 0 THEN ''-'' " +
+                                      "ELSE ''+'' " +
                                   "END)";
             String timezoneHourPadded = "LPAD(ABS(" + timezoneHour + "), 2, ''0'')";
             String timezoneMinutePadded = "LPAD(ABS(" + timezoneMinute + "), 2, ''0'')";
+
+            String timezoneFormatted = "(CASE " +
+                                           "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
+                                           "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
+                                       "END)";
 
             return c.builder.pattern("(" +
                                          year + " || ''-'' || " + monthPadded + " || ''-'' || " + dayPadded + " || " +
                                          "''T'' || " +
                                          hourPadded + " || '':'' || " + minutePadded + " || '':'' || " + secondFormatted + " || " +
-                                         "(CASE " +
-                                             "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
-                                             "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
-                                         "END)" +
+                                         timezoneFormatted +
                                      ")")
                             .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
         });

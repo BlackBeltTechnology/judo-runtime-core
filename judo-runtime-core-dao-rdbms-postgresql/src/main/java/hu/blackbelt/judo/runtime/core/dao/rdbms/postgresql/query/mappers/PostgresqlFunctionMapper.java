@@ -86,14 +86,16 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
             String timezoneHourPadded = "LPAD(CAST(ABS(" + timezoneHour + ") AS VARCHAR), 2, ''0'')";
             String timezoneMinutePadded = "LPAD(CAST(ABS(" + timezoneMinute + ") AS VARCHAR), 2, ''0'')";
 
+            String timezoneFormatted = "(CASE " +
+                                           "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
+                                           "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
+                                       "END)";
+
             return c.builder.pattern("(" +
                                          year + " || ''-'' || " + monthPadded + " || ''-'' || " + dayPadded + " || " +
                                          "''T'' || " +
                                          hourPadded + " || '':'' || " + minutePadded + " || '':'' || " + secondFormatted + " || " +
-                                         "(CASE " +
-                                             "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
-                                             "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
-                                         "END)" +
+                                         timezoneFormatted +
                                      ")")
                             .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
         });
