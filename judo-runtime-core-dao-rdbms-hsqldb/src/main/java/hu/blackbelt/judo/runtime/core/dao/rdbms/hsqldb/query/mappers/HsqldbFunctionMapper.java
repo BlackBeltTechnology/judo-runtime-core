@@ -78,6 +78,49 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("CAST(EXTRACT(DAY_OF_YEAR FROM {0}) AS INTEGER)")
                          .parameters(List.of(c.parameters.get(ParameterName.DATE))));
 
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
+            String year = "EXTRACT(YEAR FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
+            String month = "EXTRACT(MONTH FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
+            String monthPadded = "LPAD(" + month + ", 2, ''0'')";
+            String day = "EXTRACT(DAY FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
+            String dayPadded = "LPAD(" + day + ", 2, ''0'')";
+
+            String hour = "EXTRACT(HOUR FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
+            String hourPadded = "LPAD(" + hour + ", 2, ''0'')";
+            String minute = "EXTRACT(MINUTE FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
+            String minutePadded = "LPAD(" + minute + ", 2, ''0'')";
+
+            String milli = "MOD(FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP WITH TIME ZONE)) * 1000), 1000)";
+            String milliPadded = "LPAD(" + milli + ", 3, ''0'')";
+            String second = "FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP WITH TIME ZONE)))";
+            String secondPadded = "LPAD(" + second + ", 2, ''0'')";
+            // empty string concatenation actually concatenates a whitespace => slightly confusing CASE-WHEN as workaround
+            String secondFormatted = "(CASE " +
+                                         "WHEN " + milli + " > 0 THEN " + secondPadded + " || ''.'' || " + milliPadded + " " +
+                                         "ELSE " + secondPadded +
+                                     "END)";
+
+            String timezoneHour = "EXTRACT(TIMEZONE_HOUR FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
+            String timezoneMinute = "EXTRACT(TIMEZONE_MINUTE FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
+            String timezoneSign = "(CASE " +
+                                  "WHEN " + timezoneHour + " < 0 OR " + timezoneMinute + " < 0 THEN ''-'' " +
+                                  "ELSE ''+'' " +
+                                  "END)";
+            String timezoneHourPadded = "LPAD(ABS(" + timezoneHour + "), 2, ''0'')";
+            String timezoneMinutePadded = "LPAD(ABS(" + timezoneMinute + "), 2, ''0'')";
+
+            return c.builder.pattern("(" +
+                                         year + " || ''-'' || " + monthPadded + " || ''-'' || " + dayPadded + " || " +
+                                         "''T'' || " +
+                                         hourPadded + " || '':'' || " + minutePadded + " || '':'' || " + secondFormatted + " || " +
+                                         "(CASE " +
+                                             "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
+                                             "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
+                                         "END)" +
+                                     ")")
+                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
+        });
+
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
                 c.builder.pattern("DATEADD(YEAR, {0}, {1})")
                          .parameters(List.of(

@@ -232,43 +232,6 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.ENUM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.CUSTOM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
 
-        functionBuilderMap.put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
-            String year = "EXTRACT(YEAR FROM {0})";
-            String monthPadded = "LPAD(EXTRACT(MONTH FROM {0}), 2, ''0'')";
-            String dayPadded = "LPAD(EXTRACT(DAY FROM {0}), 2, ''0'')";
-
-            String hourPadded = "LPAD(EXTRACT(HOUR FROM {0}), 2, ''0'')";
-            String minutePadded = "LPAD(EXTRACT(MINUTE FROM {0}), 2, ''0'')";
-
-            String milli = "MOD(FLOOR(EXTRACT(SECOND FROM {0}) * 1000), 1000)";
-            String milliPadded = "LPAD(" + milli + ", 3, ''0'')";
-            String secondPadded = "LPAD(FLOOR(EXTRACT(SECOND FROM {0})), 2, ''0'')";
-            String second = "(CASE " +
-                                "WHEN " + milli + " > 0 THEN " + secondPadded + " || ''.'' || " + milliPadded + " " +
-                                "ELSE " + secondPadded +
-                            "END)";
-
-            String timezoneHour = "EXTRACT(TIMEZONE_HOUR FROM {0})";
-            String timezoneMinute = "EXTRACT(TIMEZONE_MINUTE FROM {0})";
-            String timezoneSign = "(CASE " +
-                                      "WHEN " + timezoneHour + " < 0 OR " + timezoneMinute + " < 0 THEN ''-'' " +
-                                      "ELSE ''+'' " +
-                                  "END)";
-            String timezoneHourPadded = "LPAD(ABS(" + timezoneHour + "), 2, ''0'')";
-            String timezoneMinutePadded = "LPAD(ABS(" + timezoneMinute + "), 2, ''0'')";
-
-            return c.builder.pattern("(" +
-                                         year + " || ''-'' || " + monthPadded + " || ''-'' || " + dayPadded + " || " +
-                                         "''T'' || " +
-                                         hourPadded + " || '':'' || " + minutePadded + " || '':'' || " + second + " || " +
-                                         "(CASE " +
-                                             "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
-                                             "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
-                                         "END)" +
-                                     ")")
-                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
-        });
-
         functionBuilderMap.put(FunctionSignature.UPPER_STRING, c ->
                 c.builder.pattern("UPPER({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
