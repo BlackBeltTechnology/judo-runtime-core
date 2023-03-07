@@ -66,6 +66,17 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                             .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
         });
 
+        getFunctionBuilderMap().put(FunctionSignature.TO_TIMESTAMP, c ->
+                c.builder.pattern("CAST(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL) || ''+00:00'' AS TIMESTAMPTZ)")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.YEAR),
+                                 c.parameters.get(ParameterName.MONTH),
+                                 c.parameters.get(ParameterName.DAY),
+                                 c.parameters.get(ParameterName.HOUR),
+                                 c.parameters.get(ParameterName.MINUTE),
+                                 c.parameters.get(ParameterName.SECOND)
+                         )));
+
         getFunctionBuilderMap().put(FunctionSignature.MATCHES_STRING, c ->
                 c.builder.pattern("({0} ~ {1})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
