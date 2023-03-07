@@ -79,47 +79,13 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                          .parameters(List.of(c.parameters.get(ParameterName.DATE))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
-            String year = "EXTRACT(YEAR FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
-            String month = "EXTRACT(MONTH FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
-            String monthPadded = "LPAD(" + month + ", 2, ''0'')";
-            String day = "EXTRACT(DAY FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
-            String dayPadded = "LPAD(" + day + ", 2, ''0'')";
+            String timestamp = "REPLACE(TO_CHAR(CAST({0} AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE INTERVAL ''0:00'' HOUR TO MINUTE, ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') || ''Z'' ";
+            String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP))) < EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP)) ";
 
-            String hour = "EXTRACT(HOUR FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
-            String hourPadded = "LPAD(" + hour + ", 2, ''0'')";
-            String minute = "EXTRACT(MINUTE FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
-            String minutePadded = "LPAD(" + minute + ", 2, ''0'')";
-
-            String milli = "MOD(FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP WITH TIME ZONE)) * 1000), 1000)";
-            String milliPadded = "LPAD(" + milli + ", 3, ''0'')";
-            String second = "FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP WITH TIME ZONE)))";
-            String secondPadded = "LPAD(" + second + ", 2, ''0'')";
-            // empty string concatenation actually concatenates a whitespace => slightly confusing CASE-WHEN as workaround
-            String secondFormatted = "(CASE " +
-                                         "WHEN " + milli + " > 0 THEN " + secondPadded + " || ''.'' || " + milliPadded + " " +
-                                         "ELSE " + secondPadded +
-                                     "END)";
-
-            String timezoneHour = "EXTRACT(TIMEZONE_HOUR FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
-            String timezoneMinute = "EXTRACT(TIMEZONE_MINUTE FROM CAST({0} AS TIMESTAMP WITH TIME ZONE))";
-            String timezoneSign = "(CASE " +
-                                      "WHEN " + timezoneHour + " < 0 OR " + timezoneMinute + " < 0 THEN ''-'' " +
-                                      "ELSE ''+'' " +
-                                  "END)";
-            String timezoneHourPadded = "LPAD(ABS(" + timezoneHour + "), 2, ''0'')";
-            String timezoneMinutePadded = "LPAD(ABS(" + timezoneMinute + "), 2, ''0'')";
-
-            String timezoneFormatted = "(CASE " +
-                                           "WHEN " + timezoneHour + " = 0 AND " + timezoneMinute + " = 0 THEN ''Z'' " +
-                                           "ELSE (" + timezoneSign + " || " + timezoneHourPadded + " || '':'' ||" + timezoneMinutePadded + ")" +
-                                       "END)";
-
-            return c.builder.pattern("(" +
-                                         year + " || ''-'' || " + monthPadded + " || ''-'' || " + dayPadded + " || " +
-                                         "''T'' || " +
-                                         hourPadded + " || '':'' || " + minutePadded + " || '':'' || " + secondFormatted + " || " +
-                                         timezoneFormatted +
-                                     ")")
+            return c.builder.pattern("(CASE " +
+                                         "WHEN " + fractionalPartRequired + " THEN " + timestamp.replace("SS", "SS.FF") +
+                                         "ELSE " + timestamp +
+                                     "END)")
                             .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
         });
 
