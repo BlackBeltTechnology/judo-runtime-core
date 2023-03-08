@@ -65,6 +65,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -804,6 +805,12 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         } else {
                                             className = attribute.getEAttributeType().getInstanceClassName();
                                         }
+
+                                        // jdbc adds unnecessary offset from client
+                                        if (AsmUtils.isTimestamp(attribute.getEAttributeType()) && value instanceof Timestamp) {
+                                            value = OffsetDateTime.of(((Timestamp) value).toLocalDateTime(), ZoneOffset.UTC);
+                                        }
+
                                         convertedValue = getCoercer().coerce(value, className);
                                     } else {
                                         convertedValue = null;
