@@ -38,8 +38,8 @@ public class PostgresqlRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMap
                                           @NonNull IdentifierProvider<ID> identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
-        getSqlTypes().put(Timestamp.class, vd -> "TIMESTAMPTZ");
-        getSqlTypes().put(Time.class, vd -> "TIMETZ");
+        getSqlTypes().put(Timestamp.class, vd -> "TIMESTAMP");
+        getSqlTypes().put(Time.class, vd -> "TIME");
         getSqlTypes().put(String.class, vd -> "TEXT");
         getSqlTypes().put(Double.class, vd -> "DOUBLE PRECISION");
 

@@ -38,8 +38,8 @@ public class HsqldbRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<
                                       @NonNull IdentifierProvider<ID> identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
-        getSqlTypes().put(Timestamp.class, vd -> "TIMESTAMP WITH TIME ZONE");
-        getSqlTypes().put(Time.class, vd -> "TIMESTAMP WITH TIME ZONE");
+        getSqlTypes().put(Timestamp.class, vd -> "TIMESTAMP");
+        getSqlTypes().put(Time.class, vd -> "TIME");
         getSqlTypes().put(String.class, vd -> "LONGVARCHAR");
     }
 }
