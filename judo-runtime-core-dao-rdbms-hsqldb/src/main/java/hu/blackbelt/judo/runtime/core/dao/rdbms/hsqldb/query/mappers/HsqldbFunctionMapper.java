@@ -79,8 +79,8 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                          .parameters(List.of(c.parameters.get(ParameterName.DATE))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
-            String timestamp = "REPLACE(TO_CHAR(CAST({0} AS TIMESTAMP), ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') || ''Z'' ";
-            String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP))) < EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP)) ";
+            String timestamp = "REPLACE(TO_CHAR({0}, ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') || ''Z'' ";
+            String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM {0})) < EXTRACT(SECOND FROM {0}) ";
 
             return c.builder.pattern("(CASE " +
                                          "WHEN " + fractionalPartRequired + " THEN " + timestamp.replace("SS", "SS.FF") +
