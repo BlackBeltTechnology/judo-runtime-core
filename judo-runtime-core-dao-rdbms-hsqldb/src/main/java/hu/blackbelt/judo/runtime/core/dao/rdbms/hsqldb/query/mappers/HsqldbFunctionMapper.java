@@ -79,7 +79,7 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                          .parameters(List.of(c.parameters.get(ParameterName.DATE))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
-            String timestamp = "REPLACE(TO_CHAR(CAST({0} AS TIMESTAMP WITH TIME ZONE) AT TIME ZONE INTERVAL ''0:00'' HOUR TO MINUTE, ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') || ''Z'' ";
+            String timestamp = "REPLACE(TO_CHAR(CAST({0} AS TIMESTAMP), ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') || ''Z'' ";
             String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP))) < EXTRACT(SECOND FROM CAST({0} AS TIMESTAMP)) ";
 
             return c.builder.pattern("(CASE " +
@@ -88,17 +88,6 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                                      "END)")
                             .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
         });
-
-        getFunctionBuilderMap().put(FunctionSignature.TO_TIMESTAMP, c ->
-                c.builder.pattern("CAST(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL) || ''+00:00'' AS TIMESTAMP WITH TIME ZONE)")
-                         .parameters(List.of(
-                                 c.parameters.get(ParameterName.YEAR),
-                                 c.parameters.get(ParameterName.MONTH),
-                                 c.parameters.get(ParameterName.DAY),
-                                 c.parameters.get(ParameterName.HOUR),
-                                 c.parameters.get(ParameterName.MINUTE),
-                                 c.parameters.get(ParameterName.SECOND)
-                         )));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
                 c.builder.pattern("DATEADD(YEAR, {0}, {1})")
