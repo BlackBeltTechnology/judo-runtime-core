@@ -104,7 +104,7 @@ public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterM
         typePredicates.put(Time.class, vd -> (vd.value instanceof Time
                 || vd.value instanceof OffsetTime)
                 || (vd.dataType != null && AsmUtils.isTime(vd.dataType)));
-        sqlTypes.put(Time.class, vd -> "TIME WITH TIME ZONE");
+        sqlTypes.put(Time.class, vd -> "TIME");
 
 
         typePredicates.put(LocalTime.class, vd -> vd.value instanceof LocalTime

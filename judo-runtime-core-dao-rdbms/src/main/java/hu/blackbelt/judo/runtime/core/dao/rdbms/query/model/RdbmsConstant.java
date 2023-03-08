@@ -54,12 +54,8 @@ public class RdbmsConstant extends RdbmsField {
                 || parameter.getSqlType() == Types.TINYINT || parameter.getSqlType() == Types.REAL || parameter.getSqlType() == Types.NUMERIC) {
             final BigDecimal value = coercer.coerce(parameter.getValue(), BigDecimal.class);
             sql = value != null ? value.toPlainString() : "NULL";
-        } else if (parameter.getSqlType() == Types.TIMESTAMP) {
-            final String value = coercer.coerce(parameter.getValue(), String.class).replaceAll("Z$", "").replace("T", " ");
-            sql = "CAST(" + (value != null ? "'" + value + "'" : "NULL") + " AS " + parameter.getRdbmsTypeName() + ")";
-        } else if (parameter.getSqlType() == Types.TIMESTAMP_WITH_TIMEZONE) {
-            final String value = coercer.coerce(parameter.getValue(), String.class).replaceAll("Z$", "+00:00").replaceAll("T", " ");
-            sql = "CAST(" + (value != null ? "'" + value + "'" : "NULL") + " AS " + parameter.getRdbmsTypeName() + ")";
+        } else if (parameter.getSqlType() == Types.TIMESTAMP || parameter.getSqlType() == Types.TIMESTAMP_WITH_TIMEZONE) {
+            sql = timestampToSql(coercer);
         } else if (parameter.getSqlType() == Types.TIME) {
             final String value = coercer.coerce(parameter.getValue(), String.class);
             sql = "CAST(" + (value != null ? "'" + value + "'" : "NULL") + " AS " + parameter.getRdbmsTypeName() + ")";
@@ -91,4 +87,18 @@ public class RdbmsConstant extends RdbmsField {
         }
         return getWithAlias(sql, includeAlias);
     }
+
+    private String timestampToSql(Coercer coercer) {
+        final String sql;
+        String valueRaw = coercer.coerce(parameter.getValue(), String.class);
+        final String value;
+        if (valueRaw == null || valueRaw.isBlank()) {
+            value = "NULL";
+        } else {
+            value = valueRaw.replaceAll("Z$", "").replaceAll("T", " ");
+        }
+        sql = "CAST('" + value + "' AS " + parameter.getRdbmsTypeName() + ")";
+        return sql;
+    }
+
 }
