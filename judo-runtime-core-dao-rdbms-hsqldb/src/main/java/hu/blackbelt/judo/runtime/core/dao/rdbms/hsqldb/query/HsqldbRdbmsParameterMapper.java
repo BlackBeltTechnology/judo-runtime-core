@@ -28,6 +28,8 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
 
+import java.sql.Time;
+
 public class HsqldbRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
     @Builder
     public HsqldbRdbmsParameterMapper(@NonNull Coercer coercer,
@@ -35,6 +37,7 @@ public class HsqldbRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<
                                       @NonNull IdentifierProvider<ID> identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
+        getSqlTypes().put(Time.class, vd -> "TIMESTAMP");
         getSqlTypes().put(String.class, vd -> "LONGVARCHAR");
     }
 }
