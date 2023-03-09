@@ -38,6 +38,8 @@ import org.eclipse.emf.ecore.resource.ResourceSet;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -325,6 +327,8 @@ public class PayloadDaoProcessor<ID> {
             } else {
                 return decimal;
             }
+        } else if (getModelAdapter().isTimestamp(entityAttribute.getEAttributeType()) && value instanceof OffsetDateTime) {
+            return ((OffsetDateTime) value).atZoneSameInstant(ZoneOffset.UTC.normalized()).toOffsetDateTime();
         } else {
             return value;
         }
