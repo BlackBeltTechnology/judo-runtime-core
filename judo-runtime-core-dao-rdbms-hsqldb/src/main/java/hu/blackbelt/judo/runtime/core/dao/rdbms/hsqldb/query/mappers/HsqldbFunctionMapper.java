@@ -90,7 +90,7 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
         });
 
         getFunctionBuilderMap().put(FunctionSignature.ADD_TIME, c ->
-                c.builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, {0} AS TIMESTAMP))")
+                c.builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, {0}))")
                          .parameters(List.of(c.parameters.get(ParameterName.TIME), c.parameters.get(ParameterName.ADDITION))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
