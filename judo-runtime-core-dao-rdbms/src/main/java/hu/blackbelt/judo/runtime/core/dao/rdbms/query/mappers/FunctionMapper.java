@@ -232,6 +232,10 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.ENUM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.CUSTOM_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
 
+        functionBuilderMap.put(FunctionSignature.TIMESTAMP_TO_STRING, c ->
+                c.builder.pattern("REPLACE(CAST({0} AS LONGVARCHAR), '' '', ''T'')")
+                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
+
         functionBuilderMap.put(FunctionSignature.UPPER_STRING, c ->
                 c.builder.pattern("UPPER({0})")
                         .parameters(List.of(c.parameters.get(ParameterName.STRING))));
