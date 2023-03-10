@@ -284,11 +284,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START))));
 
         functionBuilderMap.put(FunctionSignature.ADD_TIMESTAMP, c ->
-                c.builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, {0}))")
+                c.builder.pattern("({0} + ({1} / 1000.0) SECOND)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP), c.parameters.get(ParameterName.ADDITION))));
 
         functionBuilderMap.put(FunctionSignature.ADD_TIME, c ->
-                c.builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, CAST({0} AS TIMESTAMP)))")
+                c.builder.pattern("({0} + ({1} / 1000.0) SECOND)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME), c.parameters.get(ParameterName.ADDITION))));
 
         functionBuilderMap.put(FunctionSignature.DIFFERENCE_TIMESTAMP, c ->
@@ -296,7 +296,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START))));
 
         functionBuilderMap.put(FunctionSignature.DIFFERENCE_TIME, c ->
-                c.builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, CAST({1} AS TIMESTAMP), CAST({0} AS TIMESTAMP))")
+                c.builder.pattern("TIMESTAMPDIFF(SQL_TSI_MILLI_SECOND, CAST(CAST({1} AS TIME) AS TIMESTAMP), CAST(CAST({0} AS TIME) AS TIMESTAMP))")
                         .parameters(List.of(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START))));
 
         functionBuilderMap.put(FunctionSignature.IS_UNDEFINED, c ->
@@ -433,11 +433,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.SECONDS_OF_TIMESTAMP, c ->
-                c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER)")
+                c.builder.pattern("FLOOR(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)))")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.MILLISECONDS_OF_TIMESTAMP, c ->
-                c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER), 1000)")
+                c.builder.pattern("MOD(FLOOR(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000), 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.HOURS_OF_TIME, c ->
@@ -479,15 +479,15 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         functionBuilderMap.put(FunctionSignature.TO_TIMESTAMP, c ->
-                c.builder.pattern("CAST(TO_TIMESTAMP(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL), ''YYYY-MM-DD HH24:MI:SS'') AS TIMESTAMP)")
-                        .parameters(List.of(
-                                c.parameters.get(ParameterName.YEAR),
-                                c.parameters.get(ParameterName.MONTH),
-                                c.parameters.get(ParameterName.DAY),
-                                c.parameters.get(ParameterName.HOUR),
-                                c.parameters.get(ParameterName.MINUTE),
-                                c.parameters.get(ParameterName.SECOND)
-                        )));
+                c.builder.pattern("CAST(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL) AS TIMESTAMP)")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.YEAR),
+                                 c.parameters.get(ParameterName.MONTH),
+                                 c.parameters.get(ParameterName.DAY),
+                                 c.parameters.get(ParameterName.HOUR),
+                                 c.parameters.get(ParameterName.MINUTE),
+                                 c.parameters.get(ParameterName.SECOND)
+                         )));
 
         functionBuilderMap.put(FunctionSignature.TO_TIME, c ->
                 c.builder.pattern("CAST(CAST({0} AS INTEGER) || '':'' || CAST({1} AS INTEGER) || '':'' || CAST({2} AS INTEGER) AS TIME)")
