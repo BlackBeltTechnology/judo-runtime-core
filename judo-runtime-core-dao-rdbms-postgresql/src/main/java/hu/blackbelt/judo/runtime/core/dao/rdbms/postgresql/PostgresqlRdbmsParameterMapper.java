@@ -28,9 +28,6 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
 
-import java.sql.Time;
-import java.sql.Timestamp;
-
 public class PostgresqlRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
     @Builder
     private PostgresqlRdbmsParameterMapper(@NonNull Coercer coercer,
@@ -38,8 +35,6 @@ public class PostgresqlRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMap
                                           @NonNull IdentifierProvider<ID> identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
-        getSqlTypes().put(Timestamp.class, vd -> "TIMESTAMPTZ");
-        getSqlTypes().put(Time.class, vd -> "TIMETZ");
         getSqlTypes().put(String.class, vd -> "TEXT");
         getSqlTypes().put(Double.class, vd -> "DOUBLE PRECISION");
 
