@@ -78,6 +78,21 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("CAST(EXTRACT(DAY_OF_YEAR FROM {0}) AS INTEGER)")
                          .parameters(List.of(c.parameters.get(ParameterName.DATE))));
 
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
+            String timestamp = "REPLACE(TO_CHAR({0}, ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') ";
+            String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM {0})) < EXTRACT(SECOND FROM {0}) ";
+
+            return c.builder.pattern("(CASE " +
+                                         "WHEN " + fractionalPartRequired + " THEN " + timestamp.replace("SS", "SS.FF") +
+                                         "ELSE " + timestamp +
+                                     "END)")
+                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
+        });
+
+        getFunctionBuilderMap().put(FunctionSignature.ADD_TIME, c ->
+                c.builder.pattern("TIMESTAMPADD(SQL_TSI_MILLI_SECOND, MOD({1}, 1000), TIMESTAMPADD(SQL_TSI_SECOND, {1} / 1000, {0}))")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIME), c.parameters.get(ParameterName.ADDITION))));
+
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
                 c.builder.pattern("DATEADD(YEAR, {0}, {1})")
                          .parameters(List.of(
