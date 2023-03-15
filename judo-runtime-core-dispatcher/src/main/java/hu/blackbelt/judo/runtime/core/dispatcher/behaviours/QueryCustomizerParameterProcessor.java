@@ -37,9 +37,7 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EEnum;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -159,7 +157,7 @@ public class QueryCustomizerParameterProcessor<ID> {
         } else if (AsmUtils.isTimestamp(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid timestamp operator: " + operator);
-            final String formattedTimestamp = ((OffsetDateTime) value).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            final String formattedTimestamp = ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             return THIS_NAME + "." + attribute.getName() + jqlOperator + "`" + formattedTimestamp + "`";
         } else if (AsmUtils.isTime(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);

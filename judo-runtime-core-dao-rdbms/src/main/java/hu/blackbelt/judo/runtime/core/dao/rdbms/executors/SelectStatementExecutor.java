@@ -65,6 +65,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -196,10 +197,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                         StatementExecutor.ENTITY_VERSION_MAP_KEY, getCoercer().coerce(entityVersionInRecord, Integer.class),
                         StatementExecutor.ENTITY_CREATE_USERNAME_MAP_KEY, getCoercer().coerce(entityCreateUsernameInRecord, String.class),
                         StatementExecutor.ENTITY_CREATE_USER_ID_MAP_KEY, getCoercer().coerce(entityCreateUserIdInRecord, getIdentifierProvider().getType()),
-                        StatementExecutor.ENTITY_CREATE_TIMESTAMP_MAP_KEY, getCoercer().coerce(entityCreateTimestampInRecord, OffsetDateTime.class),
+                        StatementExecutor.ENTITY_CREATE_TIMESTAMP_MAP_KEY, getCoercer().coerce(entityCreateTimestampInRecord, LocalDateTime.class),
                         StatementExecutor.ENTITY_UPDATE_USERNAME_MAP_KEY, getCoercer().coerce(entityUpdateUsernameInRecord, String.class),
                         StatementExecutor.ENTITY_UPDATE_USER_ID_MAP_KEY, getCoercer().coerce(entityUpdateUserIdInRecord, getIdentifierProvider().getType()),
-                        StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY, getCoercer().coerce(entityUpdateTimestampInRecord, OffsetDateTime.class)
+                        StatementExecutor.ENTITY_UPDATE_TIMESTAMP_MAP_KEY, getCoercer().coerce(entityUpdateTimestampInRecord, LocalDateTime.class)
                 ));
             } finally {
                 rdbmsBuilder.getConstantFields().remove();
@@ -754,7 +755,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                                 final Object value;
                                                 if (ENTITY_CREATE_TIMESTAMP_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_TIMESTAMP_MAP_KEY.equals(e.getKey())) {
-                                                    value = getCoercer().coerce(field.getValue(), OffsetDateTime.class);
+                                                    value = getCoercer().coerce(field.getValue(), LocalDateTime.class);
                                                 } else if (ENTITY_CREATE_USER_ID_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_USER_ID_MAP_KEY.equals(e.getKey())) {
                                                     value = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                                                 } else {
@@ -804,6 +805,16 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         } else {
                                             className = attribute.getEAttributeType().getInstanceClassName();
                                         }
+
+                                        // jdbc adds unnecessary offset from client
+                                        if (AsmUtils.isTimestamp(attribute.getEAttributeType()) && value instanceof Timestamp) {
+                                            if (OffsetDateTime.class.getName().equals(className)) {
+                                                value = OffsetDateTime.of(((Timestamp) value).toLocalDateTime(), ZoneOffset.UTC);
+                                            } else if (LocalDateTime.class.getName().equals(className)) {
+                                                value = ((Timestamp) value).toLocalDateTime();
+                                            }
+                                        }
+
                                         convertedValue = getCoercer().coerce(value, className);
                                     } else {
                                         convertedValue = null;

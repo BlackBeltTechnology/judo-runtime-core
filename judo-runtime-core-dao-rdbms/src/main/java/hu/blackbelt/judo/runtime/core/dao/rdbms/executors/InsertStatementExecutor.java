@@ -46,7 +46,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.Types;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -148,7 +148,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                 }
                                 if (insertStatement.getTimestamp() != null) {
                                     insertStatementNamedParameters.addValue(ENTITY_CREATE_TIMESTAMP_MAP_KEY, getCoercer()
-                                            .coerce(insertStatement.getTimestamp(), OffsetDateTime.class), Types.TIMESTAMP_WITH_TIMEZONE);
+                                            .coerce(insertStatement.getTimestamp(), LocalDateTime.class), Types.TIMESTAMP);
                                     metaMapping.put(ENTITY_CREATE_TIMESTAMP_MAP_KEY, ENTITY_CREATE_TIMESTAMP_COLUMN_NAME);
                                 }
                                 if (insertStatement.getUserId() != null) {

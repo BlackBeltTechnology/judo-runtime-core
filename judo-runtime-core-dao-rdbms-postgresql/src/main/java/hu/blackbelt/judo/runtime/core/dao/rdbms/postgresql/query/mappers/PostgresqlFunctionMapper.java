@@ -55,9 +55,16 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.ENUM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.CUSTOM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
 
-        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c ->
-                c.builder.pattern("REPLACE(CAST({0} AS TEXT), '' '', ''T'')")
-                        .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
+            String timestamp = "REPLACE(TO_CHAR({0}, ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') ";
+            String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM {0})) < EXTRACT(SECOND FROM {0}) ";
+
+            return c.builder.pattern("(CASE " +
+                                         "WHEN " + fractionalPartRequired + " THEN " + timestamp.replace("SS", "SS.FF3") +
+                                         "ELSE " + timestamp +
+                                     "END)")
+                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
+        });
 
         getFunctionBuilderMap().put(FunctionSignature.MATCHES_STRING, c ->
                 c.builder.pattern("({0} ~ {1})")
@@ -104,18 +111,18 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
-                c.builder.pattern("(EXTRACT(EPOCH FROM (CAST({0} AS TIMESTAMP))))")
+                c.builder.pattern("(EXTRACT(EPOCH FROM (CAST({0} AS TIMESTAMP))) * 1000)")
                          .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS, c ->
-                c.builder.pattern("TO_TIMESTAMP({0}::double precision / 1000)")
+                c.builder.pattern("CAST(TO_TIMESTAMP({0}::double precision / 1000) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP)")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIME_FROM_SECONDS, c ->
                 c.builder.pattern("CAST(" +
-                                  "CAST(EXTRACT(HOUR from TO_TIMESTAMP({0})) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(MINUTE from TO_TIMESTAMP({0})) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(SECOND from TO_TIMESTAMP({0})) AS INTEGER) " +
+                                      "CAST(EXTRACT(HOUR from CAST(TO_TIMESTAMP({0}) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP)) AS INTEGER) || '':'' || " +
+                                      "CAST(EXTRACT(MINUTE from CAST(TO_TIMESTAMP({0}) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP)) AS INTEGER) || '':'' || " +
+                                      "FLOOR(EXTRACT(SECOND from CAST(TO_TIMESTAMP({0}) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP))) " +
                                   "AS TIME)")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
