@@ -24,7 +24,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder(builderMethodName = "buildMetadata")
@@ -33,5 +33,5 @@ public class Metadata<ID> {
 
     ID userId;
     String username;
-    OffsetDateTime timestamp;
+    LocalDateTime timestamp;
 }
