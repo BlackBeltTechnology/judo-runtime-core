@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.bootstrap.postgresql;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -63,11 +63,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class JudoDefaultpostgresqlModuleTest {
 
     @SuppressWarnings("rawtypes")
-	@Inject
+    @Inject
     DAO dao;
 
     @SuppressWarnings("rawtypes")
-	@Inject
+    @Inject
     Sequence sequence;
 
     @Inject
@@ -76,10 +76,10 @@ class JudoDefaultpostgresqlModuleTest {
     Injector injector;
 
     @SuppressWarnings("rawtypes")
-	JdbcDatabaseContainer sqlContainer;
+    JdbcDatabaseContainer sqlContainer;
 
     @SuppressWarnings({ "rawtypes", "resource" })
-	@BeforeEach
+    @BeforeEach
     void init() throws Exception {
 
 
@@ -141,15 +141,15 @@ class JudoDefaultpostgresqlModuleTest {
                     binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(sqlContainer.getPassword());
                     binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(sqlContainer.getDatabaseName());
                 }),
-        		new JudoDefaultModule(this,
-        				JudoModelLoader.builder()
-			                .asmModel(asmModel)
-			                .rdbmsModel(rdbmsModel)
-			                .measureModel(measureModel)
-			                .expressionModel(expressionModel)
+                new JudoDefaultModule(this,
+                        JudoModelLoader.builder()
+                            .asmModel(asmModel)
+                            .rdbmsModel(rdbmsModel)
+                            .measureModel(measureModel)
+                            .expressionModel(expressionModel)
                             .liquibaseModel(liquibaseModel)
-			                .asm2rdbms(asm2rdbms)
-			                .build()));
+                            .asm2rdbms(asm2rdbms)
+                            .build()));
 
         log.info("DAO: " + dao);
         log.info("Sequence: " + sequence);
@@ -162,7 +162,7 @@ class JudoDefaultpostgresqlModuleTest {
             sqlContainer.stop();
         }
     }
-    
+
     @Test
     void test() {
         assertTrue(true);
