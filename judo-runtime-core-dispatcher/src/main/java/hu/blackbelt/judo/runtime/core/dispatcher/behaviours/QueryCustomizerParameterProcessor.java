@@ -157,11 +157,19 @@ public class QueryCustomizerParameterProcessor<ID> {
         } else if (AsmUtils.isTimestamp(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid timestamp operator: " + operator);
-            final String formattedTimestamp = ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            final String formattedTimestamp;
+            if (value instanceof LocalDateTime) {
+                formattedTimestamp = ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } else if (value instanceof OffsetDateTime) {
+                formattedTimestamp = ((OffsetDateTime) value).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            } else {
+                throw new IllegalArgumentException("Value must be an instance of " + LocalDateTime.class.getName() + " or " + OffsetDateTime.class.getName() + ": " + value.getClass().getName());
+            }
             return THIS_NAME + "." + attribute.getName() + jqlOperator + "`" + formattedTimestamp + "`";
         } else if (AsmUtils.isTime(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid time operator: " + operator);
+            checkArgument(value instanceof LocalTime, "Value must be a local time");
             final String formattedTime = ((LocalTime) value).format(DateTimeFormatter.ISO_LOCAL_TIME);
             return THIS_NAME + "." + attribute.getName() + jqlOperator + "`" + formattedTime + "`";
         } else if (AsmUtils.isEnumeration(attribute.getEAttributeType())) {

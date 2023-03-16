@@ -166,9 +166,17 @@ public class UniqueAttributeValidator<ID> implements Validator {
             final String formattedDate = ((LocalDate) value).format(DateTimeFormatter.ISO_DATE);
             return THIS_NAME + "." + attribute.getName() + "==" + "`" + formattedDate + "`";
         } else if (AsmUtils.isTimestamp(attribute.getEAttributeType())) {
-            final String formattedTimestamp = ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            final String formattedTimestamp;
+            if (value instanceof LocalDateTime) {
+                formattedTimestamp = ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            } else if (value instanceof OffsetDateTime) {
+                formattedTimestamp = ((OffsetDateTime) value).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+            } else {
+                throw new IllegalArgumentException("Value must be an instance of " + LocalDateTime.class.getName() + " or " + OffsetDateTime.class.getName() + ": " + value.getClass().getName());
+            }
             return THIS_NAME + "." + attribute.getName() + "==" + "`" + formattedTimestamp + "`";
         } else if (AsmUtils.isTime(attribute.getEAttributeType())) {
+            checkArgument(value instanceof LocalTime, "Value must be a time");
             final String formattedTime = ((LocalTime) value).format(DateTimeFormatter.ISO_TIME);
             return THIS_NAME + "." + attribute.getName() + "==" + "`" + formattedTime + "`";
         } else if (AsmUtils.isEnumeration(attribute.getEAttributeType())) {
