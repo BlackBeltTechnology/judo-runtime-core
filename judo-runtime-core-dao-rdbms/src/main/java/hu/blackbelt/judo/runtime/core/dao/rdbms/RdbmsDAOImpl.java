@@ -50,7 +50,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import javax.sql.DataSource;
 import java.security.Principal;
 import java.sql.SQLException;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -304,7 +304,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
         final Principal principal = context.getAs(Principal.class, Dispatcher.PRINCIPAL_KEY);
         final Metadata<ID> metadata = Metadata.<ID>buildMetadata()
-                .timestamp(OffsetDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .userId(actor != null ? actor.getAs(identifierProvider.getType(), identifierProvider.getName()) : null)
                 .username(principal != null ? principal.getName() : null)
                 .build();
@@ -458,7 +458,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
         final Principal principal = context.getAs(Principal.class, Dispatcher.PRINCIPAL_KEY);
         final Metadata<ID> metadata = Metadata.<ID>buildMetadata()
-                .timestamp(OffsetDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .userId(actor != null ? actor.getAs(identifierProvider.getType(), identifierProvider.getName()) : null)
                 .username(principal != null ? principal.getName() : null)
                 .build();

@@ -26,7 +26,7 @@ import lombok.Getter;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 
@@ -38,7 +38,7 @@ public class InsertStatement<ID> extends Statement<ID> {
     private final Integer version;
     private final ID userId;
     private final String userName;
-    private final OffsetDateTime timestamp;
+    private final LocalDateTime timestamp;
 
     @Builder(builderMethodName = "buildInsertStatement")
     public InsertStatement(
@@ -49,7 +49,7 @@ public class InsertStatement<ID> extends Statement<ID> {
             Integer version,
             ID userId,
             String username,
-            OffsetDateTime timestamp
+            LocalDateTime timestamp
     ) {
 
         super(InstanceValue

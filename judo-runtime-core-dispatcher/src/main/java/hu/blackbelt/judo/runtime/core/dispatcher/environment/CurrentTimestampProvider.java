@@ -22,22 +22,20 @@ package hu.blackbelt.judo.runtime.core.dispatcher.environment;
 
 import lombok.*;
 
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
+import java.time.*;
 import java.util.function.Supplier;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CurrentTimestampProvider implements Supplier<OffsetDateTime> {
+public class CurrentTimestampProvider implements Supplier<LocalDateTime> {
 
     @Builder.Default
     @Setter
     private ZoneId zoneId = ZoneId.systemDefault();
 
     @Override
-    public OffsetDateTime get() {
-        return OffsetDateTime.now(zoneId).truncatedTo(ChronoUnit.MILLIS);
+    public LocalDateTime get() {
+        return LocalDateTime.now(zoneId);
     }
 }
