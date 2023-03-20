@@ -21,28 +21,28 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  */
 
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
-import hu.blackbelt.judo.meta.expression.numeric.TimeAsSecondsExpression;
+import hu.blackbelt.judo.meta.expression.temporal.TimeFromMillisecondsExpression;
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.meta.query.util.builder.QueryBuilders;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionBuilder;
-import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionParameterBuilder;
 
-public class TimeAsSecondsExpressionToFeatureConverter extends ExpressionToFeatureConverter<TimeAsSecondsExpression> {
+public class TimeFromMillisecondsExpressionToFeatureConverter extends ExpressionToFeatureConverter<TimeFromMillisecondsExpression> {
 
-    public TimeAsSecondsExpressionToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
+    public TimeFromMillisecondsExpressionToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
         super(factory, modelAdapter);
     }
 
     @Override
-    public Feature convert(TimeAsSecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
+    public Feature convert(TimeFromMillisecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
         Feature feature = newFunctionBuilder()
-                .withSignature(FunctionSignature.TIME_AS_SECONDS)
-                .withParameters(newFunctionParameterBuilder()
-                                        .withParameterName(ParameterName.TIME)
-                                        .withParameterValue(factory.convert(expression.getTime(), context, null))
-                                        .build())
+                .withSignature(FunctionSignature.TIME_FROM_MILLISECONDS)
+                .withParameters(QueryBuilders.newFunctionParameterBuilder()
+                                             .withParameterName(ParameterName.NUMBER)
+                                             .withParameterValue(factory.convert(expression.getMilliseconds(), context, null))
+                                             .build())
                 .withConstraints(getConstraints(targetMapping != null ? targetMapping.getTargetAttribute() : null))
                 .build();
         context.addFeature(feature);
