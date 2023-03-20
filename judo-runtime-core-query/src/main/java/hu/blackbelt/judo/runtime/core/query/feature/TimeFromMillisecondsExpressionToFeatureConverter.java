@@ -21,7 +21,7 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  */
 
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
-import hu.blackbelt.judo.meta.expression.temporal.TimeFromSecondsExpression;
+import hu.blackbelt.judo.meta.expression.temporal.TimeFromMillisecondsExpression;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.meta.query.util.builder.QueryBuilders;
 import hu.blackbelt.judo.runtime.core.query.Context;
@@ -29,19 +29,19 @@ import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionBuilder;
 
-public class TimeFromSecondsExpressionToFeatureConverter extends ExpressionToFeatureConverter<TimeFromSecondsExpression> {
+public class TimeFromMillisecondsExpressionToFeatureConverter extends ExpressionToFeatureConverter<TimeFromMillisecondsExpression> {
 
-    public TimeFromSecondsExpressionToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
+    public TimeFromMillisecondsExpressionToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
         super(factory, modelAdapter);
     }
 
     @Override
-    public Feature convert(TimeFromSecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
+    public Feature convert(TimeFromMillisecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
         Feature feature = newFunctionBuilder()
-                .withSignature(FunctionSignature.TIME_FROM_SECONDS)
+                .withSignature(FunctionSignature.TIME_FROM_MILLISECONDS) // TODO: generic
                 .withParameters(QueryBuilders.newFunctionParameterBuilder()
                                              .withParameterName(ParameterName.NUMBER)
-                                             .withParameterValue(factory.convert(expression.getSeconds(), context, null))
+                                             .withParameterValue(factory.convert(expression.getMilliseconds(), context, null))
                                              .build())
                 .withConstraints(getConstraints(targetMapping != null ? targetMapping.getTargetAttribute() : null))
                 .build();

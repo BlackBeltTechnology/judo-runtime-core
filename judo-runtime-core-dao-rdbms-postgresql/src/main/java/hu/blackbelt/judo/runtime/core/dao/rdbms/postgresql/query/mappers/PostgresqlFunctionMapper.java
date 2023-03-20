@@ -118,13 +118,13 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("CAST(TO_TIMESTAMP({0}::double precision / 1000) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP)")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
 
-        getFunctionBuilderMap().put(FunctionSignature.TIME_FROM_SECONDS, c ->
-                c.builder.pattern("CAST(" +
-                                      "CAST(EXTRACT(HOUR from CAST(TO_TIMESTAMP({0}) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP)) AS INTEGER) || '':'' || " +
-                                      "CAST(EXTRACT(MINUTE from CAST(TO_TIMESTAMP({0}) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP)) AS INTEGER) || '':'' || " +
-                                      "FLOOR(EXTRACT(SECOND from CAST(TO_TIMESTAMP({0}) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIMESTAMP))) " +
-                                  "AS TIME)")
+        getFunctionBuilderMap().put(FunctionSignature.TIME_FROM_MILLISECONDS, c ->
+                c.builder.pattern("CAST(TO_TIMESTAMP({0}::double precision / 1000) AT TIME ZONE INTERVAL ''+0:00'' HOUR TO MINUTE AS TIME)")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIME_AS_MILLISECONDS, c ->
+                c.builder.pattern("(EXTRACT(EPOCH FROM (CAST({0} AS TIME))) * 1000)")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
         getFunctionBuilderMap().put(FunctionSignature.DAY_OF_WEEK_OF_DATE, c -> {
             String sqlDayOfWeek = "CAST(EXTRACT(DOW FROM {0}) AS INTEGER)";
@@ -135,10 +135,6 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.DAY_OF_YEAR_DATE, c ->
                 c.builder.pattern("CAST(EXTRACT(DOY FROM {0}) AS INTEGER)")
                         .parameters(List.of(c.parameters.get(ParameterName.DATE))));
-
-        getFunctionBuilderMap().put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
-                c.builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER) % 1000)")
-                        .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_PLUS_YEARS, c ->
                 c.builder.pattern("({0} + CAST({1} || '' years'' AS INTERVAL))")

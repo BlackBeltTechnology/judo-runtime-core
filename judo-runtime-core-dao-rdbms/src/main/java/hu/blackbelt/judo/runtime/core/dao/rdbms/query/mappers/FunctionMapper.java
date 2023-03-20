@@ -449,61 +449,50 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
         functionBuilderMap.put(FunctionSignature.SECONDS_OF_TIME, c ->
-                c.builder.pattern("CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)")
-                        .parameters(List.of(c.parameters.get(ParameterName.TIME))));
-
-        functionBuilderMap.put(FunctionSignature.TIME_AS_SECONDS, c ->
-                c.builder.pattern("((CAST(EXTRACT(HOUR from CAST({0} AS TIME)) AS INTEGER)) * 3600 + " +
-                                  "(CAST(EXTRACT(MINUTE from CAST({0} AS TIME)) AS INTEGER)) * 60 + " +
-                                  "(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) AS INTEGER)))")
+                c.builder.pattern("FLOOR(EXTRACT(SECOND from CAST({0} AS TIME)))")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
         functionBuilderMap.put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
-                c.builder.pattern("MOD(CAST(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000 AS INTEGER), 1000)")
+                c.builder.pattern("MOD(FLOOR(EXTRACT(SECOND from CAST({0} AS TIME)) * 1000), 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
+        functionBuilderMap.put(FunctionSignature.DATE_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST({0} AS DATE)")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
+
+        functionBuilderMap.put(FunctionSignature.TIME_OF_TIMESTAMP, c ->
+                c.builder.pattern("CAST({0} AS TIME)")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
+
         functionBuilderMap.put(FunctionSignature.TO_DATE, c ->
-                c.builder.pattern("CAST(TO_DATE(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS  INTEGER) || ''-'' || CAST({2} AS INTEGER), ''YYYY-MM-DD'') AS DATE)")
+                c.builder.pattern("CAST({0} || ''-'' || {1} || ''-'' || {2} AS DATE)")
                         .parameters(List.of(
                                 c.parameters.get(ParameterName.YEAR),
                                 c.parameters.get(ParameterName.MONTH),
                                 c.parameters.get(ParameterName.DAY)
                         )));
 
-        functionBuilderMap.put(FunctionSignature.DATE_OF_TIMESTAMP, c ->
-                c.builder.pattern("CAST(TO_DATE(" +
-                                  "CAST(EXTRACT(YEAR from CAST({0} AS TIMESTAMP)) AS INTEGER) || ''-'' || " +
-                                  "CAST(EXTRACT(MONTH from CAST({0} AS TIMESTAMP)) AS INTEGER) || ''-'' || " +
-                                  "CAST(EXTRACT(DAY from CAST({0} AS TIMESTAMP)) AS INTEGER), " +
-                                  "''YYYY-MM-DD'') AS DATE)")
-                        .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
-
         functionBuilderMap.put(FunctionSignature.TO_TIMESTAMP, c ->
-                c.builder.pattern("CAST(CAST({0} AS INTEGER) || ''-'' || CAST({1} AS INTEGER) || ''-'' || CAST({2} AS INTEGER) || '' '' || CAST({3} AS INTEGER) || '':'' || CAST({4} AS INTEGER) || '':'' || CAST({5} AS DECIMAL) AS TIMESTAMP)")
+                c.builder.pattern("CAST({0} || ''-'' || {1} || ''-'' || {2} || '' '' || {3} || '':'' || {4} || '':'' || {5} || ''.'' || MOD({6}, 1000) AS TIMESTAMP)")
                          .parameters(List.of(
                                  c.parameters.get(ParameterName.YEAR),
                                  c.parameters.get(ParameterName.MONTH),
                                  c.parameters.get(ParameterName.DAY),
                                  c.parameters.get(ParameterName.HOUR),
                                  c.parameters.get(ParameterName.MINUTE),
-                                 c.parameters.get(ParameterName.SECOND)
+                                 c.parameters.get(ParameterName.SECOND),
+                                 c.parameters.get(ParameterName.MILLISECOND)
                          )));
 
         functionBuilderMap.put(FunctionSignature.TO_TIME, c ->
-                c.builder.pattern("CAST(CAST({0} AS INTEGER) || '':'' || CAST({1} AS INTEGER) || '':'' || CAST({2} AS INTEGER) AS TIME)")
+                c.builder.pattern("CAST({0} || '':'' || {1} || '':'' || {2} || ''.'' || MOD({3}, 1000) AS TIME)")
                         .parameters(List.of(
                                 c.parameters.get(ParameterName.HOUR),
                                 c.parameters.get(ParameterName.MINUTE),
-                                c.parameters.get(ParameterName.SECOND)
+                                c.parameters.get(ParameterName.SECOND),
+                                c.parameters.get(ParameterName.MILLISECOND)
                         )));
 
-        functionBuilderMap.put(FunctionSignature.TIME_OF_TIMESTAMP, c ->
-                c.builder.pattern("CAST(" +
-                                  "CAST(EXTRACT(HOUR from CAST({0} AS TIMESTAMP)) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(MINUTE from CAST({0} AS TIMESTAMP)) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) AS INTEGER) " +
-                                  "AS TIME)")
-                        .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
     }
 
     @Override

@@ -66,6 +66,10 @@ public class TimestampConstructionExpressionToFeatureConverter extends Expressio
                         .withParameterName(ParameterName.SECOND)
                         .withParameterValue(factory.convert(expression.getSecond(), context, null))
                         .build())
+                .withParameters(newFunctionParameterBuilder()
+                        .withParameterName(ParameterName.MILLISECOND) // TODO: generic, hsqldb, Pg
+                        .withParameterValue(factory.convert(expression.getMillisecond(), context, null))
+                        .build())
                 .build();
 
         context.addFeature(feature);

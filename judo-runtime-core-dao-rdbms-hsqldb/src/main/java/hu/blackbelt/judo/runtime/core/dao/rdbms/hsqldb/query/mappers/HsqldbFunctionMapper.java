@@ -52,21 +52,35 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                                   "END)")
                          .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
 
+        getFunctionBuilderMap().put(FunctionSignature.TIME_OF_TIMESTAMP, c ->
+                c.builder.pattern("TO_TIMESTAMP(EXTRACT(HOUR FROM {0}) || '':'' || EXTRACT(MINUTE FROM {0}) || '':'' || EXTRACT(SECOND FROM {0}), ''HH24:MI:SS.FF'')")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
+
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
                 c.builder.pattern("(UNIX_MILLIS(CAST({0} AS TIMESTAMP)))")
                          .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
-        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS, c ->
-                c.builder.pattern("DATEADD(MILLISECOND, MOD({0}, 1000), TIMESTAMP({0} / 1000))")
-                         .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+        getFunctionBuilderMap().put(FunctionSignature.TIME_AS_MILLISECONDS, c ->
+                c.builder.pattern("(UNIX_MILLIS(CAST({0} AS TIMESTAMP)))")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
 
-        getFunctionBuilderMap().put(FunctionSignature.TIME_FROM_SECONDS, c ->
-                c.builder.pattern("CAST(" +
-                                  "CAST(EXTRACT(HOUR from TIMESTAMP({0})) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(MINUTE from TIMESTAMP({0})) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(SECOND from TIMESTAMP({0})) AS INTEGER) " +
-                                  "AS TIME)")
+        getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS, c ->
+                c.builder.pattern("DATEADD(MILLISECOND, MOD({0}, 1000), TIMESTAMP({0} / 1000.0))")
                          .parameters(List.of(c.parameters.get(ParameterName.NUMBER))));
+        getFunctionBuilderMap().put(FunctionSignature.TIME_FROM_MILLISECONDS, getFunctionBuilderMap().get(FunctionSignature.TIMESTAMP_FROM_MILLISECONDS));
+
+        getFunctionBuilderMap().put(FunctionSignature.MILLISECONDS_OF_TIME, c ->
+                c.builder.pattern("MOD(FLOOR(EXTRACT(SECOND from {0}) * 1000), 1000)") // TODO: check if this is working for postgresql as well
+                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
+
+        getFunctionBuilderMap().put(FunctionSignature.TO_TIME, c ->
+                c.builder.pattern("TO_TIMESTAMP({0} || '':'' || {1} || '':'' || {2} || ''.'' || MOD({3}, 1000), ''HH24:MI:SS.FF'')")
+                         .parameters(List.of(
+                                 c.parameters.get(ParameterName.HOUR),
+                                 c.parameters.get(ParameterName.MINUTE),
+                                 c.parameters.get(ParameterName.SECOND),
+                                 c.parameters.get(ParameterName.MILLISECOND)
+                         )));
 
         getFunctionBuilderMap().put(FunctionSignature.DAY_OF_WEEK_OF_DATE, c -> {
             String sqlDayOfWeek = "CAST(EXTRACT(DAY_OF_WEEK FROM {0}) AS INTEGER)";

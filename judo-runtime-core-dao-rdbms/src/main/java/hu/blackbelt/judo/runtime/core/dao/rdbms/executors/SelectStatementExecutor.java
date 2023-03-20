@@ -65,6 +65,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
@@ -808,10 +809,19 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                         // jdbc adds unnecessary offset from client
                                         if (AsmUtils.isTimestamp(attribute.getEAttributeType()) && value instanceof Timestamp) {
+                                            LocalDateTime localDateTime = ((Timestamp) value).toLocalDateTime();
                                             if (OffsetDateTime.class.getName().equals(className)) {
-                                                value = OffsetDateTime.of(((Timestamp) value).toLocalDateTime(), ZoneOffset.UTC);
+                                                value = OffsetDateTime.of(localDateTime, ZoneOffset.UTC);
                                             } else if (LocalDateTime.class.getName().equals(className)) {
-                                                value = ((Timestamp) value).toLocalDateTime();
+                                                value = localDateTime;
+                                            }
+                                        } else if (AsmUtils.isTime(attribute.getEAttributeType()) && value instanceof Time) {
+                                            LocalTime localTime = ((Time) value).toLocalTime()
+                                                                                .withNano((int) (((Time) value).getTime() % 1000 * 1_000_000));
+                                            if (OffsetTime.class.getName().equals(className)) {
+                                                value = OffsetTime.of(localTime, ZoneOffset.UTC);
+                                            } else if (LocalTime.class.getName().equals(className)) {
+                                                value = localTime;
                                             }
                                         }
 

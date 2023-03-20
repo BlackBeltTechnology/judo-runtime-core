@@ -21,7 +21,7 @@ package hu.blackbelt.judo.runtime.core.query.feature;
  */
 
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
-import hu.blackbelt.judo.meta.expression.numeric.TimeAsSecondsExpression;
+import hu.blackbelt.judo.meta.expression.numeric.TimeAsMillisecondsExpression;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
@@ -29,16 +29,16 @@ import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionBuilder;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFunctionParameterBuilder;
 
-public class TimeAsSecondsExpressionToFeatureConverter extends ExpressionToFeatureConverter<TimeAsSecondsExpression> {
+public class TimeAsMillisecondsExpressionToFeatureConverter extends ExpressionToFeatureConverter<TimeAsMillisecondsExpression> {
 
-    public TimeAsSecondsExpressionToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
+    public TimeAsMillisecondsExpressionToFeatureConverter(FeatureFactory factory, AsmModelAdapter modelAdapter) {
         super(factory, modelAdapter);
     }
 
     @Override
-    public Feature convert(TimeAsSecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
+    public Feature convert(TimeAsMillisecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
         Feature feature = newFunctionBuilder()
-                .withSignature(FunctionSignature.TIME_AS_SECONDS)
+                .withSignature(FunctionSignature.TIME_AS_MILLISECONDS) // TODO: generic
                 .withParameters(newFunctionParameterBuilder()
                                         .withParameterName(ParameterName.TIME)
                                         .withParameterValue(factory.convert(expression.getTime(), context, null))
