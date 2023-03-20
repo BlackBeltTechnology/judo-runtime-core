@@ -38,7 +38,7 @@ public class TimeFromMillisecondsExpressionToFeatureConverter extends Expression
     @Override
     public Feature convert(TimeFromMillisecondsExpression expression, Context context, FeatureTargetMapping targetMapping) {
         Feature feature = newFunctionBuilder()
-                .withSignature(FunctionSignature.TIME_FROM_MILLISECONDS) // TODO: generic
+                .withSignature(FunctionSignature.TIME_FROM_MILLISECONDS)
                 .withParameters(QueryBuilders.newFunctionParameterBuilder()
                                              .withParameterName(ParameterName.NUMBER)
                                              .withParameterValue(factory.convert(expression.getMilliseconds(), context, null))
