@@ -39,7 +39,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.Types;
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -125,8 +125,8 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
                                     if (updateStatement.getTimestamp() != null) {
                                         fields.put(ENTITY_UPDATE_TIMESTAMP_MAP_KEY, ENTITY_UPDATE_TIMESTAMP_COLUMN_NAME);
                                         metaUpdateStatementNamedParameters.addValue(ENTITY_UPDATE_TIMESTAMP_MAP_KEY,
-                                                getCoercer().coerce(updateStatement.getTimestamp(), OffsetDateTime.class),
-                                                Types.TIMESTAMP_WITH_TIMEZONE);
+                                                getCoercer().coerce(updateStatement.getTimestamp(), LocalDateTime.class),
+                                                Types.TIMESTAMP);
                                     }
                                     if (updateStatement.getUserId() != null) {
                                         fields.put(ENTITY_UPDATE_USER_ID_MAP_KEY, ENTITY_UPDATE_USER_ID_COLUMN_NAME);
