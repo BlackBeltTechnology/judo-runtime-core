@@ -54,6 +54,10 @@ public class TimeConstructionExpressionToFeatureConverter extends ExpressionToFe
                         .withParameterName(ParameterName.SECOND)
                         .withParameterValue(factory.convert(expression.getSecond(), context, null))
                         .build())
+                .withParameters(newFunctionParameterBuilder()
+                        .withParameterName(ParameterName.MILLISECOND)
+                        .withParameterValue(factory.convert(expression.getMillisecond(), context, null))
+                        .build())
                 .build();
 
         context.addFeature(feature);
