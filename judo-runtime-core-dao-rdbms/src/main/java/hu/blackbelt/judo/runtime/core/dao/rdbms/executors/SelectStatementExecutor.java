@@ -817,7 +817,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                             }
                                         } else if (AsmUtils.isTime(attribute.getEAttributeType()) && value instanceof Time) {
                                             LocalTime localTime = ((Time) value).toLocalTime()
-                                                                                .withNano((int) (((Time) value).getTime() % 1000 * 1_000_000));
+                                                                                .withNano(Math.abs((int) (((Time) value).getTime() % 1000 * 1_000_000)));
                                             if (OffsetTime.class.getName().equals(className)) {
                                                 value = OffsetTime.of(localTime, ZoneOffset.UTC);
                                             } else if (LocalTime.class.getName().equals(className)) {
