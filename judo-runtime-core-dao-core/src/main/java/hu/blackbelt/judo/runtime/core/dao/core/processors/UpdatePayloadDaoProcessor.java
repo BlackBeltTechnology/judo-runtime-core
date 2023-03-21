@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.dao.core.processors;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -108,9 +108,9 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         checkArgument(getAsmUtils().isMappedTransferObjectType(transferObjectType), "Type have to be mapped transfer object");
 
         @SuppressWarnings("unchecked")
-		ID originalIdentifier = (ID) originalPayload.get(getIdentifierProvider().getName());
+        ID originalIdentifier = (ID) originalPayload.get(getIdentifierProvider().getName());
         @SuppressWarnings("unchecked")
-		ID updatedIdentifier = (ID) updatePayload.get(getIdentifierProvider().getName());
+        ID updatedIdentifier = (ID) updatePayload.get(getIdentifierProvider().getName());
 
         checkArgument(originalIdentifier.equals(updatedIdentifier), "The original identifier does not match with the original");
 
@@ -138,7 +138,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             entityType = getAsmUtils().getMappedEntityType(transferObjectType).get();
         }
         @SuppressWarnings("unchecked")
-		ID identifier = (ID) originalPayload.get(getIdentifierProvider().getName());
+        ID identifier = (ID) originalPayload.get(getIdentifierProvider().getName());
         checkArgument(identifier != null, "Identifier is mandatory: " + originalPayload.toString());
 
         final Integer originalVersion = originalPayload.getAs(Integer.class, VERSION);
@@ -311,7 +311,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
 
     @SuppressWarnings("unchecked")
-	private void mergePayloads(final EReference mappedReference,
+    private void mergePayloads(final EReference mappedReference,
                                                     final InstanceGraph<ID> parentInstanceGraph,
                                                     final Payload originalPayload,
                                                     final Payload updatePayload,

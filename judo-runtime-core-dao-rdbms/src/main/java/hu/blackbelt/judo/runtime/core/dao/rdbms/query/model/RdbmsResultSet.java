@@ -381,7 +381,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 .filter(rt -> rt != null && !result.containsKey(rt.getTarget()))
                 .forEach(rt -> {
                     @SuppressWarnings("unchecked")
-					final Map<String, Object> _mask = (Map<String, Object>) mask.get(rt.getReference().getName());
+                    final Map<String, Object> _mask = (Map<String, Object>) mask.get(rt.getReference().getName());
                     result.putAll(getTargetMask(rt.getTarget(), _mask, result));
                 });
 
