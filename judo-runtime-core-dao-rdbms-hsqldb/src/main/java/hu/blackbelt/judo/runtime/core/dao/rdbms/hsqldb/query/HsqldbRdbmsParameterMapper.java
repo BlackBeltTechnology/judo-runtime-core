@@ -29,7 +29,6 @@ import lombok.Builder;
 import lombok.NonNull;
 
 import java.sql.Time;
-import java.sql.Timestamp;
 
 public class HsqldbRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
     @Builder
@@ -38,8 +37,7 @@ public class HsqldbRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<
                                       @NonNull IdentifierProvider<ID> identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
-        getSqlTypes().put(Timestamp.class, vd -> "TIMESTAMP WITH TIME ZONE");
-        getSqlTypes().put(Time.class, vd -> "TIMESTAMP WITH TIME ZONE");
+        getSqlTypes().put(Time.class, vd -> "TIMESTAMP");
         getSqlTypes().put(String.class, vd -> "LONGVARCHAR");
     }
 }
