@@ -121,7 +121,7 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                         .parameters(List.of(c.parameters.get(ParameterName.END), c.parameters.get(ParameterName.START))));
 
         getFunctionBuilderMap().put(FunctionSignature.MILLISECONDS_OF_TIMESTAMP, c ->
-                c.builder.pattern("(CAST(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000 AS INTEGER) % 1000)")
+                c.builder.pattern("(FLOOR(EXTRACT(SECOND from CAST({0} AS TIMESTAMP)) * 1000) % 1000)")
                         .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_AS_MILLISECONDS, c ->
