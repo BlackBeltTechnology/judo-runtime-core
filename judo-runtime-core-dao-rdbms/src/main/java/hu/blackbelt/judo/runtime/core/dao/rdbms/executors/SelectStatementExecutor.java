@@ -816,8 +816,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                                 value = localDateTime;
                                             }
                                         } else if (AsmUtils.isTime(attribute.getEAttributeType()) && value instanceof Time) {
-                                            LocalTime localTime = ((Time) value).toLocalTime()
-                                                                                .withNano(Math.abs((int) (((Time) value).getTime() % 1000 * 1_000_000)));
+                                            long millis = ((Time) value).getTime() % 1000;
+                                            if (millis < 0) {
+                                                millis = 1000 - Math.abs(millis);
+                                            }
+                                            LocalTime localTime = ((Time) value).toLocalTime().withNano((int) (millis * 1_000_000));
                                             if (OffsetTime.class.getName().equals(className)) {
                                                 value = OffsetTime.of(localTime, ZoneOffset.UTC);
                                             } else if (LocalTime.class.getName().equals(className)) {
