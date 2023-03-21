@@ -92,6 +92,19 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                 c.builder.pattern("CAST(EXTRACT(DAY_OF_YEAR FROM {0}) AS INTEGER)")
                          .parameters(List.of(c.parameters.get(ParameterName.DATE))));
 
+        getFunctionBuilderMap().put(FunctionSignature.TIME_TO_STRING, c -> {
+            String time = "TO_CHAR({0}, ''HH24:MI<second>'') ";
+            String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM {0})) < EXTRACT(SECOND FROM {0}) ";
+            String secondPartRequired = "EXTRACT(SECOND FROM {0}) > 0 ";
+
+            return c.builder.pattern("(CASE " +
+                                         "WHEN " + fractionalPartRequired + " THEN " + time.replace("<second>", ":SS.FF") +
+                                         "WHEN " + secondPartRequired + " THEN " + time.replace("<second>", ":SS") +
+                                         "ELSE " + time.replace("<second>", "") +
+                                     "END)")
+                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
+        });
+
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
             String timestamp = "REPLACE(TO_CHAR({0}, ''YYYY-MM-DD HH24:MI<second>''), '' '', ''T'') ";
             String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM {0})) < EXTRACT(SECOND FROM {0}) ";

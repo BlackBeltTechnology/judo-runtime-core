@@ -222,9 +222,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
         functionBuilderMap.put(FunctionSignature.DECIMAL_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.DATE_TO_STRING, functionBuilderMap.get(FunctionSignature.INTEGER_TO_STRING));
         functionBuilderMap.put(FunctionSignature.TIME_TO_STRING, c ->
-                c.builder.pattern("(CAST(EXTRACT(HOUR from {0}) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(MINUTE from {0}) AS INTEGER) || '':'' || " +
-                                  "CAST(EXTRACT(SECOND from {0}) AS INTEGER))")
+                c.builder.pattern("CAST({0} AS LONGVARCHAR)")
                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         functionBuilderMap.put(FunctionSignature.LOGICAL_TO_STRING, c ->
                 c.builder.pattern("LOWER(CAST({0} AS LONGVARCHAR))")

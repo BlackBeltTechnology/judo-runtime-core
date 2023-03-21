@@ -48,12 +48,24 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
                         .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         getFunctionBuilderMap().put(FunctionSignature.DECIMAL_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.DATE_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
-        getFunctionBuilderMap().put(FunctionSignature.TIME_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.LOGICAL_TO_STRING, c ->
                 c.builder.pattern("LOWER(CAST({0} AS TEXT))")
                          .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE))));
         getFunctionBuilderMap().put(FunctionSignature.ENUM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
         getFunctionBuilderMap().put(FunctionSignature.CUSTOM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
+
+        getFunctionBuilderMap().put(FunctionSignature.TIME_TO_STRING, c -> {
+            String time = "TO_CHAR({0}, ''HH24:MI<second>'') ";
+            String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM {0})) < EXTRACT(SECOND FROM {0}) ";
+            String secondPartRequired = "EXTRACT(SECOND FROM {0}) > 0 ";
+
+            return c.builder.pattern("(CASE " +
+                                         "WHEN " + fractionalPartRequired + " THEN " + time.replace("<second>", ":SS.FF3") +
+                                         "WHEN " + secondPartRequired + " THEN " + time.replace("<second>", ":SS") +
+                                         "ELSE " + time.replace("<second>", "") +
+                                     "END)")
+                            .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
+        });
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
             String timestamp = "REPLACE(TO_CHAR({0}, ''YYYY-MM-DD HH24:MI<second>''), '' '', ''T'') ";
