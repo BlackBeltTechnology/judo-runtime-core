@@ -56,12 +56,14 @@ public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
         getFunctionBuilderMap().put(FunctionSignature.CUSTOM_TO_STRING, getFunctionBuilderMap().get(FunctionSignature.INTEGER_TO_STRING));
 
         getFunctionBuilderMap().put(FunctionSignature.TIMESTAMP_TO_STRING, c -> {
-            String timestamp = "REPLACE(TO_CHAR({0}, ''YYYY-MM-DD HH24:MI:SS''), '' '', ''T'') ";
+            String timestamp = "REPLACE(TO_CHAR({0}, ''YYYY-MM-DD HH24:MI<second>''), '' '', ''T'') ";
             String fractionalPartRequired = "FLOOR(EXTRACT(SECOND FROM {0})) < EXTRACT(SECOND FROM {0}) ";
+            String secondPartRequired = "EXTRACT(SECOND FROM {0}) > 0 ";
 
             return c.builder.pattern("(CASE " +
-                                         "WHEN " + fractionalPartRequired + " THEN " + timestamp.replace("SS", "SS.FF3") +
-                                         "ELSE " + timestamp +
+                                         "WHEN " + fractionalPartRequired + " THEN " + timestamp.replace("<second>", ":SS.FF3") +
+                                         "WHEN " + secondPartRequired + " THEN " + timestamp.replace("<second>", ":SS") +
+                                         "ELSE " + timestamp.replace("<second>", "") +
                                      "END)")
                             .parameters(List.of(c.parameters.get(ParameterName.PRIMITIVE)));
         });
