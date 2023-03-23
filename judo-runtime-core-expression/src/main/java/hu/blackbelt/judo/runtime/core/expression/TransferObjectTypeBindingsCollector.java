@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.expression;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -88,7 +88,7 @@ public class TransferObjectTypeBindingsCollector {
         return ECollections.unmodifiableEMap(entityTypeExpressionsMap);
     }
 
-	public Optional<UnmappedTransferObjectTypeBindings> getTransferObjectBindings(final EClass unmappedTransferObjectType) {
+    public Optional<UnmappedTransferObjectTypeBindings> getTransferObjectBindings(final EClass unmappedTransferObjectType) {
         if (!AsmUtils.isEntityType(unmappedTransferObjectType) && !asmUtils.isMappedTransferObjectType(unmappedTransferObjectType)) {
             final UnmappedTransferObjectTypeBindings bindings = UnmappedTransferObjectTypeBindings.builder()
                     .unmappedTransferObjectType(unmappedTransferObjectType)
@@ -347,7 +347,7 @@ public class TransferObjectTypeBindingsCollector {
      * @return stream of model elements
      */
     @SuppressWarnings("unchecked")
-	public <T> Stream<T> getExpressionElement(final Class<T> clazz) {
+    public <T> Stream<T> getExpressionElement(final Class<T> clazz) {
         final Iterable<Notifier> expressionContents = expressionResourceSet::getAllContents;
         return StreamSupport.stream(expressionContents.spliterator(), false)
                 .filter(e -> clazz.isAssignableFrom(e.getClass())).map(e -> (T) e);
