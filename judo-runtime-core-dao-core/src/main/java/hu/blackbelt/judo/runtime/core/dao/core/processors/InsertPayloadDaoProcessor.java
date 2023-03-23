@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.dao.core.processors;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -84,7 +84,7 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
     }
 
     @SuppressWarnings("unchecked")
-	Collection<Statement<ID>> collectStatements(EClass mappedTransferObjectType,
+    Collection<Statement<ID>> collectStatements(EClass mappedTransferObjectType,
                                             Payload payload,
                                             EReference container, Collection<Statement<ID>> statements,
                                             boolean checkMandatoryFeatures) {
@@ -196,8 +196,8 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
                                     // Collect created embedded InsertStatement to be able to create
                                     // AddReferenceStatement to the container
-									@SuppressWarnings("rawtypes")
-									Set containmentReferences = embeddedStatements.stream()
+                                    @SuppressWarnings("rawtypes")
+                                    Set containmentReferences = embeddedStatements.stream()
                                             .filter(InsertStatement.class :: isInstance)
                                             .map(o -> (InsertStatement<ID>) o)
                                             .filter(i -> i.getContainer().isPresent()

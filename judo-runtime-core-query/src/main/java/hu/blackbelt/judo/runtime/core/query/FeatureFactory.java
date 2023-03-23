@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.query;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -48,7 +48,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FeatureFactory {
 
     @SuppressWarnings("rawtypes")
-	private Map<Class, ExpressionToFeatureConverter> converters = new ConcurrentHashMap<>();
+    private Map<Class, ExpressionToFeatureConverter> converters = new ConcurrentHashMap<>();
 
     public FeatureFactory(final JoinFactory joinFactory, final AsmModelAdapter modelAdapter, final Coercer coercer, final MeasureProvider<Measure, Unit> measureProvider) {
         converters.put(AsString.class, new AsStringToFeatureConverter(this, modelAdapter));
@@ -133,7 +133,7 @@ public class FeatureFactory {
 
     public Feature convert(final Expression expression, final Context context, final FeatureTargetMapping targetMapping) {
         @SuppressWarnings({ "rawtypes", "unchecked" })
-		final Optional<ExpressionToFeatureConverter> converter = converters.entrySet().stream()
+        final Optional<ExpressionToFeatureConverter> converter = converters.entrySet().stream()
                 .filter(c -> c.getKey().isAssignableFrom(expression.getClass()))
                 .map(c -> c.getValue())
                 .findAny();
@@ -143,7 +143,7 @@ public class FeatureFactory {
         }
 
         @SuppressWarnings({ "unchecked" })
-		final Feature feature = converter.get().convert(expression, context, targetMapping);
+        final Feature feature = converter.get().convert(expression, context, targetMapping);
         if (targetMapping != null) {
             feature.getTargetMappings().add(targetMapping);
         }
