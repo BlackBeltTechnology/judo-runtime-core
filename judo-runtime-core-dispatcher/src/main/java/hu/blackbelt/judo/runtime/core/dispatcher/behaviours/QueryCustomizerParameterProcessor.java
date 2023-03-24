@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -91,7 +91,7 @@ public class QueryCustomizerParameterProcessor<ID> {
             .build();
 
     @SuppressWarnings("rawtypes")
-	public DAO.QueryCustomizer build(final Map<String, Object> queryCustomizerParameter, final EClass clazz) {
+    public DAO.QueryCustomizer build(final Map<String, Object> queryCustomizerParameter, final EClass clazz) {
         return DAO.QueryCustomizer.<ID>builder()
                 .filter(extractFilteringParameter(clazz, queryCustomizerParameter))
                 .orderByList(extractOrderingParameter(clazz, queryCustomizerParameter))
@@ -102,7 +102,7 @@ public class QueryCustomizerParameterProcessor<ID> {
     }
 
     @SuppressWarnings("unchecked")
-	private String extractFilteringParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
+    private String extractFilteringParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
         final EList<EAttribute> attributes = clazz.getEAllAttributes();
 
         if (queryCustomizerParameter != null) {
@@ -185,7 +185,7 @@ public class QueryCustomizerParameterProcessor<ID> {
     private List<DAO.OrderBy> extractOrderingParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
         if (queryCustomizerParameter != null) {
             @SuppressWarnings("unchecked")
-			final List<Map<String, Object>> orderByParameter = (List<Map<String, Object>>) queryCustomizerParameter.get("_orderBy");
+            final List<Map<String, Object>> orderByParameter = (List<Map<String, Object>>) queryCustomizerParameter.get("_orderBy");
             if (orderByParameter != null) {
                 return orderByParameter.stream()
                         .map(p -> DAO.OrderBy.builder()
@@ -200,9 +200,9 @@ public class QueryCustomizerParameterProcessor<ID> {
     }
 
     @SuppressWarnings("unchecked")
-	private DAO.Seek extractSeekParameter(final Map<String, Object> queryCustomizerParameter) {
+    private DAO.Seek extractSeekParameter(final Map<String, Object> queryCustomizerParameter) {
         if (queryCustomizerParameter != null && queryCustomizerParameter.get("_seek") != null) {
-			final Map<String, Object> _seek = (Map<String, Object>) queryCustomizerParameter.get("_seek");
+            final Map<String, Object> _seek = (Map<String, Object>) queryCustomizerParameter.get("_seek");
             return DAO.Seek.builder()
                     .limit((Integer) _seek.get("limit"))
                     .offset(_seek.get("offset") != null ? (Integer) _seek.get("offset") : -1)

@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -138,7 +138,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private final Validator rangeValidator;
 
     @SuppressWarnings("unchecked")
-	private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
+    private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
         behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
                         new ListCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
@@ -253,7 +253,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     @SuppressWarnings("unused")
-	private void unregisterDataTypes() {
+    private void unregisterDataTypes() {
         getAsmUtils().all(EDataType.class)
                 .filter(t -> "byte[]".equals(t.getInstanceClassName()))
                 .forEach(dataTypeManager::unregisterCustomType);
@@ -286,7 +286,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         } else {
             checkArgument(exchange.containsKey(identifierProvider.getName()), "Bound operation must have an identifier");
             @SuppressWarnings("unchecked")
-			final ID id = (ID) exchange.get(identifierProvider.getName());
+            final ID id = (ID) exchange.get(identifierProvider.getName());
             final String entityType = (String) exchange.get(ENTITY_TYPE_MAP_KEY);
             return Optional.of(SignedIdentifier.builder()
                     .identifier(dataTypeManager.getCoercer().coerce(id, String.class))
@@ -538,7 +538,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         return entityType;
     }
 
-	@Override
+    @Override
     public Map<String, Object> callOperation(final String operationFullyQualifiedName, final Map<String, Object> exchange) {
         MDC.put("operation", operationFullyQualifiedName);
         Payload result = null;
