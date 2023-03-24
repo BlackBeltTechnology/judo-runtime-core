@@ -40,9 +40,7 @@ import org.eclipse.emf.ecore.EEnum;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -136,7 +134,7 @@ public class DefaultActorResolver<ID> implements ActorResolver {
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), LocalDate.class);
         } else if (AsmUtils.isTimestamp(filterAttribute.getEAttributeType())) {
             operator = 4;
-            value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), OffsetDateTime.class);
+            value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), LocalDateTime.class);
         } else if (AsmUtils.isTime(filterAttribute.getEAttributeType())) {
             operator = 4;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), LocalTime.class);

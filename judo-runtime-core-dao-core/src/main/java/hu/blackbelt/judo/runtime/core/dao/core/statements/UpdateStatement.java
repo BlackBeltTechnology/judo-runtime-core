@@ -25,7 +25,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.eclipse.emf.ecore.EClass;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 @Getter
 public class UpdateStatement<ID> extends Statement<ID> {
@@ -33,7 +33,7 @@ public class UpdateStatement<ID> extends Statement<ID> {
     private final Integer version;
     private final ID userId;
     private final String userName;
-    private final OffsetDateTime timestamp;
+    private final LocalDateTime timestamp;
 
     @Builder(builderMethodName = "buildUpdateStatement")
     public UpdateStatement(
@@ -42,7 +42,7 @@ public class UpdateStatement<ID> extends Statement<ID> {
             Integer version,
             ID userId,
             String username,
-            OffsetDateTime timestamp
+            LocalDateTime timestamp
     ) {
 
         super(InstanceValue
