@@ -9,13 +9,13 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0.
- * 
+ *
  * This Source Code may also be made available under the following Secondary
  * Licenses when the conditions for such availability set forth in the Eclipse
  * Public License, v. 2.0 are satisfied: GNU General Public License, version 2
  * with the GNU Classpath Exception which is
  * available at https://www.gnu.org/software/classpath/license.html.
- * 
+ *
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
@@ -142,7 +142,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         translator.getTranslators().put(TimeConstant.class, TimeConstantTranslator.builder().build());
     }
 
-	public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
+    public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
         rdbmsBuilder.getConstantFields().set(new HashMap<>());
 
         EClass entityType;
@@ -222,7 +222,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer          query customizer
      * @return result set (list of records) that can has embedded result sets
      */
-	public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + AsmUtils.getClassifierFQName(mappedTransferObjectType)));
@@ -326,7 +326,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer query customizer
      * @return result set (list of records) that can has embedded result sets
      */
-	public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final EClass referenceHolder = reference.getEContainingClass();
@@ -508,7 +508,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     private synchronized <T extends EObject> T clone(final T original) {
         final EcoreUtil.Copier copier = new EcoreUtil.Copier(true, true);
         @SuppressWarnings("unchecked")
-		final T result = (T) copier.copy(original);
+        final T result = (T) copier.copy(original);
         copier.copyReferences();
 
         return result;
@@ -525,7 +525,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .orElseThrow(() -> new IllegalStateException("Invalid type name"));
 
         @SuppressWarnings("rawtypes")
-		final JqlExpressionBuildingContext context = new JqlExpressionBuildingContext();
+        final JqlExpressionBuildingContext context = new JqlExpressionBuildingContext();
         final Instance _this = newInstanceBuilder()
                 .withName("this")
                 .withElementName(typeName)
@@ -579,7 +579,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @return result set
      */
     @SuppressWarnings("unchecked")
-	private EMap<Target, Map<ID, Payload>> runQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final Collection<ID> instanceIds, final Collection<ID> parentIds, final EList<EReference> referenceChain, final DAO.Seek seek, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters, final boolean skipParents) {
+    private EMap<Target, Map<ID, Payload>> runQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final Collection<ID> instanceIds, final Collection<ID> parentIds, final EList<EReference> referenceChain, final DAO.Seek seek, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters, final boolean skipParents) {
         // map of sources, key is ID column alias, value is the source object (including SELECT and all JOINs)
         final Map<String, Node> sources = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getIdColumnAlias, j -> j)));
         sources.put(RdbmsAliasUtil.getIdColumnAlias(query.getSelect()), query.getSelect());
@@ -1022,7 +1022,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-	private void executeSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> newReferenceChain, final EMap<Target, Map<ID, Payload>> results, final Collection<ID> ids, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
+    private void executeSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> newReferenceChain, final EMap<Target, Map<ID, Payload>> results, final Collection<ID> ids, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
         log.trace("  IDs: {}", ids);
 
         // map storing subquery results, it will be filled by recursive call
@@ -1038,7 +1038,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         log.trace("  - parent key: {}", subParentKey);
 
         subQueryResults.get(subQueryTarget).values().forEach(subQueryRecord -> {
-			final Collection<ID> parentIds = (Collection<ID>) subQueryRecord.get(subParentKey);
+            final Collection<ID> parentIds = (Collection<ID>) subQueryRecord.get(subParentKey);
             log.trace("    - parent IDs: {}", parentIds);
 
             checkArgument(parentIds != null, "Unknown parent ID");
