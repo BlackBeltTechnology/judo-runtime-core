@@ -63,13 +63,13 @@ public class PostgresqlRdbmsSequence implements Sequence<Long> {
         sequenceName = sequenceName.replaceAll("[^a-zA-Z0-9_]", "_");
         final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         if (createIfNotExists) {
-            jdbcTemplate.execute("CREATE SEQUENCE IF NOT EXISTS " + sequenceName +
+            jdbcTemplate.execute("CREATE SEQUENCE IF NOT EXISTS \"" + sequenceName + "\"" +
                             (start != null ? " START WITH " + start : "") +
                             (increment != null ? " INCREMENT BY " + increment : ""),
                     Collections.emptyMap(),
                     (stmt) -> stmt.execute());
         }
-        return jdbcTemplate.queryForObject("SELECT " + (operation.functionName) + "('" + sequenceName + "')", Collections.emptyMap(), Long.class);
+        return jdbcTemplate.queryForObject("SELECT " + (operation.functionName) + "('\"" + sequenceName + "\"')", Collections.emptyMap(), Long.class);
     }
 
     @Override
