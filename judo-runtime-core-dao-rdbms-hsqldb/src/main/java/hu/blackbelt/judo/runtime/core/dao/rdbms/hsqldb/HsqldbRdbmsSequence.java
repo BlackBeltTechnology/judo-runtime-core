@@ -65,7 +65,7 @@ public class HsqldbRdbmsSequence implements Sequence<Long> {
         sequenceName = sequenceName.replaceAll("[^a-zA-Z0-9_]", "_");
         final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         if (createIfNotExists) {
-            jdbcTemplate.execute("CREATE SEQUENCE IF NOT EXISTS " + sequenceName +
+            jdbcTemplate.execute("CREATE SEQUENCE IF NOT EXISTS \"" + sequenceName + "\"" +
                             (start != null ? " START WITH " + start : "") +
                             (increment != null ? " INCREMENT BY " + increment : ""),
                     Collections.emptyMap(),
@@ -74,15 +74,15 @@ public class HsqldbRdbmsSequence implements Sequence<Long> {
         final String sql;
         switch (operation) {
             case NEXT_VALUE: {
-                sql = "CALL NEXT VALUE FOR " + sequenceName;
+                sql = "CALL NEXT VALUE FOR \"" + sequenceName + "\"";
                 break;
             }
             case CURRENT_VALUE: {
-                sql = "CALL CURRENT VALUE FOR " + sequenceName;
+                sql = "CALL CURRENT VALUE FOR \"" + sequenceName + "\"";
                 break;
             }
             default:
-                throw new UnsupportedOperationException("Unsupported sequence operation");
+                throw new UnsupportedOperationException("Unsupported sequence operation: " + operation);
         }
         return jdbcTemplate.execute(sql, prst -> {
             checkState(prst.execute(), "Unable to call sequence");
