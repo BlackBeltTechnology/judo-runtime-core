@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.query.feature;
 
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
 import hu.blackbelt.judo.meta.expression.logical.EnumerationComparison;
+import hu.blackbelt.judo.meta.expression.operator.EnumerationComparator;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.meta.query.util.builder.QueryBuilders;
 import hu.blackbelt.judo.runtime.core.query.Context;
@@ -39,6 +40,18 @@ public class EnumerationComparisonToFeatureConverter extends ExpressionToFeature
     public Feature convert(final EnumerationComparison enumerationComparison, final Context context, final FeatureTargetMapping targetMapping) {
         final FunctionSignature signature;
         switch (enumerationComparison.getOperator()) {
+            case LESS_THAN:
+                signature = FunctionSignature.LESS_THAN;
+                break;
+            case GREATER_THAN:
+                signature = FunctionSignature.GREATER_THAN;
+                break;
+            case LESS_OR_EQUAL:
+                signature = FunctionSignature.LESS_OR_EQUAL;
+                break;
+            case GREATER_OR_EQUAL:
+                signature = FunctionSignature.GREATER_OR_EQUAL;
+                break;
             case EQUAL:
                 signature = FunctionSignature.EQUALS;
                 break;
