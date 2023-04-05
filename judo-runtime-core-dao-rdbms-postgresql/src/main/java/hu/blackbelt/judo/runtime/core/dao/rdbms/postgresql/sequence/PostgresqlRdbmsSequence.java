@@ -27,6 +27,7 @@ import lombok.NonNull;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
+import java.sql.PreparedStatement;
 import java.util.Collections;
 
 import static java.util.Objects.requireNonNullElse;
@@ -63,11 +64,11 @@ public class PostgresqlRdbmsSequence implements Sequence<Long> {
         sequenceName = sequenceName.replaceAll("[^a-zA-Z0-9_]", "_");
         final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         if (createIfNotExists) {
-            jdbcTemplate.execute("CREATE SEQUENCE IF NOT EXISTS \"" + sequenceName + "\"" +
-                            (start != null ? " START WITH " + start : "") +
-                            (increment != null ? " INCREMENT BY " + increment : ""),
-                    Collections.emptyMap(),
-                    (stmt) -> stmt.execute());
+            String startWith = start != null ? "START WITH " + start : "";
+            String incrementBy = increment != null ? "INCREMENT BY " + increment : "";
+            jdbcTemplate.execute("CREATE SEQUENCE IF NOT EXISTS \"" + sequenceName + "\" " + startWith + " MINVALUE 0 " + incrementBy,
+                                 Collections.emptyMap(),
+                                 PreparedStatement::execute);
         }
         return jdbcTemplate.queryForObject("SELECT " + (operation.functionName) + "('\"" + sequenceName + "\"')", Collections.emptyMap(), Long.class);
     }
