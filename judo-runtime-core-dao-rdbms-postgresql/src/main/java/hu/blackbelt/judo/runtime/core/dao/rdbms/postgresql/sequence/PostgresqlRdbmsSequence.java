@@ -64,8 +64,8 @@ public class PostgresqlRdbmsSequence implements Sequence<Long> {
         sequenceName = sequenceName.replaceAll("[^a-zA-Z0-9_]", "_");
         final NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
         if (createIfNotExists) {
-            String startWith = start != null ? "START WITH" + start : "";
-            String incrementBy = increment != null ? "INCREMENT BY" + increment : "";
+            String startWith = start != null ? "START WITH " + start : "";
+            String incrementBy = increment != null ? "INCREMENT BY " + increment : "";
             jdbcTemplate.execute("CREATE SEQUENCE IF NOT EXISTS \"" + sequenceName + "\" " + startWith + " MINVALUE 0 " + incrementBy,
                                  Collections.emptyMap(),
                                  PreparedStatement::execute);
