@@ -47,6 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.slf4j.MDC;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -56,7 +58,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.OperationBehaviour.LIST;
+import static hu.blackbelt.judo.runtime.core.dispatcher.behaviours.AlwaysRollbackTransactionalBehaviourCall.ROLLBACK_KEY;
 import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.*;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 import static java.util.Optional.ofNullable;
@@ -616,22 +618,16 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     context.putIfAbsent(PRINCIPAL_KEY, exchange.get(PRINCIPAL_KEY));
                 }
 
-                // Validating and converting parameters
                 if (exposed) {
-                    final List<ValidationResult> ValidationResults = new ArrayList<>();
-                    final List<EParameter> parameters = operation.getEParameters().stream()
-                            .filter(parameter -> (parameter.getEType() instanceof EClass))
-                            .collect(Collectors.toList());
-
-                    parameters.forEach(parameter -> {
-                        final EClass transferObjectType = (EClass) parameter.getEType();
-                        final Map<String, Object> validationContext = new TreeMap<>();
-                        validationContext.put(LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
-                        processParameter(operation, parameter, transferObjectType, exchange, validationContext, ValidationResults);
-                    });
-
-                    if (!ValidationResults.isEmpty()) {
-                        throw new ValidationException("Invalid request", ValidationResults);
+                    TransactionStatus transactionStatus = transactionManager.getTransaction(new DefaultTransactionDefinition());
+                    Boolean rollbackStateInContext = context.getAs(Boolean.class, ROLLBACK_KEY);
+                    if (transactionStatus.isNewTransaction()) {
+                        context.put(ROLLBACK_KEY, true);
+                    }
+                    validateAndConvertParameters(exchange, operation);
+                    if (transactionStatus.isNewTransaction()) {
+                        context.put(ROLLBACK_KEY, rollbackStateInContext);
+                        transactionManager.rollback(transactionStatus);
                     }
                 }
 
@@ -739,6 +735,24 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 }
                 MDC.remove("operation");
             }
+    }
+
+    private void validateAndConvertParameters(Map<String, Object> exchange, EOperation operation) {
+        final List<ValidationResult> ValidationResults = new ArrayList<>();
+        final List<EParameter> parameters = operation.getEParameters().stream()
+                                                     .filter(parameter -> (parameter.getEType() instanceof EClass))
+                                                     .collect(Collectors.toList());
+
+        parameters.forEach(parameter -> {
+            final EClass transferObjectType = (EClass) parameter.getEType();
+            final Map<String, Object> validationContext = new TreeMap<>();
+            validationContext.put(LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
+            processParameter(operation, parameter, transferObjectType, exchange, validationContext, ValidationResults);
+        });
+
+        if (!ValidationResults.isEmpty()) {
+            throw new ValidationException("Invalid request", ValidationResults);
+        }
     }
 
     @Override
