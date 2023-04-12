@@ -46,8 +46,7 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 import org.slf4j.MDC;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.*;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.*;
@@ -624,10 +623,17 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     if (transactionStatus.isNewTransaction()) {
                         context.put(ROLLBACK_KEY, true);
                     }
-                    validateAndConvertParameters(exchange, operation);
-                    if (transactionStatus.isNewTransaction()) {
-                        context.put(ROLLBACK_KEY, rollbackStateInContext);
-                        transactionManager.rollback(transactionStatus);
+                    try {
+                        validateAndConvertParameters(exchange, operation);
+                    } finally {
+                        if (transactionStatus.isNewTransaction()) {
+                            context.put(ROLLBACK_KEY, rollbackStateInContext);
+                            try {
+                                transactionManager.rollback(transactionStatus);
+                            } catch (TransactionException e) {
+                                throw new RuntimeException("Unable to rollback validation changes", e);
+                            }
+                        }
                     }
                 }
 
