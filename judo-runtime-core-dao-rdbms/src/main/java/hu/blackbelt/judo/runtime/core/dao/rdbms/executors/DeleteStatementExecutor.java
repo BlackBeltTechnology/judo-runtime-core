@@ -94,14 +94,14 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
         // Collect all information required to build dependencies between nodes.
         Set<RdbmsReference<ID>> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
 
+        AsmUtils asmUtils = new AsmUtils(getAsmModel().getResourceSet());
         toDependencySortedDeleteStatementStream(deleteStatements, deleteRdbmsReferences)
                 .forEach(consumer(deleteStatement -> {
 
                     EClass entity = deleteStatement.getInstance().getType();
                     ID identifier = deleteStatement.getInstance().getIdentifier();
 
-                    // Collecting all tables on the inheritance chain which required to insert.
-                    AsmUtils asmUtils = new AsmUtils(getAsmModel().getResourceSet());
+                    // Collecting all tables on the inheritance chain to delete.
                     Set<EClass> types = asmUtils.all(EClass.class).filter(c -> c.getEAllSuperTypes().contains(entity)).collect(Collectors.toSet());
                     types.addAll(entity.getEAllSuperTypes());
                     types.add(entity);
