@@ -102,8 +102,9 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                     ID identifier = deleteStatement.getInstance().getIdentifier();
 
                     // Collecting all tables on the inheritance chain to delete.
-                    Set<EClass> types = asmUtils.all(EClass.class).filter(c -> c.getEAllSuperTypes().contains(entity)).collect(Collectors.toSet());
-                    types.addAll(entity.getEAllSuperTypes());
+                    Set<EClass> types = asmUtils.all(EClass.class)
+                                                .filter(c -> AsmUtils.isEntityType(c) && (entity.isSuperTypeOf(c) || c.isSuperTypeOf(entity))) // subtypes + supertypes
+                                                .collect(Collectors.toSet());
                     types.add(entity);
 
                     types.stream()
