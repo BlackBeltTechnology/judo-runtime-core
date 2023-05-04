@@ -20,15 +20,12 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
  * #L%
  */
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.runtime.core.dao.core.statements.DeleteStatement;
-import hu.blackbelt.judo.runtime.core.dao.core.statements.InsertStatement;
-import hu.blackbelt.judo.runtime.core.dao.core.statements.RemoveReferenceStatement;
-import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
+import hu.blackbelt.judo.runtime.core.dao.core.statements.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
@@ -44,16 +41,12 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Spliterator;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkState;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getClassifierFQName;
-import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isEntityType;
 import static java.util.Spliterators.spliteratorUnknownSize;
 import static java.util.stream.StreamSupport.stream;
 import static org.jooq.lambda.Unchecked.consumer;
@@ -101,17 +94,21 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
         // Collect all information required to build dependencies between nodes.
         Set<RdbmsReference<ID>> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
 
+        AsmUtils asmUtils = new AsmUtils(getAsmModel().getResourceSet());
         toDependencySortedDeleteStatementStream(deleteStatements, deleteRdbmsReferences)
                 .forEach(consumer(deleteStatement -> {
 
                     EClass entity = deleteStatement.getInstance().getType();
                     ID identifier = deleteStatement.getInstance().getIdentifier();
 
-                    // Collecting all tables on the inheritance chain which required to insert.
-                    Stream.concat(
-                            ImmutableList.of(entity).stream(),
-                            entity.getEAllSuperTypes().stream()).filter(t -> isEntityType(t))
-                            .forEach(entityForCurrentStatement -> {
+                    // Collecting all tables on the inheritance chain to delete.
+                    Set<EClass> types = asmUtils.all(EClass.class).filter(c -> c.getEAllSuperTypes().contains(entity)).collect(Collectors.toSet());
+                    types.addAll(entity.getEAllSuperTypes());
+                    types.add(entity);
+
+                    types.stream()
+                          .filter(AsmUtils::isEntityType)
+                          .forEach(entityForCurrentStatement -> {
 
                                 MapSqlParameterSource deleteStatementParameters = new MapSqlParameterSource()
                                         .addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
@@ -126,7 +123,7 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                                         " Params: " + ImmutableMap.copyOf(deleteStatementParameters.getValues()).toString());
 
                                 int count = jdbcTemplate.update(sql, deleteStatementParameters);
-                                checkState(count == 1, "There is illegal state, no records deleted");
+                                checkState(count == 0 || count == 1, "Maximum of 1 record should have been deleted. Actual: " + count);
                             });
                 }));
     }
