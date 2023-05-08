@@ -247,14 +247,14 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         registerDataTypes();
     }
 
-    private void registerDataTypes() {
+    public void registerDataTypes() {
         getAsmUtils().all(EDataType.class)
                 .filter(t -> "byte[]".equals(t.getInstanceClassName()))
                 .forEach(t -> dataTypeManager.registerCustomType(t, t.getInstanceClassName(), null, new FileTypeFormatter()));
     }
 
     @SuppressWarnings("unused")
-    private void unregisterDataTypes() {
+    public void unregisterDataTypes() {
         getAsmUtils().all(EDataType.class)
                 .filter(t -> "byte[]".equals(t.getInstanceClassName()))
                 .forEach(dataTypeManager::unregisterCustomType);
