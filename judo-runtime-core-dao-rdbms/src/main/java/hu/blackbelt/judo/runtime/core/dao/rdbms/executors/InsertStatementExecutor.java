@@ -106,6 +106,10 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                 .forEach(consumer(insertStatement -> {
 
                     EClass entity = insertStatement.getInstance().getType();
+                    String entityFQName = getClassifierFQName(entity);
+                    checkState(AsmUtils.isEntityType(entity), "Non-entity types cannot be explicitly instantiated: " + entityFQName);
+                    checkState(!entity.isAbstract(), "Abstract types cannot be explicitly instantiated: " + entityFQName);
+
                     ID identifier = insertStatement.getInstance().getIdentifier();
 
                     // Collect columns
@@ -135,7 +139,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                 // Phase 1: Insert all type with mandatory reference fields
                                 MapSqlParameterSource insertStatementNamedParameters = new MapSqlParameterSource()
                                         .addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType())
-                                        .addValue(ENTITY_TYPE_MAP_KEY, AsmUtils.getClassifierFQName(entity), Types.VARCHAR);
+                                        .addValue(ENTITY_TYPE_MAP_KEY, entityFQName, Types.VARCHAR);
 
                                 Map<String, String> metaMapping = new TreeMap<>();
                                 metaMapping.put(getIdentifierProvider().getName(), ID_COLUMN_NAME);
