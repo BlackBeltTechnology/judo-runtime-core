@@ -264,7 +264,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         join.getSubSelects().forEach(subSelect -> {
                             final Map<ID, InstanceGraph<ID>> joinedGraphs = selectContainments.get(join.getAllReferences());
                             if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
-                                collectSubSelectInstances(subSelect, joinedGraphs != null ? joinedGraphs : Collections.emptyMap(), join.getAllReferences(), parameterMapper);
+                                collectSubSelectInstances(subSelect, joinedGraphs, join.getAllReferences(), parameterMapper);
                             }
                         }));
 
@@ -285,15 +285,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         log.debug("SQL:\n{}", subSelectSql);
         log.debug("  - parent IDs: {}", graphs.keySet());
 
-        final boolean loopDetected;
-        if (!referenceChain.isEmpty()) {
-            final EReference lastElement = referenceChain.get(referenceChain.size() - 1);
-            loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, lastElement)).count() > 1;
-            if (loopDetected) {
-                log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r.getName()).collect(Collectors.toList()));
-            }
-        } else {
-            loopDetected = false;
+        final boolean loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, subSelect.getReference())).count() > 1;
+        if (loopDetected) {
+            log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r.getName()).collect(Collectors.toList()));
         }
 
         final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> subSelectContainments;
@@ -311,35 +305,34 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 log.trace("Containments: {}", subSelectContainments.values().stream().flatMap(e -> e.keySet().stream()).collect(Collectors.toList()));
             }
 
-            subSelect.getBase().getSelect().getSubSelects().stream()
-                    .forEach(subSubSelect -> {
-                        final Map<ID, InstanceGraph<ID>> subGraphs = subSelectContainments.entrySet().stream()
-                                .filter(e -> !e.getValue().isEmpty())
-                                .filter(e -> EcoreUtil.equals(e.getKey(), referenceChain))
-                                .flatMap(e -> e.getValue().entrySet().stream())
-                                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                        if (subGraphs != null && !subGraphs.isEmpty()) {
-                            collectSubSelectInstances(subSubSelect, subGraphs != null ? subGraphs : Collections.emptyMap(), referenceChain, parameterMapper);
-                        }
-                    });
+            List<RdbmsSubSelect> subSelects = subSelect.getBase().getSelect().getSubSelects();
+            for (RdbmsSubSelect rdbmsSubSelect : subSelects) {
+                final Map<ID, InstanceGraph<ID>> subGraphs = subSelectContainments.entrySet().stream()
+                                                                                  .filter(e -> !e.getValue().isEmpty() && EcoreUtil.equals(e.getKey(), referenceChain))
+                                                                                  .flatMap(e -> e.getValue().entrySet().stream())
+                                                                                  .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                if (!subGraphs.isEmpty()) {
+                    collectSubSelectInstances(rdbmsSubSelect, subGraphs, referenceChain, parameterMapper);
+                }
+            }
 
-            subSelect.getBase().getSelect().getAllJoins().stream()
-                    .filter(join -> join.isContainment())
-                    .forEach(join ->
-                            join.getSubSelects().stream()
-                                    .forEach(subSubSelect -> {
-                                        final EList<EReference> nextReferenceChain = new BasicEList<>();
-                                        nextReferenceChain.addAll(referenceChain);
-                                        nextReferenceChain.addAll(join.getAllReferences());
-                                        final Map<ID, InstanceGraph<ID>> joinedGraphs = subSelectContainments.entrySet().stream()
-                                                .filter(e -> !e.getValue().isEmpty())
-                                                .filter(e -> EcoreUtil.equals(e.getKey(), nextReferenceChain))
-                                                .flatMap(e -> e.getValue().entrySet().stream())
-                                                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                                        if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
-                                            collectSubSelectInstances(subSubSelect, joinedGraphs != null ? joinedGraphs : Collections.emptyMap(), ECollections.asEList(Stream.concat(referenceChain.stream(), join.getAllReferences().stream()).collect(Collectors.toList())), parameterMapper);
-                                        }
-                                    }));
+            List<RdbmsJoin> joins = subSelect.getBase().getSelect().getAllJoins().stream()
+                                             .filter(join -> join.isContainment())
+                                             .collect(Collectors.toList());
+            for (RdbmsJoin rdbmsJoin : joins) {
+                for (RdbmsSubSelect subSubSelect : rdbmsJoin.getSubSelects()) {
+                    final EList<EReference> nextReferenceChain = new BasicEList<>();
+                    nextReferenceChain.addAll(referenceChain);
+                    nextReferenceChain.addAll(rdbmsJoin.getAllReferences());
+                    final Map<ID, InstanceGraph<ID>> joinedGraphs = subSelectContainments.entrySet().stream()
+                                                                                         .filter(e -> !e.getValue().isEmpty() && EcoreUtil.equals(e.getKey(), nextReferenceChain))
+                                                                                         .flatMap(e -> e.getValue().entrySet().stream())
+                                                                                         .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                    if (!joinedGraphs.isEmpty()) {
+                        collectSubSelectInstances(subSubSelect, joinedGraphs, nextReferenceChain, parameterMapper);
+                    }
+                }
+            }
         }
     }
 
