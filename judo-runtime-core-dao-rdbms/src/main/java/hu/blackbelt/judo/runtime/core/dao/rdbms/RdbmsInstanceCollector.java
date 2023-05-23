@@ -318,8 +318,8 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                                 .filter(e -> EcoreUtil.equals(e.getKey(), referenceChain))
                                 .flatMap(e -> e.getValue().entrySet().stream())
                                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                        if (subGraphs != null && !subGraphs.isEmpty()) {
-                            collectSubSelectInstances(subSubSelect, subGraphs != null ? subGraphs : Collections.emptyMap(), referenceChain, parameterMapper);
+                        if (!subGraphs.isEmpty()) {
+                            collectSubSelectInstances(subSubSelect, subGraphs, referenceChain, parameterMapper);
                         }
                     });
 
@@ -336,8 +336,8 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                                                 .filter(e -> EcoreUtil.equals(e.getKey(), nextReferenceChain))
                                                 .flatMap(e -> e.getValue().entrySet().stream())
                                                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                                        if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
-                                            collectSubSelectInstances(subSubSelect, joinedGraphs != null ? joinedGraphs : Collections.emptyMap(), ECollections.asEList(Stream.concat(referenceChain.stream(), join.getAllReferences().stream()).collect(Collectors.toList())), parameterMapper);
+                                        if (!joinedGraphs.isEmpty()) {
+                                            collectSubSelectInstances(subSubSelect, joinedGraphs, ECollections.asEList(Stream.concat(referenceChain.stream(), join.getAllReferences().stream()).collect(Collectors.toList())), parameterMapper);
                                         }
                                     }));
         }
