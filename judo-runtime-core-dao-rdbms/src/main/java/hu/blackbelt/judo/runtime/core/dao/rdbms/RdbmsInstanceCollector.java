@@ -264,7 +264,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         join.getSubSelects().forEach(subSelect -> {
                             final Map<ID, InstanceGraph<ID>> joinedGraphs = selectContainments.get(join.getAllReferences());
                             if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
-                                collectSubSelectInstances(subSelect, joinedGraphs != null ? joinedGraphs : Collections.emptyMap(), join.getAllReferences(), parameterMapper);
+                                collectSubSelectInstances(subSelect, joinedGraphs, join.getAllReferences(), parameterMapper);
                             }
                         }));
 
