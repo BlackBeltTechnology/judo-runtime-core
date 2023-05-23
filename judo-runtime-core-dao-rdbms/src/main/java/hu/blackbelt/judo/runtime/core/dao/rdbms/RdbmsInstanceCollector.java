@@ -285,15 +285,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         log.debug("SQL:\n{}", subSelectSql);
         log.debug("  - parent IDs: {}", graphs.keySet());
 
-        final boolean loopDetected;
-        if (!referenceChain.isEmpty()) {
-            final EReference lastElement = referenceChain.get(referenceChain.size() - 1);
-            loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, lastElement)).count() > 1;
-            if (loopDetected) {
-                log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r.getName()).collect(Collectors.toList()));
-            }
-        } else {
-            loopDetected = false;
+        final boolean loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, subSelect.getReference())).count() > 1;
+        if (loopDetected) {
+            log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r.getName()).collect(Collectors.toList()));
         }
 
         final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> subSelectContainments;
