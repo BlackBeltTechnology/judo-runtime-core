@@ -417,7 +417,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         asmUtils.all(EReference.class)
                 .filter(reference -> !reference.isDerived() &&
                         !reference.isContainer() && // NOTE - containers are ignored because they are processed by opposite (containment) references
-                        !reference.isContainment() &&
+                        (!reference.isContainment() || source instanceof RdbmsSelect) && // NOTE - if reference is a containment but source is RdbmsSelect a back reference should be checked before operations
                         (AsmUtils.equals(reference.getEReferenceType(), entityType) || entityType.getEAllSuperTypes().contains(reference.getEReferenceType())))
                 .forEach(opposite -> {
                     log.trace(pad(level) + "  - opposite reference from entity type: {}.{}", getClassifierFQName(opposite.getEContainingClass()), opposite.getName());
@@ -484,14 +484,14 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 .entityType(inverse ? reference.getEContainingClass() : reference.getEReferenceType())
                 .tableName(rdbmsResolver.rdbmsTable(inverse ? reference.getEContainingClass() : reference.getEReferenceType()).getSqlName())
                 .partner(source)
-                .referenceType(reference.isContainment() /* || AsmUtils.isCascadeDelete(reference) */ ? ReferenceType.CONTAINMENT : referenceType);
+                .referenceType(/* AsmUtils.isCascadeDelete(reference) ? ReferenceType.CONTAINMENT : */referenceType);
 
         final RdbmsSubSelect.RdbmsSubSelectBuilder subSelectBuilder = RdbmsSubSelect.builder()
                 .reference(reference)
                 .base(new RdbmsSelectReference(inverse ? reference.getEContainingClass() : reference.getEReferenceType()))
                 .entityType(inverse ? reference.getEContainingClass() : reference.getEReferenceType())
                 .partner(new RdbmsSelectReference(source.getEntityType()))
-                .referenceType(reference.isContainment() /* || AsmUtils.isCascadeDelete(reference) */ ? ReferenceType.CONTAINMENT : referenceType);
+                .referenceType(/* AsmUtils.isCascadeDelete(reference) ? ReferenceType.CONTAINMENT : */referenceType);
 
         boolean createJoin = false;
         boolean createJoinTable = false;
