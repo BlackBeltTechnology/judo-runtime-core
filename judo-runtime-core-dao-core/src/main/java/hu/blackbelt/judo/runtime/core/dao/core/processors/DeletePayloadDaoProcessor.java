@@ -144,7 +144,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 .filter(r -> r.getReference().getLowerBound() > 0 && !AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")).collect(Collectors.toSet());
         checkState(mandatoryReferencesToRemove.stream()
                         .noneMatch(r -> statements.stream().noneMatch(s -> s instanceof DeleteStatement && Objects.equals(s.getInstance().getIdentifier(), r.getReferencedElement().getId()))),
-                "There is mandatory references which is not removable: " +
+                "There are mandatory references that cannot be removed: " +
                         " Type: " + entityType + " ID: " + instanceGraph.getId() + " Mandatory back references: " +
                         mandatoryReferencesToRemove.stream().map(
                                 r -> r.getReference().getEContainingClass() + "#"
