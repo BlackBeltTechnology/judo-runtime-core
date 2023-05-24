@@ -368,16 +368,14 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         sources.put(entityType, source);
                     }
 
-                    final List<Joinable> joinables = createJoin(level, containment, ReferenceType.CONTAINMENT, sources.get(containment.getEContainingClass()), false);
-                    joinables.forEach(joinable -> {
-                        if (joinable instanceof RdbmsJoin) {
-                            source.getJoins().add((RdbmsJoin) joinable);
+                    final Joinable joinable = createJoin(level, containment, ReferenceType.CONTAINMENT, sources.get(containment.getEContainingClass()), false);
+                    if (joinable instanceof RdbmsJoin) {
+                        source.getJoins().add((RdbmsJoin) joinable);
 
-                            getContainmentsWithReferences(level + 1, containment.getEReferenceType(), (RdbmsJoin) joinable, containment);
-                        } else if (joinable instanceof RdbmsSubSelect) {
-                            source.getSubSelects().add((RdbmsSubSelect) joinable);
-                        }
-                    });
+                        getContainmentsWithReferences(level + 1, containment.getEReferenceType(), (RdbmsJoin) joinable, containment);
+                    } else if (joinable instanceof RdbmsSubSelect) {
+                        source.getSubSelects().add((RdbmsSubSelect) joinable);
+                    }
                 });
 
         // add all references
@@ -406,14 +404,12 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         sources.put(entityType, source);
                     }
 
-                    final List<Joinable> joinables = createJoin(level, reference, ReferenceType.REFERENCE, sources.get(reference.getEContainingClass()), false);
-                    joinables.forEach(joinable -> {
-                        if (joinable instanceof RdbmsJoin) {
-                            source.getJoins().add((RdbmsJoin) joinable);
-                        } else if (joinable instanceof RdbmsSubSelect) {
-                            source.getSubSelects().add((RdbmsSubSelect) joinable);
-                        }
-                    });
+                    final Joinable joinable = createJoin(level, reference, ReferenceType.REFERENCE, sources.get(reference.getEContainingClass()), false);
+                    if (joinable instanceof RdbmsJoin) {
+                        source.getJoins().add((RdbmsJoin) joinable);
+                    } else if (joinable instanceof RdbmsSubSelect) {
+                        source.getSubSelects().add((RdbmsSubSelect) joinable);
+                    }
                 });
 
         // TODO - test if changed with reference
@@ -446,14 +442,12 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         oppositeSource = source;
                     }
 
-                    final List<Joinable> joinables = createJoin(level, opposite, ReferenceType.BACK_REFERENCE, oppositeSource, true);
-                    joinables.forEach(joinable -> {
-                        if (joinable instanceof RdbmsJoin) {
-                            source.getJoins().add((RdbmsJoin) joinable);
-                        } else if (joinable instanceof RdbmsSubSelect) {
-                            source.getSubSelects().add((RdbmsSubSelect) joinable);
-                        }
-                    });
+                    final Joinable joinable = createJoin(level, opposite, ReferenceType.BACK_REFERENCE, oppositeSource, true);
+                    if (joinable instanceof RdbmsJoin) {
+                        source.getJoins().add((RdbmsJoin) joinable);
+                    } else if (joinable instanceof RdbmsSubSelect) {
+                        source.getSubSelects().add((RdbmsSubSelect) joinable);
+                    }
                 });
     }
 
@@ -469,7 +463,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         }
     }
 
-    private List<Joinable> createJoin(final int level, final EReference reference, final ReferenceType referenceType, final Source source, final boolean inverse) {
+    private Joinable createJoin(final int level, final EReference reference, final ReferenceType referenceType, final Source source, final boolean inverse) {
         // get RDBMS rule of a given reference
         final Rule rule = getRdbmsSupport().all()
                 .filter(Rules.class::isInstance)
@@ -575,11 +569,11 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         }
 
         if (createJoin) {
-            return Collections.singletonList(joinBuilder.build());
+            return joinBuilder.build();
         } else if (createSubSelect) {
-            return Collections.singletonList(subSelectBuilder.build());
+            return subSelectBuilder.build();
         } else if (createJoinTable) {
-            return Collections.singletonList(subSelectBuilder.build());
+            return subSelectBuilder.build();
         } else {
             throw new IllegalStateException("Invalid JOIN");
         }
