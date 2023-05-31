@@ -52,6 +52,18 @@ public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
                                   "END)")
                          .parameters(List.of(c.parameters.get(ParameterName.STRING), c.parameters.get(ParameterName.PATTERN))));
 
+        getFunctionBuilderMap().put(FunctionSignature.HOURS_OF_TIME, c ->
+                c.builder.pattern("CAST(EXTRACT(HOUR from {0}) AS INTEGER)")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
+
+        getFunctionBuilderMap().put(FunctionSignature.MINUTES_OF_TIME, c ->
+                c.builder.pattern("CAST(EXTRACT(MINUTE from {0}) AS INTEGER)")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
+
+        getFunctionBuilderMap().put(FunctionSignature.SECONDS_OF_TIME, c ->
+                c.builder.pattern("FLOOR(EXTRACT(SECOND from {0}))")
+                         .parameters(List.of(c.parameters.get(ParameterName.TIME))));
+
         getFunctionBuilderMap().put(FunctionSignature.TIME_OF_TIMESTAMP, c ->
                 c.builder.pattern("TO_TIMESTAMP(EXTRACT(HOUR FROM {0}) || '':'' || EXTRACT(MINUTE FROM {0}) || '':'' || EXTRACT(SECOND FROM {0}), ''HH24:MI:SS.FF'')")
                          .parameters(List.of(c.parameters.get(ParameterName.TIMESTAMP))));
