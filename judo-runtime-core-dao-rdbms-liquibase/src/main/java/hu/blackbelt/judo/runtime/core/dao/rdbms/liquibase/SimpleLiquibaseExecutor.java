@@ -30,6 +30,7 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.DatabaseException;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
+import liquibase.resource.CompositeResourceAccessor;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.sql.DataSource;
@@ -105,7 +106,9 @@ public class SimpleLiquibaseExecutor {
 
             @SuppressWarnings("resource")
             final Liquibase liquibase = new Liquibase(liquibaseName,
-                    new StreamResourceAccessor(Collections.singletonMap(liquibaseName, new ByteArrayInputStream(liquibaseStream.toByteArray()))),
+                    new CompositeResourceAccessor(
+                            new StreamResourceAccessor(Collections.singletonMap(liquibaseName, new ByteArrayInputStream(liquibaseStream.toByteArray()))),
+                            new ClassLoaderResourceAccessor(this.getClass().getClassLoader())),
                     database);
 
             consumer.accept(liquibase);
