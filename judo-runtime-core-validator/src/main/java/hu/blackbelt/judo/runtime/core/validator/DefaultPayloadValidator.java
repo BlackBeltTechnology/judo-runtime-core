@@ -291,7 +291,10 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
         final List<ValidationResult> validationResults = new ArrayList<>();
 
-        if (attribute.isRequired() && (validateMissingFeatures || instance.containsKey(attribute.getName())) && value == null) {
+        if ((attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
+            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
+            value == null) {
+
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
@@ -302,8 +305,13 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ERROR_MISSING_REQUIRED_ATTRIBUTE
             );
         }
-        if (AsmUtils.isString(attribute.getEAttributeType()) && attribute.isRequired() && (validateMissingFeatures || instance.containsKey(attribute.getName()))
-                && value != null && RequiredStringValidatorOption.ACCEPT_NON_EMPTY.equals(requiredStringValidatorOption) && ((String) value).isEmpty()) {
+        if (AsmUtils.isString(attribute.getEAttributeType()) &&
+            (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
+            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
+            value != null &&
+            RequiredStringValidatorOption.ACCEPT_NON_EMPTY.equals(requiredStringValidatorOption) &&
+            ((String) value).isEmpty()) {
+
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
