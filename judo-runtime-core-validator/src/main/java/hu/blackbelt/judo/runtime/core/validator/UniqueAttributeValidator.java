@@ -91,22 +91,21 @@ public class UniqueAttributeValidator<ID> implements Validator {
 
         final Collection<ValidationResult> validationResults = new ArrayList<>();
 
-        if (!(feature instanceof EAttribute)
+        if (!(feature instanceof EAttribute attribute)
                 || !asmUtils.getMappedAttribute((EAttribute) feature).isPresent()
                 || !AsmUtils.isIdentifier(asmUtils.getMappedAttribute((EAttribute) feature).get())) {
             return validationResults;
         }
 
-        final EAttribute mappedAttribute = asmUtils.getMappedAttribute((EAttribute) feature).get();
         final ID originalId = instance.getAs(identifierProvider.getType(), identifierProvider.getName());
 
         // When the attribute have to be inserted, heck the current value already presented in the insertable values
         // If not present, insert it.
         if (originalId == null) {
-            if (!uniqueValidationContextInfo.insertableUniqueValue.containsKey(mappedAttribute)) {
-                uniqueValidationContextInfo.insertableUniqueValue.put(mappedAttribute, new HashSet<>());
-                uniqueValidationContextInfo.insertableUniqueValue.get(mappedAttribute).add(value);
-            } else if (uniqueValidationContextInfo.insertableUniqueValue.get(mappedAttribute).contains(value)) {
+            if (!uniqueValidationContextInfo.insertableUniqueValue.containsKey(attribute)) {
+                uniqueValidationContextInfo.insertableUniqueValue.put(attribute, new HashSet<>());
+                uniqueValidationContextInfo.insertableUniqueValue.get(attribute).add(value);
+            } else if (uniqueValidationContextInfo.insertableUniqueValue.get(attribute).contains(value)) {
                 Validator.addValidationError(ImmutableMap.of(
                                 FEATURE_KEY, DefaultPayloadValidator.ATTRIBUTE_TO_MODEL_TYPE.apply((EAttribute) feature),
                                 VALUE_KEY, value
@@ -115,15 +114,15 @@ public class UniqueAttributeValidator<ID> implements Validator {
                         validationResults,
                         ERROR_IDENTIFIER_ATTRIBUTE_UNIQUENESS_VIOLATION);
             } else {
-                uniqueValidationContextInfo.insertableUniqueValue.get(mappedAttribute).add(value);
+                uniqueValidationContextInfo.insertableUniqueValue.get(attribute).add(value);
             }
         }
 
         // Check in the persisted values
-        final String filter = convertFilterToJql(mappedAttribute, value);
+        final String filter = convertFilterToJql(attribute, value);
         final List<Payload> queryResult = dao.search(feature.getEContainingClass(), DAO.QueryCustomizer.<ID>builder()
                 .filter(filter)
-                .mask(ImmutableMap.of(mappedAttribute.getName(), true))
+                .mask(ImmutableMap.of(attribute.getName(), true))
                 .seek(DAO.Seek.builder()
                         .limit(2)
                         .build())
