@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.*;
 
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 
@@ -121,10 +121,30 @@ public class DefaultPayloadValidator implements PayloadValidator {
             final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
             final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
             if (validate) {
+                Optional<EClass> mappedEntity = getMappedEntity(ctx.getType());
+                if (mappedEntity.isPresent()){
+                    mappedEntity.get().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
+                    mappedEntity.get().getEAllReferences().forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
+                }
+
                 ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
                 ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
             }
         }
+    }
+
+    private Optional<EClass> getMappedEntity(EClass transferType) {
+        Optional<EClass> mappedTypeOpt = asmUtils.getMappedEntityType(transferType);
+        if (mappedTypeOpt.isPresent()) {
+            Optional<String> defaultRepresentationFqName = AsmUtils.getExtensionAnnotationValue(mappedTypeOpt.get(), "defaultRepresentation", false);
+            if (defaultRepresentationFqName.isPresent()) {
+                EClassifier defaultRepresentation = asmUtils.resolve(defaultRepresentationFqName.get()).orElseThrow();
+                if (defaultRepresentation instanceof EClass de) {
+                    return Optional.of(de);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private void processReference(final Payload instance,
