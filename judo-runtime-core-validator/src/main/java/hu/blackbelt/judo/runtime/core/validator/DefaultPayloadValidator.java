@@ -122,21 +122,6 @@ public class DefaultPayloadValidator implements PayloadValidator {
         }
     }
 
-    @Deprecated
-    private Optional<EClass> getDefaultRepresentationOfMappedEntity(EClass transferType) {
-        Optional<EClass> mappedTypeOpt = asmUtils.getMappedEntityType(transferType);
-        if (mappedTypeOpt.isPresent()) {
-            Optional<String> defaultRepresentationFqName = AsmUtils.getExtensionAnnotationValue(mappedTypeOpt.get(), "defaultRepresentation", false);
-            if (defaultRepresentationFqName.isPresent()) {
-                EClassifier defaultRepresentation = asmUtils.resolve(defaultRepresentationFqName.get()).orElseThrow();
-                if (defaultRepresentation instanceof EClass de) {
-                    return Optional.of(de);
-                }
-            }
-        }
-        return Optional.empty();
-    }
-
     private void processReference(final Payload instance,
                                   final EReference reference,
                                   final Collection<ValidationResult> validationResults,
