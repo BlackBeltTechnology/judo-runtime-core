@@ -35,7 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.*;
 
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 
@@ -108,23 +108,33 @@ public class DefaultPayloadValidator implements PayloadValidator {
         return validationResults;
     }
 
-
     private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<ValidationResult> validationResults, Map<String, Object> validationContext) {
-        {
-            final Map<String, Object> validationResultContext = new TreeMap<>(validationContext);
-            final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
-            final Map<String, Object> currentContext = new TreeMap<>(validationContext);
-            currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
-            validationResultContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
+        final Map<String, Object> validationResultContext = new TreeMap<>(validationContext);
+        final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
+        final Map<String, Object> currentContext = new TreeMap<>(validationContext);
+        currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
+        validationResultContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
 
-            // do not validate referenced elements but containment only
-            final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
-            final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
-            if (validate) {
-                ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
-                ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
+        final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
+        if (!validatorProvider.getValidators().isEmpty()) {
+            ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
+            ctx.getType().getEAllReferences().stream().filter(EReference::isContainment).forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
+        }
+    }
+
+    @Deprecated
+    private Optional<EClass> getDefaultRepresentationOfMappedEntity(EClass transferType) {
+        Optional<EClass> mappedTypeOpt = asmUtils.getMappedEntityType(transferType);
+        if (mappedTypeOpt.isPresent()) {
+            Optional<String> defaultRepresentationFqName = AsmUtils.getExtensionAnnotationValue(mappedTypeOpt.get(), "defaultRepresentation", false);
+            if (defaultRepresentationFqName.isPresent()) {
+                EClassifier defaultRepresentation = asmUtils.resolve(defaultRepresentationFqName.get()).orElseThrow();
+                if (defaultRepresentation instanceof EClass de) {
+                    return Optional.of(de);
+                }
             }
         }
+        return Optional.empty();
     }
 
     private void processReference(final Payload instance,
@@ -271,14 +281,20 @@ public class DefaultPayloadValidator implements PayloadValidator {
         final Object value = instance.get(attribute.getName());
         boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
 
-        if (validateMissingFeatures && getIdentifier(instance) == null &&
-                attribute.isChangeable() && AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent()) {
+        if (validateMissingFeatures &&
+            (getIdentifier(instance) == null || !instance.containsKey(attribute.getName())) &&
+            attribute.isChangeable() &&
+            AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent()) {
+
             validateMissingFeatures = false;
         }
 
         final List<ValidationResult> validationResults = new ArrayList<>();
 
-        if (attribute.isRequired() && (validateMissingFeatures || instance.containsKey(attribute.getName())) && value == null) {
+        if ((attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
+            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
+            value == null) {
+
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
@@ -289,8 +305,13 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ERROR_MISSING_REQUIRED_ATTRIBUTE
             );
         }
-        if (AsmUtils.isString(attribute.getEAttributeType()) && attribute.isRequired() && (validateMissingFeatures || instance.containsKey(attribute.getName()))
-                && value != null && RequiredStringValidatorOption.ACCEPT_NON_EMPTY.equals(requiredStringValidatorOption) && ((String) value).isEmpty()) {
+        if (AsmUtils.isString(attribute.getEAttributeType()) &&
+            (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
+            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
+            value != null &&
+            RequiredStringValidatorOption.ACCEPT_NON_EMPTY.equals(requiredStringValidatorOption) &&
+            ((String) value).isEmpty()) {
+
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, ATTRIBUTE_TO_MODEL_TYPE.apply(attribute),
