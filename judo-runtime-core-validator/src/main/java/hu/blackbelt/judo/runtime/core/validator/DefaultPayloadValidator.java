@@ -117,10 +117,10 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
         if (!validatorProvider.getValidators().isEmpty()) {
-            Optional<EClass> mappedEntity = getMappedEntity(ctx.getType());
-            if (mappedEntity.isPresent()){
-                mappedEntity.get().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
-                mappedEntity.get().getEAllReferences().stream().filter(EReference::isContainment).forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
+            Optional<EClass> defaultRepresentationOfMappedEntity = getDefaultRepresentationOfMappedEntity(ctx.getType());
+            if (defaultRepresentationOfMappedEntity.isPresent()){
+                defaultRepresentationOfMappedEntity.get().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
+                defaultRepresentationOfMappedEntity.get().getEAllReferences().stream().filter(EReference::isContainment).forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
             }
 
             ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
@@ -128,7 +128,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
         }
     }
 
-    private Optional<EClass> getMappedEntity(EClass transferType) {
+    private Optional<EClass> getDefaultRepresentationOfMappedEntity(EClass transferType) {
         Optional<EClass> mappedTypeOpt = asmUtils.getMappedEntityType(transferType);
         if (mappedTypeOpt.isPresent()) {
             Optional<String> defaultRepresentationFqName = AsmUtils.getExtensionAnnotationValue(mappedTypeOpt.get(), "defaultRepresentation", false);
