@@ -498,7 +498,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
             if (queryCustomizer != null && queryCustomizer.getSeek() != null) {
                 query.setLimit(queryCustomizer.getSeek().getLimit());
-                query.setOffset(queryCustomizer.getSeek().getOffset());
+                if (queryCustomizer.getSeek().getOffset() > 0) {
+                    query.setOffset(queryCustomizer.getSeek().getOffset());
+                }
             }
         }
     }
