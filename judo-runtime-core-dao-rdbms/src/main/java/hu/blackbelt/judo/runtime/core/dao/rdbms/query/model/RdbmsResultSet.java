@@ -590,14 +590,14 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private String getLimit() {
-        if (limit != null) {
+        if (limit != null && limit > 0) {
             return "\nLIMIT " + limit;
         }
         return "";
     }
 
     private String getOffset() {
-        if (limit != null && offset != null && offset > 0) {
+        if (limit != null && limit > 0 && offset != null && offset > 0) {
             return "\nOFFSET " + offset;
         }
         return "";
