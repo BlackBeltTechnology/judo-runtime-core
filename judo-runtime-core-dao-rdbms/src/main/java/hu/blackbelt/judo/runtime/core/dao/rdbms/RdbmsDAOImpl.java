@@ -682,7 +682,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (defaultTransferObjectType.isPresent() && !AsmUtils.equals(defaultTransferObjectType.get(), clazz)) {
             final Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
-                    .filter(a -> template.get(a.getName()) == null && getAsmUtils().getMappedAttribute(a).isPresent())
+                    .filter(a -> !template.containsKey(a.getName()) && getAsmUtils().getMappedAttribute(a).isPresent())
                     .collect(Collectors.toMap(
                             identity(),
                             a -> getAsmUtils().getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped attribute not found: " + AsmUtils.getAttributeFQName(a)))))
