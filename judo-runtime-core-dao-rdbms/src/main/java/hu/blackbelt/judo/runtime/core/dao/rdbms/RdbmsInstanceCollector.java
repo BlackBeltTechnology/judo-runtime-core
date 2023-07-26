@@ -287,7 +287,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
         final boolean loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, subSelect.getReference())).count() > 1;
         if (loopDetected) {
-            log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r.getName()).collect(Collectors.toList()));
+            log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r != null ? r.getName() : "null").collect(Collectors.toList()));
         }
 
         final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> subSelectContainments;
