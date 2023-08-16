@@ -141,9 +141,12 @@ public abstract class JoinFactory {
                 ordered = false;
                 continue;
             } else if (navigation.getFeatureName() != null) {
+                Node finalLastPartner = lastPartner;
+                Set<EReference> allRelatedReferences = modelAdapter.getAllEntityTypes().stream().filter(e -> finalLastPartner.getType().isSuperTypeOf(e))
+                        .flatMap(e -> e.getEAllReferences().stream()).collect(Collectors.toSet());
+                allRelatedReferences.addAll(lastPartner.getType().getEAllReferences());
                 final EReference reference =
-                        lastPartner.getType()
-                                   .getEAllReferences().stream()
+                        allRelatedReferences.stream()
                                    .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
                                    .findAny()
                                    .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
