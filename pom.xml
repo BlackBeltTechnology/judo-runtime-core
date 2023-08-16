@@ -40,7 +40,7 @@
         </osgi-transaction-import>
 
         <jose4j-version>0.7.2</jose4j-version>
-        <jackson-version>2.11.4</jackson-version>
+        <jackson-version>2.15.2</jackson-version>
         <spring-version>4.3.12.RELEASE</spring-version>
 
         <epsilon-runtime-version>1.5.1.20230815_121724_da914fa9_develop</epsilon-runtime-version>
@@ -445,7 +445,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>27.1-jre</version>
+            <version>30.0-jre</version>
         </dependency>
 
         <dependency>
