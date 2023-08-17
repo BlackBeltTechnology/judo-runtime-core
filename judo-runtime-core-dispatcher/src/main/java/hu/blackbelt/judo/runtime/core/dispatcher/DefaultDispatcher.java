@@ -20,6 +20,9 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
  * #L%
  */
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.*;
@@ -51,6 +54,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -102,6 +106,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final DispatcherFunctionProvider dispatcherFunctionProvider;
 
+    private final OperationCallInterceptorProvider operationCallInterceptorProvider;
+
     private final DataTypeManager dataTypeManager;
 
     private final IdentifierSigner identifierSigner;
@@ -142,23 +148,23 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
         behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
-                        new ListCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
-                        new CreateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new ValidateCreateCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new RefreshCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new UpdateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
-                        new ValidateUpdateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, dataTypeManager.getCoercer()),
-                        new DeleteInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new SetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new UnsetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new AddReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new RemoveReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager),
-                        new GetReferenceRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetInputRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetPrincipalCall<>(dao, identifierProvider, asmUtils, actorResolver),
-                        new GetTemplateCall<>(dao, asmUtils),
-                        new GetMetadataCall<>(asmUtils, () -> openIdConfigurationProvider),
-                        new GetUploadTokenCall<>(asmUtils, filestoreTokenIssuer)
+                        new ListCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
+                        new CreateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
+                        new ValidateCreateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
+                        new RefreshCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new UpdateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider,  dataTypeManager.getCoercer()),
+                        new ValidateUpdateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer()),
+                        new DeleteInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
+                        new SetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
+                        new UnsetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
+                        new AddReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
+                        new RemoveReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
+                        new GetReferenceRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new GetInputRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new GetPrincipalCall<>(dao, identifierProvider, asmUtils, actorResolver, operationCallInterceptorProvider),
+                        new GetTemplateCall<>(dao, asmUtils, operationCallInterceptorProvider),
+                        new GetMetadataCall<>(asmUtils, () -> openIdConfigurationProvider, operationCallInterceptorProvider),
+                        new GetUploadTokenCall<>(asmUtils, filestoreTokenIssuer, operationCallInterceptorProvider)
                 )
                 .build();
     }
@@ -170,6 +176,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             @NonNull DAO<ID> dao,
             @NonNull IdentifierProvider<ID> identifierProvider,
             @NonNull DispatcherFunctionProvider dispatcherFunctionProvider,
+            @NonNull OperationCallInterceptorProvider operationCallInterceptorProvider,
             @NonNull DataTypeManager dataTypeManager,
             @NonNull IdentifierSigner identifierSigner,
             @NonNull ActorResolver actorResolver,
@@ -191,6 +198,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.dispatcherFunctionProvider = dispatcherFunctionProvider;
+        this.operationCallInterceptorProvider = operationCallInterceptorProvider;
         this.dataTypeManager = dataTypeManager;
         this.identifierSigner = identifierSigner;
 
@@ -539,208 +547,214 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         return entityType;
     }
 
+    CacheLoader<String, Optional<EOperation>> operationLoader = new CacheLoader<>() {
+        @Override
+        public Optional<EOperation> load(String operationFullyQualifiedName) {
+            return getAsmUtils().all(EOperation.class)
+                    .filter(op -> Objects.equals(AsmUtils.getOperationFQName(op), operationFullyQualifiedName))
+                    .findAny();
+        }
+    };
+
+    private LoadingCache<String, Optional<EOperation>> operationCache = CacheBuilder.newBuilder().build(operationLoader);
+
     @Override
     public Map<String, Object> callOperation(final String operationFullyQualifiedName, final Map<String, Object> exchange) {
         MDC.put("operation", operationFullyQualifiedName);
         Payload result = null;
 
         final long startTs = System.nanoTime();
+        final boolean exposed = Boolean.TRUE.equals(exchange.remove("__exposed"));
+
+        final Boolean stateful = context.getAs(Boolean.class, STATEFUL);
+        // TODO - do not cleanup context of operations called by dispatcher
+        if (exposed) {
+            context.removeAll();
+        }
+
+        try (MetricsCancelToken ignored = metricsCollector.start(METRICS_DISPATCHER)) {
+            actorResolver.authenticateActor(exchange);
+            if (exchange.containsKey(ACTOR_KEY)) {
+                context.putIfAbsent(ACTOR_KEY, exchange.get(ACTOR_KEY));
+            }
+
+            final EOperation operation = operationCache.get(operationFullyQualifiedName)
+                    .orElseThrow(() -> new UnsupportedOperationException("Operation not found: " + operationFullyQualifiedName));
+
+            final boolean immutable = AsmUtils.annotatedAsTrue(operation, "immutable");
+
+            // operation marked stateful if annotation is not present AND operation call is called by already running stateless operation
+            final boolean stateless = AsmUtils.annotatedAsFalse(operation, "stateful");
+            context.put(STATEFUL, !stateless && !Boolean.FALSE.equals(stateful));
+
+            Optional<SignedIdentifier> signedIdentifier = Optional.empty();
+            Optional<EClass> entityType = Optional.empty();
+            EOperation implementation;
+            EClass mappedTransferObjectType = null;
+            Optional<AsmUtils.OperationBehaviour> behaviour = AsmUtils.getBehaviour(operation);
+
+            if (AsmUtils.isBound(operation)) {
+                mappedTransferObjectType = getContainerOfBoundOperation(operation);
+
+                signedIdentifier = getIdForBoundOperation(mappedTransferObjectType, exchange, exposed);
+                SignedIdentifier signedIdentifierValue = signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation"));
+                if (exposed) {
+                    if (Boolean.TRUE.equals(signedIdentifierValue.getImmutable())) {
+                        throw new AccessDeniedException(ValidationResult.builder()
+                                .code(ERROR_BOUND_OPERATION_INSTANCE_IS_IMMUTABLE)
+                                .level(ValidationResult.Level.ERROR)
+                                .build());
+                    }
+                    accessManager.authorizeOperation(operation, signedIdentifierValue, exchange);
+                    checkProducedByOfBoundOperationInstance(signedIdentifierValue, operation);
+                }
+
+                entityType = getEntityType(mappedTransferObjectType, signedIdentifierValue);
+
+                final String boundOperationName = AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_BINDING, true)
+                        .orElseThrow(() -> new IllegalArgumentException("Bound operation not defined"));
+
+                EClass finalMappedTransferObjectType = mappedTransferObjectType;
+                implementation = AsmUtils.getOperationImplementationByName(entityType.orElseThrow(() -> new IllegalArgumentException("Missing entity type for " + finalMappedTransferObjectType.getName())), boundOperationName)
+                        .orElseThrow(() -> new IllegalArgumentException("Operation implementation not found"));
+
+            } else {
+                implementation = AsmUtils.getImplementationClassOfOperation(operation)
+                        .orElseThrow(() -> new IllegalArgumentException("Operation implementation not found"));
+
+                if (exposed) {
+                    accessManager.authorizeOperation(operation, null, exchange);
+                }
+            }
+
+            if (exchange.containsKey(PRINCIPAL_KEY)) {
+                context.putIfAbsent(PRINCIPAL_KEY, exchange.get(PRINCIPAL_KEY));
+            }
+
+            if (exposed) {
+                TransactionStatus transactionStatus = transactionManager.getTransaction(new DefaultTransactionDefinition());
+                Boolean rollbackStateInContext = context.getAs(Boolean.class, ROLLBACK_KEY);
+                if (transactionStatus.isNewTransaction()) {
+                    context.put(ROLLBACK_KEY, true);
+                }
+                try {
+                    validateAndConvertParameters(exchange, operation);
+                } finally {
+                    if (transactionStatus.isNewTransaction()) {
+                        context.put(ROLLBACK_KEY, rollbackStateInContext);
+                        try {
+                            transactionManager.rollback(transactionStatus);
+                        } catch (TransactionException e) {
+                            throw new RuntimeException("Unable to rollback validation changes", e);
+                        }
+                    }
+                }
+            }
+
+            String callType = SDK;
+            String measurementKey = METRICS_SDK_CALL;
+
+            String implementationName = AsmUtils.getOperationFQName(implementation);
+            final Optional<String> outputParameterName = AsmUtils.getOutputParameterName(implementation);
+            final EClassifier operationType = operation.getEType();
 
 
-            final boolean exposed = Boolean.TRUE.equals(exchange.remove("__exposed"));
+            checkArgument(outputParameterName.isPresent() || operationType == null);
 
-            final Boolean stateful = context.getAs(Boolean.class, STATEFUL);
+            // 1. Check for SDK defined operation implementation
+            Function<Payload, Payload> operationCall = dispatcherFunctionProvider.getSdkFunctions().get(implementation);
+
+            // 2. Check for script operation function
+            if (operationCall == null) {
+                callType = SCRIPT;
+                measurementKey = METRICS_SCRIPT_CALL;
+                operationCall = dispatcherFunctionProvider.getScriptFunctions().get(implementation);
+            }
+
+            // 3. Check for default behaviour function
+            if (operationCall == null) {
+                implementationName = behaviour.orElseThrow(() -> new IllegalArgumentException("Not implemented yet")).name();
+                callType = BEHAVIOUR;
+                measurementKey = METRICS_JUDO_CALL;
+
+                operationCall = (Payload p) -> {
+                    Object behaviourOperationCallResult = getBehaviourCalls().stream()
+                            .filter(b -> b.isSuitableForOperation(operation))
+                            .findFirst()
+                            .orElseThrow(() -> new UnsupportedOperationException("Not supported yet"))
+                            .call(exchange, operation);
+
+                    Payload payload = operationType != null && behaviourOperationCallResult != null
+                            ? Payload.map(outputParameterName.get(), behaviourOperationCallResult)
+                            : Payload.empty();
+
+                    if (exposed && exchange.containsKey(DefaultDispatcher.RECORD_COUNT_KEY)) {
+                        payload.putIfAbsent(Dispatcher.HEADERS_KEY, new ConcurrentHashMap<>());
+                        ((Map<String, Object>) payload.get(Dispatcher.HEADERS_KEY))
+                                .put("X-Judo-Count", exchange.get(DefaultDispatcher.RECORD_COUNT_KEY));
+                        exchange.remove(DefaultDispatcher.RECORD_COUNT_KEY);
+                    }
+
+                    return payload;
+                };
+            }
+
+            // Custom / Script type calls have to be wrapped in transactional context and include this instance (payload)
+            if (SCRIPT.equals(callType) || SDK.equals(callType)) {
+                operationCall = new TransactionalOperationCall(transactionManager, operationCall, operation);
+
+                if (AsmUtils.isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
+                    final Payload thisMappedTransferObject = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation")));
+                    exchange.put(INSTANCE_KEY_OF_BOUND_OPERATION, thisMappedTransferObject);
+                }
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("Calling operation: {}, {} implementation: {}, instance: {}, entity type: {}",
+                        callType,
+                        AsmUtils.getOperationFQName(operation),
+                        implementationName,
+                        signedIdentifier.map(SignedIdentifier::getIdentifier),
+                        entityType.map(AsmUtils::getClassifierFQName).orElse(null));
+            }
+
+            try (MetricsCancelToken ignored1 = metricsCollector.start(measurementKey)) {
+                result = operationCall.apply(Payload.asPayload(exchange));
+                MDC.put("operation", operationFullyQualifiedName); // reset operation
+            }
+
+            final ETypedElement producedBy;
+            if ((AsmUtils.OperationBehaviour.REFRESH.equals(behaviour.orElse(null)) || AsmUtils.OperationBehaviour.UPDATE_INSTANCE.equals(behaviour.orElse(null)))
+                    && signedIdentifier.isPresent()) {
+                producedBy = signedIdentifier.get().getProducedBy();
+            } else {
+                producedBy = operation;
+            }
+
+            processFault(result, outputParameterName.orElse(null), operationType, exposed, producedBy, immutable, operation.isMany());
+            if (log.isTraceEnabled()) {
+                log.trace("Operation result: {}", result);
+            }
+            return result;
+        } catch (ClientException | BusinessException ex) {
+            // do not wrap ClientException and BusinessException
+            throw ex;
+        } catch (RuntimeException | ExecutionException ex) {
+            throw new InternalServerException("Operation failed", ex);
+        } finally {
+            processMetrics(result);
+            final long duration = System.nanoTime() - startTs;
+            if (log.isDebugEnabled()) {
+                log.debug("Operation {} completed in {} ms", operationFullyQualifiedName, duration / 1000000);
+            }
+            context.put(STATEFUL, stateful);
 
             // TODO - do not cleanup context of operations called by dispatcher
             if (exposed) {
                 context.removeAll();
             }
-
-            try (MetricsCancelToken ignored = metricsCollector.start(METRICS_DISPATCHER)) {
-                actorResolver.authenticateActor(exchange);
-                if (exchange.containsKey(ACTOR_KEY)) {
-                    context.putIfAbsent(ACTOR_KEY, exchange.get(ACTOR_KEY));
-                }
-
-                final EOperation operation = getAsmUtils().all(EOperation.class)
-                        .filter(op -> Objects.equals(AsmUtils.getOperationFQName(op), operationFullyQualifiedName))
-                        .findAny()
-                        .orElseThrow(() -> new UnsupportedOperationException("Operation not found: " + operationFullyQualifiedName));
-
-                final boolean immutable = AsmUtils.annotatedAsTrue(operation, "immutable");
-
-                // operation marked stateful if annotation is not present AND operation call is called by already running stateless operation
-                final boolean stateless = AsmUtils.annotatedAsFalse(operation, "stateful");
-                context.put(STATEFUL, !stateless && !Boolean.FALSE.equals(stateful));
-
-                Optional<SignedIdentifier> signedIdentifier = Optional.empty();
-                Optional<EClass> entityType = Optional.empty();
-                EOperation implementation;
-                EClass mappedTransferObjectType = null;
-                Optional<AsmUtils.OperationBehaviour> behaviour = AsmUtils.getBehaviour(operation);
-
-                if (AsmUtils.isBound(operation)) {
-                    mappedTransferObjectType = getContainerOfBoundOperation(operation);
-
-                    signedIdentifier = getIdForBoundOperation(mappedTransferObjectType, exchange, exposed);
-                    SignedIdentifier signedIdentifierValue = signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation"));
-                    if (exposed) {
-                        if (Boolean.TRUE.equals(signedIdentifierValue.getImmutable())) {
-                            throw new AccessDeniedException(ValidationResult.builder()
-                                    .code(ERROR_BOUND_OPERATION_INSTANCE_IS_IMMUTABLE)
-                                    .level(ValidationResult.Level.ERROR)
-                                    .build());
-                        }
-                        accessManager.authorizeOperation(operation, signedIdentifierValue, exchange);
-                        checkProducedByOfBoundOperationInstance(signedIdentifierValue, operation);
-                    }
-
-                    entityType = getEntityType(mappedTransferObjectType, signedIdentifierValue);
-
-                    final String boundOperationName = AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_BINDING, true)
-                            .orElseThrow(() -> new IllegalArgumentException("Bound operation not defined"));
-
-                    EClass finalMappedTransferObjectType = mappedTransferObjectType;
-                    implementation = AsmUtils.getOperationImplementationByName(entityType.orElseThrow(() -> new IllegalArgumentException("Missing entity type for " + finalMappedTransferObjectType.getName())), boundOperationName)
-                            .orElseThrow(() -> new IllegalArgumentException("Operation implementation not found"));
-
-                } else {
-                    implementation = AsmUtils.getImplementationClassOfOperation(operation)
-                            .orElseThrow(() -> new IllegalArgumentException("Operation implementation not found"));
-
-                    if (exposed) {
-                        accessManager.authorizeOperation(operation, null, exchange);
-                    }
-                }
-
-                if (exchange.containsKey(PRINCIPAL_KEY)) {
-                    context.putIfAbsent(PRINCIPAL_KEY, exchange.get(PRINCIPAL_KEY));
-                }
-
-                if (exposed) {
-                    TransactionStatus transactionStatus = transactionManager.getTransaction(new DefaultTransactionDefinition());
-                    Boolean rollbackStateInContext = context.getAs(Boolean.class, ROLLBACK_KEY);
-                    if (transactionStatus.isNewTransaction()) {
-                        context.put(ROLLBACK_KEY, true);
-                    }
-                    try {
-                        validateAndConvertParameters(exchange, operation);
-                    } finally {
-                        if (transactionStatus.isNewTransaction()) {
-                            context.put(ROLLBACK_KEY, rollbackStateInContext);
-                            try {
-                                transactionManager.rollback(transactionStatus);
-                            } catch (TransactionException e) {
-                                throw new RuntimeException("Unable to rollback validation changes", e);
-                            }
-                        }
-                    }
-                }
-
-                String callType = SDK;
-                String measurementKey = METRICS_SDK_CALL;
-
-                String implementationName = AsmUtils.getOperationFQName(implementation);
-                final Optional<String> outputParameterName = AsmUtils.getOutputParameterName(implementation);
-                final EClassifier operationType = operation.getEType();
-
-
-                checkArgument(outputParameterName.isPresent() || operationType == null);
-
-                // 1. Check for SDK defined operation implementation
-                Function<Payload, Payload> operationCall = dispatcherFunctionProvider.getSdkFunctions().get(implementation);
-
-                // 2. Check for script operation function
-                if (operationCall == null) {
-                    callType = SCRIPT;
-                    measurementKey = METRICS_SCRIPT_CALL;
-                    operationCall = dispatcherFunctionProvider.getScriptFunctions().get(implementation);
-                }
-
-                // 3. Check for default behaviour function
-                if (operationCall == null) {
-                    implementationName = behaviour.orElseThrow(() -> new IllegalArgumentException("Not implemented yet")).name();
-                    callType = BEHAVIOUR;
-                    measurementKey = METRICS_JUDO_CALL;
-
-                    operationCall = (Payload p) -> {
-                        Object behaviourOperationCallResult = getBehaviourCalls().stream()
-                                .filter(b -> b.isSuitableForOperation(operation))
-                                .findFirst()
-                                .orElseThrow(() -> new UnsupportedOperationException("Not supported yet"))
-                                .call(exchange, operation);
-
-                        Payload payload = operationType != null && behaviourOperationCallResult != null
-                                ? Payload.map(outputParameterName.get(), behaviourOperationCallResult)
-                                : Payload.empty();
-
-                        if (exposed && exchange.containsKey(DefaultDispatcher.RECORD_COUNT_KEY)) {
-                            payload.putIfAbsent(Dispatcher.HEADERS_KEY, new ConcurrentHashMap<>());
-                            ((Map<String, Object>) payload.get(Dispatcher.HEADERS_KEY))
-                                    .put("X-Judo-Count", exchange.get(DefaultDispatcher.RECORD_COUNT_KEY));
-                            exchange.remove(DefaultDispatcher.RECORD_COUNT_KEY);
-                        }
-
-                        return payload;
-                    };
-                }
-
-                // Custom / Script type calls have to be wrapped in transactional context and include this instance (payload)
-                if (SCRIPT.equals(callType) || SDK.equals(callType)) {
-                    operationCall = new TransactionalOperationCall(transactionManager, operationCall, operation);
-
-                    if (AsmUtils.isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
-                        final Payload thisMappedTransferObject = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation")));
-                        exchange.put(INSTANCE_KEY_OF_BOUND_OPERATION, thisMappedTransferObject);
-                    }
-                }
-
-                if (log.isDebugEnabled()) {
-                    log.debug("Calling operation: {}, {} implementation: {}, instance: {}, entity type: {}",
-                            callType,
-                            AsmUtils.getOperationFQName(operation),
-                            implementationName,
-                            signedIdentifier.map(SignedIdentifier::getIdentifier),
-                            entityType.map(AsmUtils::getClassifierFQName).orElse(null));
-                }
-
-                try (MetricsCancelToken ignored1 = metricsCollector.start(measurementKey)) {
-                    result = operationCall.apply(Payload.asPayload(exchange));
-                    MDC.put("operation", operationFullyQualifiedName); // reset operation
-                }
-
-                final ETypedElement producedBy;
-                if ((AsmUtils.OperationBehaviour.REFRESH.equals(behaviour.orElse(null)) || AsmUtils.OperationBehaviour.UPDATE_INSTANCE.equals(behaviour.orElse(null)))
-                        && signedIdentifier.isPresent()) {
-                    producedBy = signedIdentifier.get().getProducedBy();
-                } else {
-                    producedBy = operation;
-                }
-
-                processFault(result, outputParameterName.orElse(null), operationType, exposed, producedBy, immutable, operation.isMany());
-                if (log.isTraceEnabled()) {
-                    log.trace("Operation result: {}", result);
-                }
-                return result;
-            } catch (ClientException | BusinessException ex) {
-                // do not wrap ClientException and BusinessException
-                throw ex;
-            } catch (RuntimeException ex) {
-                throw new InternalServerException("Operation failed", ex);
-            } finally {
-                processMetrics(result);
-                final long duration = System.nanoTime() - startTs;
-                if (log.isDebugEnabled()) {
-                    log.debug("Operation {} completed in {} ms", operationFullyQualifiedName, duration / 1000000);
-                }
-                context.put(STATEFUL, stateful);
-
-                // TODO - do not cleanup context of operations called by dispatcher
-                if (exposed) {
-                    context.removeAll();
-                }
-                MDC.remove("operation");
-            }
+            MDC.remove("operation");
+        }
     }
 
     private void validateAndConvertParameters(Map<String, Object> exchange, EOperation operation) {

@@ -22,12 +22,16 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
@@ -38,8 +42,10 @@ public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public CreateInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
-        super(context, transactionManager);
+    public CreateInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider,
+                              AsmUtils asmUtils, PlatformTransactionManager transactionManager,
+                              OperationCallInterceptorProvider interceptorProvider) {
+        super(context, transactionManager, interceptorProvider);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;
@@ -61,15 +67,32 @@ public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
         final boolean bound = AsmUtils.isBound(operation);
 
+        Payload inputParameter = asPayload((Map<String, Object>) exchange.get(inputParameterName));
+        boolean callDecorated = true;
+        for (OperationCallInterceptor interceptor : interceptorProvider.getInterceptorsForOperation(asmModel, operation)) {
+            callDecorated = callDecorated & !interceptor.ignoreDecoratedCall();
+            if (!interceptor.async()) {
+                Object callRet = interceptor.preCall(operation, inputParameter);
+                if (callRet instanceof Payload) {
+                    inputParameter = (Payload) callRet;
+                }
+            } else {
+                Payload finalInputParameter = inputParameter;
+                CompletableFuture.runAsync(() -> {
+                    interceptor.preCall(operation, finalInputParameter);
+                });
+            }
+        }
+
         if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
             checkArgument(!bound, "Operation must be unbound");
             return dao.create(owner.getEReferenceType(),
-                    asPayload((Map<String, Object>) exchange.get(inputParameterName)), null);
+                    inputParameter, null);
         } else {
             checkArgument(bound, "Operation must be bound");
             return dao.createNavigationInstanceAt((ID) exchange.get(identifierProvider.getName()),
                     owner,
-                    asPayload((Map<String, Object>) exchange.get(inputParameterName)), null);
+                    inputParameter, null);
         }
     }
 }

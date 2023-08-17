@@ -28,6 +28,7 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EOperation;
@@ -49,8 +50,10 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public ListCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, final PlatformTransactionManager transactionManager, final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
-        super(context, transactionManager);
+    public ListCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils,
+                    final PlatformTransactionManager transactionManager, final OperationCallInterceptorProvider interceptorProvider,
+                    final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
+        super(context, transactionManager, interceptorProvider);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;

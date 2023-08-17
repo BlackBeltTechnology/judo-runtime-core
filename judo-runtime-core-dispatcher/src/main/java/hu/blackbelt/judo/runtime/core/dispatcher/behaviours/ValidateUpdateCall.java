@@ -25,6 +25,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
@@ -44,8 +45,10 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateUpdateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer) {
-        super(context, transactionManager);
+    public ValidateUpdateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils,
+                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider,
+                              Coercer coercer) {
+        super(context, transactionManager, interceptorProvider);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;

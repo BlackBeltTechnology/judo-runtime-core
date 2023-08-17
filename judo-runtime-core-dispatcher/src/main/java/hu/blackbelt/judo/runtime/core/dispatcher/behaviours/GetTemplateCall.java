@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -32,9 +33,12 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
     final DAO<ID> dao;
     final AsmUtils asmUtils;
 
-    public GetTemplateCall(DAO<ID> dao, AsmUtils asmUtils) {
+    final OperationCallInterceptorProvider interceptorProvider;
+
+    public GetTemplateCall(DAO<ID> dao, AsmUtils asmUtils, OperationCallInterceptorProvider interceptorProvider) {
         this.dao = dao;
         this.asmUtils = asmUtils;
+        this.interceptorProvider = interceptorProvider;
     }
 
     @Override

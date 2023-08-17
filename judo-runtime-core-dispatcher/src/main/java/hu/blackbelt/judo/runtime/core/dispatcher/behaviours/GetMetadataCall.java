@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import lombok.RequiredArgsConstructor;
 import org.eclipse.emf.ecore.EClass;
@@ -38,13 +39,14 @@ public class GetMetadataCall<ID> implements BehaviourCall<ID> {
 
     final AsmUtils asmUtils;
     final Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider;
-
+    final OperationCallInterceptorProvider interceptorProvider;
     private static final String SECURITY_KEY = "security";
 
     private static final String ISSUER = "issuer";
     private static final String AUTH_ENDPOINT = "auth_endpoint";
     private static final String TOKEN_ENDPOINT = "token_endpoint";
     private static final String LOGOUT_ENDPOINT = "end_session_endpoint";
+
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {

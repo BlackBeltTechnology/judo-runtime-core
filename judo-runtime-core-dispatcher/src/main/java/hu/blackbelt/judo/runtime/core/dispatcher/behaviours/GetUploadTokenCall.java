@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 import com.google.gson.Gson;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.osgi.filestore.security.api.Token;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.UploadClaim;
@@ -41,9 +42,12 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
 
     private TokenIssuer tokenIssuer;
 
-    public GetUploadTokenCall(final AsmUtils asmUtils, final TokenIssuer tokenIssuer) {
+    private final OperationCallInterceptorProvider interceptorProvider;
+
+    public GetUploadTokenCall(final AsmUtils asmUtils, final TokenIssuer tokenIssuer, OperationCallInterceptorProvider interceptorProvider) {
         this.asmUtils = asmUtils;
         this.tokenIssuer = tokenIssuer;
+        this.interceptorProvider = interceptorProvider;
     }
 
     @Override

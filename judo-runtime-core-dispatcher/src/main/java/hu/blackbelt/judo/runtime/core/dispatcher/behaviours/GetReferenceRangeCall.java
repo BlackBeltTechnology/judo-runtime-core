@@ -28,6 +28,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EOperation;
@@ -54,8 +55,10 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetReferenceRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
-        super(context, transactionManager);
+    public GetReferenceRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils,
+                                 ExpressionModel expressionModel, PlatformTransactionManager transactionManager,
+                                 OperationCallInterceptorProvider interceptorProvider, Coercer coercer, boolean caseInsensitiveLike) {
+        super(context, transactionManager, interceptorProvider);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;

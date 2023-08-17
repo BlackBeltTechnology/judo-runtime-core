@@ -26,6 +26,7 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
@@ -43,7 +44,8 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
     final ActorResolver actorResolver;
     final IdentifierProvider<ID> identifierProvider;
 
-    public GetPrincipalCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ActorResolver actorResolver) {
+    public GetPrincipalCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils,
+                            ActorResolver actorResolver, OperationCallInterceptorProvider interceptorProvider) {
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = asmUtils;
