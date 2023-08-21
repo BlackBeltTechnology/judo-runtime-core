@@ -26,13 +26,22 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,14 +58,16 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public ListCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, final PlatformTransactionManager transactionManager, final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
-        super(context, transactionManager);
+    public ListCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
+                    final PlatformTransactionManager transactionManager, final OperationCallInterceptorProvider interceptorProvider,
+                    final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike) {
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.coercer = coercer;
         this.actorResolver = actorResolver;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<ID>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }
 
     @Override
@@ -67,77 +78,97 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
     @SuppressWarnings("unchecked")
     @Override
     public Object callInRollbackTransaction(final Map<String, Object> exchange, final EOperation operation) {
+
+        CallInterceptorUtil<ListCallPayload<ID>, Object> callInterceptorUtil = new CallInterceptorUtil<>(
+                ListCallPayload.class, Object.class, asmModel, operation, interceptorProvider
+        );
+
         final boolean bound = AsmUtils.isBound(operation);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        Object result;
-        Long count = null;
-
-        final Optional<Map<String, Object>> queryCustomizerParameter = operation.getEParameters().stream().map(p -> p.getName())
+        final Optional<Map<String, Object>> queryCustomizerParameter = operation.getEParameters().stream().map(ENamedElement::getName)
                 .findFirst()
                 .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
 
-        @SuppressWarnings("rawtypes")
-        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
+        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
 
-        final boolean countRecords = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY));
+        ListCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(ListCallPayload.<ID>builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner(owner)
+                        .queryCustomizer(queryCustomizer)
+                        .build());
 
-        if (AsmUtils.annotatedAsTrue(owner, "access") && owner.isDerived() && asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
-            checkArgument(!bound, "Operation must be unbound");
+        Object result = null;
+        Long count = null;
 
-            final Map<String, Object> actor;
-            if (exchange.containsKey(Dispatcher.ACTOR_KEY)) {
-                actor = (Map<String, Object>) exchange.get(Dispatcher.ACTOR_KEY);
-            } else if (exchange.get(Dispatcher.PRINCIPAL_KEY) instanceof JudoPrincipal) {
-                actor = actorResolver.authenticateByPrincipal((JudoPrincipal) exchange.get(Dispatcher.PRINCIPAL_KEY))
-                        .orElseThrow(() -> new IllegalArgumentException("Unknown actor"));
-            } else {
-                throw new IllegalStateException("Unknown or unsupported actor");
-            }
+        if (callInterceptorUtil.isOriginalCalled()) {
+            final boolean countRecords = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY));
 
-            final ID id = (ID) actor.get(identifierProvider.getName());
-            result = extractResult(operation, dao.searchNavigationResultAt(id, owner, queryCustomizer));
-            if (countRecords) {
-                count = dao.countNavigationResultAt(id, owner, queryCustomizer);
-            }
+            if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access")
+                    && inputParameter.getOwner().isDerived()
+                    && asmUtils.isMappedTransferObjectType(inputParameter.getOwner().getEContainingClass())) {
+                checkArgument(!bound, "Operation must be unbound");
 
-        } else if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
-            checkArgument(!bound, "Operation must be unbound");
-            final List<Payload> resultList;
-            if (AsmUtils.annotatedAsTrue(owner, "access") && !owner.isDerived()) {
-                resultList = dao.search(owner.getEReferenceType(), queryCustomizer);
-                if (countRecords) {
-                    count = dao.count(owner.getEReferenceType(), queryCustomizer);
-                }
-            } else {
-                resultList = dao.searchReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
-                if (countRecords) {
-                    count = dao.countReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
+                final Map<String, Object> actor;
+                if (exchange.containsKey(Dispatcher.ACTOR_KEY)) {
+                    actor = (Map<String, Object>) exchange.get(Dispatcher.ACTOR_KEY);
+                } else if (exchange.get(Dispatcher.PRINCIPAL_KEY) instanceof JudoPrincipal) {
+                    actor = actorResolver.authenticateByPrincipal((JudoPrincipal) exchange.get(Dispatcher.PRINCIPAL_KEY))
+                            .orElseThrow(() -> new IllegalArgumentException("Unknown actor"));
+                } else {
+                    throw new IllegalStateException("Unknown or unsupported actor");
                 }
 
-            }
-            result = extractResult(operation, resultList);
-        } else {
-            checkArgument(bound, "Operation must be bound");
-
-            final Optional<Optional<Object>> resultInThis = Optional.ofNullable(exchange.get(Dispatcher.INSTANCE_KEY_OF_BOUND_OPERATION))
-                    .filter(_this -> _this instanceof Payload && ((Payload) _this).containsKey(owner.getName()))
-                    .map(_this -> Optional.ofNullable(((Payload) _this).get(owner.getName())));
-
-            if (resultInThis.isPresent()) {
-                result = resultInThis.get().orElse(null);
-            } else {
-                result = extractResult(operation, dao.searchNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer));
+                final ID id = (ID) actor.get(identifierProvider.getName());
+                result = extractResult(operation, dao.searchNavigationResultAt(id, owner, queryCustomizer));
                 if (countRecords) {
-                    count = dao.countNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer);
+                    count = dao.countNavigationResultAt(id, owner, queryCustomizer);
                 }
+
+            } else if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
+                checkArgument(!bound, "Operation must be unbound");
+                final List<Payload> resultList;
+                if (AsmUtils.annotatedAsTrue(owner, "access") && !owner.isDerived()) {
+                    resultList = dao.search(owner.getEReferenceType(), queryCustomizer);
+                    if (countRecords) {
+                        count = dao.count(owner.getEReferenceType(), queryCustomizer);
+                    }
+                } else {
+                    resultList = dao.searchReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
+                    if (countRecords) {
+                        count = dao.countReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
+                    }
+
+                }
+                result = extractResult(operation, resultList);
+            } else {
+                checkArgument(bound, "Operation must be bound");
+
+                final Optional<Optional<Object>> resultInThis = Optional.ofNullable(exchange.get(Dispatcher.INSTANCE_KEY_OF_BOUND_OPERATION))
+                        .filter(_this -> _this instanceof Payload && ((Payload) _this).containsKey(owner.getName()))
+                        .map(_this -> Optional.ofNullable(((Payload) _this).get(owner.getName())));
+
+                if (resultInThis.isPresent()) {
+                    result = resultInThis.get().orElse(null);
+                } else {
+                    result = extractResult(operation, dao.searchNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer));
+                    if (countRecords) {
+                        count = dao.countNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer);
+                    }
+                }
+            }
+            if (count != null) {
+                inputParameter.setRecordCount(count);
+                exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, count);
             }
         }
-        if (count != null) {
-            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, count);
+
+        if (inputParameter.getRecordCount() > -1) {
+            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, inputParameter.getRecordCount());
         }
-        return result;
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
 
     private Object extractResult(final EOperation operation, final List<Payload> resultList) {
@@ -152,4 +183,22 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
             }
         }
     }
+
+    @Builder
+    @Getter
+    public static class ListCallPayload<ID> {
+        @NonNull
+        EReference owner;
+
+        @NonNull
+        Payload instance;
+
+        DAO.QueryCustomizer<ID> queryCustomizer;
+
+        @Setter
+        @Builder.Default
+        long recordCount = -1L;
+
+    }
+
 }
