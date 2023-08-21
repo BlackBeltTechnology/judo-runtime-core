@@ -34,14 +34,11 @@ import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
-import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.Collection;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isBound;
 
 public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
@@ -66,31 +63,32 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
     @SuppressWarnings("unchecked")
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<DeleteInstanceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
+                DeleteInstanceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
+
         final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final boolean bound = isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        DeleteInstanceCallPayload deleteInstanceCallPayload = CallInterceptorUtil.preCallInterceptors(
-                DeleteInstanceCallPayload.class,
-                asmModel, operation, interceptorProvider,
+        DeleteInstanceCallPayload deleteInstanceCallPayload = callInterceptorUtil.preCallInterceptors(
                 DeleteInstanceCallPayload.builder()
                         .instance(Payload.asPayload(exchange))
                         .owner(owner)
                         .build());
 
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
-            dao.delete(owner, (ID) deleteInstanceCallPayload.getInstance().get(identifierProvider.getName()));
+        if (callInterceptorUtil.isOriginalCalled()) {
+            dao.delete(deleteInstanceCallPayload.getOwner(),
+                    (ID) deleteInstanceCallPayload.getInstance().get(identifierProvider.getName()));
         }
 
-        return CallInterceptorUtil.postCallInterceptors(DeleteInstanceCallPayload.class, Void.class, asmModel,
-                operation, interceptorProvider, deleteInstanceCallPayload, null);
+        return callInterceptorUtil.postCallInterceptors(deleteInstanceCallPayload, null);
     }
 
     @Builder
     @Getter
-    public static class DeleteInstanceCallPayload<ID> {
+    public static class DeleteInstanceCallPayload {
         @NonNull
         EClass owner;
 

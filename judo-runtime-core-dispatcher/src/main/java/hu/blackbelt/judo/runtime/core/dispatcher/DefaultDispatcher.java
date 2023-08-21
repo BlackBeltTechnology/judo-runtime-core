@@ -141,7 +141,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private Set<BehaviourCall<ID>> behaviourCalls;
 
-    private AsmUtils asmUtils;
+    private final AsmUtils asmUtils;
 
     private final Validator rangeValidator;
 
@@ -211,7 +211,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.context = context;
         this.metricsCollector = metricsCollector;
         this.payloadValidator = payloadValidator;
-        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider(dao, identifierProvider, asmModel, context));
+        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider<>(dao, identifierProvider, asmModel, context));
 
         if (enableValidation != null && !enableValidation) {
             validatorProvider.getValidators().clear();
@@ -370,7 +370,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             final ResponseConverter responseConverter = ResponseConverter.builder()
                     .transferObjectType((EClass) operationType)
                     .coercer(dataTypeManager.getCoercer())
-                    .asmUtils(asmUtils)
+                    .asmModel(asmModel)
                     .keepProperties(Arrays.asList(identifierProvider.getName(), UPDATEABLE_KEY, DELETEABLE_KEY, SELECTED_ITEM_KEY, REFERENCE_ID_KEY, Dispatcher.ENTITY_TYPE_MAP_KEY, VERSION_KEY))
                     .filestoreTokenIssuer(filestoreTokenIssuer)
                     .build();

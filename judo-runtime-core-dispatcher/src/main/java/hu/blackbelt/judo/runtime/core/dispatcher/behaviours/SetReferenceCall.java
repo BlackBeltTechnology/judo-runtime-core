@@ -22,10 +22,16 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -58,26 +64,58 @@ public class SetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
     @SuppressWarnings("unchecked")
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<SetReferenceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
+                SetReferenceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+        final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        final ID instanceId = (ID) exchange.get(identifierProvider.getName());
-        final Collection<ID> referencedIds;
+        Collection<Payload> references;
         if (owner.isMany()) {
-            referencedIds = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
-                    .map(i -> (ID) i.get(identifierProvider.getName()))
+            references = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
+                    .map(Payload::asPayload)
                     .collect(Collectors.toList());
         } else {
-            referencedIds = Collections.singleton((ID) ((Map<String, Object>) exchange.get(inputParameterName)).get(identifierProvider.getName()));
+            references = Collections.singleton(Payload.asPayload((Map<String, Object>) exchange.get(inputParameterName)));
         }
 
-        dao.setReference(owner, instanceId, referencedIds);
-        return null;
+        SetReferenceCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
+                SetReferenceCallPayload.builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner(owner)
+                        .references(references)
+                        .build());
+
+
+        if (callInterceptorUtil.isOriginalCalled()) {
+            final Collection<ID> referencedIds = inputParameter.getReferences().stream()
+                    .map(p -> (ID) p.get(identifierProvider.getName()))
+                    .collect(Collectors.toList());
+            dao.setReference(
+                    inputParameter.getOwner(),
+                    (ID) inputParameter.getInstance().get(identifierProvider.getName()),
+                    referencedIds);
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, null);
     }
+
+    @Builder
+    @Getter
+    public static class SetReferenceCallPayload {
+        @NonNull
+        EReference owner;
+
+        @NonNull
+        Payload instance;
+
+        @NonNull
+        Collection<Payload> references;
+    }
+
 }

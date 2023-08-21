@@ -31,11 +31,11 @@ import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvide
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
 
-import java.util.Collection;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -64,49 +64,55 @@ public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
     @SuppressWarnings("unchecked")
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<CreateInstanceCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                CreateInstanceCallPayload.class, Payload.class, asmModel, operation, interceptorProvider);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+        final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        CreateInstanceCallPayload<ID> createInstanceCallPayload =
-                CallInterceptorUtil.preCallInterceptors(CreateInstanceCallPayload.class, asmModel, operation, interceptorProvider,
+        CreateInstanceCallPayload inputParameter =
+                callInterceptorUtil.preCallInterceptors(
                         CreateInstanceCallPayload.builder()
                                 .owner(owner)
-                                .ownerId(exchange.get(identifierProvider.getName()))
+                                .instance(Payload.asPayload(exchange))
                                 .input(asPayload((Map<String, Object>) exchange.get(inputParameterName)))
                                 .build());
 
         Payload ret = null;
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+        if (callInterceptorUtil.isOriginalCalled()) {
             final boolean bound = AsmUtils.isBound(operation);
 
-            if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
+            if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access") ||
+                    !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
                 checkArgument(!bound, "Operation must be unbound");
-                ret = dao.create(owner.getEReferenceType(),
-                        createInstanceCallPayload.getInput(), null);
+                ret = dao.create(
+                        inputParameter.getOwner().getEReferenceType(),
+                        inputParameter.getInput(), null);
             } else {
                 checkArgument(bound, "Operation must be bound");
-                ret = dao.createNavigationInstanceAt(createInstanceCallPayload.getOwnerId(),
-                        createInstanceCallPayload.getOwner(),
-                        createInstanceCallPayload.getInput(), null);
+                ret = dao.createNavigationInstanceAt(
+                        (ID) inputParameter.getInstance().get(identifierProvider.getName()),
+                        inputParameter.getOwner(),
+                        inputParameter.getInput(), null);
             }
         }
-        return CallInterceptorUtil.postCallInterceptors(CreateInstanceCallPayload.class, Payload.class, asmModel, operation,
-                interceptorProvider, createInstanceCallPayload, ret);
+        return callInterceptorUtil.postCallInterceptors(inputParameter, ret);
     }
 
     @Builder
     @Getter
-    public static class CreateInstanceCallPayload<ID> {
+    public static class CreateInstanceCallPayload {
         @NonNull
         EReference owner;
 
         @NonNull
         Payload input;
 
-        ID ownerId;
+        @NonNull
+        Payload instance;
     }
 
 }

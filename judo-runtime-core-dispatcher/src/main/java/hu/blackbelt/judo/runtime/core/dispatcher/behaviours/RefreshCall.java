@@ -22,13 +22,18 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.springframework.transaction.PlatformTransactionManager;
 import java.util.Map;
@@ -50,7 +55,7 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
         this.dao = dao;
         this.identifierProvider = identifierProvider;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<ID>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }
 
     @Override
@@ -61,23 +66,51 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
     @SuppressWarnings("unchecked")
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<RefreshCallPayload<ID>, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                RefreshCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+        );
+
         final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        final Optional<Map<String, Object>> queryCustomizerParameter = (Optional<Map<String, Object>>) CallInterceptorUtil.preCallInterceptors(asmModel, operation, interceptorProvider,
-                operation.getEParameters().stream().map(p -> p.getName())
-                        .findFirst()
-                        .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter)));
-        Object result = null;
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
-            final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner);
-            result = dao.searchByIdentifier(owner, (ID) exchange.get(identifierProvider.getName()), queryCustomizer).get();
+        Optional<Map<String, Object>> queryCustomizerParameter = operation.getEParameters().stream()
+                .map(ENamedElement::getName)
+                .findFirst()
+                .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
 
+        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+                .build(queryCustomizerParameter.orElse(null), owner);
+
+
+        RefreshCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(RefreshCallPayload.<ID>builder()
+                .owner(owner)
+                .instance(Payload.asPayload(exchange))
+                .queryCustomizer(queryCustomizer)
+                .build());
+
+        Optional<Payload> result = Optional.empty();
+
+        if (callInterceptorUtil.isOriginalCalled()) {
+            result = dao.searchByIdentifier(inputParameter.getOwner(),
+                    (ID) inputParameter.getInstance().get(identifierProvider.getName()),
+                    inputParameter.getQueryCustomizer());
         }
-
-        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, queryCustomizerParameter, result);
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result.orElse(null));
     }
+
+    @Builder
+    @Getter
+    public static class RefreshCallPayload<ID> {
+        @NonNull
+        EClass owner;
+
+        @NonNull
+        Payload instance;
+
+        DAO.QueryCustomizer<ID> queryCustomizer;
+    }
+
 }

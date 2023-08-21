@@ -26,6 +26,9 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -54,13 +57,30 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
 
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
-        final EClass owner = (EClass) CallInterceptorUtil.preCallInterceptors(asmModel, operation, interceptorProvider,
-                asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
-                        () -> new IllegalArgumentException("Invalid model")));
+        CallInterceptorUtil<GetTemplateCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                GetTemplateCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+        );
+
+        GetTemplateCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(GetTemplateCallPayload.builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner((EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
+                                () -> new IllegalArgumentException("Invalid model")))
+                .build());
         Payload result = null;
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
-            result = dao.getDefaultsOf(owner);
+        if (callInterceptorUtil.isOriginalCalled()) {
+            result = dao.getDefaultsOf(inputParameter.getOwner());
         }
-        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, owner, result);
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class GetTemplateCallPayload {
+        @NonNull
+        EClass owner;
+
+        @NonNull
+        Payload instance;
+    }
+
 }

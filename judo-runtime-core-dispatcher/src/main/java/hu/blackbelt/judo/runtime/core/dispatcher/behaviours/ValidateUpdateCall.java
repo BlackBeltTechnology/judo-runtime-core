@@ -26,9 +26,14 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
 import org.springframework.transaction.PlatformTransactionManager;
@@ -64,10 +69,13 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
 
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<ValidateUpdateCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                ValidateUpdateCallPayload.class, Payload.class, asmModel, operation, interceptorProvider);
+
         final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+        final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
         final boolean bound = AsmUtils.isBound(operation);
@@ -91,8 +99,38 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
             }
         }
 
-        final Payload result = dao.update(owner, payload, null);
+        ValidateUpdateCallPayload inputParameter =
+                callInterceptorUtil.preCallInterceptors(
+                        ValidateUpdateCallPayload.builder()
+                                .owner(owner)
+                                .instance(Payload.asPayload(exchange))
+                                .input(payload)
+                                .build());
+
+        Payload result = null;
+        if (callInterceptorUtil.isOriginalCalled()) {
+            result =  dao.update(
+                    inputParameter.getOwner(),
+                    inputParameter.getInput(), null);
+        }
+
         markedIdRemover.process(result);
-        return result;
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+
+    @Builder
+    @Getter
+    public static class ValidateUpdateCallPayload {
+        @NonNull
+        EClass owner;
+
+        @NonNull
+        Payload instance;
+
+        @NonNull
+        Payload input;
+
+    }
+
 }

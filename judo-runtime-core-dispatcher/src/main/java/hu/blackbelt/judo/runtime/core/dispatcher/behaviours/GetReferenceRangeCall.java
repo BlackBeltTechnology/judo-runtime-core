@@ -32,7 +32,8 @@ import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.SneakyThrows;
+import lombok.*;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
@@ -82,36 +83,57 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
 
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<GetReferenceRangeCallPayload<ID>, Collection<Payload>> callInterceptorUtil = new CallInterceptorUtil<>(
+                GetReferenceRangeCallPayload.class, Collection.class, asmModel, operation, interceptorProvider);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final Optional<String> inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst();
-        @SuppressWarnings("unchecked")
-        final Map<String, Object> inputData = (Map<String, Object>) CallInterceptorUtil.preCallInterceptors(asmModel,
-                operation, interceptorProvider, exchange.get(inputParameterName.get()));
+        final Optional<String> inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst();
+
+        @SuppressWarnings({"unchecked"})
+        final Map<String, Object> inputData = (Map<String, Object>) exchange.get(inputParameterName
+                .orElseThrow(() -> new IllegalArgumentException("Parameter name not found")));
+
+        @SuppressWarnings({"unchecked"})
+        Map<String, Object> queryCustomizerData = inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null;
+
+        @SuppressWarnings({"unchecked"})
+        Payload ownerPayload = inputParameterName
+                .filter(parameterName -> exchange.get(parameterName) != null)
+                .map(parameterName -> Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY))
+                .orElse(null);
+
+        final DAO.QueryCustomizer<ID> queryCustomizer =
+                queryCustomizerParameterProcessor.build(queryCustomizerData, owner.getEReferenceType());
+
+        GetReferenceRangeCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(
+                GetReferenceRangeCallPayload.<ID>builder()
+                        .owner(owner)
+                        .ownerPayload(ownerPayload)
+                        .queryCustomizer(queryCustomizer)
+                        .build());
+
 
         Collection<Payload> result = new ArrayList<>();
 
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+        if (callInterceptorUtil.isOriginalCalled()) {
             final boolean bound = isBound(operation);
             checkArgument(!bound, "Operation must be unbound");
 
-            Payload ownerPayload = inputParameterName.map(parameterName -> exchange.get(parameterName) != null
-                    ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY)
-                    : null).orElse(null);
-
-            Map<String, Object> queryCustomizerData = inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null;
-
-            @SuppressWarnings({ "unchecked", "rawtypes" })
-            final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerData, owner.getEReferenceType());
-
             final Collection<ID> idsToRemove = new HashSet<>();
 
-            result = dao.getRangeOf(owner, ownerPayload, queryCustomizer);
+            result = dao.getRangeOf(inputParameter.getOwner(),
+                    inputParameter.getOwnerPayload(),
+                    inputParameter.getQueryCustomizer());
 
             if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
-                exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, dao.countRangeOf(owner, ownerPayload, queryCustomizer));
+                inputParameter.setRecordCount(dao.countRangeOf(
+                        inputParameter.getOwner(),
+                        inputParameter.getOwnerPayload(),
+                        inputParameter.getQueryCustomizer()));
             }
+
 
             // collect IDs that are created (temporary)
             result.forEach(p -> markedIdRemover.processAndCollect(p, idsToRemove));
@@ -120,6 +142,26 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
 
         }
 
-        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, inputData, result);
+        if (inputParameter.getRecordCount() > -1) {
+            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, inputParameter.getRecordCount());
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class GetReferenceRangeCallPayload<ID> {
+        @NonNull
+        EReference owner;
+
+        Payload ownerPayload;
+
+        DAO.QueryCustomizer<ID> queryCustomizer;
+
+        @Setter
+        @Builder.Default
+        long recordCount = -1L;
+
+    }
+
 }

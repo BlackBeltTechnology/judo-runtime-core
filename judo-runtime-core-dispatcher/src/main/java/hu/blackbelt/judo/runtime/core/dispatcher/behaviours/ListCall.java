@@ -33,9 +33,15 @@ import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,7 +67,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.coercer = coercer;
         this.actorResolver = actorResolver;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<ID>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }
 
     @Override
@@ -72,25 +78,37 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
     @SuppressWarnings("unchecked")
     @Override
     public Object callInRollbackTransaction(final Map<String, Object> exchange, final EOperation operation) {
+
+        CallInterceptorUtil<ListCallPayload<ID>, Object> callInterceptorUtil = new CallInterceptorUtil<>(
+                ListCallPayload.class, Object.class, asmModel, operation, interceptorProvider
+        );
+
         final boolean bound = AsmUtils.isBound(operation);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
+
+        final Optional<Map<String, Object>> queryCustomizerParameter = operation.getEParameters().stream().map(ENamedElement::getName)
+                .findFirst()
+                .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
+
+        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
+
+        ListCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(ListCallPayload.<ID>builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner(owner)
+                        .queryCustomizer(queryCustomizer)
+                        .build());
 
         Object result = null;
         Long count = null;
 
-        final Optional<Map<String, Object>> queryCustomizerParameter = (Optional<Map<String, Object>>) CallInterceptorUtil.preCallInterceptors(asmModel, operation, interceptorProvider,
-                operation.getEParameters().stream().map(p -> p.getName())
-                        .findFirst()
-                        .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter)));
-
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
-            @SuppressWarnings("rawtypes")
-            final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
-
+        if (callInterceptorUtil.isOriginalCalled()) {
             final boolean countRecords = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY));
 
-            if (AsmUtils.annotatedAsTrue(owner, "access") && owner.isDerived() && asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
+            if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access")
+                    && inputParameter.getOwner().isDerived()
+                    && asmUtils.isMappedTransferObjectType(inputParameter.getOwner().getEContainingClass())) {
                 checkArgument(!bound, "Operation must be unbound");
 
                 final Map<String, Object> actor;
@@ -142,11 +160,15 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
                 }
             }
             if (count != null) {
+                inputParameter.setRecordCount(count);
                 exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, count);
             }
         }
 
-        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, queryCustomizerParameter, result);
+        if (inputParameter.getRecordCount() > -1) {
+            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, inputParameter.getRecordCount());
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
 
     private Object extractResult(final EOperation operation, final List<Payload> resultList) {
@@ -161,4 +183,22 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
             }
         }
     }
+
+    @Builder
+    @Getter
+    public static class ListCallPayload<ID> {
+        @NonNull
+        EReference owner;
+
+        @NonNull
+        Payload instance;
+
+        DAO.QueryCustomizer<ID> queryCustomizer;
+
+        @Setter
+        @Builder.Default
+        long recordCount = -1L;
+
+    }
+
 }

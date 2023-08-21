@@ -30,9 +30,15 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -66,18 +72,26 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
 
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
-        Map<String, Object> inputParameter = (Map<String, Object>) CallInterceptorUtil.preCallInterceptors(asmModel, operation, interceptorProvider, exchange);
+        CallInterceptorUtil<GetPrincipalCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                GetPrincipalCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+        );
+
         Payload ret = null;
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+
+        GetPrincipalCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(GetPrincipalCallPayload.builder()
+                .instance(Payload.asPayload(exchange))
+                .build());
+
+        if (callInterceptorUtil.isOriginalCalled()) {
             final Optional<Payload> actor;
-            if (inputParameter.containsKey(Dispatcher.ACTOR_KEY)) {
-                actor = Optional.ofNullable((Payload) inputParameter.get(Dispatcher.ACTOR_KEY));
-            } else if (inputParameter.containsKey(Dispatcher.PRINCIPAL_KEY)) {
+            if (inputParameter.getInstance().containsKey(Dispatcher.ACTOR_KEY)) {
+                actor = Optional.ofNullable((Payload) inputParameter.getInstance().get(Dispatcher.ACTOR_KEY));
+            } else if (inputParameter.getInstance().containsKey(Dispatcher.PRINCIPAL_KEY)) {
                 final EClass actorType = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                         .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
                 checkArgument(AsmUtils.isActorType(actorType), "Owner class must be an access point");
 
-                final Object _principal = inputParameter.get(Dispatcher.PRINCIPAL_KEY);
+                final Object _principal = inputParameter.getInstance().get(Dispatcher.PRINCIPAL_KEY);
                 if (!(_principal instanceof JudoPrincipal)) {
                     throw new UnsupportedOperationException("Unsupported or unknown actor");
                 }
@@ -92,19 +106,27 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
                         .filter(t -> t instanceof EClass).map(t -> (EClass) t)
                         .orElseThrow(() -> new IllegalArgumentException("Access point not found"));
 
-                final Optional<Payload> result = dao.getByIdentifier(principal, actor.get().getAs(identifierProvider.getType(), identifierProvider.getName()));
-                if (result.isPresent()) {
-                    // copy transient attributes (from claims)
-                    result.get().putAll(principal.getEAllAttributes().stream()
-                            .filter(a -> AsmUtils.annotatedAsTrue(a, "transient") && actor.get().get(a.getName()) != null)
-                            .collect(Collectors.toMap(a -> a.getName(), a -> actor.get().get(a.getName()))));
-                }
+                final Optional<Payload> result = dao.getByIdentifier(
+                        principal,
+                        actor.get().getAs(identifierProvider.getType(),
+                                identifierProvider.getName()));
+
+                // copy transient attributes (from claims)
+                result.ifPresent(payload -> payload.putAll(principal.getEAllAttributes().stream()
+                        .filter(a -> AsmUtils.annotatedAsTrue(a, "transient") && actor.get().get(a.getName()) != null)
+                        .collect(Collectors.toMap(ENamedElement::getName, a -> actor.get().get(a.getName())))));
 
                 ret = result.orElse(null);
-            } else {
-                ret = null;
             }
         }
-        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, inputParameter, ret);
+        return callInterceptorUtil.postCallInterceptors(inputParameter, ret);
     }
+
+    @Builder
+    @Getter
+    public static class GetPrincipalCallPayload {
+        @NonNull
+        Payload instance;
+    }
+
 }

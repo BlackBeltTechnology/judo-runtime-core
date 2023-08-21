@@ -22,11 +22,16 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -57,30 +62,55 @@ public class RemoveReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<RemoveReferenceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
+                RemoveReferenceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+        final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        @SuppressWarnings("unchecked")
-        final ID instanceId = (ID) CallInterceptorUtil.preCallInterceptors(asmModel, operation, interceptorProvider,
-                exchange.get(identifierProvider.getName()));
+        @SuppressWarnings({"unchecked"})
+        RemoveReferenceCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
+                RemoveReferenceCallPayload.builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner(owner)
+                        .references(((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
+                                .map(Payload::asPayload).collect(Collectors.toList()))
+                        .build());
 
-        final Collection<ID> referencedIds = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
-                .map(i -> (ID) i.get(identifierProvider.getName()))
-                .collect(Collectors.toList());
 
+        if (callInterceptorUtil.isOriginalCalled()) {
+            @SuppressWarnings({"unchecked"})
+            final Collection<ID> referencedIds = inputParameter.getReferences().stream()
+                    .map(p -> (ID) p.get(identifierProvider.getName()))
+                    .collect(Collectors.toList());
 
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
-
+            @SuppressWarnings({"unchecked"})
+            ID instanceId = (ID) inputParameter.getInstance().get(identifierProvider.getName());
+            dao.removeReferences(inputParameter.getOwner(),
+                    instanceId,
+                    referencedIds);
         }
-        @SuppressWarnings("unchecked")
 
-        dao.removeReferences(owner, instanceId, referencedIds);
-        return null;
+        return callInterceptorUtil.postCallInterceptors(inputParameter, null);
     }
+
+    @Builder
+    @Getter
+    public static class RemoveReferenceCallPayload {
+        @NonNull
+        EReference owner;
+
+        @NonNull
+        Payload instance;
+
+        @NonNull
+        Collection<Payload> references;
+    }
+
 }

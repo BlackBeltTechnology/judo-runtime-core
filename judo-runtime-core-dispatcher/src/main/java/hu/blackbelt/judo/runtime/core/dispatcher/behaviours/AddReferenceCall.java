@@ -31,6 +31,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvide
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -39,7 +40,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
 public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
@@ -62,46 +62,51 @@ public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<AddReferenceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
+                AddReferenceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+        final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        @SuppressWarnings("unchecked")
-        final ID instanceId = (ID) exchange.get(identifierProvider.getName());
-        @SuppressWarnings("unchecked")
-
-        AddReferenceCallPayload<ID> addReferenceCallPayload = CallInterceptorUtil.preCallInterceptors(AddReferenceCallPayload.class, asmModel, operation,
-                interceptorProvider,
+        @SuppressWarnings({"unchecked"})
+        AddReferenceCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
                 AddReferenceCallPayload.builder()
-                        .instanceId(instanceId)
+                        .instance(Payload.asPayload(exchange))
                         .owner(owner)
-                        .references(((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream().map(o -> Payload.asPayload(o)).toList())
+                        .references(((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
+                                .map(Payload::asPayload).collect(Collectors.toList()))
                         .build());
 
-        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
-            final Collection<ID> referencedIds = addReferenceCallPayload.getReferences().stream()
+        if (callInterceptorUtil.isOriginalCalled()) {
+            @SuppressWarnings({"unchecked"})
+            final Collection<ID> referencedIds = inputParameter.getReferences().stream()
                     .map(p -> (ID) p.get(identifierProvider.getName()))
                     .collect(Collectors.toList());
 
-            dao.addReferences(owner, instanceId, referencedIds);
+            @SuppressWarnings({"unchecked"})
+            ID instanceId = (ID) inputParameter.getInstance().get(identifierProvider.getName());
+
+            dao.addReferences(inputParameter.getOwner(), instanceId, referencedIds);
         }
 
-        return CallInterceptorUtil.postCallInterceptors(AddReferenceCallPayload.class, Void.class, asmModel, operation,
-                interceptorProvider, addReferenceCallPayload, null);
+        return callInterceptorUtil.postCallInterceptors(inputParameter, null);
     }
 
     @Builder
     @Getter
-    public static class AddReferenceCallPayload<ID> {
+    public static class AddReferenceCallPayload {
         @NonNull
         EReference owner;
+
         @NonNull
-        ID instanceId;
+        Payload instance;
+
         @NonNull
         Collection<Payload> references;
     }
