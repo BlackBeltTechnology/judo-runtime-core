@@ -22,16 +22,27 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
+import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.util.Collection;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.dao.api.Payload.asPayload;
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isBound;
 
 public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
@@ -39,12 +50,12 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
     final IdentifierProvider<ID> identifierProvider;
     final AsmUtils asmUtils;
 
-    public DeleteInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils,
+    public DeleteInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
                               PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
-        super(context, transactionManager, interceptorProvider);
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
     @Override
@@ -58,11 +69,33 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
         final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final boolean bound = AsmUtils.isBound(operation);
+        final boolean bound = isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        dao.delete(owner, (ID) exchange.get(identifierProvider.getName()));
+        DeleteInstanceCallPayload deleteInstanceCallPayload = CallInterceptorUtil.preCallInterceptors(
+                DeleteInstanceCallPayload.class,
+                asmModel, operation, interceptorProvider,
+                DeleteInstanceCallPayload.builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner(owner)
+                        .build());
 
-        return null;
+        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+            dao.delete(owner, (ID) deleteInstanceCallPayload.getInstance().get(identifierProvider.getName()));
+        }
+
+        return CallInterceptorUtil.postCallInterceptors(DeleteInstanceCallPayload.class, Void.class, asmModel,
+                operation, interceptorProvider, deleteInstanceCallPayload, null);
     }
+
+    @Builder
+    @Getter
+    public static class DeleteInstanceCallPayload<ID> {
+        @NonNull
+        EClass owner;
+
+        @NonNull
+        Payload instance;
+    }
+
 }

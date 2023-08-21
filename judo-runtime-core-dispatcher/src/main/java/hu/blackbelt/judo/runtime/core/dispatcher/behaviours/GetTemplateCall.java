@@ -21,7 +21,10 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
+import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
@@ -35,10 +38,13 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
 
     final OperationCallInterceptorProvider interceptorProvider;
 
-    public GetTemplateCall(DAO<ID> dao, AsmUtils asmUtils, OperationCallInterceptorProvider interceptorProvider) {
+    final AsmModel asmModel;
+
+    public GetTemplateCall(DAO<ID> dao, AsmModel asmModel, OperationCallInterceptorProvider interceptorProvider) {
         this.dao = dao;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.interceptorProvider = interceptorProvider;
+        this.asmModel = asmModel;
     }
 
     @Override
@@ -48,9 +54,13 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
 
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
-        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
-
-        return dao.getDefaultsOf(owner);
+        final EClass owner = (EClass) CallInterceptorUtil.preCallInterceptors(asmModel, operation, interceptorProvider,
+                asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
+                        () -> new IllegalArgumentException("Invalid model")));
+        Payload result = null;
+        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+            result = dao.getDefaultsOf(owner);
+        }
+        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, owner, result);
     }
 }

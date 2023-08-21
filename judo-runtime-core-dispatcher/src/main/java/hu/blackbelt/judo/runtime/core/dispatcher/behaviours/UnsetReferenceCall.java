@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import org.eclipse.emf.ecore.EOperation;
@@ -39,12 +40,12 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public UnsetReferenceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils,
+    public UnsetReferenceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
                               PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
-        super(context, transactionManager, interceptorProvider);
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
     @Override

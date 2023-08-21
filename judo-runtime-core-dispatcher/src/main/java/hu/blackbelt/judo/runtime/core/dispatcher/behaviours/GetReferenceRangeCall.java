@@ -24,9 +24,11 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
@@ -38,6 +40,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isBound;
 
 public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
@@ -55,13 +58,13 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetReferenceRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils,
+    public GetReferenceRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
                                  ExpressionModel expressionModel, PlatformTransactionManager transactionManager,
                                  OperationCallInterceptorProvider interceptorProvider, Coercer coercer, boolean caseInsensitiveLike) {
-        super(context, transactionManager, interceptorProvider);
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
         this.collectedIdRemover = new CollectedIdRemover<>(identifierProvider.getName());
 
@@ -84,28 +87,39 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
 
         final Optional<String> inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst();
         @SuppressWarnings("unchecked")
-        final Map<String, Object> inputData = (Map<String, Object>) exchange.get(inputParameterName.get());
+        final Map<String, Object> inputData = (Map<String, Object>) CallInterceptorUtil.preCallInterceptors(asmModel,
+                operation, interceptorProvider, exchange.get(inputParameterName.get()));
 
-        final boolean bound = AsmUtils.isBound(operation);
-        checkArgument(!bound, "Operation must be unbound");
+        Collection<Payload> result = new ArrayList<>();
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null, owner.getEReferenceType());
+        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+            final boolean bound = isBound(operation);
+            checkArgument(!bound, "Operation must be unbound");
 
-        final Collection<ID> idsToRemove = new HashSet<>();
-        @SuppressWarnings("unchecked")
+            Payload ownerPayload = inputParameterName.map(parameterName -> exchange.get(parameterName) != null
+                    ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY)
+                    : null).orElse(null);
 
-        final Collection<Payload> result = dao.getRangeOf(owner, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer);
+            Map<String, Object> queryCustomizerData = inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null;
 
-        if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
-            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, dao.countRangeOf(owner, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer));
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerData, owner.getEReferenceType());
+
+            final Collection<ID> idsToRemove = new HashSet<>();
+
+            result = dao.getRangeOf(owner, ownerPayload, queryCustomizer);
+
+            if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
+                exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, dao.countRangeOf(owner, ownerPayload, queryCustomizer));
+            }
+
+            // collect IDs that are created (temporary)
+            result.forEach(p -> markedIdRemover.processAndCollect(p, idsToRemove));
+            // remove identifiers of temporary instances (keep identifiers of instances existing before operation call)
+            result.forEach(payload -> collectedIdRemover.removeIdentifiers(payload, idsToRemove));
+
         }
 
-        // collect IDs that are created (temporary)
-        result.forEach(p -> markedIdRemover.processAndCollect(p, idsToRemove));
-        // remove identifiers of temporary instances (keep identifiers of instances existing before operation call)
-        result.forEach(payload -> collectedIdRemover.removeIdentifiers(payload, idsToRemove));
-
-        return result;
+        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, inputData, result);
     }
 }

@@ -61,6 +61,7 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.*;
 import static hu.blackbelt.judo.runtime.core.dispatcher.behaviours.AlwaysRollbackTransactionalBehaviourCall.ROLLBACK_KEY;
 import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.*;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
@@ -145,26 +146,26 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private final Validator rangeValidator;
 
     @SuppressWarnings("unchecked")
-    private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils) {
+    private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel) {
         behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
-                        new ListCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
-                        new CreateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
-                        new ValidateCreateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
-                        new RefreshCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new UpdateInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider,  dataTypeManager.getCoercer()),
-                        new ValidateUpdateCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer()),
-                        new DeleteInstanceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
-                        new SetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
-                        new UnsetReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
-                        new AddReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
-                        new RemoveReferenceCall<>(context, dao, identifierProvider, asmUtils, transactionManager, operationCallInterceptorProvider),
-                        new GetReferenceRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetInputRangeCall<>(context, dao, identifierProvider, asmUtils, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetPrincipalCall<>(dao, identifierProvider, asmUtils, actorResolver, operationCallInterceptorProvider),
-                        new GetTemplateCall<>(dao, asmUtils, operationCallInterceptorProvider),
-                        new GetMetadataCall<>(asmUtils, () -> openIdConfigurationProvider, operationCallInterceptorProvider),
-                        new GetUploadTokenCall<>(asmUtils, filestoreTokenIssuer, operationCallInterceptorProvider)
+                        new ListCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
+                        new CreateInstanceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
+                        new ValidateCreateCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
+                        new RefreshCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new UpdateInstanceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider,  dataTypeManager.getCoercer()),
+                        new ValidateUpdateCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer()),
+                        new DeleteInstanceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
+                        new SetReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
+                        new UnsetReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
+                        new AddReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
+                        new RemoveReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
+                        new GetReferenceRangeCall<>(context, dao, identifierProvider, asmModel, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new GetInputRangeCall<>(context, dao, identifierProvider, asmModel, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new GetPrincipalCall<>(dao, identifierProvider, asmModel, actorResolver, operationCallInterceptorProvider),
+                        new GetTemplateCall<>(dao, asmModel, operationCallInterceptorProvider),
+                        new GetMetadataCall<>(asmModel, () -> openIdConfigurationProvider, operationCallInterceptorProvider),
+                        new GetUploadTokenCall<>(asmModel, filestoreTokenIssuer, operationCallInterceptorProvider)
                 )
                 .build();
     }
@@ -251,19 +252,19 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         });
 
         asmUtils = new AsmUtils(asmModel.getResourceSet());
-        setupBehaviourCalls(dao, identifierProvider, asmUtils);
+        setupBehaviourCalls(dao, identifierProvider, asmModel);
         registerDataTypes();
     }
 
     public void registerDataTypes() {
-        getAsmUtils().all(EDataType.class)
+        asmUtils.all(EDataType.class)
                 .filter(t -> "byte[]".equals(t.getInstanceClassName()))
                 .forEach(t -> dataTypeManager.registerCustomType(t, t.getInstanceClassName(), null, new FileTypeFormatter()));
     }
 
     @SuppressWarnings("unused")
     public void unregisterDataTypes() {
-        getAsmUtils().all(EDataType.class)
+        asmUtils.all(EDataType.class)
                 .filter(t -> "byte[]".equals(t.getInstanceClassName()))
                 .forEach(dataTypeManager::unregisterCustomType);
     }
@@ -307,7 +308,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private EClass getContainerOfBoundOperation(EOperation operation) {
         final EObject containerOfOperation = operation.eContainer();
         checkState((containerOfOperation instanceof EClass)
-                        && (getAsmUtils().isMappedTransferObjectType((EClass) containerOfOperation)),
+                        && (asmUtils.isMappedTransferObjectType((EClass) containerOfOperation)),
                 "Container of bound transfer operation must be a mapped transfer object type");
         return (EClass) containerOfOperation;
     }
@@ -329,7 +330,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         final ETypedElement producedBy = signedIdentifier.getProducedBy();
         if (operation.eContainer() != null && !AsmUtils.equals(operation.eContainer(), producedBy.getEType()) &&
                 !((producedBy.getEType() instanceof EClass) && ((EClass) producedBy.getEType()).getEAllSuperTypes().contains(operation.eContainer()))) {
-            log.info("Mapped transfer object type of bound operation {} does not match type of signed identifier {}", AsmUtils.getOperationFQName(operation), AsmUtils.getClassifierFQName(producedBy.getEType()));
+            log.info("Mapped transfer object type of bound operation {} does not match type of signed identifier {}", getOperationFQName(operation), getClassifierFQName(producedBy.getEType()));
             throw new AccessDeniedException(ValidationResult.builder()
                     .code(ERROR_ACCESS_DENIED_INVALID_TYPE)
                     .level(ValidationResult.Level.ERROR)
@@ -339,18 +340,11 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private Set<BehaviourCall<ID>> getBehaviourCalls() {
         if (behaviourCalls == null) {
-            setupBehaviourCalls(dao, identifierProvider, getAsmUtils());
+            setupBehaviourCalls(dao, identifierProvider, asmModel);
         }
         return behaviourCalls;
     }
-
-    private AsmUtils getAsmUtils() {
-        if (asmUtils == null) {
-            asmUtils = new AsmUtils(asmModel.getResourceSet());
-        }
-        return asmUtils;
-    }
-
+    
     @SuppressWarnings("unchecked")
     private void processMetrics(final Payload payload) {
         ofNullable(metricsCollector).ifPresent(mc -> {
@@ -376,7 +370,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             final ResponseConverter responseConverter = ResponseConverter.builder()
                     .transferObjectType((EClass) operationType)
                     .coercer(dataTypeManager.getCoercer())
-                    .asmUtils(getAsmUtils())
+                    .asmUtils(asmUtils)
                     .keepProperties(Arrays.asList(identifierProvider.getName(), UPDATEABLE_KEY, DELETEABLE_KEY, SELECTED_ITEM_KEY, REFERENCE_ID_KEY, Dispatcher.ENTITY_TYPE_MAP_KEY, VERSION_KEY))
                     .filestoreTokenIssuer(filestoreTokenIssuer)
                     .build();
@@ -404,7 +398,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         final RequestConverter requestConverter = RequestConverter.builder()
                 .transferObjectType(transferObjectType)
                 .coercer(dataTypeManager.getCoercer())
-                .asmUtils(getAsmUtils())
+                .asmModel(asmModel)
                 .validatorProvider(validatorProvider)
                 .trimString(trimString)
                 .identifierSigner(identifierSigner)
@@ -415,7 +409,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 .filestoreTokenValidator(filestoreTokenValidator)
                 .build();
 
-        AsmUtils.OperationBehaviour operationBehaviour = AsmUtils.getBehaviour(operation).orElse(null);
+        AsmUtils.OperationBehaviour operationBehaviour = getBehaviour(operation).orElse(null);
         setupValidationContextForBoundOperation(operationBehaviour, operation, validationContext);
 
         if (parameter.isMany()) {
@@ -462,7 +456,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     payloadList.add(payload.get());
                 }
                 if (AsmUtils.OperationBehaviour.SET_REFERENCE.equals(operationBehaviour) || AsmUtils.OperationBehaviour.ADD_REFERENCE.equals(operationBehaviour)) {
-                    final EReference reference = getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
+                    final EReference reference = asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                             .map(o -> (EReference) o)
                             .orElseThrow(() -> new IllegalArgumentException("Owner operation is not found for " + operation.getName()));
                     ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, Payload.asPayload(input), validationContext));
@@ -475,17 +469,17 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 if (payload.isPresent()) {
                     exchange.put(parameter.getName(), payload.get());
                     if (AsmUtils.OperationBehaviour.SET_REFERENCE.equals(operationBehaviour)) {
-                        final EReference reference = getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
+                        final EReference reference = asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                                 .map(o -> (EReference) o)
                                 .orElseThrow(() -> new IllegalArgumentException("Owner operation is not found for " + operation.getName()));
                         ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, payload.get(), validationContext));
                     }
-                    Optional<String> inputRangeReferenceFQName = AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false);
+                    Optional<String> inputRangeReferenceFQName = getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false);
                     if (inputRangeReferenceFQName.isPresent()) {
                         Optional<SignedIdentifier> signedIdentifier = identifierSigner.extractSignedIdentifier(transferObjectType, payload.get());
                         final Payload inputPayload = getTransferObjectAsBoundType(transferObjectType, signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation")));
                         exchange.put(parameter.getName(), inputPayload);
-                        final EReference reference = getAsmUtils().resolveReference(inputRangeReferenceFQName.get())
+                        final EReference reference = asmUtils.resolveReference(inputRangeReferenceFQName.get())
                                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
                         ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, inputPayload, validationContext));
                     }
@@ -519,7 +513,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         } else if (AsmUtils.OperationBehaviour.GET_REFERENCE_RANGE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.GET_INPUT_RANGE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.LIST.equals(operationBehaviour)
-                || AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false).isPresent()) {
+                || getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false).isPresent()) {
             validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false); // not necessary because optional type is used for owner instance
             validationContext.put(RequestConverter.IGNORE_INVALID_VALUES_KEY, true);
         }
@@ -528,20 +522,20 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private Optional<EClass> getEntityType(EClass mappedTransferObjectType, SignedIdentifier signedIdentifier) {
         Optional<EClass> entityType;
         if (signedIdentifier.getEntityType() != null) {
-            entityType = Optional.of(getAsmUtils().resolve(signedIdentifier.getEntityType()).filter(t -> t instanceof EClass).map(t -> (EClass) t)
+            entityType = Optional.of(asmUtils.resolve(signedIdentifier.getEntityType()).filter(t -> t instanceof EClass).map(t -> (EClass) t)
                     .orElseThrow(() -> new IllegalArgumentException("Unable to resolve entity type")));
             final Payload metadata = dao.getMetadata(mappedTransferObjectType, dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType()))
                     .orElseThrow(() -> new NotFoundException(ValidationResult.builder()
                             .code(ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND)
                             .level(ValidationResult.Level.ERROR)
                             .build()));
-            checkState(Objects.equals(AsmUtils.getClassifierFQName(entityType.get()), metadata.get(Dispatcher.ENTITY_TYPE_MAP_KEY)), "Invalid entity type in signed identifier");
+            checkState(Objects.equals(getClassifierFQName(entityType.get()), metadata.get(Dispatcher.ENTITY_TYPE_MAP_KEY)), "Invalid entity type in signed identifier");
         } else {
             final Payload metadata = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier);
             final String entityTypeFQName = metadata.getAs(String.class, ENTITY_TYPE_MAP_KEY);
             checkArgument(entityTypeFQName != null, "Entity type is unknown");
 
-            entityType = Optional.of(getAsmUtils().resolve(entityTypeFQName).filter(t -> t instanceof EClass).map(t -> (EClass) t)
+            entityType = Optional.of(asmUtils.resolve(entityTypeFQName).filter(t -> t instanceof EClass).map(t -> (EClass) t)
                     .orElseThrow(() -> new IllegalArgumentException("Unable to resolve entity type")));
         }
         return entityType;
@@ -550,8 +544,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     CacheLoader<String, Optional<EOperation>> operationLoader = new CacheLoader<>() {
         @Override
         public Optional<EOperation> load(String operationFullyQualifiedName) {
-            return getAsmUtils().all(EOperation.class)
-                    .filter(op -> Objects.equals(AsmUtils.getOperationFQName(op), operationFullyQualifiedName))
+            return asmUtils.all(EOperation.class)
+                    .filter(op -> Objects.equals(getOperationFQName(op), operationFullyQualifiedName))
                     .findAny();
         }
     };
@@ -581,19 +575,19 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             final EOperation operation = operationCache.get(operationFullyQualifiedName)
                     .orElseThrow(() -> new UnsupportedOperationException("Operation not found: " + operationFullyQualifiedName));
 
-            final boolean immutable = AsmUtils.annotatedAsTrue(operation, "immutable");
+            final boolean immutable = annotatedAsTrue(operation, "immutable");
 
             // operation marked stateful if annotation is not present AND operation call is called by already running stateless operation
-            final boolean stateless = AsmUtils.annotatedAsFalse(operation, "stateful");
+            final boolean stateless = annotatedAsFalse(operation, "stateful");
             context.put(STATEFUL, !stateless && !Boolean.FALSE.equals(stateful));
 
             Optional<SignedIdentifier> signedIdentifier = Optional.empty();
             Optional<EClass> entityType = Optional.empty();
             EOperation implementation;
             EClass mappedTransferObjectType = null;
-            Optional<AsmUtils.OperationBehaviour> behaviour = AsmUtils.getBehaviour(operation);
+            Optional<AsmUtils.OperationBehaviour> behaviour = getBehaviour(operation);
 
-            if (AsmUtils.isBound(operation)) {
+            if (isBound(operation)) {
                 mappedTransferObjectType = getContainerOfBoundOperation(operation);
 
                 signedIdentifier = getIdForBoundOperation(mappedTransferObjectType, exchange, exposed);
@@ -611,15 +605,15 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
                 entityType = getEntityType(mappedTransferObjectType, signedIdentifierValue);
 
-                final String boundOperationName = AsmUtils.getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_BINDING, true)
+                final String boundOperationName = getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_BINDING, true)
                         .orElseThrow(() -> new IllegalArgumentException("Bound operation not defined"));
 
                 EClass finalMappedTransferObjectType = mappedTransferObjectType;
-                implementation = AsmUtils.getOperationImplementationByName(entityType.orElseThrow(() -> new IllegalArgumentException("Missing entity type for " + finalMappedTransferObjectType.getName())), boundOperationName)
+                implementation = getOperationImplementationByName(entityType.orElseThrow(() -> new IllegalArgumentException("Missing entity type for " + finalMappedTransferObjectType.getName())), boundOperationName)
                         .orElseThrow(() -> new IllegalArgumentException("Operation implementation not found"));
 
             } else {
-                implementation = AsmUtils.getImplementationClassOfOperation(operation)
+                implementation = getImplementationClassOfOperation(operation)
                         .orElseThrow(() -> new IllegalArgumentException("Operation implementation not found"));
 
                 if (exposed) {
@@ -654,8 +648,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             String callType = SDK;
             String measurementKey = METRICS_SDK_CALL;
 
-            String implementationName = AsmUtils.getOperationFQName(implementation);
-            final Optional<String> outputParameterName = AsmUtils.getOutputParameterName(implementation);
+            String implementationName = getOperationFQName(implementation);
+            final Optional<String> outputParameterName = getOutputParameterName(implementation);
             final EClassifier operationType = operation.getEType();
 
 
@@ -703,7 +697,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             if (SCRIPT.equals(callType) || SDK.equals(callType)) {
                 operationCall = new TransactionalOperationCall(transactionManager, operationCall, operation);
 
-                if (AsmUtils.isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
+                if (isBound(operation) && exchange.get(INSTANCE_KEY_OF_BOUND_OPERATION) == null) {
                     final Payload thisMappedTransferObject = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier.orElseThrow(() -> new IllegalArgumentException("Missing ID of bound operation")));
                     exchange.put(INSTANCE_KEY_OF_BOUND_OPERATION, thisMappedTransferObject);
                 }
@@ -712,7 +706,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             if (log.isDebugEnabled()) {
                 log.debug("Calling operation: {}, {} implementation: {}, instance: {}, entity type: {}",
                         callType,
-                        AsmUtils.getOperationFQName(operation),
+                        getOperationFQName(operation),
                         implementationName,
                         signedIdentifier.map(SignedIdentifier::getIdentifier),
                         entityType.map(AsmUtils::getClassifierFQName).orElse(null));

@@ -27,6 +27,7 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
 import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.FileType;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.PayloadTraverser;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
@@ -49,24 +50,18 @@ import org.eclipse.emf.ecore.*;
 import java.util.*;
 import java.util.function.Function;
 
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.*;
 import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
 import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.VALIDATION_RESULT_KEY;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 
-@Builder
 @Slf4j
 public class RequestConverter {
 
-    @NonNull
     private final EClass transferObjectType;
 
-    @NonNull
-    private final AsmUtils asmUtils;
-
-    @NonNull
     private final Coercer coercer;
 
-    @NonNull
     private final PayloadValidator payloadValidator;
 
     private final TokenValidator filestoreTokenValidator;
@@ -86,6 +81,8 @@ public class RequestConverter {
     @Singular
     private final Collection<String> keepProperties;
 
+    private final AsmUtils asmUtils;
+
     public static final String NO_TRAVERSE_KEY = "noTraverse";
     public static final String VALIDATE_FOR_CREATE_OR_UPDATE_KEY = "validateForCreateOrUpdate";
     public static final String VALIDATE_MISSING_FEATURES_KEY = "validateMissingFeatures";
@@ -98,8 +95,35 @@ public class RequestConverter {
 
     public static final String GLOBAL_VALIDATION_CONTEXT = "globalValidationContext";
 
-    public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("\\W", "_");
-    public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("\\W", "_");
+    public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> getAttributeFQName(attribute).replaceAll("\\W", "_");
+    public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> getReferenceFQName(reference).replaceAll("\\W", "_");
+
+    @Builder
+    public RequestConverter(@NonNull EClass transferObjectType,
+                            @NonNull AsmModel asmModel,
+                            @NonNull Coercer coercer,
+                            @NonNull PayloadValidator payloadValidator,
+                            @NonNull @Singular Collection<String> keepProperties,
+                            TokenValidator filestoreTokenValidator,
+                            boolean trimString,
+                            IdentifierSigner identifierSigner,
+                            @SuppressWarnings("rawtypes")
+                            IdentifierProvider identifierProvider,
+                            ValidatorProvider validatorProvider,
+                            boolean throwValidationException) {
+        this.transferObjectType = transferObjectType;
+        this.coercer = coercer;
+        this.payloadValidator = payloadValidator;
+        this.filestoreTokenValidator = filestoreTokenValidator;
+        this.trimString = trimString;
+        this.identifierProvider = identifierProvider;
+        this.validatorProvider = validatorProvider;
+        this.throwValidationException = throwValidationException;
+        this.keepProperties = keepProperties;
+        this.identifierSigner = identifierSigner;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+
+    }
 
     public Optional<Payload> convert(final Map<String, Object> input, final Map<String, Object> validationContext) throws ValidationException {
         if (input == null) {
@@ -117,7 +141,7 @@ public class RequestConverter {
             PayloadTraverser.builder()
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
                             ? asmUtils.getMappedReference(reference).filter(EReference::isContainment).isPresent()
-                            : AsmUtils.isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
+                            : isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
                     .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext, rootContext))
                     .build()
                     .traverse(payload, transferObjectType);
@@ -149,7 +173,7 @@ public class RequestConverter {
 
         if ((Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT) && identifierProvider != null) {
             ctx.getType().getEAllReferences().stream()
-                    .filter(r -> AsmUtils.isEmbedded(r) && !AsmUtils.isAllowedToCreateEmbeddedObject(r) && asmUtils.getMappedReference(r).filter(EReference::isContainment).isPresent())
+                    .filter(r -> isEmbedded(r) && !AsmUtils.isAllowedToCreateEmbeddedObject(r) && asmUtils.getMappedReference(r).filter(EReference::isContainment).isPresent())
                     .forEach(c -> removeNonCreatableReferenceElements(instance, c));
         }
         if (validate) {
@@ -167,7 +191,7 @@ public class RequestConverter {
                     final Payload p = it.next();
                     if (p == null || p.get(identifierProvider.getName()) == null && p.get(IdentifierSigner.SIGNED_IDENTIFIER_KEY) == null) {
                         it.remove();
-                        log.debug("Removed non-createable, not existing reference: {}, instance: {}", AsmUtils.getReferenceFQName(reference), p);
+                        log.debug("Removed non-createable, not existing reference: {}, instance: {}", getReferenceFQName(reference), p);
                     }
                 }
             }
@@ -175,7 +199,7 @@ public class RequestConverter {
             final Payload containment = instance.getAsPayload(reference.getName());
             if (containment != null && containment.get(identifierProvider.getName()) == null && containment.get(IdentifierSigner.SIGNED_IDENTIFIER_KEY) == null) {
                 instance.remove(reference.getName());
-                log.debug("Removed non-createable, not existing reference: {}, instance: {}", AsmUtils.getReferenceFQName(reference), containment);
+                log.debug("Removed non-createable, not existing reference: {}, instance: {}", getReferenceFQName(reference), containment);
             }
         }
     }
@@ -279,7 +303,7 @@ public class RequestConverter {
                     );
                 }
             } else {
-                log.debug("Ignored invalid value of {}: {}", new Object[] {AsmUtils.getAttributeFQName(attribute), value}, ex);
+                log.debug("Ignored invalid value of {}: {}", new Object[] {getAttributeFQName(attribute), value}, ex);
             }
         }
 

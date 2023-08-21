@@ -22,10 +22,15 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -34,6 +39,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
 public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
@@ -43,10 +49,10 @@ public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     public AddReferenceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
                             PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
-        super(context, transactionManager, interceptorProvider);
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
     @Override
@@ -68,11 +74,35 @@ public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
         @SuppressWarnings("unchecked")
         final ID instanceId = (ID) exchange.get(identifierProvider.getName());
         @SuppressWarnings("unchecked")
-        final Collection<ID> referencedIds = ((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream()
-                .map(i -> (ID) i.get(identifierProvider.getName()))
-                .collect(Collectors.toList());
 
-        dao.addReferences(owner, instanceId, referencedIds);
-        return null;
+        AddReferenceCallPayload<ID> addReferenceCallPayload = CallInterceptorUtil.preCallInterceptors(AddReferenceCallPayload.class, asmModel, operation,
+                interceptorProvider,
+                AddReferenceCallPayload.builder()
+                        .instanceId(instanceId)
+                        .owner(owner)
+                        .references(((Collection<Map<String, Object>>) exchange.get(inputParameterName)).stream().map(o -> Payload.asPayload(o)).toList())
+                        .build());
+
+        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+            final Collection<ID> referencedIds = addReferenceCallPayload.getReferences().stream()
+                    .map(p -> (ID) p.get(identifierProvider.getName()))
+                    .collect(Collectors.toList());
+
+            dao.addReferences(owner, instanceId, referencedIds);
+        }
+
+        return CallInterceptorUtil.postCallInterceptors(AddReferenceCallPayload.class, Void.class, asmModel, operation,
+                interceptorProvider, addReferenceCallPayload, null);
+    }
+
+    @Builder
+    @Getter
+    public static class AddReferenceCallPayload<ID> {
+        @NonNull
+        EReference owner;
+        @NonNull
+        ID instanceId;
+        @NonNull
+        Collection<Payload> references;
     }
 }

@@ -67,16 +67,16 @@ public interface OperationCallInterceptor {
      * @return The payload which will be used to perform the call. When ignoreDecoratedCall is true
      * it have to return the decorated call return type's payload.
      */
-    Object preCall(EOperation operation, Payload parameterPayload);
+    Object preCall(EOperation operation, Object parameterPayload);
 
     /**
      * Called after the original decorated function call.
      * @param operation - Which operation is performed
      * @param parameterPayload - The operation call input parameter
-     * @param returnPayload - The operation call output parameter
+     * @param returnPayload - The operation call output parameter. It can be list or payload.
      * @param returnPayload - The return payload
      * @return The payload which will be returned of the call.
      */
-    Object postCall(EOperation operation, Payload parameterPayload, Payload returnPayload);
+    Object postCall(EOperation operation, Object parameterPayload, Object returnPayload);
 
 }

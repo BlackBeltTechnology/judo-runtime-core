@@ -22,12 +22,15 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import com.google.gson.Gson;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.osgi.filestore.security.api.Token;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.UploadClaim;
 import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Map;
@@ -38,14 +41,17 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
     private static final String TOKEN_KEY = "token";
     public static final String ATTRIBUTE_KEY = "attribute";
 
+    private final AsmModel asmModel;
+
     private final AsmUtils asmUtils;
 
     private TokenIssuer tokenIssuer;
 
     private final OperationCallInterceptorProvider interceptorProvider;
 
-    public GetUploadTokenCall(final AsmUtils asmUtils, final TokenIssuer tokenIssuer, OperationCallInterceptorProvider interceptorProvider) {
-        this.asmUtils = asmUtils;
+    public GetUploadTokenCall(final AsmModel asmModel, final TokenIssuer tokenIssuer, OperationCallInterceptorProvider interceptorProvider) {
+        this.asmModel = asmModel;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.tokenIssuer = tokenIssuer;
         this.interceptorProvider = interceptorProvider;
     }
@@ -57,18 +63,24 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
 
     @Override
     public Object call(Map<String, Object> exchange, EOperation operation) {
-        final EAttribute owner = (EAttribute) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final Map<String, Object> context = new TreeMap<>();
-        context.put(ATTRIBUTE_KEY, AsmUtils.getAttributeFQName(owner));
+        final EAttribute owner = (EAttribute) CallInterceptorUtil.preCallInterceptors(asmModel, operation, interceptorProvider,
+                asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
+                        () -> new IllegalArgumentException("Invalid model")));
+        Payload result = null;
 
-        final String uploadTokenString = tokenIssuer.createUploadToken(Token.<UploadClaim>builder()
-                .jwtClaim(UploadClaim.FILE_MIME_TYPE_LIST, AsmUtils.getExtensionAnnotationCustomValue(owner.getEAttributeType(), "constraints", "mimeTypes", false).orElse(null))
-                .jwtClaim(UploadClaim.MAX_FILE_SIZE, AsmUtils.getExtensionAnnotationCustomValue(owner.getEAttributeType(), "constraints", "maxFileSize", false).map(v -> Long.parseLong(v)).orElse(null))
-                .jwtClaim(UploadClaim.CONTEXT, new Gson().toJson(context))
-                .build());
+        if (CallInterceptorUtil.isOriginalCalled(asmModel, operation, interceptorProvider)) {
+            final Map<String, Object> context = new TreeMap<>();
+            context.put(ATTRIBUTE_KEY, AsmUtils.getAttributeFQName(owner));
 
-        return Payload.map(TOKEN_KEY, uploadTokenString);
+            final String uploadTokenString = tokenIssuer.createUploadToken(Token.<UploadClaim>builder()
+                    .jwtClaim(UploadClaim.FILE_MIME_TYPE_LIST, AsmUtils.getExtensionAnnotationCustomValue(owner.getEAttributeType(), "constraints", "mimeTypes", false).orElse(null))
+                    .jwtClaim(UploadClaim.MAX_FILE_SIZE, AsmUtils.getExtensionAnnotationCustomValue(owner.getEAttributeType(), "constraints", "maxFileSize", false).map(v -> Long.parseLong(v)).orElse(null))
+                    .jwtClaim(UploadClaim.CONTEXT, new Gson().toJson(context))
+                    .build());
+
+            result = Payload.map(TOKEN_KEY, uploadTokenString);
+        }
+        return CallInterceptorUtil.postCallInterceptors(asmModel, operation, interceptorProvider, owner, result);
     }
 }
