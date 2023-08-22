@@ -48,6 +48,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecuto
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
@@ -170,6 +171,7 @@ public class JudoDefaultModule extends AbstractModule {
 
         // Dispatcher
         bind(DispatcherFunctionProvider.class).toProvider(DispatcherFunctionProviderProvider.class).in(Singleton.class);
+        bind(OperationCallInterceptorProvider.class).toProvider(OperationCallInterceptorProviderProvider.class).in(Singleton.class);
 
         bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).asEagerSingleton();
         bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_METRICS_RETURNED)).toInstance(Boolean.FALSE);

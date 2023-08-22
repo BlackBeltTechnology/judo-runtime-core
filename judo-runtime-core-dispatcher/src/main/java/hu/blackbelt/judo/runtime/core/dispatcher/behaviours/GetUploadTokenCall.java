@@ -22,10 +22,16 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import com.google.gson.Gson;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.osgi.filestore.security.api.Token;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.UploadClaim;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -37,13 +43,19 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
     private static final String TOKEN_KEY = "token";
     public static final String ATTRIBUTE_KEY = "attribute";
 
+    private final AsmModel asmModel;
+
     private final AsmUtils asmUtils;
 
-    private TokenIssuer tokenIssuer;
+    private final TokenIssuer tokenIssuer;
 
-    public GetUploadTokenCall(final AsmUtils asmUtils, final TokenIssuer tokenIssuer) {
-        this.asmUtils = asmUtils;
+    private final OperationCallInterceptorProvider interceptorProvider;
+
+    public GetUploadTokenCall(final AsmModel asmModel, final TokenIssuer tokenIssuer, OperationCallInterceptorProvider interceptorProvider) {
+        this.asmModel = asmModel;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.tokenIssuer = tokenIssuer;
+        this.interceptorProvider = interceptorProvider;
     }
 
     @Override
@@ -53,18 +65,43 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
 
     @Override
     public Object call(Map<String, Object> exchange, EOperation operation) {
-        final EAttribute owner = (EAttribute) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final Map<String, Object> context = new TreeMap<>();
-        context.put(ATTRIBUTE_KEY, AsmUtils.getAttributeFQName(owner));
+        CallInterceptorUtil<GetUploadTokenCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                GetUploadTokenCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+        );
 
-        final String uploadTokenString = tokenIssuer.createUploadToken(Token.<UploadClaim>builder()
-                .jwtClaim(UploadClaim.FILE_MIME_TYPE_LIST, AsmUtils.getExtensionAnnotationCustomValue(owner.getEAttributeType(), "constraints", "mimeTypes", false).orElse(null))
-                .jwtClaim(UploadClaim.MAX_FILE_SIZE, AsmUtils.getExtensionAnnotationCustomValue(owner.getEAttributeType(), "constraints", "maxFileSize", false).map(v -> Long.parseLong(v)).orElse(null))
-                .jwtClaim(UploadClaim.CONTEXT, new Gson().toJson(context))
-                .build());
+        GetUploadTokenCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
+                GetUploadTokenCallPayload.builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner((EAttribute) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
+                                () -> new IllegalArgumentException("Invalid model")))
+                        .build());
 
-        return Payload.map(TOKEN_KEY, uploadTokenString);
+        Payload result = null;
+
+        if (callInterceptorUtil.isOriginalCalled()) {
+            final Map<String, Object> context = new TreeMap<>();
+            context.put(ATTRIBUTE_KEY, AsmUtils.getAttributeFQName(inputParameter.getOwner()));
+
+            final String uploadTokenString = tokenIssuer.createUploadToken(Token.<UploadClaim>builder()
+                    .jwtClaim(UploadClaim.FILE_MIME_TYPE_LIST, AsmUtils.getExtensionAnnotationCustomValue(inputParameter.getOwner().getEAttributeType(), "constraints", "mimeTypes", false).orElse(null))
+                    .jwtClaim(UploadClaim.MAX_FILE_SIZE, AsmUtils.getExtensionAnnotationCustomValue(inputParameter.getOwner().getEAttributeType(), "constraints", "maxFileSize", false).map(Long::parseLong).orElse(null))
+                    .jwtClaim(UploadClaim.CONTEXT, new Gson().toJson(context))
+                    .build());
+
+            result = Payload.map(TOKEN_KEY, uploadTokenString);
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class GetUploadTokenCallPayload {
+        @NonNull
+        EAttribute owner;
+
+        @NonNull
+        Payload instance;
+    }
+
 }
