@@ -21,6 +21,9 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import lombok.SneakyThrows;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -34,8 +37,15 @@ public abstract class TransactionalBehaviourCall<ID> implements BehaviourCall<ID
 
     PlatformTransactionManager transactionManager;
 
-    public TransactionalBehaviourCall(Context context, PlatformTransactionManager transactionManager) {
+    OperationCallInterceptorProvider interceptorProvider;
+
+    AsmModel asmModel;
+
+    public TransactionalBehaviourCall(Context context, PlatformTransactionManager transactionManager,
+                                      OperationCallInterceptorProvider interceptorProvider, AsmModel asmModel) {
         this.transactionManager = transactionManager;
+        this.interceptorProvider = interceptorProvider;
+        this.asmModel = asmModel;
     }
 
     public abstract Object callInTransaction(Map<String, Object> exchange, EOperation operation);

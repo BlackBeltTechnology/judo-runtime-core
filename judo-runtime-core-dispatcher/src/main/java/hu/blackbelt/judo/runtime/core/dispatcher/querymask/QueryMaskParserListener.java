@@ -21,7 +21,6 @@ package hu.blackbelt.judo.runtime.core.dispatcher.querymask;
  */
 
 import com.google.common.base.Strings;
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.services.dispatcher.QueryMaskBaseListener;
 import hu.blackbelt.judo.services.dispatcher.QueryMaskParser;
 import lombok.Data;
@@ -31,6 +30,7 @@ import org.eclipse.emf.ecore.EClass;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getClassifierFQName;
 
 @Slf4j
 public class QueryMaskParserListener extends QueryMaskBaseListener {
@@ -59,7 +59,7 @@ public class QueryMaskParserListener extends QueryMaskBaseListener {
         log.trace(Strings.repeat(TAB, indent) + "enterAttribute: " + ctx.IDENTIFIER().getSymbol().getText() + SEP + ctx.getText());
 
         checkArgument(currentContext.clazz.getEAllAttributes().stream().anyMatch(a -> Objects.equals(a.getName(), attibuteName)),
-                String.format("Attribute: %s not found on %s ", attibuteName, AsmUtils.getClassifierFQName(currentContext.clazz)));
+                String.format("Attribute: %s not found on %s ", attibuteName, getClassifierFQName(currentContext.clazz)));
         currentContext.mask.put(attibuteName, true);
     }
 
@@ -71,7 +71,7 @@ public class QueryMaskParserListener extends QueryMaskBaseListener {
         contextDeque.push(currentContext);
 
         checkArgument(currentContext.clazz.getEAllReferences().stream().anyMatch(r -> Objects.equals(r.getName(), relationName)),
-                String.format("Relation: %s not found on %s ", relationName, AsmUtils.getClassifierFQName(currentContext.clazz)));
+                String.format("Relation: %s not found on %s ", relationName, getClassifierFQName(currentContext.clazz)));
 
         final EClass relationType = currentContext.clazz.getEAllReferences().stream().filter(r -> Objects.equals(r.getName(), relationName))
                 .map(r -> r.getEReferenceType())
