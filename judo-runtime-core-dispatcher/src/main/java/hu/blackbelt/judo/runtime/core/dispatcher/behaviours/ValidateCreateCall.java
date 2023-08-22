@@ -24,7 +24,14 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -41,11 +48,12 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateCreateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
-        super(context, transactionManager);
+    public ValidateCreateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
+                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
     }
 
@@ -57,26 +65,56 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
     @SuppressWarnings("unchecked")
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<ValidateCreateCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                ValidateCreateCallPayload.class, Payload.class, asmModel, operation, interceptorProvider);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+        final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        final boolean bound = AsmUtils.isBound(operation);
+        ValidateCreateCallPayload inputParameter =
+                callInterceptorUtil.preCallInterceptors(
+                        ValidateCreateCallPayload.builder()
+                                .owner(owner)
+                                .instance(Payload.asPayload(exchange))
+                                .input(asPayload((Map<String, Object>) exchange.get(inputParameterName)))
+                                .build());
 
-        final Payload payload = asPayload((Map<String, Object>) exchange.get(inputParameterName));
+        Payload result = null;
+        if (callInterceptorUtil.shouldCallOriginal()) {
+            final boolean bound = AsmUtils.isBound(operation);
 
-        final Payload result;
-        if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
-            checkArgument(!bound, "Operation must be unbound");
-            result = dao.create(owner.getEReferenceType(), payload, null);
-        } else {
-            checkArgument(bound, "Operation must be bound");
-            result = dao.createNavigationInstanceAt((ID) exchange.get(identifierProvider.getName()), owner, payload, null);
+            if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access") ||
+                    !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
+                checkArgument(!bound, "Operation must be unbound");
+                result = dao.create(
+                        inputParameter.getOwner().getEReferenceType(),
+                        inputParameter.getInput(), null);
+            } else {
+                checkArgument(bound, "Operation must be bound");
+                result = dao.createNavigationInstanceAt(
+                        (ID) inputParameter.getInstance().get(identifierProvider.getName()),
+                        inputParameter.getOwner(),
+                        inputParameter.getInput(), null);
+            }
         }
 
         markedIdRemover.process(result);
-        return result;
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class ValidateCreateCallPayload {
+        @NonNull
+        EReference owner;
+
+        @NonNull
+        Payload input;
+
+        Payload instance;
+    }
+
 }

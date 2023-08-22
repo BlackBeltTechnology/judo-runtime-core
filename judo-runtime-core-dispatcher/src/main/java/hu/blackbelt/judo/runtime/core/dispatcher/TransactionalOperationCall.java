@@ -21,25 +21,35 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
  */
 
 import hu.blackbelt.judo.dao.api.Payload;
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.function.Function;
 
-@AllArgsConstructor
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isStateful;
+
 @Slf4j
 public class TransactionalOperationCall implements Function<Payload, Payload> {
 
     final PlatformTransactionManager transactionManager;
     final Function<Payload, Payload> functionToCall;
     final EOperation operation;
+
+    @Builder
+    public TransactionalOperationCall(@NonNull PlatformTransactionManager transactionManager,
+                                      @NonNull Function<Payload, Payload> functionToCall,
+                                      @NonNull EOperation operation) {
+        this.transactionManager = transactionManager;
+        this.functionToCall = functionToCall;
+        this.operation = operation;
+    }
 
     @SneakyThrows
     @Override
@@ -65,7 +75,7 @@ public class TransactionalOperationCall implements Function<Payload, Payload> {
             throw e;
         } finally {
             if (transactionStatus != null) {
-                if (AsmUtils.isStateful(operation)) {
+                if (isStateful(operation)) {
                     transactionManager.commit(transactionStatus);
                 } else {
                     transactionManager.rollback(transactionStatus);
