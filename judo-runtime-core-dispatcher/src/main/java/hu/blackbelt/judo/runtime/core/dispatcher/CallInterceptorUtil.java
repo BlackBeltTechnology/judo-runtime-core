@@ -39,14 +39,14 @@ public class CallInterceptorUtil<P, R> {
         P ret = inputParameter;
         boolean callDecorated = true;
         for (OperationCallInterceptor interceptor : interceptorProvider.getInterceptorsForOperation(asmModel, operation)) {
-            callDecorated = callDecorated & !interceptor.ignoreDecoratedCall();
+            callDecorated = callDecorated && !interceptor.ignoreDecoratedCall();
             if (!interceptor.async()) {
                 Object o = interceptor.preCall(operation, inputParameter);
                 if (o == null || parameterType.isAssignableFrom(o.getClass())) {
                     ret = (P) o;
                 } else {
                     throw new IllegalArgumentException("The interceptor call return type: " + o.getClass().getName()
-                            + " does not math with expected type: " + parameterType.getName());
+                            + " does not match with expected type: " + parameterType.getName());
                 }
             } else {
                 Object finalInputParameter = inputParameter;
@@ -64,14 +64,14 @@ public class CallInterceptorUtil<P, R> {
         R ret = returnPayload;
         boolean callDecorated = true;
         for (OperationCallInterceptor interceptor : interceptorProvider.getInterceptorsForOperation(asmModel, operation)) {
-            callDecorated = callDecorated & !interceptor.ignoreDecoratedCall();
+            callDecorated = callDecorated && !interceptor.ignoreDecoratedCall();
             if (!interceptor.async()) {
                 Object o  = interceptor.postCall(operation, inputParameter, returnPayload);
                 if (o == null || returnType.isAssignableFrom(o.getClass())) {
                     ret = (R) o;
                 } else {
                     throw new IllegalArgumentException("The interceptor call return type: " + o.getClass().getName()
-                            + " does not math with expected type: " + returnType.getName());
+                            + " does not match with expected type: " + returnType.getName());
                 }
             } else {
                 Object finalInputParameter = inputParameter;
