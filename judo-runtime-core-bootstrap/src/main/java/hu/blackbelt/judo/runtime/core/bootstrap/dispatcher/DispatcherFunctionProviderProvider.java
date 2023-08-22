@@ -34,10 +34,12 @@ public class DispatcherFunctionProviderProvider implements Provider<DispatcherFu
     @Override
     public DispatcherFunctionProvider get() {
         final EMap<EOperation, Function<Payload, Payload>> scripts = new BasicEMap<>();
+        final EMap<EOperation, Function<Payload, Payload>> sdkFunctions = new BasicEMap<>();
+
         DispatcherFunctionProvider dispatcherFunctionProvider = new DispatcherFunctionProvider() {
             @Override
             public EMap<EOperation, Function<Payload, Payload>> getSdkFunctions() {
-                return ECollections.emptyEMap();
+                return sdkFunctions;
             }
 
             @Override

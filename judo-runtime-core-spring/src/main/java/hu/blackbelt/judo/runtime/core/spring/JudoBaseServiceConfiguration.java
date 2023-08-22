@@ -99,6 +99,11 @@ public class JudoBaseServiceConfiguration {
     }
 
     @Bean
+    public OperationCallInterceptorProvider getOperationCallInterceptorProvider() {
+        return new OperationCallInterceptorProvider() {};
+    }
+
+    @Bean
     public Context getContext(DataTypeManager dataTypeManager) {
         // TODO: Parameters
         Boolean debugThreadFork = false;

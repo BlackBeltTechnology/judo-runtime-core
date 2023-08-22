@@ -21,6 +21,9 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EOperation;
@@ -30,17 +33,25 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
     public static final String ROLLBACK_KEY = "ROLLBACK";
 
     PlatformTransactionManager transactionManager;
+
+    AsmModel asmModel;
     Context context;
 
-    public AlwaysRollbackTransactionalBehaviourCall(Context context, PlatformTransactionManager transactionManager) {
+    OperationCallInterceptorProvider interceptorProvider;
+
+    public AlwaysRollbackTransactionalBehaviourCall(Context context, PlatformTransactionManager transactionManager,
+                                                    OperationCallInterceptorProvider interceptorProvider, AsmModel asmModel) {
         this.transactionManager = transactionManager;
         this.context = context;
+        this.interceptorProvider = interceptorProvider;
+        this.asmModel = asmModel;
     }
 
     public abstract Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation);

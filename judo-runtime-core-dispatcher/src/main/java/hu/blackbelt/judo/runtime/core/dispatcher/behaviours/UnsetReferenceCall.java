@@ -22,12 +22,20 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
 import org.springframework.transaction.PlatformTransactionManager;
+
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -38,11 +46,12 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
     final AsmUtils asmUtils;
     final IdentifierProvider<ID> identifierProvider;
 
-    public UnsetReferenceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager) {
-        super(context, transactionManager);
+    public UnsetReferenceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
+                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
     @Override
@@ -52,16 +61,38 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<UnsetReferenceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
+                UnsetReferenceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
+
         final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        @SuppressWarnings("unchecked")
-        final ID instanceId = (ID) exchange.get(identifierProvider.getName());
+        UnsetReferenceCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
+                UnsetReferenceCallPayload.builder()
+                        .owner(owner)
+                        .instance(Payload.asPayload(exchange))
+                        .build());
 
-        dao.unsetReference(owner, instanceId);
-        return null;
+        if (callInterceptorUtil.isOriginalCalled()) {
+            @SuppressWarnings("unchecked")
+            final ID instanceId = (ID) inputParameter.getInstance().get(identifierProvider.getName());
+            dao.unsetReference(owner, instanceId);
+        }
+
+        return callInterceptorUtil.postCallInterceptors(inputParameter, null);
     }
+
+    @Builder
+    @Getter
+    public static class UnsetReferenceCallPayload {
+        @NonNull
+        EReference owner;
+
+        @NonNull
+        Payload instance;
+    }
+
 }
