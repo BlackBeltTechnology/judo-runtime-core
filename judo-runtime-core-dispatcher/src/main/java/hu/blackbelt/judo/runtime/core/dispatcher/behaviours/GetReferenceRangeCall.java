@@ -117,7 +117,7 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
 
         Collection<Payload> result = new ArrayList<>();
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final boolean bound = isBound(operation);
             checkArgument(!bound, "Operation must be unbound");
 

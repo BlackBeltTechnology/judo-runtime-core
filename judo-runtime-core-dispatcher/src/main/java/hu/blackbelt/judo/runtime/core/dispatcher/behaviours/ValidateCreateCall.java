@@ -83,7 +83,7 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
                                 .build());
 
         Payload result = null;
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final boolean bound = AsmUtils.isBound(operation);
 
             if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access") ||

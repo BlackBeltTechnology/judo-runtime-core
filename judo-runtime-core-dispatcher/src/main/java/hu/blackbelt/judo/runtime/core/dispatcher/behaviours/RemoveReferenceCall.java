@@ -84,7 +84,7 @@ public class RemoveReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
                         .build());
 
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             @SuppressWarnings({"unchecked"})
             final Collection<ID> referencedIds = inputParameter.getReferences().stream()
                     .map(p -> (ID) p.get(identifierProvider.getName()))

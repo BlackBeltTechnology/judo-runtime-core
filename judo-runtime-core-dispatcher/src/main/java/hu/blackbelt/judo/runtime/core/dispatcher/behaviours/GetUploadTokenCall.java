@@ -79,7 +79,7 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
 
         Payload result = null;
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final Map<String, Object> context = new TreeMap<>();
             context.put(ATTRIBUTE_KEY, AsmUtils.getAttributeFQName(inputParameter.getOwner()));
 

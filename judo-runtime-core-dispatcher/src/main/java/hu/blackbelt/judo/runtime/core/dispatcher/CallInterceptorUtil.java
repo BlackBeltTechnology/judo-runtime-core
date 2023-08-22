@@ -26,7 +26,7 @@ public class CallInterceptorUtil<P, R> {
 
     }
 
-    public boolean isOriginalCalled() {
+    public boolean shouldCallOriginal() {
         boolean callDecorated = true;
         for (OperationCallInterceptor interceptor : interceptorProvider.getInterceptorsForOperation(asmModel, operation)) {
             callDecorated = callDecorated & !interceptor.ignoreDecoratedCall();

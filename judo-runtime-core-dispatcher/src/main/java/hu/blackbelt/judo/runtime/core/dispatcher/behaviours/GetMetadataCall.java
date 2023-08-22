@@ -100,7 +100,7 @@ public class GetMetadataCall<ID> implements BehaviourCall<ID> {
                         .build());
 
         final Payload result = Payload.empty();
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             result.put(SECURITY_KEY, inputParameter.getSecurityList());
         }
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);

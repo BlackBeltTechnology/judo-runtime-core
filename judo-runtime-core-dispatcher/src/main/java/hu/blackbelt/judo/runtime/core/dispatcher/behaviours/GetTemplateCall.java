@@ -67,7 +67,7 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
                                 () -> new IllegalArgumentException("Invalid model")))
                 .build());
         Payload result = null;
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             result = dao.getDefaultsOf(inputParameter.getOwner());
         }
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);

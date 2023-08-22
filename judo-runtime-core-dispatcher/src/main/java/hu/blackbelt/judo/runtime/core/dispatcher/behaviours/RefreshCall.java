@@ -93,7 +93,7 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
 
         Optional<Payload> result = Optional.empty();
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             result = dao.searchByIdentifier(inputParameter.getOwner(),
                     (ID) inputParameter.getInstance().get(identifierProvider.getName()),
                     inputParameter.getQueryCustomizer());

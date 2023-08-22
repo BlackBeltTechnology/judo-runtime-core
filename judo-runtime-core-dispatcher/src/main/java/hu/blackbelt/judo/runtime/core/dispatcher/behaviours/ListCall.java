@@ -103,7 +103,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
         Object result = null;
         Long count = null;
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final boolean countRecords = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY));
 
             if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access")

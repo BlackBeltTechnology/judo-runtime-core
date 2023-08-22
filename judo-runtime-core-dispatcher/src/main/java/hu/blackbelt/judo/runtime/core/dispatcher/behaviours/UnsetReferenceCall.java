@@ -76,7 +76,7 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
                         .instance(Payload.asPayload(exchange))
                         .build());
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             @SuppressWarnings("unchecked")
             final ID instanceId = (ID) inputParameter.getInstance().get(identifierProvider.getName());
             dao.unsetReference(owner, instanceId);

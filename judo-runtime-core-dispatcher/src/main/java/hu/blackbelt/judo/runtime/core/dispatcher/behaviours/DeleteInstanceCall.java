@@ -78,7 +78,7 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
                         .owner(owner)
                         .build());
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             dao.delete(deleteInstanceCallPayload.getOwner(),
                     (ID) deleteInstanceCallPayload.getInstance().get(identifierProvider.getName()));
         }

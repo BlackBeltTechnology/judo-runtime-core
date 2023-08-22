@@ -120,7 +120,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
 
         Collection<Payload> result = new ArrayList<>();
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final boolean bound = AsmUtils.isBound(operation);
             checkArgument(!bound, "Operation must be unbound");
 

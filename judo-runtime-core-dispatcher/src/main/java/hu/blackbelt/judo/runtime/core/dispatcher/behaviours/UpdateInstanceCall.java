@@ -106,7 +106,7 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
                                 .build());
 
         Payload result = null;
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             result =  dao.update(
                     inputParameter.getOwner(),
                     inputParameter.getInput(), null);

@@ -108,7 +108,7 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
                                 .build());
 
         Payload result = null;
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             result =  dao.update(
                     inputParameter.getOwner(),
                     inputParameter.getInput(), null);

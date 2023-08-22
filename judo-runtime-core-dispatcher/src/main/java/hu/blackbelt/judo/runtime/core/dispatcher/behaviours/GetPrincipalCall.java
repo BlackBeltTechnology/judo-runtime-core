@@ -37,8 +37,6 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -82,7 +80,7 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
                 .instance(Payload.asPayload(exchange))
                 .build());
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final Optional<Payload> actor;
             if (inputParameter.getInstance().containsKey(Dispatcher.ACTOR_KEY)) {
                 actor = Optional.ofNullable((Payload) inputParameter.getInstance().get(Dispatcher.ACTOR_KEY));

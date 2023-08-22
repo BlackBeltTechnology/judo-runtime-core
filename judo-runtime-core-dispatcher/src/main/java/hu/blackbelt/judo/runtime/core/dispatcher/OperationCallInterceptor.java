@@ -23,10 +23,10 @@ public interface OperationCallInterceptor {
     String getName();
 
     /**
-     * Get operations which this interceptor suitable for. It its empty
-     * all operation call will be intercepted.
+     * Get operations which this interceptor should trigger for.
+     * If it's empty, all operation calls will be intercepted.
      *
-     * @param asmModel - Model interceptor belongs
+     * @param asmModel - The ASM model which this interceptor belongs to
 
      * @return
      */
@@ -35,16 +35,15 @@ public interface OperationCallInterceptor {
     }
 
     /**
-     * The interceptor called as async operation. It will be called
-     * outside of transaction context and no context variables will
-     * be available.
+     * If true, the interceptor will be called outside of transaction context and no context
+     * variables will be available, it performed on a different thread.
      *
      * @return
      */
     default boolean async() { return false; };
 
     /**
-     * The interceptor will terminate the execution of call when an error occurred.
+     * The interceptor will terminate the execution of the call when an error occurred.
      * This parameter is ignored on async calls.
      *
      * @return
@@ -53,8 +52,8 @@ public interface OperationCallInterceptor {
 
 
     /**
-     * When returns true it will ignore the original call and preCall return
-     * payload will be used to return type.
+     * When returns true it will ignore the system defined DAO call.
+     *
      * @return
      */
     default boolean ignoreDecoratedCall() { return false;};
@@ -65,7 +64,7 @@ public interface OperationCallInterceptor {
      * @param parameterPayload - The operation call input parameter
      *
      * @return The payload which will be used to perform the call. When ignoreDecoratedCall is true
-     * it have to return the decorated call return type's payload.
+     * it has to return the decorated call return type's payload.
      */
     default Object preCall(EOperation operation, Object parameterPayload) {
         return parameterPayload;
@@ -76,8 +75,7 @@ public interface OperationCallInterceptor {
      * @param operation - Which operation is performed
      * @param parameterPayload - The operation call input parameter
      * @param returnPayload - The operation call output parameter. It can be list or payload.
-     * @param returnPayload - The return payload
-     * @return The payload which will be returned of the call.
+     * @return The {@link Payload} or {@link Collection} of {@link Payload} which will be returned of the call.
      */
     default Object postCall(EOperation operation, Object parameterPayload, Object returnPayload) {
         return returnPayload;

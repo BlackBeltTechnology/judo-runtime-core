@@ -93,7 +93,7 @@ public class SetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
                         .build());
 
 
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final Collection<ID> referencedIds = inputParameter.getReferences().stream()
                     .map(p -> (ID) p.get(identifierProvider.getName()))
                     .collect(Collectors.toList());

@@ -82,7 +82,7 @@ public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
                                 .build());
 
         Payload ret = null;
-        if (callInterceptorUtil.isOriginalCalled()) {
+        if (callInterceptorUtil.shouldCallOriginal()) {
             final boolean bound = AsmUtils.isBound(operation);
 
             if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access") ||
