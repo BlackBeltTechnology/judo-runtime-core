@@ -118,6 +118,9 @@ public class JudoDefaultSpringConfiguration {
     DispatcherFunctionProvider dispatcherFunctionProvider;
 
     @Autowired
+    OperationCallInterceptorProvider operationCallInterceptorProvider;
+
+    @Autowired
     private Context context;
 
     @Autowired
@@ -347,6 +350,7 @@ public class JudoDefaultSpringConfiguration {
                 .dao(dao)
                 .identifierProvider(identifierProvider)
                 .dispatcherFunctionProvider(dispatcherFunctionProvider)
+                .operationCallInterceptorProvider(operationCallInterceptorProvider)
                 .transactionManager(transactionManager)
                 .dataTypeManager(dataTypeManager)
                 .identifierSigner(identifierSigner)

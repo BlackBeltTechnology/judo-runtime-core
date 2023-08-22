@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 import com.google.gson.Gson;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.FileType;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.PayloadTraverser;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.GetUploadTokenCall;
@@ -40,23 +41,30 @@ import org.eclipse.emf.ecore.EEnum;
 
 import java.util.*;
 
-@Builder
 public class ResponseConverter {
 
-    @NonNull
     private final EClass transferObjectType;
 
-    @NonNull
     private final AsmUtils asmUtils;
 
-    @NonNull
     private final Coercer coercer;
 
     private final TokenIssuer filestoreTokenIssuer;
 
-    @NonNull
-    @Singular
     private final Collection<String> keepProperties;
+
+    @Builder
+    public ResponseConverter(@NonNull EClass transferObjectType,
+                             @NonNull AsmModel asmModel,
+                             @NonNull Coercer coercer,
+                             TokenIssuer filestoreTokenIssuer,
+                             @NonNull @Singular Collection<String> keepProperties) {
+        this.transferObjectType = transferObjectType;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+        this.coercer = coercer;
+        this.filestoreTokenIssuer = filestoreTokenIssuer;
+        this.keepProperties = keepProperties;
+    }
 
     public Optional<Payload> convert(final Map<String, Object> input) {
         if (input == null) {

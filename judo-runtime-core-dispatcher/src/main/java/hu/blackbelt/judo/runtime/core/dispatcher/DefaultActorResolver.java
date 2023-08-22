@@ -44,6 +44,8 @@ import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.*;
+
 @Slf4j
 public class DefaultActorResolver<ID> implements ActorResolver {
 
@@ -101,10 +103,10 @@ public class DefaultActorResolver<ID> implements ActorResolver {
     @Override
     public Payload getActorByClaims(final EClass actorType, final Map<String, Object> claims) {
         final Optional<EAttribute> usernameClaim = actorType.getEAllAttributes().stream()
-                .filter(claim -> Objects.equals(AsmUtils.getExtensionAnnotationValue(claim, "claim", false).orElse("-"), "USERNAME"))
+                .filter(claim -> Objects.equals(getExtensionAnnotationValue(claim, "claim", false).orElse("-"), "USERNAME"))
                 .findAny();
         final Optional<EAttribute> emailClaim = actorType.getEAllAttributes().stream()
-                .filter(claim -> Objects.equals(AsmUtils.getExtensionAnnotationValue(claim, "claim", false).orElse("-"), "EMAIL"))
+                .filter(claim -> Objects.equals(getExtensionAnnotationValue(claim, "claim", false).orElse("-"), "EMAIL"))
                 .findAny();
 
         final EAttribute filterAttribute;
@@ -115,36 +117,36 @@ public class DefaultActorResolver<ID> implements ActorResolver {
         } else {
             filterAttribute = actorType.getEAllAttributes().stream()
                     .filter(actorAttribute -> claims.containsKey(actorAttribute.getName())
-                            && asmUtils.getMappedAttribute(actorAttribute).filter(a -> AsmUtils.isIdentifier(a)).isPresent())
+                            && asmUtils.getMappedAttribute(actorAttribute).filter(a -> isIdentifier(a)).isPresent())
                     .sorted((a1, a2) -> AsmUtils.equals(a1, a2) ? 0 : a1.getName().compareTo(a2.getName()))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("ID attribute in Entity type matching any access token claim not found"));
+                    .orElseThrow(() -> new IllegalStateException("ID attribute in Entity ∂type matching any access token claim not found"));
         }
 
         final Integer operator;
         final Object value;
-        if (AsmUtils.isDecimal(filterAttribute.getEAttributeType())) {
+        if (isDecimal(filterAttribute.getEAttributeType())) {
             operator = 4;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), BigDecimal.class);
-        } else if (AsmUtils.isInteger(filterAttribute.getEAttributeType())) {
+        } else if (isInteger(filterAttribute.getEAttributeType())) {
             operator = 4;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), BigInteger.class);
-        } else if (AsmUtils.isDate(filterAttribute.getEAttributeType())) {
+        } else if (isDate(filterAttribute.getEAttributeType())) {
             operator = 4;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), LocalDate.class);
-        } else if (AsmUtils.isTimestamp(filterAttribute.getEAttributeType())) {
+        } else if (isTimestamp(filterAttribute.getEAttributeType())) {
             operator = 4;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), LocalDateTime.class);
-        } else if (AsmUtils.isTime(filterAttribute.getEAttributeType())) {
+        } else if (isTime(filterAttribute.getEAttributeType())) {
             operator = 4;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), LocalTime.class);
-        } else if (AsmUtils.isBoolean(filterAttribute.getEAttributeType())) {
+        } else if (isBoolean(filterAttribute.getEAttributeType())) {
             operator = 0;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), Boolean.class);
-        } else if (AsmUtils.isString(filterAttribute.getEAttributeType()) || AsmUtils.isText(filterAttribute.getEAttributeType())) {
+        } else if (isString(filterAttribute.getEAttributeType()) || AsmUtils.isText(filterAttribute.getEAttributeType())) {
             operator = 4;
             value = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), String.class);
-        } else if (AsmUtils.isEnumeration(filterAttribute.getEAttributeType())) {
+        } else if (isEnumeration(filterAttribute.getEAttributeType())) {
             operator = 0;
             final String literal = dataTypeManager.getCoercer().coerce(claims.get(filterAttribute.getName()), String.class);
             value = ((EEnum) filterAttribute.getEAttributeType()).getELiterals().stream()
@@ -153,7 +155,7 @@ public class DefaultActorResolver<ID> implements ActorResolver {
                     .findAny()
                     .orElseThrow(() -> new IllegalStateException("Invalid enumeration literal: " + literal));
         } else {
-            log.warn("Unsupported filtering type: {}", AsmUtils.getAttributeFQName(filterAttribute));
+            log.warn("Unsupported filtering type: {}", getAttributeFQName(filterAttribute));
             operator = null;
             value = null;
         }
@@ -174,7 +176,7 @@ public class DefaultActorResolver<ID> implements ActorResolver {
         if (queryResult.isEmpty()) {
             log.info("Operation failed, authenticated entity not found in database");
             final Map<String, Object> details = new LinkedHashMap<>();
-            details.put("ACTOR", AsmUtils.getClassifierFQName(actorType));
+            details.put("ACTOR", getClassifierFQName(actorType));
             throw new AccessDeniedException(ValidationResult.builder()
                     .code("AUTHENTICATED_ENTITY_NOT_FOUND")
                     .level(ValidationResult.Level.ERROR)
@@ -190,7 +192,7 @@ public class DefaultActorResolver<ID> implements ActorResolver {
         // add transient attributes (claims) from Access Token
         result.putAll(claims.entrySet().stream()
                 .filter(e -> e.getValue() != null)
-                .filter(e -> actorType.getEAllAttributes().stream().anyMatch(a -> Objects.equals(a.getName(), e.getKey()) && AsmUtils.annotatedAsTrue(a, "transient")))
+                .filter(e -> actorType.getEAllAttributes().stream().anyMatch(a -> Objects.equals(a.getName(), e.getKey()) && annotatedAsTrue(a, "transient")))
                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
         return result;

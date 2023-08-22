@@ -24,9 +24,16 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
 import org.springframework.transaction.PlatformTransactionManager;
@@ -43,11 +50,13 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
     final AsmUtils asmUtils;
     final Coercer coercer;
 
-    public UpdateInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, PlatformTransactionManager transactionManager, Coercer coercer) {
-        super(context, transactionManager);
+    public UpdateInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
+                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider,
+                              Coercer coercer) {
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.coercer = coercer;
     }
 
@@ -58,10 +67,13 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
     @Override
     public Object callInTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<UpdateInstanceCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                UpdateInstanceCallPayload.class, Payload.class, asmModel, operation, interceptorProvider);
+
         final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final String inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst()
+        final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
         final boolean bound = AsmUtils.isBound(operation);
@@ -85,6 +97,35 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
             }
         }
 
-        return dao.update(owner, payload, null);
+        UpdateInstanceCallPayload inputParameter =
+                callInterceptorUtil.preCallInterceptors(
+                        UpdateInstanceCallPayload.builder()
+                                .owner(owner)
+                                .input(payload)
+                                .instance(Payload.asPayload(exchange))
+                                .build());
+
+        Payload result = null;
+        if (callInterceptorUtil.shouldCallOriginal()) {
+            result =  dao.update(
+                    inputParameter.getOwner(),
+                    inputParameter.getInput(), null);
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class UpdateInstanceCallPayload {
+        @NonNull
+        EClass owner;
+
+        @NonNull
+        Payload input;
+
+        @NonNull
+        Payload instance;
+
+    }
+
 }
