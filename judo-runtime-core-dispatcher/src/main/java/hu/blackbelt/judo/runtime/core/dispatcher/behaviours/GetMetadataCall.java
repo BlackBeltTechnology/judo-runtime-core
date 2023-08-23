@@ -21,9 +21,12 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -33,18 +36,25 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-@RequiredArgsConstructor
 public class GetMetadataCall<ID> implements BehaviourCall<ID> {
 
+    final AsmModel asmModel;
     final AsmUtils asmUtils;
     final Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider;
-
+    final OperationCallInterceptorProvider interceptorProvider;
     private static final String SECURITY_KEY = "security";
 
     private static final String ISSUER = "issuer";
     private static final String AUTH_ENDPOINT = "auth_endpoint";
     private static final String TOKEN_ENDPOINT = "token_endpoint";
     private static final String LOGOUT_ENDPOINT = "end_session_endpoint";
+
+    public GetMetadataCall(AsmModel asmModel, Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider, OperationCallInterceptorProvider interceptorProvider) {
+        this.asmModel = asmModel;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+        this.openIdConfigurationProvider = openIdConfigurationProvider;
+        this.interceptorProvider = interceptorProvider;
+    }
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {
@@ -53,13 +63,15 @@ public class GetMetadataCall<ID> implements BehaviourCall<ID> {
 
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
-        final Payload result = Payload.empty();
-        final List<Payload> securityList = new ArrayList<>();
+        CallInterceptorUtil<GetMetadataCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                GetMetadataCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+        );
 
+        final List<Payload> securityList = new ArrayList<>();
         asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .filter(owner -> owner instanceof EClass)
                 .map(owner -> (EClass) owner)
-                .filter(owner -> AsmUtils.isActorType(owner))
+                .filter(AsmUtils::isActorType)
                 .ifPresent(actorType -> {
                     final Payload security = Payload.empty();
                     final Optional<String> realm = AsmUtils.getExtensionAnnotationValue(actorType, "realm", false);
@@ -82,8 +94,26 @@ public class GetMetadataCall<ID> implements BehaviourCall<ID> {
                     }
                 });
 
-        result.put(SECURITY_KEY, securityList);
+        GetMetadataCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(GetMetadataCallPayload.builder()
+                        .securityList(securityList)
+                        .instance(Payload.asPayload(exchange))
+                        .build());
 
-        return result;
+        final Payload result = Payload.empty();
+        if (callInterceptorUtil.shouldCallOriginal()) {
+            result.put(SECURITY_KEY, inputParameter.getSecurityList());
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class GetMetadataCallPayload {
+        @NonNull
+        Payload instance;
+
+        @NonNull
+        List<Payload> securityList;
+    }
+
 }

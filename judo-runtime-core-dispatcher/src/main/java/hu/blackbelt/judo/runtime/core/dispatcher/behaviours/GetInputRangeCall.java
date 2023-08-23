@@ -24,20 +24,22 @@ import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.mapper.api.Coercer;
-import lombok.SneakyThrows;
+import lombok.*;
+import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
 import org.springframework.transaction.PlatformTransactionManager;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
+
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -57,11 +59,14 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetInputRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmUtils asmUtils, ExpressionModel expressionModel, PlatformTransactionManager transactionManager, Coercer coercer, boolean caseInsensitiveLike) {
-        super(context, transactionManager);
+    public GetInputRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
+                             ExpressionModel expressionModel, PlatformTransactionManager transactionManager,
+                             OperationCallInterceptorProvider interceptorProvider,
+                             Coercer coercer, boolean caseInsensitiveLike) {
+        super(context, transactionManager, interceptorProvider, asmModel);
         this.dao = dao;
         this.identifierProvider = identifierProvider;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
         this.collectedIdRemover = new CollectedIdRemover<>(identifierProvider.getName());
 
@@ -69,7 +74,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
                 .resourceSet(expressionModel.getResourceSet())
                 .uri(expressionModel.getUri()).build();
 
-        this.queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<ID>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
+        this.queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }
 
     @Override
@@ -79,6 +84,9 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
 
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
+        CallInterceptorUtil<GetInputRangeCallPayload<ID>, Collection<Payload>> callInterceptorUtil = new CallInterceptorUtil<>(
+                GetInputRangeCallPayload.class, Collection.class, asmModel, operation, interceptorProvider);
+
         final EOperation owner = (EOperation) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
         String inputRangeReferenceFQName = AsmUtils.getExtensionAnnotationValue(owner, "inputRange", false)
@@ -86,29 +94,76 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
         final EReference inputRangeReference = asmUtils.resolveReference(inputRangeReferenceFQName)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
-        final Optional<String> inputParameterName = operation.getEParameters().stream().map(p -> p.getName()).findFirst();
+        final Optional<String> inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst();
         @SuppressWarnings("unchecked")
-        final Map<String, Object> inputData = (Map<String, Object>) exchange.get(inputParameterName.get());
 
-        final boolean bound = AsmUtils.isBound(operation);
-        checkArgument(!bound, "Operation must be unbound");
+        final Map<String, Object> inputData = (Map<String, Object>) exchange.get(inputParameterName.orElse(null));
+        @SuppressWarnings({"unchecked"})
+        Map<String, Object> queryCustomizerData = inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null;
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(inputData != null ? (Map<String, Object>) inputData.get(QUERY_CUSTOMIZER_KEY) : null, inputRangeReference.getEReferenceType());
+        @SuppressWarnings({"unchecked"})
+        Payload ownerPayload = inputParameterName
+                .filter(parameterName -> exchange.get(parameterName) != null)
+                .map(parameterName -> Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY))
+                .orElse(null);
 
-        final Collection<ID> idsToRemove = new HashSet<>();
-        @SuppressWarnings("unchecked")
-        final Collection<Payload> result = dao.getRangeOf(inputRangeReference, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer);
 
-        if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
-            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, dao.countRangeOf(inputRangeReference, inputParameterName.map(parameterName -> exchange.get(parameterName) != null ? Payload.asPayload((Map<String, Object>) exchange.get(parameterName)).getAsPayload(OWNER_KEY) : null).orElse(null), queryCustomizer));
+        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor.build(
+                queryCustomizerData, inputRangeReference.getEReferenceType());
+
+        GetInputRangeCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(
+                        GetInputRangeCallPayload.<ID>builder()
+                                .reference(inputRangeReference)
+                                .ownerPayload(ownerPayload)
+                                .queryCustomizer(queryCustomizer)
+                                .build());
+
+        Collection<Payload> result = new ArrayList<>();
+
+        if (callInterceptorUtil.shouldCallOriginal()) {
+            final boolean bound = AsmUtils.isBound(operation);
+            checkArgument(!bound, "Operation must be unbound");
+
+            final Collection<ID> idsToRemove = new HashSet<>();
+            result = dao.getRangeOf(
+                    inputParameter.getReference(),
+                    inputParameter.getOwnerPayload(),
+                    inputParameter.getQueryCustomizer());
+
+            if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
+                inputParameter.setRecordCount(dao.countRangeOf(
+                        inputParameter.getReference(),
+                        inputParameter.getOwnerPayload(),
+                        inputParameter.getQueryCustomizer()));
+            }
+
+            // collect IDs that are created (temporary)
+            result.forEach(p -> markedIdRemover.processAndCollect(p, idsToRemove));
+            // remove identifiers of temporary instances (keep identifiers of instances existing before operation call)
+            result.forEach(payload -> collectedIdRemover.removeIdentifiers(payload, idsToRemove));
         }
 
-        // collect IDs that are created (temporary)
-        result.forEach(p -> markedIdRemover.processAndCollect(p, idsToRemove));
-        // remove identifiers of temporary instances (keep identifiers of instances existing before operation call)
-        result.forEach(payload -> collectedIdRemover.removeIdentifiers(payload, idsToRemove));
 
-        return result;
+        if (inputParameter.getRecordCount() > -1) {
+            exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, inputParameter.getRecordCount());
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class GetInputRangeCallPayload<ID> {
+        @NonNull
+        EReference reference;
+
+        Payload ownerPayload;
+
+        DAO.QueryCustomizer<ID> queryCustomizer;
+
+        @Setter
+        @Builder.Default
+        long recordCount = -1L;
+
+    }
+
 }

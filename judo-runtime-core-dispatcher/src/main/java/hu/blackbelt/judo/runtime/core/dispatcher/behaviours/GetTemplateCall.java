@@ -21,7 +21,14 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
+import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
@@ -32,9 +39,15 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
     final DAO<ID> dao;
     final AsmUtils asmUtils;
 
-    public GetTemplateCall(DAO<ID> dao, AsmUtils asmUtils) {
+    final OperationCallInterceptorProvider interceptorProvider;
+
+    final AsmModel asmModel;
+
+    public GetTemplateCall(DAO<ID> dao, AsmModel asmModel, OperationCallInterceptorProvider interceptorProvider) {
         this.dao = dao;
-        this.asmUtils = asmUtils;
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+        this.interceptorProvider = interceptorProvider;
+        this.asmModel = asmModel;
     }
 
     @Override
@@ -44,9 +57,30 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
 
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
-        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
+        CallInterceptorUtil<GetTemplateCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+                GetTemplateCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+        );
 
-        return dao.getDefaultsOf(owner);
+        GetTemplateCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(GetTemplateCallPayload.builder()
+                        .instance(Payload.asPayload(exchange))
+                        .owner((EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
+                                () -> new IllegalArgumentException("Invalid model")))
+                .build());
+        Payload result = null;
+        if (callInterceptorUtil.shouldCallOriginal()) {
+            result = dao.getDefaultsOf(inputParameter.getOwner());
+        }
+        return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
+
+    @Builder
+    @Getter
+    public static class GetTemplateCallPayload {
+        @NonNull
+        EClass owner;
+
+        @NonNull
+        Payload instance;
+    }
+
 }

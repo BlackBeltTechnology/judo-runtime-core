@@ -34,6 +34,7 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
@@ -63,6 +64,9 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
 
     @Inject
     DispatcherFunctionProvider dispatcherFunctionProvider;
+
+    @Inject
+    OperationCallInterceptorProvider operationCallInterceptorProvider;
 
     @Inject(optional = true)
     @Nullable
@@ -133,6 +137,7 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
                 .dao(dao)
                 .identifierProvider(identifierProvider)
                 .dispatcherFunctionProvider(dispatcherFunctionProvider)
+                .operationCallInterceptorProvider(operationCallInterceptorProvider)
                 .transactionManager(transactionManager)
                 .dataTypeManager(dataTypeManager)
                 .identifierSigner(identifierSigner)
