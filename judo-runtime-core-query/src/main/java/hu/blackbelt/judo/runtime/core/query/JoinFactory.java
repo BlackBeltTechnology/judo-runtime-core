@@ -141,9 +141,12 @@ public abstract class JoinFactory {
                 ordered = false;
                 continue;
             } else if (navigation.getFeatureName() != null) {
+                Node finalLastPartner = lastPartner;
+                Set<EReference> allRelatedReferences = modelAdapter.getAllEntityTypes().stream().filter(e -> finalLastPartner.getType().isSuperTypeOf(e))
+                        .flatMap(e -> e.getEAllReferences().stream()).collect(Collectors.toSet());
+                allRelatedReferences.addAll(lastPartner.getType().getEAllReferences());
                 final EReference reference =
-                        lastPartner.getType()
-                                   .getEAllReferences().stream()
+                        allRelatedReferences.stream()
                                    .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
                                    .findAny()
                                    .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
@@ -158,6 +161,28 @@ public abstract class JoinFactory {
                     }
                 }
 
+                // TODO roll the lastPartner with "inheritance join" until it is the owner of the reference
+
+                /*
+                    inheritance join is missing between ap (j_ss17j18) and b (j_ss17j19) reference join
+
+                    SELECT
+                        DISTINCT j_ss17t05.ID AS __parent_t05_ID,
+                        j_ss17j19.ID AS j19_ID
+                    FROM
+                        T_TESTING__B AS j_ss17t05
+                        LEFT OUTER JOIN T_TESTING__AP AS j_ss17j18_c0 ON (
+                            j_ss17t05.C_TESTING__AP_COMPB_ID = j_ss17j18_c0.ID
+                        )
+                        LEFT OUTER JOIN T_TESTING__AP AS j_ss17j18 ON (j_ss17j18_c0.ID = j_ss17j18.ID)
+                        LEFT OUTER JOIN T_TESTING__B AS j_ss17j19 ON (j_ss17j18_a05.C_RELB_ID = j_ss17j19.ID)
+                    WHERE
+                        j_ss17j19.ID IS NOT NULL
+                        AND j_ss17t05.ID IN (?)
+                 */
+
+                
+
                 final Join join = newReferencedJoinBuilder()
                         .withAlias(QueryUtils.getNextJoinAlias(context.getSourceCounter()))
                         .withPartner(lastPartner)
@@ -165,7 +190,6 @@ public abstract class JoinFactory {
                         .build();
 
                 // TODO: check if JOIN not included yet
-
                 container.getJoins().add(join);
                 lastPartner = join;
                 container = join;
