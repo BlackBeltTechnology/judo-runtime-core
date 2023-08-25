@@ -24,14 +24,14 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <surefire-version>3.0.0-M7</surefire-version>
-        <slf4j-version>1.7.36</slf4j-version>
+        <slf4j-version>2.0.7</slf4j-version>
         <!--suppress UnresolvedMavenProperty -->
         <logback-test-config>${maven.multiModuleProjectDirectory}/logback-test.xml</logback-test-config>
 
         <osgi-default-import>
             org.osgi.framework;version="[1.8,2.0)",
             !lombok,
-            org.slf4j;version="[1.6,2)",
+            org.slf4j;version="(1.6,3]",
             javax.annotation;version="[1.0,2)"
         </osgi-default-import>
         <osgi-transaction-import>
@@ -43,25 +43,25 @@
         <jackson-version>2.15.2</jackson-version>
         <spring-version>4.3.12.RELEASE</spring-version>
 
-        <epsilon-runtime-version>1.5.1.20230817_040936_9d1bfb69_develop</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.4.20230817_041234_9c9d18e5_develop</judo-tatami-core-version>
+        <epsilon-runtime-version>1.5.1.20230825_113533_d0c91d68_feature_JNG_5144_ReplaceLogger</epsilon-runtime-version>
+        <judo-tatami-core-version>1.1.4.20230825_125051_f3e8e90c_feature_JNG_5144_ReplaceLogger</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.2.20230817_041434_5f75d0c8_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.4.20230817_235120_8599d680_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20230817_041754_144aeb5f_develop</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.5.20230818_054854_92f4c942_develop</judo-meta-expression-asm-version>
-        <judo-meta-measure-version>1.0.2.20230817_041553_690c3e1d_develop</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20230817_041642_d02ff9d1_develop</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.3.20230817_041421_3cf40cea_develop</judo-meta-query-version>
-        <judo-dao-api-version>1.0.4.20230816_142422_cb6840c0_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20230818_054838_dd2c0b90_develop</judo-sdk-common-version>
-        <judo-dispatcher-api-version>1.0.3.20230816_142421_1937eceb_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.3.20230818_054809_9c000dd5_develop</judo-operation-utils-version>
+        <judo-meta-rdbms-version>1.0.2.20230825_132111_d8568326_feature_JNG_5144_ReplaceLogger</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.4.20230825_132003_a60831e8_feature_JNG_5144_ReplaceLogger</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5.20230825_183934_753e97d5_feature_JNG_5144_ReplaceLogger</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.5.20230825_184212_812c0951_feature_JNG_5144_ReplaceLogger</judo-meta-expression-asm-version>
+        <judo-meta-measure-version>1.0.2.20230825_132045_ce8ff93b_feature_JNG_5144_ReplaceLogger</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2.20230825_132027_45cd1c93_feature_JNG_5144_ReplaceLogger</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.3.20230825_132035_4a60238d_feature_JNG_5144_ReplaceLogger</judo-meta-query-version>
+        <judo-dao-api-version>1.0.4.20230824_181930_da36ffe3_feature_JNG_5144_ReplaceLogger</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4.20230825_183939_761e7d2f_feature_JNG_5144_ReplaceLogger</judo-sdk-common-version>
+        <judo-dispatcher-api-version>1.0.3.20230824_181942_1429f006_feature_JNG_5144_ReplaceLogger</judo-dispatcher-api-version>
+        <judo-operation-utils-version>1.1.3.20230825_183932_942e9a83_feature_JNG_5144_ReplaceLogger</judo-operation-utils-version>
 
-        <structured-map-proxy-version>2.0.0.20230816_144643_46c60aa4_develop</structured-map-proxy-version>
+        <structured-map-proxy-version>2.0.0.20230824_183517_6e4776cd_feature_JNG_5144_ReplaceLogger</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.6.20230818_055304_f8e87ee7_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20230825_184437_5a1617a8_feature_JNG_5144_ReplaceLogger</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20230817_220633_f8e76608_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20230823_181155_2653bf1f_develop</osgi-filestore-version>
