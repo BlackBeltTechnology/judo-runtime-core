@@ -393,7 +393,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     @SuppressWarnings("unchecked")
-    void processParameter(EOperation operation, EParameter parameter, EClassifier parameterType, Map<String, Object> exchange, final Map<String, Object> validationContext, List<ValidationResult> ValidationResults) {
+    void processParameter(EOperation operation, EParameter parameter, EClassifier parameterType, Map<String, Object> exchange, final Map<String, Object> validationContext, List<ValidationResult> validationResults) {
         final EClass transferObjectType = (EClass) parameterType;
         final RequestConverter requestConverter = RequestConverter.builder()
                 .transferObjectType(transferObjectType)
@@ -421,7 +421,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                             SIZE_PARAMETER, parameterListSize
                         ),
                         validationContext.get(LOCATION_KEY),
-                        ValidationResults,
+                        validationResults,
                         ERROR_TOO_FEW_PARAMETERS);
             } else if (parameterListSize > parameter.getUpperBound() && parameter.getUpperBound() != -1) {
                 addValidationError(ImmutableMap.of(
@@ -429,7 +429,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                                 SIZE_PARAMETER, parameterListSize
                         ),
                         validationContext.get(LOCATION_KEY),
-                        ValidationResults,
+                        validationResults,
                         ERROR_TOO_MANY_PARAMETERS);
             }
             int idx = 0;
@@ -442,7 +442,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     try {
                         payload = requestConverter.convert(input, validationContext);
                     } catch (ValidationException ex) {
-                        ValidationResults.addAll(ex.getValidationResults());
+                        validationResults.addAll(ex.getValidationResults());
                         continue;
                     }
                 }
@@ -450,7 +450,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     addValidationError(
                             ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
                             validationContext.get(LOCATION_KEY),
-                            ValidationResults,
+                            validationResults,
                             ERROR_NULL_PARAMETER_ITEM_IS_NOT_SUPPORTED);
                 } else {
                     payloadList.add(payload.get());
@@ -459,7 +459,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     final EReference reference = asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                             .map(o -> (EReference) o)
                             .orElseThrow(() -> new IllegalArgumentException("Owner operation is not found for " + operation.getName()));
-                    ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, Payload.asPayload(input), validationContext));
+                    validationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, Payload.asPayload(input), validationContext));
                 }
             }
             exchange.put(parameter.getName(), payloadList);
@@ -472,7 +472,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         final EReference reference = asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
                                 .map(o -> (EReference) o)
                                 .orElseThrow(() -> new IllegalArgumentException("Owner operation is not found for " + operation.getName()));
-                        ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, payload.get(), validationContext));
+                        validationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, payload.get(), validationContext));
                     }
                     Optional<String> inputRangeReferenceFQName = getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false);
                     if (inputRangeReferenceFQName.isPresent()) {
@@ -481,16 +481,16 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         exchange.put(parameter.getName(), inputPayload);
                         final EReference reference = asmUtils.resolveReference(inputRangeReferenceFQName.get())
                                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
-                        ValidationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, inputPayload, validationContext));
+                        validationResults.addAll(rangeValidator.validateValue(Payload.asPayload(exchange), reference, inputPayload, validationContext));
                     }
                 } else if (parameter.isRequired()) {
                     addValidationError(ImmutableMap.of(Validator.FEATURE_KEY, parameter.getName()),
                             validationContext.get(LOCATION_KEY),
-                            ValidationResults,
+                            validationResults,
                             ERROR_MISSING_REQUIRED_PARAMETER);
                 }
             } catch (ValidationException ex) {
-                ValidationResults.addAll(ex.getValidationResults());
+                validationResults.addAll(ex.getValidationResults());
             }
         }
     }
@@ -752,7 +752,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     private void validateAndConvertParameters(Map<String, Object> exchange, EOperation operation) {
-        final List<ValidationResult> ValidationResults = new ArrayList<>();
+        final List<ValidationResult> validationResults = new ArrayList<>();
         final List<EParameter> parameters = operation.getEParameters().stream()
                                                      .filter(parameter -> (parameter.getEType() instanceof EClass))
                                                      .collect(Collectors.toList());
@@ -761,11 +761,11 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             final EClass transferObjectType = (EClass) parameter.getEType();
             final Map<String, Object> validationContext = new TreeMap<>();
             validationContext.put(LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
-            processParameter(operation, parameter, transferObjectType, exchange, validationContext, ValidationResults);
+            processParameter(operation, parameter, transferObjectType, exchange, validationContext, validationResults);
         });
 
-        if (!ValidationResults.isEmpty()) {
-            throw new ValidationException("Invalid request", ValidationResults);
+        if (!validationResults.isEmpty()) {
+            throw new ValidationException("Invalid request", validationResults);
         }
     }
 
