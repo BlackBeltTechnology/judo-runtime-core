@@ -31,6 +31,7 @@ import javax.sql.DataSource;
 import com.google.inject.util.Providers;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModule;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsInit;
 import lombok.Builder;
 import org.hsqldb.server.Server;
 
@@ -50,6 +51,12 @@ public class JudoHsqldbModules extends JudoModule {
     private File databasePath = new File(".", "judo.db");
     private Integer port = 31001;
 
+    private Dialect dialect;
+
+    private DataSource source;
+
+    private HsqldbRdbmsInit hsqldbRdbmsInit;
+
 
     public static class JudoHsqldbModulesBuilder {
         private Boolean runServer = false;
@@ -58,11 +65,14 @@ public class JudoHsqldbModules extends JudoModule {
         private Integer port = 31001;
     }
     @Builder
-    private JudoHsqldbModules(Boolean runServer, String databaseName, File databasePath, Integer port) {
+    private JudoHsqldbModules(Boolean runServer, String databaseName, File databasePath, Integer port, Dialect dialect, DataSource source, HsqldbRdbmsInit hsqldbRdbmsInit) {
         this.runServer = runServer;
         this.databaseName = databaseName;
         this.databasePath = databasePath;
         this.port = port;
+        this.dialect = dialect;
+        this.source = source;
+        this.hsqldbRdbmsInit = hsqldbRdbmsInit;
     }
     protected void configure() {
         super.configure();
@@ -77,12 +87,16 @@ public class JudoHsqldbModules extends JudoModule {
         bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance(databaseName);
         bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(databasePath);
         bind(Integer.class).annotatedWith(Names.named(HSQLDB_SERVER_PORT)).toInstance(port);
-    }
 
+    }
 
     @Override
     protected void configureDialect() {
-        bind(Dialect.class).toInstance(new HsqldbDialect());
+        if(dialect != null) {
+            bind(Dialect.class).toInstance(dialect);
+        }else {
+            bind(Dialect.class).toInstance(new HsqldbDialect());
+        }
     }
 
     @Override
@@ -97,7 +111,11 @@ public class JudoHsqldbModules extends JudoModule {
 
     @Override
     protected void configureDataSource() {
-        bind(DataSource.class).toProvider(HsqldbDataSourceProvider.class).in(Singleton.class);
+        if(source != null) {
+            bind(DataSource.class).toInstance(source);
+        } else {
+            bind(DataSource.class).toProvider(HsqldbDataSourceProvider.class).in(Singleton.class);
+        }
     }
 
     @Override
@@ -107,6 +125,10 @@ public class JudoHsqldbModules extends JudoModule {
 
     @Override
     protected void configureRdbmsInit() {
-        bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
+        if(hsqldbRdbmsInit != null) {
+            bind(RdbmsInit.class).toInstance(hsqldbRdbmsInit);
+        } else {
+            bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
+        }
     }
 }
