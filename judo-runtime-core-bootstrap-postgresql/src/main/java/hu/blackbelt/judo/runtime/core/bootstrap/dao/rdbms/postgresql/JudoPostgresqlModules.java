@@ -31,7 +31,10 @@ import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.PlatformTransactionMan
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlDialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlRdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import lombok.Builder;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -45,6 +48,13 @@ public class JudoPostgresqlModules extends JudoModule {
     String databaseName = "judo";
     Integer poolSize = 10;
 
+
+    private Dialect dialect;
+
+    private DataSource source;
+
+    private PostgresqlRdbmsInit postgresqlRdbmsInit;
+
     public static class JudoPostgresqlModulesBuilder {
         String host = "localhost";
         Integer port = 5432;
@@ -55,18 +65,25 @@ public class JudoPostgresqlModules extends JudoModule {
     }
 
     @Builder
-    private JudoPostgresqlModules(String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
+    private JudoPostgresqlModules(String host, Integer port, String user, String password, String databaseName, Integer poolSize, Dialect dialect, DataSource source, PostgresqlRdbmsInit postgresqlRdbmsInit) {
         this.host = host;
         this.port = port;
         this.user = user;
         this.password = password;
         this.databaseName = databaseName;
         this.poolSize = poolSize;
+        this.dialect = dialect;
+        this.source = source;
+        this.postgresqlRdbmsInit = postgresqlRdbmsInit;
     }
 
     @Override
     protected void configureDialect() {
-        bind(Dialect.class).toInstance(new PostgresqlDialect());
+        if(dialect != null) {
+            bind(Dialect.class).toInstance(dialect);
+        }else {
+            bind(Dialect.class).toInstance(new PostgresqlDialect());
+        }
     }
 
     @Override
@@ -81,7 +98,11 @@ public class JudoPostgresqlModules extends JudoModule {
 
     @Override
     protected void configureDataSource() {
-        bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
+        if(source != null) {
+            bind(DataSource.class).toInstance(source);
+        } else {
+            bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
+        }
     }
 
     @Override
@@ -101,6 +122,10 @@ public class JudoPostgresqlModules extends JudoModule {
 
     @Override
     protected void configureRdbmsInit() {
-        bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+        if(postgresqlRdbmsInit != null) {
+            bind(RdbmsInit.class).toInstance(postgresqlRdbmsInit);
+        } else {
+            bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+        }
     }
 }

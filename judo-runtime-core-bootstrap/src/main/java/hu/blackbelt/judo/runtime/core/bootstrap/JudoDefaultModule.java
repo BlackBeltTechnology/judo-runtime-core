@@ -81,12 +81,15 @@ public class JudoDefaultModule extends AbstractModule {
     private final JudoModelLoader judoModelLoader;
     private Boolean bindModelHolder;
 
+    private ExtendableCoercer coercer;
+
+    private QueryFactory queryFactory;
+
     public static class JudoDefaultModuleBuilder {
         private Object injectModulesTo = false;
         private JudoModelLoader judoModelLoader = null;
         private Boolean bindModelHolder = true;
     }
-
     public JudoDefaultModule(Object injectModulesTo, JudoModelLoader models) {
         this.injectModulesTo = injectModulesTo;
         this.judoModelLoader = models;
@@ -94,10 +97,12 @@ public class JudoDefaultModule extends AbstractModule {
     }
 
     @Builder
-    public JudoDefaultModule(Object injectModulesTo, JudoModelLoader judoModelLoader, Boolean bindModelHolder) {
+    public JudoDefaultModule(Object injectModulesTo, JudoModelLoader judoModelLoader, Boolean bindModelHolder,ExtendableCoercer coercer, QueryFactory queryFactory) {
         this.injectModulesTo = injectModulesTo;
         this.judoModelLoader = judoModelLoader;
         this.bindModelHolder = bindModelHolder;
+        this.coercer = coercer;
+        this.queryFactory = queryFactory;
     }
 
     public String generateNewSecret() {
@@ -130,13 +135,25 @@ public class JudoDefaultModule extends AbstractModule {
         bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
         bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
         bind(RdbmsBuilder.class).toProvider(RdbmsBuilderProvider.class).in(Singleton.class);
-        bind(QueryFactory.class).toProvider(QueryFactoryProvider.class).in(Singleton.class);
+
+        if(queryFactory != null){
+            bind(QueryFactory.class).toInstance(queryFactory);
+        } else {
+            bind(QueryFactory.class).toProvider(QueryFactoryProvider.class).in(Singleton.class);
+        }
+
         bind(SelectStatementExecutor.class).toProvider(SelectStatementExecutorProvider.class).in(Singleton.class);
         bind(ModifyStatementExecutor.class).toProvider(ModifyStatementExecutorProvider.class).in(Singleton.class);
 
-        ExtendableCoercer coercer = new DefaultCoercer();
-        bind(Coercer.class).toInstance(coercer);
-        bind(ExtendableCoercer.class).toInstance(coercer);
+        if(coercer != null){
+            bind(Coercer.class).toInstance(coercer);
+            bind(ExtendableCoercer.class).toInstance(coercer);
+        } else {
+            ExtendableCoercer coercer = new DefaultCoercer();
+            bind(Coercer.class).toInstance(coercer);
+            bind(ExtendableCoercer.class).toInstance(coercer);
+        }
+
         bind(DataTypeManager.class).toProvider(DataTypeManagerProvider.class).in(Singleton.class);
         bind(IdentifierProvider.class).toProvider(UUIDIdentifierProviderProvider.class).in(Singleton.class);
 
