@@ -21,10 +21,8 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.postgresql;
  */
 
 
-import javax.sql.DataSource;
 import com.google.inject.Singleton;
 import com.google.inject.name.Names;
-
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModule;
 import hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.PlatformTransactionManagerProvider;
@@ -32,11 +30,14 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlDialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlRdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import lombok.Builder;
 import org.springframework.transaction.PlatformTransactionManager;
 
-public class JudoPostgresqlModules extends JudoModule {
+import javax.sql.DataSource;
+
+public class JudoPostgresqlTestModules extends JudoModule {
 
     String host = "localhost";
     Integer port = 5432;
@@ -45,7 +46,11 @@ public class JudoPostgresqlModules extends JudoModule {
     String databaseName = "judo";
     Integer poolSize = 10;
 
-    public static class JudoPostgresqlModulesBuilder {
+    private DataSource dataSource;
+
+    private PostgresqlRdbmsInit postgresqlRdbmsInit;
+
+    public static class JudoPostgresqlTestModulesBuilder {
         String host = "localhost";
         Integer port = 5432;
         String user = "judo";
@@ -55,13 +60,15 @@ public class JudoPostgresqlModules extends JudoModule {
     }
 
     @Builder
-    private JudoPostgresqlModules(String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
+    private JudoPostgresqlTestModules(String host, Integer port, String user, String password, String databaseName, Integer poolSize, DataSource dataSource, PostgresqlRdbmsInit postgresqlRdbmsInit) {
         this.host = host;
         this.port = port;
         this.user = user;
         this.password = password;
         this.databaseName = databaseName;
         this.poolSize = poolSize;
+        this.dataSource = dataSource;
+        this.postgresqlRdbmsInit = postgresqlRdbmsInit;
     }
 
     @Override
@@ -81,7 +88,11 @@ public class JudoPostgresqlModules extends JudoModule {
 
     @Override
     protected void configureDataSource() {
-        bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
+        if(dataSource != null) {
+            bind(DataSource.class).toInstance(dataSource);
+        } else {
+            bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
+        }
     }
 
     @Override
@@ -101,6 +112,10 @@ public class JudoPostgresqlModules extends JudoModule {
 
     @Override
     protected void configureRdbmsInit() {
-        bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+        if(postgresqlRdbmsInit != null) {
+            bind(RdbmsInit.class).toInstance(postgresqlRdbmsInit);
+        } else {
+            bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+        }
     }
 }

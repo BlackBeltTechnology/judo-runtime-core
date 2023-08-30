@@ -20,49 +20,51 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb;
  * #L%
  */
 
-import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider.HSQLDB_SERVER_DATABASE_NAME;
-import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider.HSQLDB_SERVER_DATABASE_PATH;
-import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider.HSQLDB_SERVER_PORT;
-
-import java.io.File;
-
-import javax.sql.DataSource;
-
+import com.google.inject.Singleton;
+import com.google.inject.name.Names;
 import com.google.inject.util.Providers;
+import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModule;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsInit;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import lombok.Builder;
 import org.hsqldb.server.Server;
 
-import com.google.inject.Singleton;
-import com.google.inject.name.Names;
+import javax.sql.DataSource;
+import java.io.File;
 
-import hu.blackbelt.judo.dispatcher.api.Sequence;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.hsqldb.HsqldbServerProvider.*;
 
-public class JudoHsqldbModules extends JudoModule {
+public class JudoHsqldbTestModules extends JudoModule {
 
     private Boolean runServer = false;
     private String databaseName = "judo";
     private File databasePath = new File(".", "judo.db");
     private Integer port = 31001;
 
+    private DataSource dataSource;
 
-    public static class JudoHsqldbModulesBuilder {
+    private HsqldbRdbmsInit hsqldbRdbmsInit;
+
+
+    public static class JudoHsqldbTestModulesBuilder {
         private Boolean runServer = false;
         private String databaseName = "judo";
         private File databasePath = new File(".", "judo.db");
         private Integer port = 31001;
     }
     @Builder
-    private JudoHsqldbModules(Boolean runServer, String databaseName, File databasePath, Integer port) {
+    private JudoHsqldbTestModules(Boolean runServer, String databaseName, File databasePath, Integer port, DataSource dataSource, HsqldbRdbmsInit hsqldbRdbmsInit) {
         this.runServer = runServer;
         this.databaseName = databaseName;
         this.databasePath = databasePath;
         this.port = port;
+        this.dataSource = dataSource;
+        this.hsqldbRdbmsInit = hsqldbRdbmsInit;
     }
     protected void configure() {
         super.configure();
@@ -77,8 +79,8 @@ public class JudoHsqldbModules extends JudoModule {
         bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance(databaseName);
         bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(databasePath);
         bind(Integer.class).annotatedWith(Names.named(HSQLDB_SERVER_PORT)).toInstance(port);
-    }
 
+    }
 
     @Override
     protected void configureDialect() {
@@ -97,7 +99,11 @@ public class JudoHsqldbModules extends JudoModule {
 
     @Override
     protected void configureDataSource() {
-        bind(DataSource.class).toProvider(HsqldbDataSourceProvider.class).in(Singleton.class);
+        if(dataSource != null) {
+            bind(DataSource.class).toInstance(dataSource);
+        } else {
+            bind(DataSource.class).toProvider(HsqldbDataSourceProvider.class).in(Singleton.class);
+        }
     }
 
     @Override
@@ -107,6 +113,10 @@ public class JudoHsqldbModules extends JudoModule {
 
     @Override
     protected void configureRdbmsInit() {
-        bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
+        if(hsqldbRdbmsInit != null) {
+            bind(RdbmsInit.class).toInstance(hsqldbRdbmsInit);
+        } else {
+            bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
+        }
     }
 }
