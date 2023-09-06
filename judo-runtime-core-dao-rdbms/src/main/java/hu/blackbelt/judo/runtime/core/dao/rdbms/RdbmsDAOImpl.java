@@ -754,7 +754,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 if (log.isDebugEnabled()) {
                     log.debug("Saved temporary instance {} with ID: {}", AsmUtils.getClassifierFQName(reference.getEContainingClass()), temporaryInstance.get(identifierProvider.getName()));
                 }
+            } else {
+                if (instanceId == null) {
+                    throw new IllegalArgumentException("Missing input to get range");
+                }
             }
+
             return searchNavigationResultAt(instanceId, rangeTransferRelation, queryCustomizer).stream()
                     .map(p -> markSelected.apply(p, currentReferences))
                     .collect(Collectors.toList());
@@ -762,7 +767,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected long calculateNumberRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    protected long calculateNumberRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
                         .orElseThrow(() -> new IllegalStateException("Reference: " + rangeTransferRelationName + " not found on containing class: "
@@ -774,23 +779,30 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (queryFactory.isStaticReference(rangeTransferRelation)) {
             return countReferencedInstancesOf(rangeTransferRelation, rangeTransferRelation.getEReferenceType(), queryCustomizer);
         } else {
-            final Payload temporaryInstance;
-            if (instanceId != null) {
-                temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
-                        .mask(Collections.emptyMap())
-                        .build(), false);
-            } else if (payload != null) {
-                temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
-                        .mask(Collections.emptyMap())
-                        .build(), false);
-                instanceId = temporaryInstance.getAs(identifierProvider.getType(), identifierProvider.getName());
+            if (stateful) {
+                final Payload temporaryInstance;
+                if (instanceId != null) {
+                    temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                            .mask(Collections.emptyMap())
+                            .build(), false);
+                } else if (payload != null) {
+                    temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                            .mask(Collections.emptyMap())
+                            .build(), false);
+                    instanceId = temporaryInstance.getAs(identifierProvider.getType(), identifierProvider.getName());
+                } else {
+                    throw new IllegalArgumentException("Missing input to get range");
+                }
+
+                if (log.isDebugEnabled()) {
+                    log.debug("Saved temporary instance {} with ID: {}", AsmUtils.getClassifierFQName(reference.getEContainingClass()), temporaryInstance.get(identifierProvider.getName()));
+                }
             } else {
-                throw new IllegalArgumentException("Missing input to get range");
+                if (instanceId == null) {
+                    throw new IllegalArgumentException("Missing input to get range");
+                }
             }
 
-            if (log.isDebugEnabled()) {
-                log.debug("Saved temporary instance {} with ID: {}", AsmUtils.getClassifierFQName(reference.getEContainingClass()), temporaryInstance.get(identifierProvider.getName()));
-            }
             return countNavigationResultAt(instanceId, rangeTransferRelation, queryCustomizer);
         }
     }

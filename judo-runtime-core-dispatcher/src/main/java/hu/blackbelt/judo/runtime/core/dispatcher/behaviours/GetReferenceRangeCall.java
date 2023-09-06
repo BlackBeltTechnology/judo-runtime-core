@@ -132,7 +132,8 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
                 inputParameter.setRecordCount(dao.countRangeOf(
                         inputParameter.getOwner(),
                         inputParameter.getOwnerPayload(),
-                        inputParameter.getQueryCustomizer()));
+                        inputParameter.getQueryCustomizer(),
+                        true));
             }
 
 
