@@ -707,7 +707,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
                         .orElseThrow(() -> new IllegalStateException("Refence not found on containing class: " + rangeTransferRelationName)))
@@ -736,22 +736,24 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     .map(p -> markSelected.apply(p, currentReferences))
                     .collect(Collectors.toList());
         } else {
-            final Payload temporaryInstance;
-            if (instanceId != null) {
-                temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
-                        .mask(Collections.emptyMap())
-                        .build(), false);
-            } else if (payload != null) {
-                temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
-                        .mask(Collections.emptyMap())
-                        .build(), false);
-                instanceId = temporaryInstance.getAs(identifierProvider.getType(), identifierProvider.getName());
-            } else {
-                throw new IllegalArgumentException("Missing input to get range");
-            }
+            if (stateful) {
+                final Payload temporaryInstance;
+                if (instanceId != null) {
+                    temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                            .mask(Collections.emptyMap())
+                            .build(), false);
+                } else if (payload != null) {
+                    temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                            .mask(Collections.emptyMap())
+                            .build(), false);
+                    instanceId = temporaryInstance.getAs(identifierProvider.getType(), identifierProvider.getName());
+                } else {
+                    throw new IllegalArgumentException("Missing input to get range");
+                }
 
-            if (log.isDebugEnabled()) {
-                log.debug("Saved temporary instance {} with ID: {}", AsmUtils.getClassifierFQName(reference.getEContainingClass()), temporaryInstance.get(identifierProvider.getName()));
+                if (log.isDebugEnabled()) {
+                    log.debug("Saved temporary instance {} with ID: {}", AsmUtils.getClassifierFQName(reference.getEContainingClass()), temporaryInstance.get(identifierProvider.getName()));
+                }
             }
             return searchNavigationResultAt(instanceId, rangeTransferRelation, queryCustomizer).stream()
                     .map(p -> markSelected.apply(p, currentReferences))
