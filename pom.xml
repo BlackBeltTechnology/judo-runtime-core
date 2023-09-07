@@ -44,7 +44,7 @@
         <spring-version>4.3.12.RELEASE</spring-version>
 
         <epsilon-runtime-version>1.5.1.20230905_073415_4e8adc20_develop</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.4.20230907_040559_6554bca7_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4.20230905_073703_33cb361e_develop</judo-tatami-core-version>
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2.20230907_040813_a6c6a965_develop</judo-meta-rdbms-version>
