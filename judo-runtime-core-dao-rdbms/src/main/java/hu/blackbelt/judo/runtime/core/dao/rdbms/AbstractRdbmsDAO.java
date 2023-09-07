@@ -85,18 +85,18 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
-            Collection<Payload> result = readRangeOf(reference, payload, queryCustomizer);
+            Collection<Payload> result = readRangeOf(reference, payload, queryCustomizer, stateful);
             logResult(result);
             return result;
         }
     }
 
     @Override
-    public long countRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public long countRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
-            long result = calculateNumberRangeOf(reference, payload, queryCustomizer);
+            long result = calculateNumberRangeOf(reference, payload, queryCustomizer, stateful);
             logResult(result);
             return result;
         }
@@ -589,9 +589,9 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected abstract Payload readDefaultsOf(EClass clazz);
 
-    protected abstract Collection<Payload> readRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer);
+    protected abstract Collection<Payload> readRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);
 
-    protected abstract long calculateNumberRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer);
+    protected abstract long calculateNumberRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);
 
     protected abstract MetricsCollector getMetricsCollector();
 }
