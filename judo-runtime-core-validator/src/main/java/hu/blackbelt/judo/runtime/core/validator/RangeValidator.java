@@ -70,7 +70,8 @@ public class RangeValidator<ID> implements Validator {
         @SuppressWarnings("unchecked")
         final Collection<Payload> range = dao.getRangeOf((EReference) feature, instance, DAO.QueryCustomizer.<ID>builder()
                 .withoutFeatures(true)
-                .build());
+                .build(),
+                false);
 
         final Collection<ID> validIds = range.stream()
                 .map(ri -> ri.getAs(identifierProvider.getType(), identifierProvider.getName()))
