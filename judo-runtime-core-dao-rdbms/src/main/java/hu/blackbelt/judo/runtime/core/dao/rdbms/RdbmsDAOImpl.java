@@ -756,7 +756,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 }
             } else {
                 if (instanceId == null) {
-                    throw new IllegalArgumentException("Missing input to get range");
+                    throw new IllegalArgumentException("The given instance (payload) is not stored");
                 }
             }
 
@@ -799,7 +799,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 }
             } else {
                 if (instanceId == null) {
-                    throw new IllegalArgumentException("Missing input to get range");
+                    throw new IllegalArgumentException("The given instance (payload) is not stored");
                 }
             }
 
