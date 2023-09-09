@@ -239,7 +239,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                         " SQL: " + sql +
                                         " Params: " + ImmutableMap.copyOf(insertStatementNamedParameters.getValues()).toString());
 
-                                int count = jdbcTemplate.update(sql, insertStatementNamedParameters);
+                                int count = ExecutorUtils.documentExecution(() -> jdbcTemplate.update(sql, insertStatementNamedParameters), sql);
                                 checkState(count == 1, "There is illegal state, no records inserted");
                             });
                 }));

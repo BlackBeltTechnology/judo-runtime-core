@@ -65,6 +65,7 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.*;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.*;
@@ -673,7 +674,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             List<Map<String, Object>> resultSet;
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_QUERY)) {
-                resultSet = jdbcTemplate.queryForList(sql, sqlParameters);
+                resultSet = ExecutorUtils.documentExecution(() -> jdbcTemplate.queryForList(sql, sqlParameters), sql);
             }
 
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {

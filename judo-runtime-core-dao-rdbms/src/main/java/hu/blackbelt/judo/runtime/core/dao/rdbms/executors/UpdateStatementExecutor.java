@@ -152,7 +152,7 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
                                             " SQL: " + sql +
                                             " Params: " + metaUpdateStatementNamedParameters.getValues());
 
-                                    int count = jdbcTemplate.update(sql, metaUpdateStatementNamedParameters);
+                                    int count = ExecutorUtils.documentExecution(() -> jdbcTemplate.update(sql, metaUpdateStatementNamedParameters), sql);
                                     checkState(count == 1, "There is illegal state, no records updated");
                                 }
 
@@ -190,7 +190,7 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
                                             " SQL: " + sql +
                                             " Params: " + ImmutableMap.copyOf(paramNullReplaced).toString());
 
-                                    int count = jdbcTemplate.update(sql, updateStatementNamedParameters);
+                                    int count = ExecutorUtils.documentExecution(() -> jdbcTemplate.update(sql, updateStatementNamedParameters), sql);
                                     checkState(count == 1, "There is illegal state, no records updated");
                                 }
                             });
