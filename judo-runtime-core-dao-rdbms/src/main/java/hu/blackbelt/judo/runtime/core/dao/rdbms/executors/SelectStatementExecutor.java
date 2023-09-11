@@ -673,7 +673,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             List<Map<String, Object>> resultSet;
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_QUERY)) {
+                long start = System.nanoTime();
                 resultSet = jdbcTemplate.queryForList(sql, sqlParameters);
+                long finish = System.nanoTime();
+                boolean breakpoint = true;
             }
 
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
