@@ -151,9 +151,14 @@ public class DefaultPayloadValidator implements PayloadValidator {
         final EReference createReference = (EReference) validationContext.get(CREATE_REFERENCE_KEY);
         boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
 
-        if (validateMissingFeatures && getIdentifier(instance) == null &&
-                reference.isChangeable() && AsmUtils.getExtensionAnnotationValue(reference, "default", false).isPresent()) {
-            validateMissingFeatures = false;
+//        if (validateMissingFeatures && getIdentifier(instance) == null &&
+//                reference.isChangeable() && AsmUtils.getExtensionAnnotationValue(reference, "default", false).isPresent()) {
+//            validateMissingFeatures = false;
+//        }
+
+        if (validateMissingFeatures) {
+            boolean isReferenceMissingAndChangeableAndDefaultValueAvailable = !instance.containsKey(reference.getName()) && reference.isChangeable() && AsmUtils.getExtensionAnnotationValue(reference, "default", false).isPresent();
+            validateMissingFeatures = getIdentifier(instance) == null && !isReferenceMissingAndChangeableAndDefaultValueAvailable;
         }
 
         if (reference.isMany()) {
@@ -266,12 +271,16 @@ public class DefaultPayloadValidator implements PayloadValidator {
         final Object value = instance.get(attribute.getName());
         boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
 
-        if (validateMissingFeatures &&
-            (getIdentifier(instance) == null || !instance.containsKey(attribute.getName())) &&
-            attribute.isChangeable() &&
-            AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent()) {
-
-            validateMissingFeatures = false;
+//        if (validateMissingFeatures &&
+//            (getIdentifier(instance) == null || !instance.containsKey(attribute.getName())) &&
+//            attribute.isChangeable() &&
+//            AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent()) {
+//
+//            validateMissingFeatures = false;
+//        }
+        if (validateMissingFeatures) {
+            boolean isAttributeMissingAndChangeableAndDefaultValueAvailable = !instance.containsKey(attribute.getName()) && attribute.isChangeable() && AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent();
+            validateMissingFeatures = getIdentifier(instance) == null && !isAttributeMissingAndChangeableAndDefaultValueAvailable;
         }
 
         final List<ValidationResult> validationResults = new ArrayList<>();
