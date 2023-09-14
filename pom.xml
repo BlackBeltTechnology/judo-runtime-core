@@ -40,7 +40,7 @@
         </osgi-transaction-import>
 
         <jose4j-version>0.7.2</jose4j-version>
-        <jackson-version>2.14.2</jackson-version>
+        <jackson-version>2.15.2</jackson-version>
         <spring-version>4.3.12.RELEASE</spring-version>
 
         <epsilon-runtime-version>1.5.1.20230905_073415_4e8adc20_develop</epsilon-runtime-version>
