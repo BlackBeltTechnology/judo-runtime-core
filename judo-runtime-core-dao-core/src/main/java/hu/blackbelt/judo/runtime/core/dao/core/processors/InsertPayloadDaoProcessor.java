@@ -166,6 +166,26 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                 getTransferObjectValueAsEntityValueFromPayload(payload, a.getKey(), a.getValue()))
         );
 
+        if (!payload.isEmpty()) {
+            references.stream()
+                    .filter(r -> getAsmUtils().getMappedReference(r).isPresent()
+                            && getAsmUtils().getMappedReference(r).orElseThrow().isContainment()
+                            && payload.containsKey(r.getName())
+                            && payload.get(r.getName()) != null)
+                    .collect(toReferencePayloadMapOfPayloadCollection(payload))
+                    .entrySet().stream()
+                    .forEach(entry -> entry.getValue().stream()
+                            .forEach( payloadStm -> {
+                                        if (payloadStm.get(getIdentifierProvider().getName()) != null) {
+                                            payloadStm.remove(getIdentifierProvider().getName());
+                                            payloadStm.remove(ENTITY_TYPE_KEY);
+                                            payloadStm.remove(VERSION);
+                                        }
+                                    }
+                            )
+                    );
+        }
+
         // Add entity default attributes that are not mapped to transfer object type
         defaultTransferObjectType.ifPresent(t -> t.getEAllAttributes().stream()
                 .filter(a -> entityDefaults.get(a.getName()) != null)
