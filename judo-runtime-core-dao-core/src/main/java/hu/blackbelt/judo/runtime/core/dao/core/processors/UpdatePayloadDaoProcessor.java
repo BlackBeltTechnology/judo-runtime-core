@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.core.processors;
  * #L%
  */
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
@@ -55,9 +56,6 @@ import static java.util.stream.Collectors.*;
  */
 @Slf4j(topic = "dao-core")
 public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
-
-    private static final String ENTITY_TYPE_KEY = "__entityType";
-
     InsertPayloadDaoProcessor<ID> insertPayloadDaoProcessor;
     DeletePayloadDaoProcessor<ID> deletePayloadDaoProcessor;
     AddReferencePayloadDaoProcessor<ID> addReferencePayloadDaoProcessor;
@@ -223,6 +221,25 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         references.stream().forEach(currentReference -> {
+                if (updatePayload.containsKey(currentReference.getName())
+                        && updatePayload.get(currentReference.getName()) != null
+                        && getAsmUtils().getMappedReference(currentReference).isPresent()
+                        && getAsmUtils().getMappedReference(currentReference).orElseThrow().isContainment()) {
+                    Collection<Payload> currentPayload;
+
+                    if (isCollection.test(currentReference)) {
+                        currentPayload = updatePayload.getAsCollectionPayload(currentReference.getName());
+                    } else {
+                        currentPayload = ImmutableList.of(updatePayload.getAsPayload(currentReference.getName()));
+                    }
+
+                    if (currentPayload != null && originalPayload.get(getIdentifierProvider().getName()) == null && updatePayload.get(getIdentifierProvider().getName()) != null) {
+                        updatePayload.remove(getIdentifierProvider().getName());
+                        updatePayload.remove(ENTITY_TYPE_KEY);
+                        updatePayload.remove(VERSION);
+                    }
+                }
+
                 if (currentReference.getUpperBound() == 1) {
                             mergePayloads(currentReference,
                                     instanceGraph,

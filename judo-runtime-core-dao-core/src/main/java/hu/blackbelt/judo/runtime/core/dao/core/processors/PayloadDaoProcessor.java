@@ -55,6 +55,7 @@ public class PayloadDaoProcessor<ID> {
 
     public static final int MEASURE_CONVERTING_SCALE = 20;
     public static final String REFERENCE_ID = "__referenceId";
+    public static final String ENTITY_TYPE_KEY = "__entityType";
     public static final String VERSION = "__version";
 
     @NonNull
