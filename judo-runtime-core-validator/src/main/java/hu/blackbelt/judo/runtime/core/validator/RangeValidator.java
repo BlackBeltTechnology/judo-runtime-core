@@ -55,7 +55,8 @@ public class RangeValidator<ID> implements Validator {
 
     @Override
     public boolean isApplicable(final EStructuralFeature feature) {
-        return feature instanceof EReference && !AsmUtils.getExtensionAnnotationListByName(feature, CONSTRAINT_NAME).isEmpty();
+        return feature instanceof EReference && AsmUtils.isEmbedded((EReference) feature) &&
+                !AsmUtils.getExtensionAnnotationListByName(feature, CONSTRAINT_NAME).isEmpty();
     }
 
     @Override
