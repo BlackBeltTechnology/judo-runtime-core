@@ -239,8 +239,9 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                         updateContainmentPayload = ImmutableList.of(updatePayloadCleaned.getAsPayload(currentReference.getName()));
                     }
 
-                    if (originalContainmentPayload.stream().anyMatch(p -> p.get(getIdentifierProvider().getName()) == null)) {
-                            updateContainmentPayload.stream()
+                    if (originalContainmentPayload.stream().allMatch(p -> p.get(getIdentifierProvider().getName()) == null)
+                    && updateContainmentPayload.stream().anyMatch(p -> p.get(getIdentifierProvider().getName()) != null)) {
+                        updateContainmentPayload.stream()
                                 .forEach(p -> {
                                     if (p.get(getIdentifierProvider().getName()) != null) {
                                         p.remove(getIdentifierProvider().getName());
@@ -249,8 +250,6 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                     }
                                 });
                     }
-
-
                 }
 
                 if (currentReference.getUpperBound() == 1) {
