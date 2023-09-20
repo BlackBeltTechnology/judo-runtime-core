@@ -221,23 +221,36 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         references.stream().forEach(currentReference -> {
-                if (updatePayload.containsKey(currentReference.getName())
-                        && updatePayload.get(currentReference.getName()) != null
+                if (updatePayloadCleaned.get(currentReference.getName()) != null
                         && getAsmUtils().getMappedReference(currentReference).isPresent()
                         && getAsmUtils().getMappedReference(currentReference).orElseThrow().isContainment()) {
-                    Collection<Payload> currentPayload;
+                    Collection<Payload> originalContainmentPayload = new ArrayList<>();
+                    Collection<Payload> updateContainmentPayload = new ArrayList<>();
 
                     if (isCollection.test(currentReference)) {
-                        currentPayload = updatePayload.getAsCollectionPayload(currentReference.getName());
+                        if (originalPayload.get(currentReference.getName()) != null) {
+                            originalContainmentPayload = originalPayload.getAsCollectionPayload(currentReference.getName());
+                        }
+                        updateContainmentPayload = updatePayloadCleaned.getAsCollectionPayload(currentReference.getName());
                     } else {
-                        currentPayload = ImmutableList.of(updatePayload.getAsPayload(currentReference.getName()));
+                        if (originalPayload.get(currentReference.getName()) != null) {
+                            originalContainmentPayload = ImmutableList.of(originalPayload.getAsPayload(currentReference.getName()));
+                        }
+                        updateContainmentPayload = ImmutableList.of(updatePayloadCleaned.getAsPayload(currentReference.getName()));
                     }
 
-                    if (currentPayload != null && originalPayload.get(getIdentifierProvider().getName()) == null && updatePayload.get(getIdentifierProvider().getName()) != null) {
-                        updatePayload.remove(getIdentifierProvider().getName());
-                        updatePayload.remove(ENTITY_TYPE_KEY);
-                        updatePayload.remove(VERSION);
+                    if (originalContainmentPayload.stream().anyMatch(p -> p.get(getIdentifierProvider().getName()) == null)) {
+                            updateContainmentPayload.stream()
+                                .forEach(p -> {
+                                    if (p.get(getIdentifierProvider().getName()) != null) {
+                                        p.remove(getIdentifierProvider().getName());
+                                        p.remove(ENTITY_TYPE_KEY);
+                                        p.remove(VERSION);
+                                    }
+                                });
                     }
+
+
                 }
 
                 if (currentReference.getUpperBound() == 1) {
