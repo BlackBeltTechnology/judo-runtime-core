@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.core.processors;
  * #L%
  */
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
@@ -55,9 +56,6 @@ import static java.util.stream.Collectors.*;
  */
 @Slf4j(topic = "dao-core")
 public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
-
-    private static final String ENTITY_TYPE_KEY = "__entityType";
-
     InsertPayloadDaoProcessor<ID> insertPayloadDaoProcessor;
     DeletePayloadDaoProcessor<ID> deletePayloadDaoProcessor;
     AddReferencePayloadDaoProcessor<ID> addReferencePayloadDaoProcessor;
@@ -223,6 +221,38 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         references.stream().forEach(currentReference -> {
+                if (updatePayloadCleaned.get(currentReference.getName()) != null
+                        && getAsmUtils().getMappedReference(currentReference).isPresent()
+                        && getAsmUtils().getMappedReference(currentReference).orElseThrow().isContainment()) {
+                    Collection<Payload> originalContainmentPayload = new ArrayList<>();
+                    Collection<Payload> updateContainmentPayload = new ArrayList<>();
+
+                    if (isCollection.test(currentReference)) {
+                        if (originalPayload.get(currentReference.getName()) != null) {
+                            originalContainmentPayload = originalPayload.getAsCollectionPayload(currentReference.getName());
+                        }
+                        updateContainmentPayload = updatePayloadCleaned.getAsCollectionPayload(currentReference.getName());
+                    } else {
+                        if (originalPayload.get(currentReference.getName()) != null) {
+                            originalContainmentPayload = ImmutableList.of(originalPayload.getAsPayload(currentReference.getName()));
+                        }
+                        updateContainmentPayload = ImmutableList.of(updatePayloadCleaned.getAsPayload(currentReference.getName()));
+                    }
+
+                    if (originalContainmentPayload.stream().anyMatch(p -> p.get(getIdentifierProvider().getName()) == null)) {
+                            updateContainmentPayload.stream()
+                                .forEach(p -> {
+                                    if (p.get(getIdentifierProvider().getName()) != null) {
+                                        p.remove(getIdentifierProvider().getName());
+                                        p.remove(ENTITY_TYPE_KEY);
+                                        p.remove(VERSION);
+                                    }
+                                });
+                    }
+
+
+                }
+
                 if (currentReference.getUpperBound() == 1) {
                             mergePayloads(currentReference,
                                     instanceGraph,
