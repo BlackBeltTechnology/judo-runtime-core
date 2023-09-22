@@ -857,14 +857,18 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 // set containments that are selected in single (joined) query
                                 target.getReferencedTargets().stream()
                                         .filter(rt -> isEmbedded(rt.getReference()))
-                                        .filter(c -> !c.getReference().isMany() && !AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget()))
+                                        .filter(c -> !c.getReference().isMany())
                                         .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
                                         .forEach(c -> {
                                             if (log.isTraceEnabled()) {
                                                 log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
                                             }
-                                            final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
-                                            recordsByTarget.get(target).put(c.getReference().getName(), containment);
+                                            if(!AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget())){
+                                                final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
+                                                recordsByTarget.get(target).put(c.getReference().getName(), containment);
+                                            } else {
+                                                recordsByTarget.get(target).put(c.getReference().getName(), null);
+                                            }
                                         });
 
                                 // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
