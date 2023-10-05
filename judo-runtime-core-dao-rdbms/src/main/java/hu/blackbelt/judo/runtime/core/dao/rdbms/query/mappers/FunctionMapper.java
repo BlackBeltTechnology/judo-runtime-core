@@ -309,6 +309,8 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.INSTANCE), c.parameters.get(ParameterName.TYPE), RdbmsConstant.builder()
                                 .parameter(rdbmsBuilder.getParameterMapper().createParameter(AsmUtils.getClassifierFQName(((RdbmsEntityTypeName) c.parameters.get(ParameterName.TYPE)).getType()), null))
                                 .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                .precision(rdbmsBuilder.getPrecision())
+                                .scale(rdbmsBuilder.getScale())
                                 .build())));
 
         functionBuilderMap.put(FunctionSignature.MEMBER_OF, c ->

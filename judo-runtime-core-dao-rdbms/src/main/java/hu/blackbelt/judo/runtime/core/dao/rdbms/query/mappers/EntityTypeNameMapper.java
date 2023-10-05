@@ -40,6 +40,8 @@ public class EntityTypeNameMapper<ID> extends RdbmsMapper<EntityTypeName> {
         return Collections.singleton(RdbmsEntityTypeName.builder()
                 .tableName(rdbmsBuilder.getTableName(entityTypeName.getType()))
                 .type(entityTypeName.getType())
+                .precision(rdbmsBuilder.getPrecision())
+                .scale(rdbmsBuilder.getScale())
                 .build()).stream();
     }
 }

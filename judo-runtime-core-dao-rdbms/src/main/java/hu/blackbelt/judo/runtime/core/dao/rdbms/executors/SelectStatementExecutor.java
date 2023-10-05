@@ -649,6 +649,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .withoutFeatures(withoutFeatures)
                 .mask(mask)
                 .skipParents(skipParents)
+                .precision(rdbmsBuilder.getPrecision())
+                .scale(rdbmsBuilder.getScale())
                 .build();
 
         final List<Chunk<ID>> chunks = new ArrayList<>();

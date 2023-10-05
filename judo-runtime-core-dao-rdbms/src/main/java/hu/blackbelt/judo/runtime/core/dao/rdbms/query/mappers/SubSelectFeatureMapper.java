@@ -29,6 +29,14 @@ import java.util.stream.Stream;
 
 public class SubSelectFeatureMapper extends RdbmsMapper<SubSelectFeature> {
 
+    private int precision;
+    private int scale;
+
+    public  SubSelectFeatureMapper(final int precision, final int scale) {
+        this.precision = precision;
+        this.scale = scale;
+    }
+
     @Override
     public Stream<RdbmsField> map(final SubSelectFeature feature, RdbmsBuilderContext builderContext) {
         final String pattern;
