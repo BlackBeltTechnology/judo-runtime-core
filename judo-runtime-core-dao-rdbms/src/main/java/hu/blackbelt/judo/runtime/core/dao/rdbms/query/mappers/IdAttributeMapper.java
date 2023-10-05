@@ -26,6 +26,8 @@ import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsColumn;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.EMap;
@@ -37,6 +39,14 @@ import java.util.stream.Stream;
 
 @Slf4j
 public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
+
+    protected int precision;
+    protected int scale;
+
+    public IdAttributeMapper(final int precision, final int scale) {
+        this.precision = precision;
+        this.scale = scale;
+    }
 
     @Override
     public Stream<RdbmsColumn> map(final IdAttribute idAttribute, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
@@ -55,6 +65,8 @@ public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
                         .partnerTable(idAttribute.getNode())
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
                         .alias(idAttribute.getNode().getAlias() + "_" + StatementExecutor.ID_COLUMN_NAME)
+                        .precision(precision)
+                        .scale(scale)
                         .build());
     }
 }

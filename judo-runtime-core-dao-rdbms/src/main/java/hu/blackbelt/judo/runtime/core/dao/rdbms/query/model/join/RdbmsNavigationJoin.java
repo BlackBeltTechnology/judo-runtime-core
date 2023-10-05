@@ -86,6 +86,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .partnerTable(query.getBase())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .alias(RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()))
+                    .precision(rdbmsBuilder.getPrecision())
+                    .scale(rdbmsBuilder.getScale())
                     .build());
         }
 
@@ -174,6 +176,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .partnerTable(query.getPartner())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .alias(RdbmsAliasUtil.getIdColumnAlias(query.getPartner()))
+                    .precision(rdbmsBuilder.getPrecision())
+                    .scale(rdbmsBuilder.getScale())
                     .build());
 
             subConditions.add(RdbmsFunction.builder()
@@ -181,6 +185,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getPartner())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         }
@@ -193,6 +199,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                 .rdbmsBuilder(rdbmsBuilder)
                                 .parentIdFilterQuery(parentIdFilterQuery)
                                 .queryParameters(queryParameters)
+                                .precision(rdbmsBuilder.getPrecision())
+                                .scale(rdbmsBuilder.getScale())
                                 .build())
                         .build()))
                 .collect(Collectors.toList()));
@@ -203,6 +211,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         } else if (parentIdFilterQuery != null && AsmUtils.equals(parentIdFilterQuery.getSelect(), query.getBase()) && !query.getSelect().isAggregated()) {
@@ -211,11 +221,15 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(parentIdFilterQuery.getSelect())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .skipLastPrefix(true)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         }
@@ -225,10 +239,14 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase().eContainer() instanceof SubSelect ? ((SubSelect)query.getBase().eContainer()).getSelect() : (Node) query.getBase().eContainer())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         }
