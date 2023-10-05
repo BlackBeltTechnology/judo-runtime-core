@@ -51,6 +51,9 @@ public class RdbmsCount<ID> {
 
     private final RdbmsBuilder<ID> rdbmsBuilder;
 
+    private int precision;
+    private int scale;
+
     @Builder
     private RdbmsCount(
             @NonNull final SubSelect query,
@@ -61,6 +64,8 @@ public class RdbmsCount<ID> {
 
         this.query = query;
         this.rdbmsBuilder = rdbmsBuilder;
+        this.precision = rdbmsBuilder.getPrecision();
+        this.scale = rdbmsBuilder.getScale();
 
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
@@ -71,9 +76,12 @@ public class RdbmsCount<ID> {
             conditions.add(RdbmsFunction.builder()
                     .pattern("{0} IN ({1})")
                     .parameters(Arrays.asList(
-                            RdbmsColumn.builder().partnerTable(query.getSelect()).columnName(StatementExecutor.ID_COLUMN_NAME).build(),
-                            RdbmsParameter.builder().parameterName(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect())).build()
-                    )).build());
+                            RdbmsColumn.builder().partnerTable(query.getSelect()).columnName(StatementExecutor.ID_COLUMN_NAME).precision(precision).scale(scale).build(),
+                            RdbmsParameter.builder().parameterName(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect())).precision(precision).scale(scale).build()
+                    ))
+                    .precision(precision)
+                    .scale(scale)
+                    .build());
         }
 
         final boolean addJoinOfFilterFeature =
@@ -162,6 +170,8 @@ public class RdbmsCount<ID> {
                                         .mask(null)
                                         .queryParameters(queryParameters)
                                         .skipParents(false)
+                                        .precision(precision)
+                                        .scale(scale)
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(f.getSubSelect().getContainer()))

@@ -89,6 +89,12 @@ public class RdbmsBuilder<ID> {
 
     private final ThreadLocal<Map<String, Collection<? extends RdbmsField>>> CONSTANT_FIELDS = new ThreadLocal<>();
 
+    @Getter
+    private int precision;
+
+    @Getter
+    private int scale;
+
     @Builder
     public RdbmsBuilder(
             @NonNull RdbmsResolver rdbmsResolver,
@@ -100,7 +106,9 @@ public class RdbmsBuilder<ID> {
             @NonNull RdbmsModel rdbmsModel,
             @NonNull AsmUtils asmUtils,
             @NonNull MapperFactory<ID> mapperFactory,
-            @NonNull Dialect dialect) {
+            @NonNull Dialect dialect,
+            final int precision,
+            final int scale) {
         this.rdbmsResolver = rdbmsResolver;
         this.parameterMapper = parameterMapper;
         this.identifierProvider = identifierProvider;
@@ -111,6 +119,8 @@ public class RdbmsBuilder<ID> {
         this.asmUtils = asmUtils;
         this.dialect = dialect;
         this.mappers = mapperFactory.getMappers(this);
+        this.precision = precision;
+        this.scale = scale;
         this.rules = rdbmsModel.getResource().getContents().stream()
                 .filter(Rules.class::isInstance)
                 .map(Rules.class::cast)
@@ -137,6 +147,10 @@ public class RdbmsBuilder<ID> {
     public String getAncestorPostfix(final EClass clazz) {
         return ancestorNameFactory.getAncestorPostfix(clazz);
     }
+
+    //public int getPrecision() {return precision;}
+//
+    //public int getScale() {return scale;}
 
     /**
      * Resolve logical JOIN and return RDBMS JOIN definition.
@@ -173,6 +187,8 @@ public class RdbmsBuilder<ID> {
                             .mask(_mask)
                             .queryParameters(queryParameters)
                             .skipParents(false)
+                            .precision(precision)
+                            .scale(scale)
                             .build();
 
             if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
@@ -406,7 +422,11 @@ public class RdbmsBuilder<ID> {
                                             .rdbmsBuilder(this)
                                             .parentIdFilterQuery(parentIdFilterQuery)
                                             .queryParameters(queryParameters)
+                                            .precision(precision)
+                                            .scale(scale)
                                             .build())
+                            .precision(precision)
+                            .scale(scale)
                             .build())
                     .collect(Collectors.toList()));
         }
@@ -499,7 +519,11 @@ public class RdbmsBuilder<ID> {
                                                                                                      .rdbmsBuilder(this)
                                                                                                      .queryParameters(queryParameters)
                                                                                                      .parentIdFilterQuery(parentIdFilterQuery)
+                                                                                                     .precision(precision)
+                                                                                                     .scale(scale)
                                                                                                      .build())
+                                                                     .precision(precision)
+                                                                     .scale(scale)
                                                                      .build())
                                               .collect(Collectors.toList());
                 }
