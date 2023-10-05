@@ -310,6 +310,8 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
                         .parameters(List.of(c.parameters.get(ParameterName.INSTANCE), c.parameters.get(ParameterName.TYPE), RdbmsConstant.builder()
                                 .parameter(rdbmsBuilder.getParameterMapper().createParameter(AsmUtils.getClassifierFQName(((RdbmsEntityTypeName) c.parameters.get(ParameterName.TYPE)).getType()), null))
                                 .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                .precision(rdbmsBuilder.getPrecision())
+                                .scale(rdbmsBuilder.getScale())
                                 .build())));
 
         functionBuilderMap.put(FunctionSignature.MEMBER_OF, c ->
@@ -505,7 +507,9 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
             RdbmsFunction.RdbmsFunctionBuilder builder = RdbmsFunction.builder()
                     .target(t.getTarget())
                     .targetAttribute(t.getTargetAttribute())
-                    .alias(t.getAlias());
+                    .alias(t.getAlias())
+                    .precision(rdbmsBuilder.getPrecision())
+                    .scale(rdbmsBuilder.getScale());
 
             java.util.function.Function<FunctionContext, RdbmsFunction.RdbmsFunctionBuilder> func = functionBuilderMap.get(function.getSignature());
             if (func == null) {

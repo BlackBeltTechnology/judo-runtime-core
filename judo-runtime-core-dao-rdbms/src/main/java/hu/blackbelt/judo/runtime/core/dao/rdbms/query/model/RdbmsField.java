@@ -42,8 +42,10 @@ import java.util.Optional;
 public abstract class RdbmsField {
 
     // TODO: JNG-4561: Floating point type's max precision and scale should be configured with environment/application variable
-    private static final int FLOATING_POINT_TYPE_MAX_PRECISION = 15;
-    private static final int FLOATING_POINT_TYPE_MAX_SCALE = 4;
+    //private static final int FLOATING_POINT_TYPE_MAX_PRECISION = 15;
+    //private static final int FLOATING_POINT_TYPE_MAX_SCALE = 4;
+    protected int precision;
+    protected int scale;
 
     protected String alias;
 
@@ -110,7 +112,7 @@ public abstract class RdbmsField {
             return "CAST(" + sql + " AS " + typeName + ")";
         } else if (sqlType != null && !sqlType.isBlank()) {
             if (domainConstraints != null && domainConstraints.getPrecision() != null && domainConstraints.getScale() != null
-                && (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION || domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE || domainConstraints.getScale() == 0)) {
+                && (domainConstraints.getPrecision() > precision || domainConstraints.getScale() > scale || domainConstraints.getScale() == 0)) {
                 String defaultType = new RdbmsDecimalType().toSql();
                 if (domainConstraints.getScale() == 0) {
                     return String.format("CAST(FLOOR(CAST(%s AS %s)) AS %s)", sql, defaultType, sqlType);

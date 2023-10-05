@@ -57,6 +57,8 @@ public class SubSelectMapper<ID> extends RdbmsMapper<SubSelect> {
                         .mask(null)
                         .queryParameters(queryParameters)
                         .skipParents(false)
+                        .precision(rdbmsBuilder.getPrecision())
+                        .scale(rdbmsBuilder.getScale())
                         .build())
                 .stream();
     }

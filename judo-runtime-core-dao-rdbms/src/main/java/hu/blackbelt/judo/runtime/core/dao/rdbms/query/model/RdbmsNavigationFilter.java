@@ -50,8 +50,10 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     private final List<RdbmsField> conditions = new ArrayList<>();
 
     @Builder
-    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder<ID> rdbmsBuilder, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder<ID> rdbmsBuilder, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters, final int precision, final int scale) {
         this.filter = filter;
+        this.precision = precision;
+        this.scale = scale;
 
         from = rdbmsBuilder.getTableName(filter.getType());
 
@@ -100,6 +102,8 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                                             .mask(null)
                                             .queryParameters(queryParameters)
                                             .skipParents(false)
+                                            .precision(precision)
+                                            .scale(scale)
                                             .build()
                             )
                             .outer(true)
