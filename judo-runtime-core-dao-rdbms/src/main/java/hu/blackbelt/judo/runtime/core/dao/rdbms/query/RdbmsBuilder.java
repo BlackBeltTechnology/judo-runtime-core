@@ -187,8 +187,6 @@ public class RdbmsBuilder<ID> {
                             .mask(_mask)
                             .queryParameters(queryParameters)
                             .skipParents(false)
-                            .precision(precision)
-                            .scale(scale)
                             .build();
 
             if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {

@@ -102,8 +102,6 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                                             .mask(null)
                                             .queryParameters(queryParameters)
                                             .skipParents(false)
-                                            .precision(precision)
-                                            .scale(scale)
                                             .build()
                             )
                             .outer(true)

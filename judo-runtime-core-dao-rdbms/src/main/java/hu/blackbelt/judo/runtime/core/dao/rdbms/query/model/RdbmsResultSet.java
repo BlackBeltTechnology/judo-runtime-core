@@ -80,14 +80,12 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             final boolean withoutFeatures,
             final Map<String, Object> mask,
             final Map<String, Object> queryParameters,
-            final boolean skipParents,
-            final int precision,
-            final int scale) {
+            final boolean skipParents) {
         this.query = query;
         this.skipParents = skipParents;
         this.rdbmsBuilder = rdbmsBuilder;
-        this.precision = precision;
-        this.scale = scale;
+        this.precision = rdbmsBuilder.getPrecision();
+        this.scale = rdbmsBuilder.getScale();
 
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
@@ -149,8 +147,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                             .mask(null)
                                             .queryParameters(queryParameters)
                                             .skipParents(false)
-                                            .precision(precision)
-                                            .scale(scale)
                                             .build())
                             .outer(true)
                             .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(s.getContainer()))
@@ -501,8 +497,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                         .mask(null)
                                         .queryParameters(queryParameters)
                                         .skipParents(false)
-                                        .precision(precision)
-                                        .scale(scale)
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(f.getSubSelect().getContainer()))

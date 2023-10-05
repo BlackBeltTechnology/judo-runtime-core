@@ -170,8 +170,6 @@ public class RdbmsCount<ID> {
                                         .mask(null)
                                         .queryParameters(queryParameters)
                                         .skipParents(false)
-                                        .precision(precision)
-                                        .scale(scale)
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(f.getSubSelect().getContainer()))

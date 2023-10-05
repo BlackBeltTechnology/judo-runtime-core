@@ -55,10 +55,6 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
 
     private final SubSelect query;
 
-    protected int precision;
-
-    protected int scale;
-
     @Builder
     private RdbmsNavigationJoin(@NonNull final SubSelect query,
                                 final SubSelect parentIdFilterQuery,
@@ -67,8 +63,6 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                 final Map<String, Object> queryParameters) {
         super();
         this.query = query;
-        this.precision = rdbmsBuilder.getPrecision();
-        this.scale = rdbmsBuilder.getScale();
 
         outer = false;
 
@@ -92,8 +86,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .partnerTable(query.getBase())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .alias(RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()))
-                    .precision(precision)
-                    .scale(scale)
+                    .precision(rdbmsBuilder.getPrecision())
+                    .scale(rdbmsBuilder.getScale())
                     .build());
         }
 
@@ -165,8 +159,6 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                         .mask(null)
                                         .queryParameters(queryParameters)
                                         .skipParents(false)
-                                        .precision(precision)
-                                        .scale(scale)
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
@@ -184,8 +176,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .partnerTable(query.getPartner())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .alias(RdbmsAliasUtil.getIdColumnAlias(query.getPartner()))
-                    .precision(precision)
-                    .scale(scale)
+                    .precision(rdbmsBuilder.getPrecision())
+                    .scale(rdbmsBuilder.getScale())
                     .build());
 
             subConditions.add(RdbmsFunction.builder()
@@ -193,8 +185,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getPartner())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
-                            .precision(precision)
-                            .scale(scale)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         }
@@ -207,8 +199,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                 .rdbmsBuilder(rdbmsBuilder)
                                 .parentIdFilterQuery(parentIdFilterQuery)
                                 .queryParameters(queryParameters)
-                                .precision(precision)
-                                .scale(scale)
+                                .precision(rdbmsBuilder.getPrecision())
+                                .scale(rdbmsBuilder.getScale())
                                 .build())
                         .build()))
                 .collect(Collectors.toList()));
@@ -219,8 +211,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
-                            .precision(precision)
-                            .scale(scale)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         } else if (parentIdFilterQuery != null && AsmUtils.equals(parentIdFilterQuery.getSelect(), query.getBase()) && !query.getSelect().isAggregated()) {
@@ -229,15 +221,15 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
-                            .precision(precision)
-                            .scale(scale)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(parentIdFilterQuery.getSelect())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .skipLastPrefix(true)
-                            .precision(precision)
-                            .scale(scale)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         }
@@ -247,14 +239,14 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
-                            .precision(precision)
-                            .scale(scale)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .parameter(RdbmsColumn.builder()
                             .partnerTable(query.getBase().eContainer() instanceof SubSelect ? ((SubSelect)query.getBase().eContainer()).getSelect() : (Node) query.getBase().eContainer())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
-                            .precision(precision)
-                            .scale(scale)
+                            .precision(rdbmsBuilder.getPrecision())
+                            .scale(rdbmsBuilder.getScale())
                             .build())
                     .build());
         }
