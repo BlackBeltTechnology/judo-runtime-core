@@ -40,10 +40,6 @@ import java.util.Optional;
 @SuperBuilder
 @NoArgsConstructor
 public abstract class RdbmsField {
-
-    // TODO: JNG-4561: Floating point type's max precision and scale should be configured with environment/application variable
-    //private static final int FLOATING_POINT_TYPE_MAX_PRECISION = 15;
-    //private static final int FLOATING_POINT_TYPE_MAX_SCALE = 4;
     protected int precision;
     protected int scale;
 
