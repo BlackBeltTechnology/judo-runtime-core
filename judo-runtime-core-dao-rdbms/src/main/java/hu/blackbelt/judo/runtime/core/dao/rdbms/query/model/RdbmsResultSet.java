@@ -84,6 +84,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         this.query = query;
         this.skipParents = skipParents;
         this.rdbmsBuilder = rdbmsBuilder;
+        this.precision = rdbmsBuilder.getPrecision();
+        this.scale = rdbmsBuilder.getScale();
 
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
@@ -113,9 +115,12 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             conditions.add(RdbmsFunction.builder()
                     .pattern("{0} IN ({1})")
                     .parameters(Arrays.asList(
-                            RdbmsColumn.builder().partnerTable(query.getSelect()).columnName(StatementExecutor.ID_COLUMN_NAME).build(),
-                            RdbmsParameter.builder().parameterName(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect())).build()
-                    )).build());
+                            RdbmsColumn.builder().partnerTable(query.getSelect()).columnName(StatementExecutor.ID_COLUMN_NAME).precision(precision).scale(scale).build(),
+                            RdbmsParameter.builder().parameterName(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect())).precision(precision).scale(scale).build()
+                    ))
+                    .precision(precision)
+                    .scale(scale)
+                    .build());
         }
 
         final Collection<SubSelect> subSelects = Stream.concat(
@@ -175,6 +180,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         .partnerTable(query)
                         .columnName(getParentIdColumnAlias(query.getContainer()))
                         .alias(getParentIdColumnAlias(query.getContainer()))
+                        .precision(precision)
+                        .scale(scale)
                         .build());
             }
 
@@ -267,12 +274,18 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                     .parameter(RdbmsNamedParameter.builder()
                                             .parameter(rdbmsBuilder.getParameterMapper().createParameter(value, null))
                                             .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                            .precision(precision)
+                                            .scale(scale)
                                             .build())
+                                    .precision(precision)
+                                    .scale(scale)
                                     .build());
                         } else if (!orderBy.getKey().isDescending()) {
                             conditions.add(RdbmsFunction.builder()
                                     .pattern("{0} IS NULL")
                                     .parameter(orderBy.getValue())
+                                    .precision(precision)
+                                    .scale(scale)
                                     .build());
                         }
                     });
@@ -298,12 +311,18 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                 .parameter(RdbmsNamedParameter.builder()
                                         .parameter(rdbmsBuilder.getParameterMapper().createParameter(value, null))
                                         .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                        .precision(precision)
+                                        .scale(scale)
                                         .build())
+                                .precision(precision)
+                                .scale(scale)
                                 .build());
                     } else {
                         conditionAndFragments.add(RdbmsFunction.builder()
                                 .pattern("{0} IS NULL")
                                 .parameter(nestedItem.getValue())
+                                .precision(precision)
+                                .scale(scale)
                                 .build());
                     }
                 }
@@ -319,12 +338,18 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                 .parameter(RdbmsNamedParameter.builder()
                                         .parameter(rdbmsBuilder.getParameterMapper().createParameter(value, null))
                                         .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                        .precision(precision)
+                                        .scale(scale)
                                         .build())
+                                .precision(precision)
+                                .scale(scale)
                                 .build());
                     } else if (nestedItem.getKey().isDescending()) {
                         conditionAndFragments.add(RdbmsFunction.builder()
                                 .pattern("{0} IS NOT NULL")
                                 .parameter(nestedItem.getValue())
+                                .precision(precision)
+                                .scale(scale)
                                 .build());
                     }
                 } else {
@@ -333,10 +358,14 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .parameter(RdbmsColumn.builder()
                                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                                     .partnerTable(query.getSelect())
+                                    .precision(precision)
+                                    .scale(scale)
                                     .build())
                             .parameter(RdbmsNamedParameter.builder()
                                     .parameter(rdbmsBuilder.getParameterMapper().createParameter(lastId, null))
                                     .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                    .precision(precision)
+                                    .scale(scale)
                                     .build())
                             .build());
                 }
@@ -345,6 +374,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     conditionOrFragments.add(RdbmsFunction.builder()
                             .pattern(IntStream.range(0, conditionAndFragments.size()).mapToObj(i -> "{" + i + "}").collect(Collectors.joining(" AND ")))
                             .parameters(conditionAndFragments)
+                            .precision(precision)
+                            .scale(scale)
                             .build());
                 }
             }
@@ -352,6 +383,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             conditions.add(RdbmsFunction.builder()
                     .pattern(IntStream.range(0, conditionOrFragments.size()).mapToObj(i -> "{" + i + "}").collect(Collectors.joining(" OR ")))
                     .parameters(conditionOrFragments)
+                    .precision(precision)
+                    .scale(scale)
                     .build());
         }
 
@@ -361,6 +394,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .target(query.getSelect().getMainTarget())
                             .partnerTable(query.getSelect())
+                            .precision(precision)
+                            .scale(scale)
                             .build())
                     .descending(seek.isReverse())
                     .build());
