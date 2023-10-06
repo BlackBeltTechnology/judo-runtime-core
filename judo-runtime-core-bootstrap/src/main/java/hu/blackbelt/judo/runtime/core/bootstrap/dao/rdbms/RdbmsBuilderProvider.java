@@ -45,8 +45,8 @@ import javax.annotation.Nullable;
 public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
 
 
-    public static final String RDBMS_DAO_PRECISION = "rdbmsDaoPrecision";
-    public static final String RDBMS_DAO_SCALE = "rdbmsDaoScale";
+    public static final String RDBMS_DAO_FLOATING_POINT_TYPE_MAX_PRECISION = "rdbmsDaoFloatingTypeMaxPrecision";
+    public static final String RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE = "rdbmsDaoFloatingTypeMaxScale";
 
     @Inject
     AsmModel asmModel;
@@ -76,14 +76,14 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     Dialect dialect;
 
     @Inject(optional = true)
-    @Named(RDBMS_DAO_PRECISION)
+    @Named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_PRECISION)
     @Nullable
     private int precision = 15;
 
     @Inject(optional = true)
-    @Named(RDBMS_DAO_SCALE)
+    @Named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE)
     @Nullable
-    private int scale = 7;
+    private int scale = 4;
 
     @SuppressWarnings({ "unchecked" })
     @Override
