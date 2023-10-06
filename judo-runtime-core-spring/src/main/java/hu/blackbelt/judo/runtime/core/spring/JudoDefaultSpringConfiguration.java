@@ -127,11 +127,11 @@ public class JudoDefaultSpringConfiguration {
     @Autowired
     private Sequence sequence;
 
-    @Value("${judo.precision:}")
-    private int precision;
+    @Value("${judo.floatingTypeMaxPrecision:}")
+    private int floatingTypeMaxPrecision;
 
-    @Value("${judo.scale:}")
-    private int scale;
+    @Value("${judo.floatingTypeMaxScale:}")
+    private int floatingTypeMaxScale;
 
     @Autowired
     private RdbmsParameterMapper rdbmsParameterMapper;
@@ -199,8 +199,8 @@ public class JudoDefaultSpringConfiguration {
                 .variableResolver(variableResolver)
                 .mapperFactory(mapperFactory)
                 .dialect(dialect)
-                .precision(precision)
-                .scale(scale)
+                .precision(floatingTypeMaxPrecision)
+                .scale(floatingTypeMaxScale)
                 .build();
     }
 
