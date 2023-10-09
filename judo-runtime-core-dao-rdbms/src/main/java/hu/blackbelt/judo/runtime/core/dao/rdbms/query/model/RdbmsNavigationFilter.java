@@ -35,6 +35,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -43,6 +44,8 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     private final Filter filter;
 
     private final EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());
+
+    private final EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());
 
     private final String from;
 
@@ -57,7 +60,14 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
         joins.addAll(filter.getJoins().stream()
                 .flatMap(subJoin -> subJoin.getAllJoins().stream()
-                        .flatMap(j -> rdbmsBuilder.processJoin(j, ancestors, parentIdFilterQuery, rdbmsBuilder, true, null, queryParameters).stream())
+                        .flatMap(j -> (Stream<RdbmsJoin>) rdbmsBuilder.processJoin(RdbmsBuilder.ProcessJoinParameters.builder()
+                                        .join(j)
+                                        .ancestors(ancestors)
+                                        .descendants(descendants)
+                                        .parentIdFilterQuery(parentIdFilterQuery)
+                                        .withoutFeatures(true)
+                                        .queryParameters(queryParameters)
+                                        .build()).stream())
                         .collect(Collectors.toList()).stream())
                 .collect(Collectors.toList()));
 
@@ -66,7 +76,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
         if (ancestors.containsKey(filter)) {
             ancestors.get(filter).forEach(ancestor ->
-                    joins.addAll(rdbmsBuilder.getAdditionalJoins(filter, ancestors, joins)));
+                    joins.addAll(rdbmsBuilder.getAncestorJoins(filter, ancestors, joins)));
         }
 
         joins.addAll(filter.getSubSelects().stream()

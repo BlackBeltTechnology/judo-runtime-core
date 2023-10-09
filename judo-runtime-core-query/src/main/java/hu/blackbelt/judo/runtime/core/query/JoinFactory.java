@@ -141,47 +141,33 @@ public abstract class JoinFactory {
                 ordered = false;
                 continue;
             } else if (navigation.getFeatureName() != null) {
-                Node finalLastPartner = lastPartner;
-                Set<EReference> allRelatedReferences = modelAdapter.getAllEntityTypes().stream().filter(e -> finalLastPartner.getType().isSuperTypeOf(e))
-                        .flatMap(e -> e.getEAllReferences().stream()).collect(Collectors.toSet());
+                final Node finalLastPartner = lastPartner;
+                List<EClass> allDescendantsType = modelAdapter.getAllEntityTypes().stream()
+                        .filter(e -> finalLastPartner.getType().isSuperTypeOf(e))
+                        .collect(Collectors.toList());
+
+                // Add all descendants references
+                Set<EReference> allRelatedReferences = allDescendantsType.stream()
+                        .flatMap(e -> e.getEReferences().stream())
+                        .collect(Collectors.toSet());
+
+                // Get all reference and inherited references
                 allRelatedReferences.addAll(lastPartner.getType().getEAllReferences());
                 final EReference reference =
                         allRelatedReferences.stream()
-                                   .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
-                                   .findAny()
-                                   .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
-                                                                                               navigation.getFeatureName())));
+                                .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
+                                .findAny()
+                                .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
+                                        navigation.getFeatureName())));
                 checkArgument(reference != null, "Unknown reference: " + navigation.getFeatureName());
                 checkArgument(!reference.isDerived(), String.format("Derived references must be resolved by expression builder: %s (%s)",
-                                                                    reference.getName(), modelAdapter.getFqName(reference.eContainer())));
+                        reference.getName(), modelAdapter.getFqName(reference.eContainer())));
                 if (limited) {
                     checkArgument(!reference.isMany(), "Collection navigation is not allowed here");
                     if (ordered) {
                         checkArgument(reference.isRequired(), "Optional navigation is not allowed here");
                     }
                 }
-
-                // TODO roll the lastPartner with "inheritance join" until it is the owner of the reference
-
-                /*
-                    inheritance join is missing between ap (j_ss17j18) and b (j_ss17j19) reference join
-
-                    SELECT
-                        DISTINCT j_ss17t05.ID AS __parent_t05_ID,
-                        j_ss17j19.ID AS j19_ID
-                    FROM
-                        T_TESTING__B AS j_ss17t05
-                        LEFT OUTER JOIN T_TESTING__AP AS j_ss17j18_c0 ON (
-                            j_ss17t05.C_TESTING__AP_COMPB_ID = j_ss17j18_c0.ID
-                        )
-                        LEFT OUTER JOIN T_TESTING__AP AS j_ss17j18 ON (j_ss17j18_c0.ID = j_ss17j18.ID)
-                        LEFT OUTER JOIN T_TESTING__B AS j_ss17j19 ON (j_ss17j18_a05.C_RELB_ID = j_ss17j19.ID)
-                    WHERE
-                        j_ss17j19.ID IS NOT NULL
-                        AND j_ss17t05.ID IN (?)
-                 */
-
-                
 
                 final Join join = newReferencedJoinBuilder()
                         .withAlias(QueryUtils.getNextJoinAlias(context.getSourceCounter()))

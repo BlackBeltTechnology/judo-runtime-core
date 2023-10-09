@@ -43,6 +43,9 @@ public class RdbmsCount<ID> {
 
     // map of ancestors (the are holder of an attribute) of a given source
     private final EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());
+
+    private final EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());
+
     private final String from;
     private final List<RdbmsJoin> joins = new ArrayList<>();
     private final List<RdbmsField> conditions = new ArrayList<>();
@@ -65,7 +68,8 @@ public class RdbmsCount<ID> {
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
-        joins.addAll(rdbmsBuilder.getAdditionalJoins(query.getSelect(), ancestors, joins));
+        joins.addAll(rdbmsBuilder.getAncestorJoins(query.getSelect(), ancestors, joins));
+        joins.addAll(rdbmsBuilder.getAncestorJoins(query.getSelect(), ancestors, joins));
 
         if (filterByInstances) {
             conditions.add(RdbmsFunction.builder()
@@ -134,14 +138,29 @@ public class RdbmsCount<ID> {
                 navigationJoins.stream()
                         .filter(join -> !processedNodesForJoins.contains(join))
                         .forEach(join -> {
-                            joins.addAll(rdbmsBuilder.processJoin(join, ancestors, parentIdFilterQuery, rdbmsBuilder, false, null, queryParameters));
+                            joins.addAll(rdbmsBuilder.processJoin(
+                                    RdbmsBuilder.ProcessJoinParameters.builder()
+                                            .join(join)
+                                            .ancestors(ancestors)
+                                            .descendants(descendants)
+                                            .parentIdFilterQuery(parentIdFilterQuery)
+                                            .withoutFeatures(false)
+                                            .build()));
                             processedNodesForJoins.add(join);
                         });
                 filter.getFeature().getNodes().stream()
                         .filter(n -> !processedNodesForJoins.contains(n) && !AsmUtils.equals(n, filter) && n instanceof Join)
                         .flatMap(n -> ((Join) n).getAllJoins().stream())
                         .forEach(join -> {
-                            joins.addAll(rdbmsBuilder.processJoin(join, ancestors, parentIdFilterQuery, rdbmsBuilder, false, null, queryParameters));
+                            joins.addAll(rdbmsBuilder.processJoin(
+                                    RdbmsBuilder.ProcessJoinParameters.builder()
+                                            .join(join)
+                                            .ancestors(ancestors)
+                                            .descendants(descendants)
+                                            .parentIdFilterQuery(parentIdFilterQuery)
+                                            .withoutFeatures(false)
+                                            .queryParameters(queryParameters)
+                                            .build()));
                             processedNodesForJoins.add(join);
                         });
             }
@@ -171,7 +190,7 @@ public class RdbmsCount<ID> {
                         .build())
                 .collect(Collectors.toList()));
         conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), ancestors, parentIdFilterQuery, queryParameters).collect(Collectors.toList()));
-        joins.addAll(rdbmsBuilder.getAdditionalJoins(filter, ancestors, joins));
+        joins.addAll(rdbmsBuilder.getAncestorJoins(filter, ancestors, joins));
     }
 
     public String toSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
