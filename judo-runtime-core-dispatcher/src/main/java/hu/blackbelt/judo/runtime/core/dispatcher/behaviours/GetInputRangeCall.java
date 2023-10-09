@@ -128,13 +128,16 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
             result = dao.getRangeOf(
                     inputParameter.getReference(),
                     inputParameter.getOwnerPayload(),
-                    inputParameter.getQueryCustomizer());
+                    inputParameter.getQueryCustomizer(),
+                    true);
 
             if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
                 inputParameter.setRecordCount(dao.countRangeOf(
                         inputParameter.getReference(),
                         inputParameter.getOwnerPayload(),
-                        inputParameter.getQueryCustomizer()));
+                        inputParameter.getQueryCustomizer(),
+                        true
+                        ));
             }
 
             // collect IDs that are created (temporary)
