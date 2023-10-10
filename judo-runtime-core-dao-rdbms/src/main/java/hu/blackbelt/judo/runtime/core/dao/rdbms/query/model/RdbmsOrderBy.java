@@ -20,13 +20,9 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import org.eclipse.emf.common.util.EMap;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 @Getter
 @Builder
@@ -40,8 +36,15 @@ public class RdbmsOrderBy {
     @NonNull
     private final Boolean descending;
 
-    public String toSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        return (fromSubSelect ? rdbmsField.getRdbmsAlias() : rdbmsField.toSql(prefix, false, coercer, sqlParameters, prefixes)) +
+    public String toSql(SqlConverterContext params) {
+        return (fromSubSelect ? rdbmsField.getRdbmsAlias() : rdbmsField.toSql(
+                SqlConverterContext.builder()
+                        .prefix(params.prefix)
+                        .includeAlias(false)
+                        .coercer(params.coercer)
+                        .sqlParameters(params.sqlParameters)
+                        .prefixes(params.prefixes)
+                        .build())) +
                 (descending ? " DESC" : " ASC") + " NULLS " + (descending ? "FIRST" : "LAST");
     }
 }

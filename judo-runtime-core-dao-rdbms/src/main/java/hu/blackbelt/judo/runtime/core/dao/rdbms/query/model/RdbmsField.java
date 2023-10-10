@@ -21,11 +21,9 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  */
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.Target;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.types.RdbmsDecimalType;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,7 +31,6 @@ import lombok.experimental.SuperBuilder;
 import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EAttribute;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.Optional;
 
@@ -57,7 +54,7 @@ public abstract class RdbmsField {
      *
      * @return SQL string
      */
-    public abstract String toSql(String prefix, boolean includeAlias, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> prefixes);
+    public abstract String toSql(SqlConverterContext params);
 
     protected String getWithAlias(final String sql, final boolean includeAlias) {
         return sql + (includeAlias && alias != null ? " AS " + getRdbmsAlias() : "");
