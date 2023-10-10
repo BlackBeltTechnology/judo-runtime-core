@@ -41,31 +41,28 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
 
-    @NonNull
-    private final RdbmsBuilder<ID> rdbmsBuilder;
-
     @Override
-    public Stream<? extends RdbmsField> map(final Constant constant, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    public Stream<? extends RdbmsField> map(final Constant constant, RdbmsBuilder.RdbmsBuilderContext context) {
         final String id = EcoreUtil.getIdentification(constant);
         if (id != null) {
             synchronized (this) {
-                if (rdbmsBuilder.getConstantFields().get().containsKey(id)) {
-                    return rdbmsBuilder.getConstantFields().get().get(id).stream();
+                if (context.rdbmsBuilder.getConstantFields().get().containsKey(id)) {
+                    return context.rdbmsBuilder.getConstantFields().get().get(id).stream();
                 } else {
-                    final List<? extends RdbmsField> fields = getFields(constant).collect(Collectors.toList());
-                    rdbmsBuilder.getConstantFields().get().put(id, fields);
+                    final List<? extends RdbmsField> fields = getFields(context, constant).collect(Collectors.toList());
+                    context.rdbmsBuilder.getConstantFields().get().put(id, fields);
                     return fields.stream();
                 }
             }
         } else {
-            return getFields(constant);
+            return getFields(context, constant);
         }
     }
 
-    private Stream<? extends RdbmsField> getFields(final Constant constant) {
+    private Stream<? extends RdbmsField> getFields(RdbmsBuilder.RdbmsBuilderContext context, final Constant constant) {
         return getTargets(constant).map(t -> RdbmsConstant.builder()
-                .parameter(rdbmsBuilder.getParameterMapper().createParameter(constant.getValue(), null))
-                .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                .parameter(context.rdbmsBuilder.getParameterMapper().createParameter(constant.getValue(), null))
+                .index(context.rdbmsBuilder.getConstantCounter().getAndIncrement())
                 .target(t.getTarget())
                 .targetAttribute(t.getTargetAttribute())
                 .alias(t.getAlias())

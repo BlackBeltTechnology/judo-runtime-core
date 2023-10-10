@@ -39,23 +39,20 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class SubSelectMapper<ID> extends RdbmsMapper<SubSelect> {
 
-    @NonNull
-    private final RdbmsBuilder<ID> rdbmsBuilder;
-
     @Override
-    public Stream<RdbmsResultSet<ID>> map(final SubSelect subSelect, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    public Stream<RdbmsResultSet<ID>> map(final SubSelect subSelect, RdbmsBuilder.RdbmsBuilderContext context) {
         final Object container = subSelect.eContainer();
         final boolean withoutFeatures = container instanceof Filter || container instanceof OrderBy || subSelect.getSelect().isAggregated();
         return Collections.singleton(
                 RdbmsResultSet.<ID>builder()
                         .query(subSelect)
                         .filterByInstances(false)
-                        .parentIdFilterQuery(parentIdFilterQuery)
-                        .rdbmsBuilder(rdbmsBuilder)
+                        .parentIdFilterQuery(context.parentIdFilterQuery)
+                        .rdbmsBuilder((RdbmsBuilder<ID>) context.rdbmsBuilder)
                         .seek(null)
                         .withoutFeatures(withoutFeatures)
                         .mask(null)
-                        .queryParameters(queryParameters)
+                        .queryParameters(context.queryParameters)
                         .skipParents(false)
                         .build())
                 .stream();
