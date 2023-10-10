@@ -171,6 +171,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                 .join(j)
                                 .builderContext(builderContext)
                                 .withoutFeatures(withoutFeatures)
+                                .mask(null)
                                 .build()
                 )));
 
@@ -311,7 +312,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
 
         SqlConverterContext subSelectSqlConverterContext = SqlConverterContext.builder()
                 .prefix(subSelectJoinPrefix)
-                .includeAlias(false)
+                .includeAlias(true)
                 .coercer(context.coercer)
                 .sqlParameters(context.sqlParameters)
                 .prefixes(newPrefixes)
@@ -320,19 +321,17 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final Collection<String> allConditions = Stream
                 .concat(subJoins.stream().flatMap(j -> j.conditionToSql(subSelectSqlConverterContext
                 ).stream()),
-                        subConditions.stream().map(c -> c.toSql(subSelectSqlConverterContext)))
+                        subConditions.stream().map(c -> c.toSql(subSelectSqlConverterContext.toBuilder().includeAlias(false).build())))
                 .collect(Collectors.toList());
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "(" + "SELECT DISTINCT " + subFeatures.stream().map(o -> o.toSql(
-                        context.toBuilder()
-                                .prefix(subSelectJoinPrefix)
+                        subSelectSqlConverterContext.toBuilder()
                                 .includeAlias(true)
-                                .prefixes(newPrefixes)
                                 .build()
                 )).collect(Collectors.joining(", ")) +
                 "\n    FROM " + subFrom + (query.getBase() != null ? " AS " + subSelectJoinPrefix + query.getBase().getAlias() : "") +
                 getJoin(
-                        context.toBuilder()
+                        subSelectSqlConverterContext.toBuilder()
                                 .includeAlias(true)
                                 .build()
                 ) +

@@ -482,7 +482,9 @@ public class RdbmsBuilder<ID> {
         result.add(rdbmsJoin);
 
         if (params.builderContext.ancestors.containsKey(params.join)) {
-            result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result));
+            params.builderContext.ancestors.get(params.join).stream().forEach(ancestor ->
+                    result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result)));
+//            result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result));
 //            ancestors.get(join).stream().forEach(ancestor ->
 //                    result.addAll(getAncestorJoins(join, ancestors, result)));
         }
@@ -641,10 +643,10 @@ public class RdbmsBuilder<ID> {
         }
 
         return list.stream()
-                .filter(c -> joins.stream().noneMatch(j -> Objects.equals(node.getAlias() + getAncestorPostfix(c), j.getAlias())))
-                .map(ancestor -> RdbmsTableJoin.builder()
-                        .tableName(rdbmsResolver.rdbmsTable(ancestor).getSqlName())
-                        .alias(node.getAlias() + getAncestorPostfix(ancestor))
+                .filter(c -> joins.stream().noneMatch(j -> Objects.equals(node.getAlias() + getDescendantPostfix(c), j.getAlias())))
+                .map(descendant -> RdbmsTableJoin.builder()
+                        .tableName(rdbmsResolver.rdbmsTable(descendant).getSqlName())
+                        .alias(node.getAlias() + getAncestorPostfix(descendant))
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
                         .partnerTable(node)
                         .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)

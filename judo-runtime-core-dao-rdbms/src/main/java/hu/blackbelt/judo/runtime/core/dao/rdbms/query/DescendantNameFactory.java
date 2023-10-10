@@ -34,7 +34,7 @@ public class DescendantNameFactory {
 
     private final EMap<EClass, Integer> descendantIndexes = ECollections.asEMap(new ConcurrentHashMap<>());
     private final AtomicInteger nextDescendantIndex = new AtomicInteger(0);
-    private static final String ANCESTOR_ALIAS_FORMAT = "_d{0,number,00}";
+    private static final String DESCENDANT_ALIAS_FORMAT = "_d{0,number,00}";
 
     public DescendantNameFactory(final Stream<EClass> classes) {
         descendantIndexes.putAll(classes.collect(Collectors.toMap(c -> c, c -> nextDescendantIndex.incrementAndGet())));
@@ -54,6 +54,6 @@ public class DescendantNameFactory {
             index = nextDescendantIndex.incrementAndGet();
             descendantIndexes.put(clazz, index);
         }
-        return MessageFormat.format(ANCESTOR_ALIAS_FORMAT, index);
+        return MessageFormat.format(DESCENDANT_ALIAS_FORMAT, index);
     }
 }
