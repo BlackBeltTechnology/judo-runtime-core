@@ -142,6 +142,7 @@ public abstract class JoinFactory {
                 continue;
             } else if (navigation.getFeatureName() != null) {
                 final Node finalLastPartner = lastPartner;
+                /*
                 List<EClass> allDescendantsType = modelAdapter.getAllEntityTypes().stream()
                         .filter(e -> finalLastPartner.getType().isSuperTypeOf(e))
                         .collect(Collectors.toList());
@@ -150,8 +151,10 @@ public abstract class JoinFactory {
                 Set<EReference> allRelatedReferences = allDescendantsType.stream()
                         .flatMap(e -> e.getEReferences().stream())
                         .collect(Collectors.toSet());
-
+                */
                 // Get all reference and inherited references
+                Set<EReference> allRelatedReferences = new HashSet<>();
+                
                 allRelatedReferences.addAll(lastPartner.getType().getEAllReferences());
                 final EReference reference =
                         allRelatedReferences.stream()

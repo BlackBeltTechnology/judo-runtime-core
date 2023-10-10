@@ -43,11 +43,8 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
 
-    @NonNull
-    private final RdbmsBuilder<ID> rdbmsBuilder;
-
     @Override
-    public Stream<RdbmsColumn> map(final Attribute attribute, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    public Stream<RdbmsColumn> map(final Attribute attribute, RdbmsBuilder.RdbmsBuilderContext context) {
         final EClass sourceType = attribute.getNode().getType();
         final EAttribute sourceAttribute = attribute.getSourceAttribute();
         final EClass attributeContainer = sourceAttribute.getEContainingClass();
@@ -62,12 +59,12 @@ public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
         if (!AsmUtils.equals(sourceType, attributeContainer)) {  // inherited attribute
             log.trace("   - found inherited attribute: {}", sourceAttribute.getName());
 
-            if (!ancestors.containsKey(attribute.getNode())) {
-                ancestors.put(attribute.getNode(), new UniqueEList<>());
+            if (!context.ancestors.containsKey(attribute.getNode())) {
+                context.ancestors.put(attribute.getNode(), new UniqueEList<>());
             }
             // add ancestor for a given attribute
-            ancestors.get(attribute.getNode()).add(attributeContainer);
-            postfix = rdbmsBuilder.getAncestorPostfix(attributeContainer);
+            context.ancestors.get(attribute.getNode()).add(attributeContainer);
+            postfix = context.rdbmsBuilder.getAncestorPostfix(attributeContainer);
         } else {
             postfix = "";
         }
@@ -75,7 +72,7 @@ public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
         return getTargets(attribute).map(t -> RdbmsColumn.builder()
                 .partnerTable(attribute.getNode())
                 .partnerTablePostfix(postfix)
-                .columnName(rdbmsBuilder.getColumnName(attribute.getSourceAttribute()))
+                .columnName(context.rdbmsBuilder.getColumnName(attribute.getSourceAttribute()))
                 .target(t.getTarget())
                 .targetAttribute(t.getTargetAttribute())
                 .alias(t.getAlias())
