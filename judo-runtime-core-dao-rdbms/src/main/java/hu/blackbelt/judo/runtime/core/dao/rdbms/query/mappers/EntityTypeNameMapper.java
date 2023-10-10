@@ -39,13 +39,10 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class EntityTypeNameMapper<ID> extends RdbmsMapper<EntityTypeName> {
 
-    @NonNull
-    private final RdbmsBuilder<ID> rdbmsBuilder;
-
     @Override
-    public Stream<? extends RdbmsField> map(final EntityTypeName entityTypeName, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    public Stream<? extends RdbmsField> map(final EntityTypeName entityTypeName, RdbmsBuilder.RdbmsBuilderContext context) {
         return Collections.singleton(RdbmsEntityTypeName.builder()
-                .tableName(rdbmsBuilder.getTableName(entityTypeName.getType()))
+                .tableName(context.rdbmsBuilder.getTableName(entityTypeName.getType()))
                 .type(entityTypeName.getType())
                 .build()).stream();
     }

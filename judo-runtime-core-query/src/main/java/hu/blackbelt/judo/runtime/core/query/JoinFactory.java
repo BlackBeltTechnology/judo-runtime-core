@@ -141,16 +141,40 @@ public abstract class JoinFactory {
                 ordered = false;
                 continue;
             } else if (navigation.getFeatureName() != null) {
+                final Node finalLastPartner = lastPartner;
+                /*
+                List<EClass> allDescendantsType = modelAdapter.getAllEntityTypes().stream()
+                        .filter(e -> finalLastPartner.getType().isSuperTypeOf(e))
+                        .collect(Collectors.toList());
+
+                // Add all descendants references
+                Set<EReference> allRelatedReferences = allDescendantsType.stream()
+                        .flatMap(e -> e.getEReferences().stream())
+                        .collect(Collectors.toSet());
+                */
+                // Get all reference and inherited references
+                /*
+                Set<EReference> allRelatedReferences = new HashSet<>();
+                allRelatedReferences.addAll(lastPartner.getType().getEAllReferences());
+                final EReference reference =
+                        allRelatedReferences.stream()
+                                .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
+                                .findAny()
+                                .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
+                                        navigation.getFeatureName())));
+                 */
+
                 final EReference reference =
                         lastPartner.getType()
-                                   .getEAllReferences().stream()
-                                   .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
-                                   .findAny()
-                                   .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
-                                                                                               navigation.getFeatureName())));
+                                .getEAllReferences().stream()
+                                .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
+                                .findAny()
+                                .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
+                                        navigation.getFeatureName())));
+
                 checkArgument(reference != null, "Unknown reference: " + navigation.getFeatureName());
                 checkArgument(!reference.isDerived(), String.format("Derived references must be resolved by expression builder: %s (%s)",
-                                                                    reference.getName(), modelAdapter.getFqName(reference.eContainer())));
+                        reference.getName(), modelAdapter.getFqName(reference.eContainer())));
                 if (limited) {
                     checkArgument(!reference.isMany(), "Collection navigation is not allowed here");
                     if (ordered) {
@@ -165,7 +189,6 @@ public abstract class JoinFactory {
                         .build();
 
                 // TODO: check if JOIN not included yet
-
                 container.getJoins().add(join);
                 lastPartner = join;
                 container = join;
