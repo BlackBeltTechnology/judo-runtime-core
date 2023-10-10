@@ -637,7 +637,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
     private String getSelect(boolean addDistinct, SqlConverterContext context) {
         String columns = this.columns.stream()
-                .map(c -> c.toSql(context))
+                .map(c -> c.toSql(context.toBuilder().includeAlias(true).build()))
                 .sorted() // sorting serves debugging purposes only
                 .collect(Collectors.joining(", "));
         String distinct = addDistinct ? "DISTINCT " : "";
