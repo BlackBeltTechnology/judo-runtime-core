@@ -78,7 +78,7 @@ public class RdbmsCount<ID> {
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
         joins.addAll(rdbmsBuilder.getAncestorJoins(query.getSelect(), ancestors, joins));
-        joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
+        // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
 
         if (filterByInstances) {
             conditions.add(RdbmsFunction.builder()
@@ -234,24 +234,24 @@ public class RdbmsCount<ID> {
     }
     */
 
-    public String toSql(SqlConverterContext params) {
+    public String toSql(SqlConverterContext context) {
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(params.prefixes);
-        newPrefixes.put(query.getSelect(), params.prefix);
+        newPrefixes.putAll(context.prefixes);
+        newPrefixes.put(query.getSelect(), context.prefix);
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
-                .collect(Collectors.toMap(join -> join, join -> params.prefix)));
+                .collect(Collectors.toMap(join -> join, join -> context.prefix)));
 
         final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
 
         final Collection<String> allConditions = Stream
                 .concat(joins.stream().flatMap(j -> j.conditionToSql(
-                        params.toBuilder()
+                        context.toBuilder()
                                 .prefixes(newPrefixes)
                                 .build())
                                 .stream()),
                         conditions.stream().map(c -> c.toSql(
-                                params.toBuilder()
+                                context.toBuilder()
                                         .includeAlias(false)
                                         .prefixes(newPrefixes)
                                         .build())
@@ -261,9 +261,9 @@ public class RdbmsCount<ID> {
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "SELECT COUNT (1)" +
-                (from != null ? "\nFROM " + from + " AS " + params.prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
+                (from != null ? "\nFROM " + from + " AS " + context.prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
                 getJoin(
-                        params.toBuilder()
+                        context.toBuilder()
                                 .prefixes(newPrefixes)
                                 .build(), firstJoin
                 ) +

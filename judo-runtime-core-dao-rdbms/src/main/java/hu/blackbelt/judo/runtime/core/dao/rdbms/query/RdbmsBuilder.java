@@ -246,10 +246,10 @@ public class RdbmsBuilder<ID> {
                     .build());
 
             if (params.builderContext.ancestors.containsKey(params.join)) {
-                result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result));
-//                result.addAll(ancestors.get(join).stream()
-//                        .flatMap(ancestor -> getAncestorJoins(join, ancestors, result).stream())
-//                        .collect(Collectors.toList()));
+//                result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result));
+                result.addAll(params.builderContext.ancestors.get(params.join).stream()
+                        .flatMap(ancestor -> getAncestorJoins(params.join, params.builderContext.ancestors, result).stream())
+                        .collect(Collectors.toList()));
             }
 
 //            if (params.builderContext.descendants.containsKey(params.join)) {
@@ -284,9 +284,9 @@ public class RdbmsBuilder<ID> {
                     .build());
 
             if (params.builderContext.ancestors.containsKey(params.join)) {
-                result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result));
-//                ancestors.get(join).forEach(ancestor ->
-//                        result.addAll(getAncestorJoins(join, ancestors, result)));
+//                result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result));
+                params.builderContext.ancestors.get(params.join).forEach(ancestor ->
+                        result.addAll(getAncestorJoins(params.join, params.builderContext.ancestors, result)));
             }
 //            if (params.builderContext.descendants.containsKey(params.join)) {
 //                result.addAll(getDescendantJoins(params.join, params.builderContext.descendants, result));

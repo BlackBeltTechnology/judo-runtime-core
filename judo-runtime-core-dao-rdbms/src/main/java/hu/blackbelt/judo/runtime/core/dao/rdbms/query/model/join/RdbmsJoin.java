@@ -101,8 +101,8 @@ public abstract class RdbmsJoin {
         return partnerTableName;
     }
 
-    protected String getJoinCondition(SqlConverterContext params) {
-        final String partnerTableName = getPartnerTableName(params.prefix, params.prefixes);
+    protected String getJoinCondition(SqlConverterContext context) {
+        final String partnerTableName = getPartnerTableName(context.prefix, context.prefixes);
 
         final String joinCondition;
         if (junctionTableName != null) {
@@ -110,44 +110,37 @@ public abstract class RdbmsJoin {
                             "   SELECT 1" +
                             "   FROM " + junctionTableName +
                             "   WHERE " + partnerTableName + "." + partnerColumnName + " = " + junctionTableName + "." + junctionOppositeColumnName +
-                            "       AND " + junctionTableName + "." + junctionColumnName + " = " + params.prefix + alias + "." + columnName +
+                            "       AND " + junctionTableName + "." + junctionColumnName + " = " + context.prefix + alias + "." + columnName +
                             ")";
-            joinConditionTableAliases.addAll(List.of(partnerTableName, junctionTableName, params.prefix + alias));
-            aliasToCompareWith = params.prefix + alias;
+            joinConditionTableAliases.addAll(List.of(partnerTableName, junctionTableName, context.prefix + alias));
+            aliasToCompareWith = context.prefix + alias;
         } else if (partnerTableName != null && partnerColumnName != null && columnName != null) {
-            joinCondition = partnerTableName + "." + partnerColumnName + " = " + params.prefix + alias + "." + columnName;
-            joinConditionTableAliases.addAll(List.of(partnerTableName, params.prefix + alias));
-            aliasToCompareWith = params.prefix + alias;
+            joinCondition = partnerTableName + "." + partnerColumnName + " = " + context.prefix + alias + "." + columnName;
+            joinConditionTableAliases.addAll(List.of(partnerTableName, context.prefix + alias));
+            aliasToCompareWith = context.prefix + alias;
         } else {
             joinCondition = "1 = 1";
         }
 
         if (!onConditions.isEmpty()) {
             return joinCondition + " AND " + onConditions.stream()
-                                                         .map(c -> c.toSql(SqlConverterContext.builder()
-                                                                 .includeAlias(false)
-                                                                 .prefix(params.prefix)
-                                                                 .prefixes(params.prefixes)
-                                                                 .coercer(params.coercer)
-                                                                 .sqlParameters(params.sqlParameters)
-                                                                 .build()))
-                                                         .collect(Collectors.joining(" AND "));
+                                                         .map(c -> c.toSql(
+                                                                 context.toBuilder()
+                                                                         .includeAlias(false)
+                                                                         .build()
+                                                         )).collect(Collectors.joining(" AND "));
         } else {
             return joinCondition;
         }
     }
 
-    public Collection<String> conditionToSql(SqlConverterContext params) {
+    public Collection<String> conditionToSql(SqlConverterContext context) {
         return conditions.stream().map(c -> c.toSql(
-                SqlConverterContext.builder()
+                context.toBuilder()
                         .includeAlias(false)
-                        .prefix(params.prefix)
-                        .prefixes(params.prefixes)
-                        .coercer(params.coercer)
-                        .sqlParameters(params.sqlParameters)
                         .build()
         )).collect(Collectors.toList());
     }
 
-    protected abstract String getTableNameOrSubQuery(SqlConverterContext params);
+    protected abstract String getTableNameOrSubQuery(SqlConverterContext context);
 }

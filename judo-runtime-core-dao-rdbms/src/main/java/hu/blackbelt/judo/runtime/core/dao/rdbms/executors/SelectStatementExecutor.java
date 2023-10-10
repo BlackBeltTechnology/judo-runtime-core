@@ -670,6 +670,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             final String sql = resultSetHandler.toSql(
                     SqlConverterContext.builder()
+                            .includeAlias(true)
                             .coercer(getCoercer())
                             .sqlParameters(sqlParameters)
                             .prefixes(ECollections.emptyEMap())

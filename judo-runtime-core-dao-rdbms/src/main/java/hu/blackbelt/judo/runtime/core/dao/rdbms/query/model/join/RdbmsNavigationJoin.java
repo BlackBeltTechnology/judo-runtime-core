@@ -296,12 +296,12 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
     }
 
     @Override
-    protected String getTableNameOrSubQuery(SqlConverterContext params) {
-        final String subSelectJoinPrefix = params.prefix + RdbmsAliasUtil.getNavigationSubSelectAlias(query);
-        aliasToCompareWith = params.prefix + alias;
+    protected String getTableNameOrSubQuery(SqlConverterContext context) {
+        final String subSelectJoinPrefix = context.prefix + RdbmsAliasUtil.getNavigationSubSelectAlias(query);
+        aliasToCompareWith = context.prefix + alias;
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(params.prefixes);
+        newPrefixes.putAll(context.prefixes);
         if (query.getBase() != null) {
             newPrefixes.put(query.getBase(), subSelectJoinPrefix);
         }
@@ -312,8 +312,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         SqlConverterContext subSelectSqlConverterContext = SqlConverterContext.builder()
                 .prefix(subSelectJoinPrefix)
                 .includeAlias(false)
-                .coercer(params.coercer)
-                .sqlParameters(params.sqlParameters)
+                .coercer(context.coercer)
+                .sqlParameters(context.sqlParameters)
                 .prefixes(newPrefixes)
                 .build();
 
@@ -324,7 +324,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .collect(Collectors.toList());
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "(" + "SELECT DISTINCT " + subFeatures.stream().map(o -> o.toSql(
-                        params.toBuilder()
+                        context.toBuilder()
                                 .prefix(subSelectJoinPrefix)
                                 .includeAlias(true)
                                 .prefixes(newPrefixes)
@@ -332,9 +332,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 )).collect(Collectors.joining(", ")) +
                 "\n    FROM " + subFrom + (query.getBase() != null ? " AS " + subSelectJoinPrefix + query.getBase().getAlias() : "") +
                 getJoin(
-                        params.toBuilder()
-                                .prefix(subSelectJoinPrefix)
-                                .prefixes(newPrefixes)
+                        context.toBuilder()
+                                .includeAlias(true)
                                 .build()
                 ) +
                 (!allConditions.isEmpty() ? "\n    WHERE " + String.join(" AND ", allConditions) : "") +

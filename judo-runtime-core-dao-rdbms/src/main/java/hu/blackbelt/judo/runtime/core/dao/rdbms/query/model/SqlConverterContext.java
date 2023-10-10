@@ -8,8 +8,10 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 @Builder(toBuilder = true)
 public class SqlConverterContext {
-    public String prefix;
-    boolean includeAlias;
+    @Builder.Default
+    public String prefix = "";
+    @Builder.Default
+    boolean includeAlias = false;
     public Coercer coercer;
     public MapSqlParameterSource sqlParameters;
     public EMap<Node, String> prefixes;

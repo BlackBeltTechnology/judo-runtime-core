@@ -54,7 +54,7 @@ public abstract class RdbmsField {
      *
      * @return SQL string
      */
-    public abstract String toSql(SqlConverterContext params);
+    public abstract String toSql(SqlConverterContext context);
 
     protected String getWithAlias(final String sql, final boolean includeAlias) {
         return sql + (includeAlias && alias != null ? " AS " + getRdbmsAlias() : "");

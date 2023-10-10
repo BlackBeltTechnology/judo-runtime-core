@@ -36,14 +36,10 @@ public class RdbmsOrderBy {
     @NonNull
     private final Boolean descending;
 
-    public String toSql(SqlConverterContext params) {
+    public String toSql(SqlConverterContext context) {
         return (fromSubSelect ? rdbmsField.getRdbmsAlias() : rdbmsField.toSql(
-                SqlConverterContext.builder()
-                        .prefix(params.prefix)
+                context.toBuilder()
                         .includeAlias(false)
-                        .coercer(params.coercer)
-                        .sqlParameters(params.sqlParameters)
-                        .prefixes(params.prefixes)
                         .build())) +
                 (descending ? " DESC" : " ASC") + " NULLS " + (descending ? "FIRST" : "LAST");
     }

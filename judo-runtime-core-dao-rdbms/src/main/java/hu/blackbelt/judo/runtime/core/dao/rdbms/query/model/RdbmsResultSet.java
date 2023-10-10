@@ -448,27 +448,27 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     @Override
-    public String toSql(SqlConverterContext params) {
+    public String toSql(SqlConverterContext context) {
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(params.prefixes);
-        newPrefixes.put(query.getSelect(), params.prefix);
+        newPrefixes.putAll(context.prefixes);
+        newPrefixes.put(query.getSelect(), context.prefix);
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
-                .collect(Collectors.toMap(join -> join, join -> params.prefix)));
+                .collect(Collectors.toMap(join -> join, join -> context.prefix)));
 
         final Collection<String> allConditions = Stream
                 .concat(joins.stream().flatMap(j -> j.conditionToSql(
-                        params.toBuilder()
+                        context.toBuilder()
                                 .prefixes(newPrefixes)
                                 .build()).stream()),
                         conditions.stream().map(c -> c.toSql(
-                                params.toBuilder()
+                                context.toBuilder()
                                         .includeAlias(false)
                                         .prefixes(newPrefixes)
                                         .build())
                         ))
                 .collect(Collectors.toList());
-        final List<String> orderByAttributes = orderBys.stream().map(o -> o.toSql(params)).collect(Collectors.toList());
+        final List<String> orderByAttributes = orderBys.stream().map(o -> o.toSql(context)).collect(Collectors.toList());
 
         boolean multiplePaths = false;
         boolean foundManyCardinality = query.getBase() != null && query.getBase().getFeatures().isEmpty();
@@ -482,20 +482,20 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
         final String sql = getSelect(addDistinct,
-                params.toBuilder().prefixes(newPrefixes).build()) +
-                getFrom(params.prefix, rdbmsBuilder.getDialect().getDualTable()) +
-                getJoin(params.toBuilder().prefixes(newPrefixes).build()) +
+                context.toBuilder().prefixes(newPrefixes).build()) +
+                getFrom(context.prefix, rdbmsBuilder.getDialect().getDualTable()) +
+                getJoin(context.toBuilder().prefixes(newPrefixes).build()) +
                 getWhere(allConditions) +
-                getGroupBy(params.prefix) +
+                getGroupBy(context.prefix) +
                 getOrderBy(orderByAttributes) +
                 getLimit() +
                 getOffset();
         return sql;
     }
 
-    private String getSelect(boolean addDistinct, SqlConverterContext params) {
+    private String getSelect(boolean addDistinct, SqlConverterContext context) {
         String columns = this.columns.stream()
-                .map(c -> c.toSql(params))
+                .map(c -> c.toSql(context))
                 .sorted() // sorting serves debugging purposes only
                 .collect(Collectors.joining(", "));
         String distinct = addDistinct ? "DISTINCT " : "";

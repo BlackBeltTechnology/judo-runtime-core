@@ -153,8 +153,8 @@ public abstract class JoinFactory {
                         .collect(Collectors.toSet());
                 */
                 // Get all reference and inherited references
+                /*
                 Set<EReference> allRelatedReferences = new HashSet<>();
-                
                 allRelatedReferences.addAll(lastPartner.getType().getEAllReferences());
                 final EReference reference =
                         allRelatedReferences.stream()
@@ -162,6 +162,16 @@ public abstract class JoinFactory {
                                 .findAny()
                                 .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
                                         navigation.getFeatureName())));
+                 */
+
+                final EReference reference =
+                        lastPartner.getType()
+                                .getEAllReferences().stream()
+                                .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
+                                .findAny()
+                                .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
+                                        navigation.getFeatureName())));
+
                 checkArgument(reference != null, "Unknown reference: " + navigation.getFeatureName());
                 checkArgument(!reference.isDerived(), String.format("Derived references must be resolved by expression builder: %s (%s)",
                         reference.getName(), modelAdapter.getFqName(reference.eContainer())));
