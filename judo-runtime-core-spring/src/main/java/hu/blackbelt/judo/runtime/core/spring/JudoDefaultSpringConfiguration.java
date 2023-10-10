@@ -43,6 +43,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.DescendantNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import hu.blackbelt.judo.runtime.core.dispatcher.*;
@@ -184,6 +185,7 @@ public class JudoDefaultSpringConfiguration {
         return RdbmsBuilder.builder()
                 .rdbmsModel(rdbmsModel)
                 .ancestorNameFactory(new AncestorNameFactory(asm.all(EClass.class)))
+                .descendantNameFactory(new DescendantNameFactory(asm.all(EClass.class)))
                 .rdbmsResolver(rdbmsResolver)
                 .parameterMapper(rdbmsParameterMapper)
                 .asmUtils(asm)

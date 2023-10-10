@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  */
 
 import hu.blackbelt.judo.meta.query.Node;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
@@ -41,29 +42,29 @@ public class RdbmsTableJoin extends RdbmsJoin {
     private final RdbmsTableJoin rdbmsPartnerTable;
 
     @Override
-    protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
+    protected String getTableNameOrSubQuery(SqlConverterContext params) {
         return tableName;
     }
 
     @Override
-    protected String getJoinCondition(String prefix, EMap<Node, String> prefixes, Coercer coercer, MapSqlParameterSource sqlParameters) {
+    protected String getJoinCondition(SqlConverterContext context) {
         if (rdbmsPartnerTable != null && partnerTable != null) {
             log.warn("Both rdbmsPartnerTable and partnerTable are set for RdbmsTableJoin, rdbmsPartnerTable will be used instead of partnerTable");
         }
         if (rdbmsPartnerTable != null) {
-            final String joinCondition = prefix + rdbmsPartnerTable.alias + "." + rdbmsPartnerTable.columnName + " = " + prefix + alias + "." + columnName;
-            joinConditionTableAliases.addAll(List.of(prefix + rdbmsPartnerTable.alias, prefix + alias));
-            aliasToCompareWith = prefix + alias;
+            final String joinCondition = context.prefix + rdbmsPartnerTable.alias + "." + rdbmsPartnerTable.columnName + " = " + context.prefix + alias + "." + columnName;
+            joinConditionTableAliases.addAll(List.of(context.prefix + rdbmsPartnerTable.alias, context.prefix + alias));
+            aliasToCompareWith = context.prefix + alias;
 
             if (!onConditions.isEmpty()) {
                 return joinCondition + " AND " + onConditions.stream()
-                                                             .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
+                                                             .map(c -> c.toSql(context.toBuilder().includeAlias(false).build()))
                                                              .collect(Collectors.joining(" AND "));
             }
 
             return joinCondition;
         } else {
-            return super.getJoinCondition(prefix, prefixes, coercer, sqlParameters);
+            return super.getJoinCondition(context);
         }
     }
 
