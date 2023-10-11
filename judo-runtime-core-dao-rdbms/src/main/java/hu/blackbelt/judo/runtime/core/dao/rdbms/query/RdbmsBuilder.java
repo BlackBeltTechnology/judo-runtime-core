@@ -180,41 +180,46 @@ public class RdbmsBuilder<ID> {
      */
     @SuppressWarnings("unchecked")
     public List<RdbmsJoin> processJoin(ProcessJoinParameters params) {
-        if (params.join instanceof ReferencedJoin) {
+        final Node join = params.join;
+        final boolean withoutFeatures = params.withoutFeatures;
+        final Map<String, Object> mask = params.mask;
+        final RdbmsBuilderContext builderContext = params.builderContext;
+        
+        if (join instanceof ReferencedJoin) {
             return processSimpleJoin(ProcessSimpleJoinParameters.builder()
-                    .join((ReferencedJoin) params.join)
-                    .reference(((ReferencedJoin)  params.join).getReference())
-                    .opposite(((ReferencedJoin)  params.join).getReference().getEOpposite())
-                    .builderContext(params.builderContext)
+                    .join((ReferencedJoin) join)
+                    .reference(((ReferencedJoin)  join).getReference())
+                    .opposite(((ReferencedJoin)  join).getReference().getEOpposite())
+                    .builderContext(builderContext)
                     .build());
-        } else if (params.join instanceof ContainerJoin) {
-            return processContainerJoin((ContainerJoin) params.join, params.builderContext);
-        } else if (params.join instanceof CastJoin) {
-            return processCastJoin(params.join, params.builderContext);
-        } else if (params.join instanceof SubSelectJoin) {
-            final SubSelect subSelect = ((SubSelectJoin) params.join).getSubSelect();
-            subSelect.getFilters().addAll(params.join.getFilters());
+        } else if (join instanceof ContainerJoin) {
+            return processContainerJoin((ContainerJoin) join, builderContext);
+        } else if (join instanceof CastJoin) {
+            return processCastJoin(join, builderContext);
+        } else if (join instanceof SubSelectJoin) {
+            final SubSelect subSelect = ((SubSelectJoin) join).getSubSelect();
+            subSelect.getFilters().addAll(join.getFilters());
 
             final List<RdbmsJoin> joins = new ArrayList<>();
-            final Map<String, Object> _mask = params.mask != null && subSelect.getTransferRelation() != null ? (Map<String, Object>) params.mask.get(subSelect.getTransferRelation().getName()) : null;
+            final Map<String, Object> _mask = mask != null && subSelect.getTransferRelation() != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null;
             final RdbmsResultSet<ID> resultSetHandler =
                     RdbmsResultSet.<ID>builder()
                             .query(subSelect)
                             .filterByInstances(false)
-                            .parentIdFilterQuery(params.builderContext.parentIdFilterQuery)
+                            .parentIdFilterQuery(builderContext.parentIdFilterQuery)
                             .rdbmsBuilder(this)
                             .seek(null)
-                            .withoutFeatures(params.withoutFeatures)
+                            .withoutFeatures(withoutFeatures)
                             .mask(_mask)
-                            .queryParameters(params.builderContext.queryParameters)
+                            .queryParameters(builderContext.queryParameters)
                             .skipParents(false)
                             .build();
 
-            if (!AsmUtils.equals(((SubSelectJoin) params.join).getPartner(), subSelect.getBase())) {
+            if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
                 joins.add(RdbmsTableJoin.builder()
                         .tableName(getTableName(subSelect.getBase().getType()))
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
-                        .partnerTable(((SubSelectJoin) params.join).getPartner())
+                        .partnerTable(((SubSelectJoin) join).getPartner())
                         .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
                         .alias(subSelect.getBase().getAlias())
                         .build());
@@ -237,20 +242,20 @@ public class RdbmsBuilder<ID> {
             final Optional<RdbmsMapper.RdbmsTarget> selectorTarget = RdbmsMapper.getTargets(selectorFeature.get()).findAny();
             checkArgument(selectorTarget.isPresent(), "SubSelectFeature target must exists");
             joins.add(RdbmsTableJoin.builder()
-                    .tableName(rdbmsResolver.rdbmsTable(params.join.getType()).getSqlName())
-                    .alias(params.join.getAlias())
+                    .tableName(rdbmsResolver.rdbmsTable(join.getType()).getSqlName())
+                    .alias(join.getAlias())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
                     .partnerTable(subSelect)
                     .partnerColumnName(selectorTarget.get().getAlias() + "_" + selectorTarget.get().getTarget().getIndex())
                     .outer(true)
                     .build());
 
-            if (params.builderContext.ancestors.containsKey(params.join)) {
-                addAncestorJoins(joins, params.join, params.builderContext.ancestors);
+            if (builderContext.ancestors.containsKey(join)) {
+                addAncestorJoins(joins, join, builderContext.ancestors);
             }
 
-//            if (params.builderContext.descendants.containsKey(params.join)) {
-//                result.addAll(getDescendantJoins(params.join, params.builderContext.descendants, result));
+//            if (builderContext.descendants.containsKey(join)) {
+//                result.addAll(getDescendantJoins(join, builderContext.descendants, result));
 //
 ////                result.addAll(descendants.get(join).stream()
 ////                        .flatMap(descendant -> getDescendantJoins(join, descendants, result).stream())
@@ -258,10 +263,10 @@ public class RdbmsBuilder<ID> {
 //            }
 
             return joins;
-        } else if (params.join instanceof CustomJoin) {
+        } else if (join instanceof CustomJoin) {
             final List<RdbmsJoin> joins = new ArrayList<>();
 
-            final CustomJoin customJoin = (CustomJoin) params.join;
+            final CustomJoin customJoin = (CustomJoin) join;
 
             final String sql;
             if (customJoin.getNavigationSql().indexOf('`') != -1) {
@@ -273,15 +278,15 @@ public class RdbmsBuilder<ID> {
             joins.add(RdbmsCustomJoin.builder()
                     .sql(sql)
                     .sourceIdSetParameterName(customJoin.getSourceIdSetParameter())
-                    .alias(params.join.getAlias())
+                    .alias(join.getAlias())
                     .columnName(customJoin.getSourceIdParameter())
                     .partnerTable(customJoin.getPartner())
                     .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
                     .outer(true)
                     .build());
 
-            if (params.builderContext.ancestors.containsKey(params.join)) {
-                addAncestorJoins(joins, params.join, params.builderContext.ancestors);
+            if (builderContext.ancestors.containsKey(join)) {
+                addAncestorJoins(joins, join, builderContext.ancestors);
             }
             return joins;
         } else {
@@ -350,12 +355,19 @@ public class RdbmsBuilder<ID> {
 
 //final String postfix, final Join join, final EReference reference, final EReference opposite, final EMap<Node, EList<EClass>> ancestors, final EMap<Node, EList<EClass>> descendants, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters
     private List<RdbmsJoin> processSimpleJoin(ProcessSimpleJoinParameters params) {
-        final EClass targetType = params.join.getType();
-        final Node node = params.join.getPartner();
+        final String postfix = params.postfix;
+        final Join join = params.join;
+        final EReference reference = params.reference;
+        final EReference opposite = params.opposite;
+        final RdbmsBuilderContext builderContext = params.builderContext;
+
+
+        final EClass targetType = join.getType();
+        final Node node = join.getPartner();
         final EClass sourceType = node.getType();
 
         if (log.isTraceEnabled()) {
-            log.trace(" => processing JOIN: {}", params.join);
+            log.trace(" => processing JOIN: {}", join);
             log.trace("    target type: {}", targetType.getName());
             log.trace("    source type: {}", sourceType.getName());
         }
@@ -367,18 +379,18 @@ public class RdbmsBuilder<ID> {
         final RdbmsJoin.RdbmsJoinBuilder builder = RdbmsTableJoin.builder()
                 .outer(true)
                 .tableName(tableName)
-                .alias(params.join.getAlias() + params.postfix)
+                .alias(join.getAlias() + postfix)
                 .partnerTable(node);
 
         final Rule rule;
         EClass sourceContainer = null;
-        if (params.reference != null) {
+        if (reference != null) {
             // get RDBMS rule of a given reference
-            rule = rules.getRuleFromReference(params.reference);
+            rule = rules.getRuleFromReference(reference);
 
-            sourceContainer = params.reference.getEContainingClass();
+            sourceContainer = reference.getEContainingClass();
             if (log.isTraceEnabled()) {
-                log.trace("    reference: {}", params.reference.getName());
+                log.trace("    reference: {}", reference.getName());
                 log.trace("    reference container: {}", sourceContainer.getName());
             }
         } else {
@@ -386,12 +398,12 @@ public class RdbmsBuilder<ID> {
         }
 
         final Rule oppositeRule;
-        if (params.opposite != null) {
-            oppositeRule = rules.getRuleFromReference(params.opposite);
+        if (opposite != null) {
+            oppositeRule = rules.getRuleFromReference(opposite);
 
-            final EClass oppositeContainer = params.opposite.getEReferenceType();
+            final EClass oppositeContainer = opposite.getEReferenceType();
             if (log.isTraceEnabled()) {
-                log.trace("    opposite: {}", params.opposite.getName());
+                log.trace("    opposite: {}", opposite.getName());
                 log.trace("    opposite reference container: {}", oppositeContainer.getName());
             }
 
@@ -405,60 +417,60 @@ public class RdbmsBuilder<ID> {
         if (!AsmUtils.equals(sourceType, sourceContainer)) { // reference is inherited from another class, resolve ancestor too
             log.trace("  - reference '{}' is inherited");
 
-            if (!params.builderContext.ancestors.containsKey(node)) {
-                params.builderContext.ancestors.put(node, new UniqueEList<>());
+            if (!builderContext.ancestors.containsKey(node)) {
+                builderContext.ancestors.put(node, new UniqueEList<>());
             }
-            params.builderContext.ancestors.get(node).add(sourceContainer);
+            builderContext.ancestors.get(node).add(sourceContainer);
             builder.partnerTablePostfix(getAncestorPostfix(sourceContainer));
         }
         if (!targetType.getEAllSuperTypes().isEmpty()) {
-            if (!params.builderContext.ancestors.containsKey(params.join)) {
-                params.builderContext.ancestors.put(params.join, new UniqueEList<>());
+            if (!builderContext.ancestors.containsKey(join)) {
+                builderContext.ancestors.put(join, new UniqueEList<>());
             }
-            params.builderContext.ancestors.get(params.join).addAll(targetType.getEAllSuperTypes());
+            builderContext.ancestors.get(join).addAll(targetType.getEAllSuperTypes());
         }
 
         if (rule != null && rule.isForeignKey()) { // reference is owned by source class, target class has reference to the ID with different name
-            log.trace("  - reference '{}' is foreign key", params.reference.getName());
+            log.trace("  - reference '{}' is foreign key", reference.getName());
 
-            builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(params.reference).getSqlName());
+            builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(reference).getSqlName());
         } else if (rule != null && rule.isInverseForeignKey()) {  // reference is owned by target class, source class has reference to the ID with different name
-            log.trace("  - reference '{}' is inverse foreign key", params.reference.getName());
+            log.trace("  - reference '{}' is inverse foreign key", reference.getName());
 
-            builder.columnName(rdbmsResolver.rdbmsField(params.reference).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
+            builder.columnName(rdbmsResolver.rdbmsField(reference).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
         } else if (rule != null && rule.isJoinTable()) { // JOIN tables are not supported yet
-            log.trace("  - reference '{}' is JOIN table", params.reference.getName());
+            log.trace("  - reference '{}' is JOIN table", reference.getName());
 
             builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
-                    .junctionTableName(rdbmsResolver.rdbmsJunctionTable(params.reference).getSqlName())
-                    .junctionColumnName(rdbmsResolver.rdbmsJunctionField(params.reference).getSqlName())
-                    .junctionOppositeColumnName(rdbmsResolver.rdbmsJunctionOppositeField(params.reference).getSqlName());
+                    .junctionTableName(rdbmsResolver.rdbmsJunctionTable(reference).getSqlName())
+                    .junctionColumnName(rdbmsResolver.rdbmsJunctionField(reference).getSqlName())
+                    .junctionOppositeColumnName(rdbmsResolver.rdbmsJunctionOppositeField(reference).getSqlName());
         } else if (oppositeRule != null && oppositeRule.isForeignKey()) { // reference is owned by source class, target class has reference to the ID with different name (defined by opposite reference)
-            log.trace("  - opposite reference '{}' is foreign key", params.opposite.getName());
+            log.trace("  - opposite reference '{}' is foreign key", opposite.getName());
 
-            builder.columnName(rdbmsResolver.rdbmsField(params.opposite).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
+            builder.columnName(rdbmsResolver.rdbmsField(opposite).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
         } else if (oppositeRule != null && oppositeRule.isInverseForeignKey()) {  // reference is owned by target class, source class has reference to the ID with different name (defined by opposite reference)
-            log.trace("  - opposite reference '{}' is inverse foreign key", params.opposite.getName());
+            log.trace("  - opposite reference '{}' is inverse foreign key", opposite.getName());
 
-            builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(params.opposite).getSqlName());
+            builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(opposite).getSqlName());
         } else if (oppositeRule != null && oppositeRule.isJoinTable()) { // JOIN tables are not supported yet
-            log.trace("  - opposite reference '{}' is JOIN table", params.opposite.getName());
+            log.trace("  - opposite reference '{}' is JOIN table", opposite.getName());
 
             builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
-                    .junctionTableName(rdbmsResolver.rdbmsJunctionTable(params.opposite).getSqlName())
-                    .junctionColumnName(rdbmsResolver.rdbmsJunctionField(params.opposite).getSqlName())
-                    .junctionOppositeColumnName(rdbmsResolver.rdbmsJunctionOppositeField(params.opposite).getSqlName());
+                    .junctionTableName(rdbmsResolver.rdbmsJunctionTable(opposite).getSqlName())
+                    .junctionColumnName(rdbmsResolver.rdbmsJunctionField(opposite).getSqlName())
+                    .junctionOppositeColumnName(rdbmsResolver.rdbmsJunctionOppositeField(opposite).getSqlName());
         } else {
             throw new IllegalStateException("Invalid reference");
         }
 
-        if (!params.join.getFilters().isEmpty() && params.join.getFilters().stream().noneMatch(filter -> filter.getFeatures().stream().anyMatch(feature -> feature instanceof SubSelectFeature))) {
-            builder.onConditions(params.join.getFilters().stream()
+        if (!join.getFilters().isEmpty() && join.getFilters().stream().noneMatch(filter -> filter.getFeatures().stream().anyMatch(feature -> feature instanceof SubSelectFeature))) {
+            builder.onConditions(join.getFilters().stream()
                     .map(f -> RdbmsFunction.builder()
                             .pattern("EXISTS ({0})")
                             .parameter(
                                     RdbmsNavigationFilter.<ID>builder()
-                                            .builderContext(params.builderContext)
+                                            .builderContext(builderContext)
                                             .filter(f)
                                             .build())
                             .build())
@@ -470,8 +482,8 @@ public class RdbmsBuilder<ID> {
         final List<RdbmsJoin> joins = new ArrayList<>();
         joins.add(rdbmsJoin);
 
-        if (params.builderContext.ancestors.containsKey(params.join)) {
-            addAncestorJoins(joins, params.join, params.builderContext.ancestors);
+        if (builderContext.ancestors.containsKey(join)) {
+            addAncestorJoins(joins, join, builderContext.ancestors);
         }
 
         return joins;
