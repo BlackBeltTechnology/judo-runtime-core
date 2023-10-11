@@ -494,11 +494,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
     }
 
     @Override
-    public Stream<? extends RdbmsField> map(final Function function, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    public Stream<? extends RdbmsField> map(final Function function, RdbmsBuilder.RdbmsBuilderContext context) {
         final EMap<ParameterName, RdbmsField> parameters = ECollections.asEMap(function.getParameters().stream()
                 .collect(Collectors.<FunctionParameter, ParameterName, RdbmsField>toMap(
                         FunctionParameter::getParameterName,
-                        e -> rdbmsBuilder.mapFeatureToRdbms(e.getParameterValue(), ancestors, parentIdFilterQuery, queryParameters).findAny().
+                        e -> rdbmsBuilder.mapFeatureToRdbms(e.getParameterValue(), context).findAny().
                                 orElseThrow(() -> new IllegalStateException("Rdbms field not found for parameter: " + e.getParameterName())))));
 
         return getTargets(function).map(t -> {
