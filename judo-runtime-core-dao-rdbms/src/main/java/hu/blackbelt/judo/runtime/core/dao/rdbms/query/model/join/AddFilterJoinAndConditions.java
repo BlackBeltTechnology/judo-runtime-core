@@ -11,10 +11,13 @@ import lombok.Builder;
 import lombok.NonNull;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
+import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
+import org.eclipse.emf.ecore.EClass;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -52,6 +55,10 @@ public class AddFilterJoinAndConditions {
         final String partnerTablePrefix = params.partnerTablePrefix;
         final Node partnerTable = params.partnerTable;
         final RdbmsBuilder.RdbmsBuilderContext builderContext = params.builderContext;
+        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
+        final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
+        final SubSelect parentIdFilterQuery = builderContext.parentIdFilterQuery;
+        final Map<String, Object> queryParameters = builderContext.queryParameters;
 
         if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
             joins.add(RdbmsTableJoin.builder()
@@ -116,10 +123,10 @@ public class AddFilterJoinAndConditions {
                                 RdbmsResultSet.<ID>builder()
                                         .query(f.getSubSelect())
                                         .filterByInstances(false)
-                                        .parentIdFilterQuery(builderContext.parentIdFilterQuery)
+                                        .parentIdFilterQuery(parentIdFilterQuery)
                                         .rdbmsBuilder(rdbmsBuilder)
                                         .withoutFeatures(true)
-                                        .queryParameters(builderContext.queryParameters)
+                                        .queryParameters(queryParameters)
                                         .skipParents(false)
                                         .build())
                         .outer(true)
@@ -131,7 +138,7 @@ public class AddFilterJoinAndConditions {
                 .collect(Collectors.toList()));
         conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), builderContext).collect(Collectors.toList()));
 
-        rdbmsBuilder.addAncestorJoins(joins, filter, builderContext.ancestors);
+        rdbmsBuilder.addAncestorJoins(joins, filter, ancestors);
     }
 
 }

@@ -43,14 +43,16 @@ public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
 
     @Override
     public Stream<? extends RdbmsField> map(final Constant constant, RdbmsBuilder.RdbmsBuilderContext context) {
+        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+
         final String id = EcoreUtil.getIdentification(constant);
         if (id != null) {
             synchronized (this) {
-                if (context.rdbmsBuilder.getConstantFields().get().containsKey(id)) {
-                    return context.rdbmsBuilder.getConstantFields().get().get(id).stream();
+                if (rdbmsBuilder.getConstantFields().get().containsKey(id)) {
+                    return rdbmsBuilder.getConstantFields().get().get(id).stream();
                 } else {
                     final List<? extends RdbmsField> fields = getFields(context, constant).collect(Collectors.toList());
-                    context.rdbmsBuilder.getConstantFields().get().put(id, fields);
+                    rdbmsBuilder.getConstantFields().get().put(id, fields);
                     return fields.stream();
                 }
             }
@@ -60,9 +62,11 @@ public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
     }
 
     private Stream<? extends RdbmsField> getFields(RdbmsBuilder.RdbmsBuilderContext context, final Constant constant) {
+        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+
         return getTargets(constant).map(t -> RdbmsConstant.builder()
-                .parameter(context.rdbmsBuilder.getParameterMapper().createParameter(constant.getValue(), null))
-                .index(context.rdbmsBuilder.getConstantCounter().getAndIncrement())
+                .parameter(rdbmsBuilder.getParameterMapper().createParameter(constant.getValue(), null))
+                .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
                 .target(t.getTarget())
                 .targetAttribute(t.getTargetAttribute())
                 .alias(t.getAlias())

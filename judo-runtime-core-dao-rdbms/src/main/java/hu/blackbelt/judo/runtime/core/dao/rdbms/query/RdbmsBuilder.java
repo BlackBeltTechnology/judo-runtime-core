@@ -184,7 +184,12 @@ public class RdbmsBuilder<ID> {
         final boolean withoutFeatures = params.withoutFeatures;
         final Map<String, Object> mask = params.mask;
         final RdbmsBuilderContext builderContext = params.builderContext;
-        
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.rdbmsBuilder;
+        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
+        final SubSelect parentIdFilterQuery = builderContext.parentIdFilterQuery;
+        final Map<String, Object> queryParameters = builderContext.queryParameters;
+
+
         if (join instanceof ReferencedJoin) {
             return processSimpleJoin(ProcessSimpleJoinParameters.builder()
                     .join((ReferencedJoin) join)
@@ -206,12 +211,12 @@ public class RdbmsBuilder<ID> {
                     RdbmsResultSet.<ID>builder()
                             .query(subSelect)
                             .filterByInstances(false)
-                            .parentIdFilterQuery(builderContext.parentIdFilterQuery)
-                            .rdbmsBuilder((RdbmsBuilder<ID>) params.builderContext.rdbmsBuilder)
+                            .parentIdFilterQuery(parentIdFilterQuery)
+                            .rdbmsBuilder((RdbmsBuilder<ID>) rdbmsBuilder)
                             .seek(null)
                             .withoutFeatures(withoutFeatures)
                             .mask(_mask)
-                            .queryParameters(builderContext.queryParameters)
+                            .queryParameters(queryParameters)
                             .skipParents(false)
                             .build();
 
@@ -250,12 +255,12 @@ public class RdbmsBuilder<ID> {
                     .outer(true)
                     .build());
 
-            if (builderContext.ancestors.containsKey(join)) {
-                addAncestorJoins(joins, join, builderContext.ancestors);
+            if (ancestors.containsKey(join)) {
+                addAncestorJoins(joins, join, ancestors);
             }
 
-//            if (builderContext.descendants.containsKey(join)) {
-//                result.addAll(getDescendantJoins(join, builderContext.descendants, result));
+//            if (descendants.containsKey(join)) {
+//                result.addAll(getDescendantJoins(join, descendants, result));
 //
 ////                result.addAll(descendants.get(join).stream()
 ////                        .flatMap(descendant -> getDescendantJoins(join, descendants, result).stream())
@@ -285,8 +290,8 @@ public class RdbmsBuilder<ID> {
                     .outer(true)
                     .build());
 
-            if (builderContext.ancestors.containsKey(join)) {
-                addAncestorJoins(joins, join, builderContext.ancestors);
+            if (ancestors.containsKey(join)) {
+                addAncestorJoins(joins, join, ancestors);
             }
             return joins;
         } else {
@@ -360,6 +365,7 @@ public class RdbmsBuilder<ID> {
         final EReference reference = params.reference;
         final EReference opposite = params.opposite;
         final RdbmsBuilderContext builderContext = params.builderContext;
+        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
 
 
         final EClass targetType = join.getType();
@@ -417,17 +423,17 @@ public class RdbmsBuilder<ID> {
         if (!AsmUtils.equals(sourceType, sourceContainer)) { // reference is inherited from another class, resolve ancestor too
             log.trace("  - reference '{}' is inherited");
 
-            if (!builderContext.ancestors.containsKey(node)) {
-                builderContext.ancestors.put(node, new UniqueEList<>());
+            if (!ancestors.containsKey(node)) {
+                ancestors.put(node, new UniqueEList<>());
             }
-            builderContext.ancestors.get(node).add(sourceContainer);
+            ancestors.get(node).add(sourceContainer);
             builder.partnerTablePostfix(getAncestorPostfix(sourceContainer));
         }
         if (!targetType.getEAllSuperTypes().isEmpty()) {
-            if (!builderContext.ancestors.containsKey(join)) {
-                builderContext.ancestors.put(join, new UniqueEList<>());
+            if (!ancestors.containsKey(join)) {
+                ancestors.put(join, new UniqueEList<>());
             }
-            builderContext.ancestors.get(join).addAll(targetType.getEAllSuperTypes());
+            ancestors.get(join).addAll(targetType.getEAllSuperTypes());
         }
 
         if (rule != null && rule.isForeignKey()) { // reference is owned by source class, target class has reference to the ID with different name
@@ -482,8 +488,8 @@ public class RdbmsBuilder<ID> {
         final List<RdbmsJoin> joins = new ArrayList<>();
         joins.add(rdbmsJoin);
 
-        if (builderContext.ancestors.containsKey(join)) {
-            addAncestorJoins(joins, join, builderContext.ancestors);
+        if (ancestors.containsKey(join)) {
+            addAncestorJoins(joins, join, ancestors);
         }
 
         return joins;
@@ -494,6 +500,12 @@ public class RdbmsBuilder<ID> {
 //                                                 final Map<String, Object> queryParameters
 
     private List<RdbmsJoin> processContainerJoin(ContainerJoin join, RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.rdbmsBuilder;
+        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
+        final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
+        final SubSelect parentIdFilterQuery = builderContext.parentIdFilterQuery;
+        final Map<String, Object> queryParameters = builderContext.queryParameters;
+
         final EClass targetType = join.getType();
         final Node node = join.getPartner();
         final EList<EReference> references = join.getReferences();
@@ -531,6 +543,8 @@ public class RdbmsBuilder<ID> {
     }
 
     private List<RdbmsJoin> processCastJoin(Node join, RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.rdbmsBuilder;
+
         EClass castTargetType = join.getType();
         Set<EClass> typeSet = new HashSet<>(castTargetType.getEAllSuperTypes());
         typeSet.add(castTargetType);
@@ -577,7 +591,7 @@ public class RdbmsBuilder<ID> {
                 }
             } else {
                 // additional join for supertypes
-                alias += builderContext.rdbmsBuilder.getAncestorPostfix(type);
+                alias += rdbmsBuilder.getAncestorPostfix(type);
                 partnerTable = null;
                 rdbmsPartnerTable = (RdbmsTableJoin) rdbmsTableJoins.get(rdbmsTableJoins.size() - 1);
             }

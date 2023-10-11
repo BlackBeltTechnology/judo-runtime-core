@@ -41,8 +41,10 @@ public class EntityTypeNameMapper<ID> extends RdbmsMapper<EntityTypeName> {
 
     @Override
     public Stream<? extends RdbmsField> map(final EntityTypeName entityTypeName, RdbmsBuilder.RdbmsBuilderContext context) {
+        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+
         return Collections.singleton(RdbmsEntityTypeName.builder()
-                .tableName(context.rdbmsBuilder.getTableName(entityTypeName.getType()))
+                .tableName(rdbmsBuilder.getTableName(entityTypeName.getType()))
                 .type(entityTypeName.getType())
                 .build()).stream();
     }

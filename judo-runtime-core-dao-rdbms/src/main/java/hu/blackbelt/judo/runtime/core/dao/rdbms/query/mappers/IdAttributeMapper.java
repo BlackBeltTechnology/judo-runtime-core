@@ -41,14 +41,16 @@ public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
 
     @Override
     public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilder.RdbmsBuilderContext context) {
+        final EMap<Node, EList<EClass>> ancestors = context.ancestors;
+
         final EClass sourceType = idAttribute.getNode().getType();
         sourceType.getEAllSuperTypes().forEach(superType -> {
             log.trace("   - found super type: {}", AsmUtils.getClassifierFQName(superType));
-            if (!context.ancestors.containsKey(idAttribute.getNode())) {
-                context.ancestors.put(idAttribute.getNode(), new UniqueEList<>());
+            if (!ancestors.containsKey(idAttribute.getNode())) {
+                ancestors.put(idAttribute.getNode(), new UniqueEList<>());
             }
             // add ancestor for a given attribute
-            context.ancestors.get(idAttribute.getNode()).add(superType);
+            ancestors.get(idAttribute.getNode()).add(superType);
         });
 
         return getTargets(idAttribute)

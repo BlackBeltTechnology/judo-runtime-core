@@ -54,11 +54,14 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
     @Builder
     private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder.RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.rdbmsBuilder;
+        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
+        final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
+        final SubSelect parentIdFilterQuery = builderContext.parentIdFilterQuery;
+        final Map<String, Object> queryParameters = builderContext.queryParameters;
+
         this.filter = filter;
-
-        from = builderContext.rdbmsBuilder.getTableName(filter.getType());
-
-        RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.rdbmsBuilder;
+        from = rdbmsBuilder.getTableName(filter.getType());
 
         RdbmsBuilder.RdbmsBuilderContext navigationBuilderContext = builderContext.toBuilder()
                 .ancestors(ancestors)
@@ -107,12 +110,12 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                                     RdbmsResultSet.<ID>builder()
                                             .query(subSelect)
                                             .filterByInstances(false)
-                                            .parentIdFilterQuery(builderContext.parentIdFilterQuery)
+                                            .parentIdFilterQuery(parentIdFilterQuery)
                                             .rdbmsBuilder((RdbmsBuilder<ID>) rdbmsBuilder)
                                             .seek(null)
                                             .withoutFeatures(true)
                                             .mask(null)
-                                            .queryParameters(builderContext.queryParameters)
+                                            .queryParameters(queryParameters)
                                             .skipParents(false)
                                             .build()
                             )

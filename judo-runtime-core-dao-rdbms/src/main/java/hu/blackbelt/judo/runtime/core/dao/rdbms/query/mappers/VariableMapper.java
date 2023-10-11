@@ -45,7 +45,7 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
 
     @Override
     public Stream<? extends RdbmsField> map(final Variable variable, RdbmsBuilder.RdbmsBuilderContext context) {
-        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) context.rdbmsBuilder;
+        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
 
         final String id = EcoreUtil.getIdentification(variable);
         if (id != null) {
@@ -53,18 +53,19 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
                 if (rdbmsBuilder.getConstantFields().get().containsKey(id)) {
                     return rdbmsBuilder.getConstantFields().get().get(id).stream();
                 } else {
-                    final List<? extends RdbmsField> fields = getFields(context, variable, context.queryParameters).collect(Collectors.toList());
+                    final List<? extends RdbmsField> fields = getFields(context, variable).collect(Collectors.toList());
                     rdbmsBuilder.getConstantFields().get().put(id, fields);
                     return fields.stream();
                 }
             }
         } else {
-            return getFields(context, variable, context.queryParameters);
+            return getFields(context, variable);
         }
     }
 
-    private Stream<? extends RdbmsField> getFields(final RdbmsBuilder.RdbmsBuilderContext context, final Variable variable, final Map<String, Object> queryParameters) {
-        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) context.rdbmsBuilder;
+    private Stream<? extends RdbmsField> getFields(final RdbmsBuilder.RdbmsBuilderContext context, final Variable variable) {
+        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+        final Map<String, Object> queryParameters = context.queryParameters;
 
         boolean isParameter = PARAMETER_VARIABLE_KEY.equals(variable.getCategory());
         final Object resolvedValue;

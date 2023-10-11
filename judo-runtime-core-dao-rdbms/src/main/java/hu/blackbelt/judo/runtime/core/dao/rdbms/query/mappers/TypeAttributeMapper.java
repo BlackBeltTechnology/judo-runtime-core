@@ -42,14 +42,16 @@ public class TypeAttributeMapper extends RdbmsMapper<TypeAttribute> {
 
     @Override
     public Stream<RdbmsColumn> map(final TypeAttribute typeAttribute, RdbmsBuilder.RdbmsBuilderContext context) {
+        final EMap<Node, EList<EClass>> ancestors = context.ancestors;
+
         final EClass sourceType = typeAttribute.getNode().getType();
         sourceType.getEAllSuperTypes().forEach(superType -> {
             log.trace("   - found super type: {}", AsmUtils.getClassifierFQName(superType));
-            if (!context.ancestors.containsKey(typeAttribute.getNode())) {
-                context.ancestors.put(typeAttribute.getNode(), new UniqueEList<>());
+            if (!ancestors.containsKey(typeAttribute.getNode())) {
+                ancestors.put(typeAttribute.getNode(), new UniqueEList<>());
             }
             // add ancestor for a given attribute
-            context.ancestors.get(typeAttribute.getNode()).add(superType);
+            ancestors.get(typeAttribute.getNode()).add(superType);
         });
 
         return getTargets(typeAttribute)
