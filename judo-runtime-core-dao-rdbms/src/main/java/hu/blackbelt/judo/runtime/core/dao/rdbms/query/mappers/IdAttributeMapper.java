@@ -50,9 +50,6 @@ public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
             // add ancestor for a given attribute
             ancestors.get(idAttribute.getNode()).add(superType);
         }
-        sourceType.getEAllSuperTypes().forEach(superType -> {
-        });
-
         return getTargets(idAttribute)
                 .map(t -> RdbmsColumn.builder()
                         .partnerTable(idAttribute.getNode())
