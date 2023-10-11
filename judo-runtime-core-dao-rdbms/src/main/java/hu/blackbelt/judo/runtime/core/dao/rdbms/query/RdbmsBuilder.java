@@ -207,7 +207,7 @@ public class RdbmsBuilder<ID> {
                             .query(subSelect)
                             .filterByInstances(false)
                             .parentIdFilterQuery(builderContext.parentIdFilterQuery)
-                            .rdbmsBuilder(this)
+                            .rdbmsBuilder((RdbmsBuilder<ID>) params.builderContext.rdbmsBuilder)
                             .seek(null)
                             .withoutFeatures(withoutFeatures)
                             .mask(_mask)

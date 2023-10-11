@@ -137,38 +137,33 @@ public class RdbmsCount<ID> {
     }
 
     public String toSql(SqlConverterContext context) {
+        final String prefix = context.prefix;
+        final EMap<Node, String> prefixes = context.prefixes;
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(context.prefixes);
-        newPrefixes.put(query.getSelect(), context.prefix);
+        newPrefixes.putAll(prefixes);
+        newPrefixes.put(query.getSelect(), prefix);
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
-                .collect(Collectors.toMap(join -> join, join -> context.prefix)));
+                .collect(Collectors.toMap(join -> join, join -> prefix)));
 
         final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
 
+        SqlConverterContext countContext = context.toBuilder()
+                .prefixes(newPrefixes)
+                .build();
+
         final Collection<String> allConditions = Stream
-                .concat(joins.stream().flatMap(j -> j.conditionToSql(
-                        context.toBuilder()
-                                .prefixes(newPrefixes)
-                                .build())
-                                .stream()),
-                        conditions.stream().map(c -> c.toSql(
-                                context.toBuilder()
-                                        .includeAlias(false)
-                                        .prefixes(newPrefixes)
-                                        .build())
-                        ))
+                .concat(
+                        joins.stream().flatMap(j -> j.conditionToSql(countContext).stream()),
+                        conditions.stream().map(c -> c.toSql(countContext))
+                )
                 .collect(Collectors.toList());
 
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "SELECT COUNT (1)" +
-                (from != null ? "\nFROM " + from + " AS " + context.prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
-                getJoin(
-                        context.toBuilder()
-                                .prefixes(newPrefixes)
-                                .build(), firstJoin
-                ) +
+                (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
+                getJoin(countContext, firstJoin) +
                 (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "");
 
         return sql;

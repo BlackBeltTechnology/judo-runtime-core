@@ -45,14 +45,16 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
 
     @Override
     public Stream<? extends RdbmsField> map(final Variable variable, RdbmsBuilder.RdbmsBuilderContext context) {
+        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) context.rdbmsBuilder;
+
         final String id = EcoreUtil.getIdentification(variable);
         if (id != null) {
             synchronized (this) {
-                if (context.rdbmsBuilder.getConstantFields().get().containsKey(id)) {
-                    return context.rdbmsBuilder.getConstantFields().get().get(id).stream();
+                if (rdbmsBuilder.getConstantFields().get().containsKey(id)) {
+                    return rdbmsBuilder.getConstantFields().get().get(id).stream();
                 } else {
                     final List<? extends RdbmsField> fields = getFields(context, variable, context.queryParameters).collect(Collectors.toList());
-                    context.rdbmsBuilder.getConstantFields().get().put(id, fields);
+                    rdbmsBuilder.getConstantFields().get().put(id, fields);
                     return fields.stream();
                 }
             }
@@ -62,12 +64,14 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
     }
 
     private Stream<? extends RdbmsField> getFields(final RdbmsBuilder.RdbmsBuilderContext context, final Variable variable, final Map<String, Object> queryParameters) {
+        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) context.rdbmsBuilder;
+
         boolean isParameter = PARAMETER_VARIABLE_KEY.equals(variable.getCategory());
         final Object resolvedValue;
         if (isParameter) {
             resolvedValue = queryParameters != null ? queryParameters.get(variable.getName()) : null;
         } else {
-            resolvedValue = context.rdbmsBuilder.getVariableResolver().resolve(Object.class, variable.getCategory(), variable.getName());
+            resolvedValue = rdbmsBuilder.getVariableResolver().resolve(Object.class, variable.getCategory(), variable.getName());
         }
         final Object parameterValue;
         if (AsmUtils.isEnumeration(variable.getType())) {
@@ -82,11 +86,11 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
                 parameterValue = null;
             }
         } else {
-            parameterValue = context.rdbmsBuilder.getCoercer().coerce(resolvedValue, variable.getType().getInstanceClassName());
+            parameterValue = rdbmsBuilder.getCoercer().coerce(resolvedValue, variable.getType().getInstanceClassName());
         }
         return getTargets(variable).map(t -> RdbmsNamedParameter.builder()
-                .parameter(context.rdbmsBuilder.getParameterMapper().createParameter(parameterValue, variable.getType(), null))
-                .index(context.rdbmsBuilder.getConstantCounter().getAndIncrement())
+                .parameter(rdbmsBuilder.getParameterMapper().createParameter(parameterValue, variable.getType(), null))
+                .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
                 .target(t.getTarget())
                 .targetAttribute(t.getTargetAttribute())
                 .alias(t.getAlias())

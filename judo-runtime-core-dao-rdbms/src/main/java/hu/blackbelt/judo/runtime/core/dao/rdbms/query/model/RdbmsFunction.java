@@ -43,8 +43,10 @@ public class RdbmsFunction extends RdbmsField {
 
     @Override
     public String toSql(SqlConverterContext context) {
+        final boolean includeAlias = context.includeAlias;
+
         final String sql = cast(MessageFormat.format(pattern, parameters.stream()
                 .map(p -> p.toSql(context.toBuilder().includeAlias(false).build())).toArray()), null, targetAttribute);
-        return getWithAlias(sql, context.includeAlias);
+        return getWithAlias(sql, includeAlias);
     }
 }

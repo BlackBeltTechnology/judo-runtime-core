@@ -39,15 +39,18 @@ public class RdbmsNamedParameter extends RdbmsField {
 
     @Override
     public String toSql(SqlConverterContext context) {
+        final MapSqlParameterSource sqlParameters = context.sqlParameters;
+        final boolean includeAlias = context.includeAlias;
+
         final String parameterName = "p" + index;
 
         final String sql;
         if (parameter.getValue() == null) {
             sql = "NULL";
         } else {
-            context.sqlParameters.addValue(parameterName, parameter.getValue(), parameter.getSqlType(), parameter.getRdbmsTypeName());
+            sqlParameters.addValue(parameterName, parameter.getValue(), parameter.getSqlType(), parameter.getRdbmsTypeName());
             sql = cast(":" + parameterName, parameter.getRdbmsTypeName(), targetAttribute);
         }
-        return getWithAlias(sql, context.includeAlias);
+        return getWithAlias(sql, includeAlias);
     }
 }

@@ -451,12 +451,14 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
     @Override
     public String toSql(SqlConverterContext context) {
+        final String prefix = context.prefix;
+        final EMap<Node, String> prefixes = context.prefixes;
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(context.prefixes);
-        newPrefixes.put(query.getSelect(), context.prefix);
+        newPrefixes.putAll(prefixes);
+        newPrefixes.put(query.getSelect(), prefix);
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
-                .collect(Collectors.toMap(join -> join, join -> context.prefix)));
+                .collect(Collectors.toMap(join -> join, join -> prefix)));
 
         SqlConverterContext resultContext = context.toBuilder()
                 .prefixes(newPrefixes)
@@ -484,10 +486,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
         final String sql = getSelect(addDistinct, resultContext) +
-                getFrom(resultContext.prefix, rdbmsBuilder.getDialect().getDualTable()) +
+                getFrom(prefix, rdbmsBuilder.getDialect().getDualTable()) +
                 getJoin(resultContext) +
                 getWhere(allConditions) +
-                getGroupBy(resultContext.prefix) +
+                getGroupBy(prefix) +
                 getOrderBy(orderByAttributes) +
                 getLimit() +
                 getOffset();

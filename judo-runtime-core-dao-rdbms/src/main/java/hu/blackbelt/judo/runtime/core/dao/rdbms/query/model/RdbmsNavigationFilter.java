@@ -129,10 +129,13 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
     @Override
     public String toSql(SqlConverterContext context) {
-        final String filterPrefix = RdbmsAliasUtil.getFilterPrefix(context.prefix);
+        final String prefix = context.prefix;
+        final EMap<Node, String> prefixes = context.prefixes;
+
+        final String filterPrefix = RdbmsAliasUtil.getFilterPrefix(prefix);
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(context.prefixes);
+        newPrefixes.putAll(prefixes);
         newPrefixes.put(filter, filterPrefix);
 
         final String partnerAlias;
@@ -151,7 +154,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                 .prefixes(newPrefixes)
                 .build();
 
-        return "SELECT 1 " + getFrom(navigationContext) + getWhere(context.prefix, partnerAlias, navigationContext);
+        return "SELECT 1 " + getFrom(navigationContext) + getWhere(prefix, partnerAlias, navigationContext);
     }
 
     private String getFrom(SqlConverterContext context) {

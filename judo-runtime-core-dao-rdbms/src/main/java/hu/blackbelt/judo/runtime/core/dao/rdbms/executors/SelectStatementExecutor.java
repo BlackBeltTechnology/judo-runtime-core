@@ -670,7 +670,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             final String sql = resultSetHandler.toSql(
                     SqlConverterContext.builder()
-                            .includeAlias(false)
                             .coercer(getCoercer())
                             .sqlParameters(sqlParameters)
                             .prefixes(ECollections.emptyEMap())
@@ -993,7 +992,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             // key used to identify parent instance in subselects
             final String sql = resultSetHandler.toSql(
                     SqlConverterContext.builder()
-                            .includeAlias(false)
                             .coercer(getCoercer())
                             .sqlParameters(sqlParameters)
                             .prefixes(ECollections.emptyEMap())
