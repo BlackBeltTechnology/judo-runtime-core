@@ -148,7 +148,7 @@ public class RdbmsBuilder<ID> {
     }
 
 
-    @Builder
+    @Builder(toBuilder = true)
     public static class RdbmsBuilderContext {
         @NonNull
         public RdbmsBuilder<?> rdbmsBuilder;

@@ -598,18 +598,18 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
                 .collect(Collectors.toMap(join -> join, join -> context.prefix)));
 
+        SqlConverterContext resultContext = context.toBuilder()
+                .prefixes(newPrefixes)
+                .includeAlias(false)
+                .build();
+
         final Collection<String> allConditions = Stream
-                .concat(joins.stream().flatMap(j -> j.conditionToSql(
-                        context.toBuilder()
-                                .prefixes(newPrefixes)
-                                .build()).stream()),
-                        conditions.stream().map(c -> c.toSql(
-                                context.toBuilder()
-                                        .includeAlias(false)
-                                        .prefixes(newPrefixes)
-                                        .build())
-                        ))
+                .concat(
+                        joins.stream().flatMap(j -> j.conditionToSql(resultContext).stream()),
+                        conditions.stream().map(c -> c.toSql(resultContext.toBuilder().includeAlias(false).build()))
+                )
                 .collect(Collectors.toList());
+
         final List<String> orderByAttributes = orderBys.stream().map(o -> o.toSql(context)).collect(Collectors.toList());
 
         boolean multiplePaths = false;
@@ -623,12 +623,11 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
         final boolean addDistinct = limit != null && multiplePaths && skipParents;
 
-        final String sql = getSelect(addDistinct,
-                context.toBuilder().prefixes(newPrefixes).build()) +
-                getFrom(context.prefix, rdbmsBuilder.getDialect().getDualTable()) +
-                getJoin(context.toBuilder().prefixes(newPrefixes).build()) +
+        final String sql = getSelect(addDistinct, resultContext) +
+                getFrom(resultContext.prefix, rdbmsBuilder.getDialect().getDualTable()) +
+                getJoin(resultContext) +
                 getWhere(allConditions) +
-                getGroupBy(context.prefix) +
+                getGroupBy(resultContext.prefix) +
                 getOrderBy(orderByAttributes) +
                 getLimit() +
                 getOffset();
@@ -640,8 +639,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 .map(c -> c.toSql(context.toBuilder().includeAlias(true).build()))
                 .sorted() // sorting serves debugging purposes only
                 .collect(Collectors.joining(", "));
-        String distinct = addDistinct ? "DISTINCT " : "";
-        return "SELECT " + distinct + columns;
+        return "SELECT " + (addDistinct ? "DISTINCT " : "") + columns;
     }
 
     private String getFrom(String prefix, String dual) {
@@ -657,7 +655,11 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private String getJoin(SqlConverterContext context) {
         fixStaticJoins();
         final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
-        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(context, from == null && Objects.equals(j, firstJoin))));
+        Map<RdbmsJoin, String> joinMap = joins.stream()
+                .collect(Collectors.toMap(
+                        j -> j,
+                        j -> j.toSql(context, from == null && Objects.equals(j, firstJoin))));
+
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(j -> {
@@ -677,6 +679,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                   && joins.stream().noneMatch(jj -> j.getPartnerTable() != null
                                                                     && jj.getAlias().equals(j.getPartnerTable().getAlias())))
                      .collect(Collectors.toList());
+
         for (RdbmsJoin staticJoin : staticJoins) {
             List<RdbmsJoin> dependantJoins = joins.stream().filter(j -> j.getPartnerTable() != null
                                                                         && j.getPartnerTable().getAlias().equals(staticJoin.getAlias()))
