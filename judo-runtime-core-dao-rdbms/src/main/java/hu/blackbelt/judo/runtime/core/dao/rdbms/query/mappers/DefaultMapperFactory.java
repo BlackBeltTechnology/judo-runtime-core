@@ -33,11 +33,11 @@ public class DefaultMapperFactory<ID> implements MapperFactory<ID> {
         mappers.put(Attribute.class, new AttributeMapper<ID>(rdbmsBuilder));
         mappers.put(Constant.class, new ConstantMapper<ID>(rdbmsBuilder));
         mappers.put(Variable.class, new VariableMapper<ID>(rdbmsBuilder));
-        mappers.put(IdAttribute.class, new IdAttributeMapper());
-        mappers.put(TypeAttribute.class, new TypeAttributeMapper());
+        mappers.put(IdAttribute.class, new IdAttributeMapper(rdbmsBuilder.getPrecision(), rdbmsBuilder.getScale()));
+        mappers.put(TypeAttribute.class, new TypeAttributeMapper(rdbmsBuilder.getPrecision(), rdbmsBuilder.getScale()));
         mappers.put(EntityTypeName.class, new EntityTypeNameMapper<ID>(rdbmsBuilder));
         mappers.put(SubSelect.class, new SubSelectMapper<ID>(rdbmsBuilder));
-        mappers.put(SubSelectFeature.class, new SubSelectFeatureMapper());
+        mappers.put(SubSelectFeature.class, new SubSelectFeatureMapper(rdbmsBuilder.getPrecision(), rdbmsBuilder.getScale()));
         return mappers;
     }
 }

@@ -39,6 +39,14 @@ import java.util.stream.Stream;
 @Slf4j
 public class TypeAttributeMapper extends RdbmsMapper<TypeAttribute> {
 
+    private int precision;
+    private int scale;
+    
+    public TypeAttributeMapper(final int precision, final int scale) {
+        this.precision = precision;
+        this.scale = scale;
+    }
+
     @Override
     public Stream<RdbmsColumn> map(final TypeAttribute typeAttribute, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
         final EClass sourceType = typeAttribute.getNode().getType();
@@ -57,41 +65,57 @@ public class TypeAttributeMapper extends RdbmsMapper<TypeAttribute> {
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_TYPE_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_TYPE_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build(),
                         RdbmsColumn.builder()
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_VERSION_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_VERSION_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build(),
                         RdbmsColumn.builder()
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_CREATE_USERNAME_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_CREATE_USERNAME_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build(),
                         RdbmsColumn.builder()
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_CREATE_USER_ID_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_CREATE_USER_ID_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build(),
                         RdbmsColumn.builder()
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_CREATE_TIMESTAMP_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_CREATE_TIMESTAMP_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build(),
                         RdbmsColumn.builder()
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_UPDATE_USERNAME_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_UPDATE_USERNAME_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build(),
                         RdbmsColumn.builder()
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_UPDATE_USER_ID_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_UPDATE_USER_ID_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build(),
                         RdbmsColumn.builder()
                                 .partnerTable(typeAttribute.getNode())
                                 .columnName(StatementExecutor.ENTITY_UPDATE_TIMESTAMP_COLUMN_NAME)
                                 .alias(typeAttribute.getNode().getAlias() + "_" + StatementExecutor.ENTITY_UPDATE_TIMESTAMP_COLUMN_NAME)
+                                .precision(precision)
+                                .scale(scale)
                                 .build()
                 ).stream());
     }
