@@ -35,6 +35,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -44,29 +45,42 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
     private final EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());
 
+    private final EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());
+
     private final String from;
 
     private final List<RdbmsJoin> joins = new ArrayList<>();
     private final List<RdbmsField> conditions = new ArrayList<>();
 
     @Builder
-    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder<ID> rdbmsBuilder, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder.RdbmsBuilderContext builderContext) {
         this.filter = filter;
 
-        from = rdbmsBuilder.getTableName(filter.getType());
+        from = builderContext.rdbmsBuilder.getTableName(filter.getType());
+
+        RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.rdbmsBuilder;
+
+        RdbmsBuilder.RdbmsBuilderContext navigationBuilderContext = builderContext.toBuilder()
+                .ancestors(ancestors)
+                .descendants(descendants)
+                .build();
 
         joins.addAll(filter.getJoins().stream()
                 .flatMap(subJoin -> subJoin.getAllJoins().stream()
-                        .flatMap(j -> rdbmsBuilder.processJoin(j, ancestors, parentIdFilterQuery, rdbmsBuilder, true, null, queryParameters).stream())
+                        .flatMap(j -> (Stream<RdbmsJoin>) rdbmsBuilder.processJoin(RdbmsBuilder.ProcessJoinParameters.builder()
+                                        .join(j)
+                                        .builderContext(navigationBuilderContext)
+                                        .withoutFeatures(true)
+                                        .mask(null)
+                                        .build()).stream())
                         .collect(Collectors.toList()).stream())
                 .collect(Collectors.toList()));
 
-        conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), ancestors, parentIdFilterQuery, queryParameters)
+        conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), navigationBuilderContext)
                 .collect(Collectors.toList()));
 
         if (ancestors.containsKey(filter)) {
-            ancestors.get(filter).forEach(ancestor ->
-                    joins.addAll(rdbmsBuilder.getAdditionalJoins(filter, ancestors, joins)));
+            rdbmsBuilder.addAncestorJoins(joins, filter, ancestors);
         }
 
         joins.addAll(filter.getSubSelects().stream()
@@ -93,12 +107,12 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                                     RdbmsResultSet.<ID>builder()
                                             .query(subSelect)
                                             .filterByInstances(false)
-                                            .parentIdFilterQuery(parentIdFilterQuery)
-                                            .rdbmsBuilder(rdbmsBuilder)
+                                            .parentIdFilterQuery(builderContext.parentIdFilterQuery)
+                                            .rdbmsBuilder((RdbmsBuilder<ID>) rdbmsBuilder)
                                             .seek(null)
                                             .withoutFeatures(true)
                                             .mask(null)
-                                            .queryParameters(queryParameters)
+                                            .queryParameters(builderContext.queryParameters)
                                             .skipParents(false)
                                             .build()
                             )
@@ -114,11 +128,11 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     }
 
     @Override
-    public String toSql(String prefix, boolean includeAlias, Coercer coercer, MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        final String filterPrefix = RdbmsAliasUtil.getFilterPrefix(prefix);
+    public String toSql(SqlConverterContext context) {
+        final String filterPrefix = RdbmsAliasUtil.getFilterPrefix(context.prefix);
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(prefixes);
+        newPrefixes.putAll(context.prefixes);
         newPrefixes.put(filter, filterPrefix);
 
         final String partnerAlias;
@@ -132,18 +146,33 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
         checkArgument(from != null || joins.size() < 2, "Size of JOINs must be at most 1 if FROM is not set");
 
-        final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
-                "SELECT 1 " +
-                (from != null ? " FROM " + from + " AS " + filterPrefix + filter.getAlias() : "") +
-                getJoin(coercer, sqlParameters, filterPrefix, newPrefixes) +
-                "\nWHERE " + prefix + partnerAlias + "." + StatementExecutor.ID_COLUMN_NAME + " = " + filterPrefix + filter.getAlias() + "." + StatementExecutor.ID_COLUMN_NAME +
-                joins.stream().flatMap(j -> j.conditionToSql(filterPrefix, coercer, sqlParameters, newPrefixes).stream().map(c -> " AND " + c)).collect(Collectors.joining()) +
-                conditions.stream().map(c -> " AND " + c.toSql(filterPrefix, false, coercer, sqlParameters, newPrefixes)).collect(Collectors.joining());
-        return sql;
+        final SqlConverterContext navigationContext = context.toBuilder()
+                .prefix(filterPrefix)
+                .prefixes(newPrefixes)
+                .build();
+
+        return "SELECT 1 " + getFrom(navigationContext) + getWhere(context.prefix, partnerAlias, navigationContext);
     }
 
-    private String getJoin(Coercer coercer, MapSqlParameterSource sqlParameters, String filterPrefix, EMap<Node, String> newPrefixes) {
-        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(filterPrefix, coercer, sqlParameters, newPrefixes, from == null)));
+    private String getFrom(SqlConverterContext context) {
+        return (from != null ? " FROM " + from + " AS " + context.prefix + filter.getAlias() : "") + getJoin(context);
+    }
+
+    private String getWhere(String partnerPrefix, String partnerAlias, SqlConverterContext context) {
+        return "\nWHERE " +
+                partnerPrefix + partnerAlias + "." + StatementExecutor.ID_COLUMN_NAME + " = " +
+                    context.prefix + filter.getAlias() + "." + StatementExecutor.ID_COLUMN_NAME +
+                joins.stream()
+                        .flatMap(j -> j.conditionToSql(context).stream().map(c -> " AND " + c))
+                        .collect(Collectors.joining()) +
+                conditions.stream()
+                        .map(c -> " AND " + c.toSql(context.toBuilder().includeAlias(false).build()))
+                        .collect(Collectors.joining());
+    }
+
+    private String getJoin(SqlConverterContext context) {
+        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(context, from == null)));
+
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(joinMap::get)
