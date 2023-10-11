@@ -148,10 +148,6 @@ public class RdbmsBuilder<ID> {
         return ancestorNameFactory.getAncestorPostfix(clazz);
     }
 
-    //public int getPrecision() {return precision;}
-//
-    //public int getScale() {return scale;}
-
     /**
      * Resolve logical JOIN and return RDBMS JOIN definition.
      *
