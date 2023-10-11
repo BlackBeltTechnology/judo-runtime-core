@@ -21,24 +21,20 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
  */
 
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import lombok.Builder;
 import lombok.Getter;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EAttribute;
-import org.eclipse.emf.ecore.EClass;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.stream.Stream;
 
 public abstract class RdbmsMapper<T extends ParameterType> {
 
     private static final int MAX_ALIAS_LENGTH_WITHOUT_INDEX = 25;
 
-    public abstract Stream<? extends RdbmsField> map(T parameter, RdbmsBuilder.RdbmsBuilderContext context);
+    public abstract Stream<? extends RdbmsField> map(T parameter, RdbmsBuilderContext context);
 
     public static Stream<RdbmsTarget> getTargets(final Feature feature) {
         if (feature.getTargetMappings().isEmpty()) {

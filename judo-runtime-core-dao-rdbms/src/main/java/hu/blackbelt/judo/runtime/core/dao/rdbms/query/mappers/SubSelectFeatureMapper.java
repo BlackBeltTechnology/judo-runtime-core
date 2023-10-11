@@ -21,20 +21,16 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
  */
 
 import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsColumn;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.ecore.EClass;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
 public class SubSelectFeatureMapper extends RdbmsMapper<SubSelectFeature> {
 
     @Override
-    public Stream<RdbmsField> map(final SubSelectFeature feature, RdbmsBuilder.RdbmsBuilderContext context) {
+    public Stream<RdbmsField> map(final SubSelectFeature feature, RdbmsBuilderContext context) {
         final String pattern;
         if ((feature.getFeature() instanceof Function) && ((Function) feature.getFeature()).getSignature() == FunctionSignature.COUNT) {
             pattern = "COALESCE({0}.{1}, 0)";

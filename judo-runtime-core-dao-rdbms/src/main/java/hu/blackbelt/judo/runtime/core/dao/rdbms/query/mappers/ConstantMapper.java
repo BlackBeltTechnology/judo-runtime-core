@@ -21,20 +21,14 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
  */
 
 import hu.blackbelt.judo.meta.query.Constant;
-import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsConstant;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,7 +36,7 @@ import java.util.stream.Stream;
 public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
 
     @Override
-    public Stream<? extends RdbmsField> map(final Constant constant, RdbmsBuilder.RdbmsBuilderContext context) {
+    public Stream<? extends RdbmsField> map(final Constant constant, RdbmsBuilderContext context) {
         final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
 
         final String id = EcoreUtil.getIdentification(constant);
@@ -61,7 +55,7 @@ public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
         }
     }
 
-    private Stream<? extends RdbmsField> getFields(RdbmsBuilder.RdbmsBuilderContext context, final Constant constant) {
+    private Stream<? extends RdbmsField> getFields(RdbmsBuilderContext context, final Constant constant) {
         final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
 
         return getTargets(constant).map(t -> RdbmsConstant.builder()

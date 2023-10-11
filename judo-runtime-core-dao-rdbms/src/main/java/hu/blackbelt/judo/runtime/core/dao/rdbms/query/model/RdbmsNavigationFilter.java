@@ -21,17 +21,17 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  */
 
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.JoinProcessParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoinComparator;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsQueryJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -53,7 +53,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     private final List<RdbmsField> conditions = new ArrayList<>();
 
     @Builder
-    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilder.RdbmsBuilderContext builderContext) {
+    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilderContext builderContext) {
         final RdbmsBuilder<?> rdbmsBuilder = builderContext.rdbmsBuilder;
         final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
         final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
@@ -63,14 +63,14 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
         this.filter = filter;
         this.from = rdbmsBuilder.getTableName(filter.getType());
 
-        RdbmsBuilder.RdbmsBuilderContext navigationBuilderContext = builderContext.toBuilder()
+        RdbmsBuilderContext navigationBuilderContext = builderContext.toBuilder()
                 .ancestors(ancestors)
                 .descendants(descendants)
                 .build();
 
         joins.addAll(filter.getJoins().stream()
                 .flatMap(subJoin -> subJoin.getAllJoins().stream()
-                        .flatMap(j -> (Stream<RdbmsJoin>) rdbmsBuilder.processJoin(RdbmsBuilder.ProcessJoinParameters.builder()
+                        .flatMap(j -> (Stream<RdbmsJoin>) rdbmsBuilder.processJoin(JoinProcessParameters.builder()
                                         .join(j)
                                         .builderContext(navigationBuilderContext)
                                         .withoutFeatures(true)

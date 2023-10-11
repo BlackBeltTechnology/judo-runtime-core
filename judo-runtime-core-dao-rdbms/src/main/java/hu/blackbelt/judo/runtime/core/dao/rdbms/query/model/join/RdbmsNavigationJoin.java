@@ -23,14 +23,14 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.JoinProcessParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.*;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -67,7 +67,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         super();
         this.query = query;
 
-        final RdbmsBuilder.RdbmsBuilderContext builderContext = RdbmsBuilder.RdbmsBuilderContext.builder()
+        final RdbmsBuilderContext builderContext = RdbmsBuilderContext.builder()
                 .rdbmsBuilder(rdbmsBuilder)
                 .ancestors(subAncestors)
                 .descendants(subDescendants)
@@ -103,7 +103,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         // list of JOINs using by nested query for embedding to container query
         final List<RdbmsJoin> navigationJoins = navigationJoinList.stream()
                 .flatMap(join -> rdbmsBuilder.processJoin(
-                        RdbmsBuilder.ProcessJoinParameters.builder()
+                        JoinProcessParameters.builder()
                                 .join(join)
                                 .builderContext(builderContext)
                                 .withoutFeatures(withoutFeatures)
@@ -120,10 +120,10 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final Collection<SubSelect> aggregations = new ArrayList<>();
 
         final Join lastJoin = getLastJoin();
-        navigationJoinList.forEach(navigationJoin -> {
+        for (Join navigationJoin : navigationJoinList) {
             final Set<String> joinedOrderByAliases = new HashSet<>();
 
-            navigationJoin.getOrderBys().forEach(orderBy -> {
+            for (OrderBy orderBy : navigationJoin.getOrderBys()) {
                 if (!joinedOrderByAliases.contains(orderBy.getAlias())) {
                     subJoins.add(RdbmsTableJoin.builder()
                             .tableName(rdbmsBuilder.getTableName(orderBy.getType()))
@@ -138,7 +138,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 final EList<Join> additionalJoins = new UniqueEList<>();
                 additionalJoins.addAll(orderBy.getJoins().stream().flatMap(j -> j.getAllJoins().stream()).collect(Collectors.toList()));
                 additionalJoins.forEach(j -> subJoins.addAll(rdbmsBuilder.processJoin(
-                        RdbmsBuilder.ProcessJoinParameters.builder()
+                        JoinProcessParameters.builder()
                                 .join(j)
                                 .builderContext(builderContext)
                                 .withoutFeatures(withoutFeatures)
@@ -166,8 +166,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     // only orderBys of last navigation are available for container
                     exposedOrderBys.addAll(newOrderBys);
                 }
-            });
-        });
+            }
+        }
 
         subJoins.addAll(aggregations.stream()
                 .map(subSelect -> RdbmsQueryJoin.<ID>builder()

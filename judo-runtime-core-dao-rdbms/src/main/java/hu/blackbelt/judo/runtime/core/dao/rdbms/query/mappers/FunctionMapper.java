@@ -24,6 +24,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.types.RdbmsDecimalType;
 import hu.blackbelt.judo.runtime.core.query.Constants;
@@ -32,9 +33,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.ecore.EClass;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -494,7 +493,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
     }
 
     @Override
-    public Stream<? extends RdbmsField> map(final Function function, RdbmsBuilder.RdbmsBuilderContext context) {
+    public Stream<? extends RdbmsField> map(final Function function, RdbmsBuilderContext context) {
         final EMap<ParameterName, RdbmsField> parameters = ECollections.asEMap(function.getParameters().stream()
                 .collect(Collectors.<FunctionParameter, ParameterName, RdbmsField>toMap(
                         FunctionParameter::getParameterName,

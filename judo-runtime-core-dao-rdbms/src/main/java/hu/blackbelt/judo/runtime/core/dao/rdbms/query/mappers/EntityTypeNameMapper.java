@@ -21,26 +21,20 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
  */
 
 import hu.blackbelt.judo.meta.query.EntityTypeName;
-import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsEntityTypeName;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.ecore.EClass;
 
 import java.util.Collections;
-import java.util.Map;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
 public class EntityTypeNameMapper<ID> extends RdbmsMapper<EntityTypeName> {
 
     @Override
-    public Stream<? extends RdbmsField> map(final EntityTypeName entityTypeName, RdbmsBuilder.RdbmsBuilderContext context) {
+    public Stream<? extends RdbmsField> map(final EntityTypeName entityTypeName, RdbmsBuilderContext context) {
         final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
 
         return Collections.singleton(RdbmsEntityTypeName.builder()

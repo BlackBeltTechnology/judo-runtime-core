@@ -21,16 +21,12 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
  */
 
 import hu.blackbelt.judo.meta.query.Filter;
-import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.OrderBy;
 import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.ecore.EClass;
 
 import java.util.Collections;
 import java.util.Map;
@@ -40,7 +36,7 @@ import java.util.stream.Stream;
 public class SubSelectMapper<ID> extends RdbmsMapper<SubSelect> {
 
     @Override
-    public Stream<RdbmsResultSet<ID>> map(final SubSelect subSelect, RdbmsBuilder.RdbmsBuilderContext context) {
+    public Stream<RdbmsResultSet<ID>> map(final SubSelect subSelect, RdbmsBuilderContext context) {
         final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
         final SubSelect parentIdFilterQuery = context.parentIdFilterQuery;
         final Map<String, Object> queryParameters = context.queryParameters;

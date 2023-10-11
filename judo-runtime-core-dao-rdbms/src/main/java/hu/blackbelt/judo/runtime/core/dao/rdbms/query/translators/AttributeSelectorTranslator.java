@@ -83,8 +83,9 @@ public class AttributeSelectorTranslator implements Function<AttributeSelector, 
                 throw new IllegalStateException("Unsupported object variable");
             }
 
-            collectSelfReferences(cloned).stream().forEach(selfReference -> selfReference.setVariable(objectVariable));
-
+            for (ObjectVariableReference selfReference : collectSelfReferences(cloned)) {
+                selfReference.setVariable(objectVariable);
+            }
             return cloned;
         } else {
             final AttributeSelector selector = EcoreUtil.copy(attributeSelector);

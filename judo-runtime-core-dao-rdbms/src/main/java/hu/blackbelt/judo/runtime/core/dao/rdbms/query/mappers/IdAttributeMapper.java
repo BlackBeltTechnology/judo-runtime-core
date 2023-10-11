@@ -23,9 +23,8 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.IdAttribute;
 import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsColumn;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EList;
@@ -33,24 +32,25 @@ import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EClass;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
 @Slf4j
 public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
 
     @Override
-    public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilder.RdbmsBuilderContext context) {
+    public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilderContext context) {
         final EMap<Node, EList<EClass>> ancestors = context.ancestors;
 
         final EClass sourceType = idAttribute.getNode().getType();
-        sourceType.getEAllSuperTypes().forEach(superType -> {
+        for (EClass superType : sourceType.getEAllSuperTypes()) {
             log.trace("   - found super type: {}", AsmUtils.getClassifierFQName(superType));
             if (!ancestors.containsKey(idAttribute.getNode())) {
                 ancestors.put(idAttribute.getNode(), new UniqueEList<>());
             }
             // add ancestor for a given attribute
             ancestors.get(idAttribute.getNode()).add(superType);
+        }
+        sourceType.getEAllSuperTypes().forEach(superType -> {
         });
 
         return getTargets(idAttribute)
