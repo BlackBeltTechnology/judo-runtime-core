@@ -167,7 +167,7 @@ public class JudoDefaultModule extends AbstractModule {
         bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)).toInstance(1000);
         bind(Boolean.class).annotatedWith(Names.named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)).toInstance(false);
         bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_PRECISION)).toInstance(15);
-        bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE)).toInstance(7);
+        bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE)).toInstance(4);
 
         bind(ActorResolver.class).toProvider(DefaultActorResolverProvider.class).in(Singleton.class);
         bind(Boolean.class).annotatedWith(Names.named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS)).toInstance(Boolean.FALSE);

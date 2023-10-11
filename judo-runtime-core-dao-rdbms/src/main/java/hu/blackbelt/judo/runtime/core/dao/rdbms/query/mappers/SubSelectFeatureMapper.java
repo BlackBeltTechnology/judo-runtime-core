@@ -29,14 +29,6 @@ import java.util.stream.Stream;
 
 public class SubSelectFeatureMapper extends RdbmsMapper<SubSelectFeature> {
 
-    private int precision;
-    private int scale;
-
-    public  SubSelectFeatureMapper(final int precision, final int scale) {
-        this.precision = precision;
-        this.scale = scale;
-    }
-
     @Override
     public Stream<RdbmsField> map(final SubSelectFeature feature, RdbmsBuilderContext builderContext) {
         final String pattern;
@@ -52,6 +44,8 @@ public class SubSelectFeatureMapper extends RdbmsMapper<SubSelectFeature> {
                 .partnerTable(feature.getSubSelect())
                 .columnName(getTargets(feature.getFeature()).map(tt -> tt.getAlias() + (tt.getTarget() != null ? "_" + tt.getTarget().getIndex() : "")).findAny().get())
                 .pattern(pattern)
+                .scale(builderContext.getRdbmsBuilder().getScale())
+                .precision(builderContext.getRdbmsBuilder().getPrecision())
                 .alias(t.getAlias())
                 .build());
     }

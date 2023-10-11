@@ -41,13 +41,6 @@ import java.util.stream.Stream;
 @Slf4j
 public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
 
-    protected int precision;
-    protected int scale;
-
-    public IdAttributeMapper(final int precision, final int scale) {
-        this.precision = precision;
-        this.scale = scale;
-    }
 
     @Override
     public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilderContext builderContext) {
@@ -70,8 +63,6 @@ public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
                         .partnerTable(idAttribute.getNode())
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
                         .alias(idAttribute.getNode().getAlias() + "_" + StatementExecutor.ID_COLUMN_NAME)
-                        .precision(precision)
-                        .scale(scale)
                         .build());
     }
 }
