@@ -38,7 +38,10 @@ public class RdbmsNamedParameter extends RdbmsField {
     private int index;
 
     @Override
-    public String toSql(final String prefix, final boolean includeAlias, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
+    public String toSql(SqlConverterContext context) {
+        final MapSqlParameterSource sqlParameters = context.sqlParameters;
+        final boolean includeAlias = context.includeAlias;
+
         final String parameterName = "p" + index;
 
         final String sql;

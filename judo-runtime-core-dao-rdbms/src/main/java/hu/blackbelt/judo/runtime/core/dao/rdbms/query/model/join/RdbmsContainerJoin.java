@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  */
 
 import hu.blackbelt.judo.meta.query.Node;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
@@ -47,26 +48,26 @@ public class RdbmsContainerJoin extends RdbmsJoin {
     private final EList<EReference> references;
 
     @Override
-    protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        aliasToCompareWith = prefix + alias;
+    protected String getTableNameOrSubQuery(SqlConverterContext contexts) {
+        aliasToCompareWith = contexts.prefix + alias;
         return tableName;
     }
 
     @Override
-    protected String getJoinCondition(String prefix, EMap<Node, String> prefixes, final Coercer coercer, final MapSqlParameterSource sqlParameters) {
+    protected String getJoinCondition(SqlConverterContext context) {
         final List<String> partners = new ArrayList<>();
         for (int index = 0; index < references.size(); index++) {
-            partners.add(prefix + alias + POSTFIX + index);
+            partners.add(context.prefix + alias + POSTFIX + index);
         }
 
         checkArgument(!partners.isEmpty(), "Partner must not be empty");
 
         joinConditionTableAliases.addAll(partners);
-        aliasToCompareWith = prefix + alias;
+        aliasToCompareWith = context.prefix + alias;
         if (partners.size() == 1) {
-            return partners.get(0) + "." + partnerColumnName + " = " + prefix + alias + "." + columnName;
+            return partners.get(0) + "." + partnerColumnName + " = " + context.prefix + alias + "." + columnName;
         } else {
-            return "COALESCE(" + partners.stream().map(p -> p + "." + partnerColumnName).collect(Collectors.joining(",")) + ") = " + prefix + alias + "." + columnName;
+            return "COALESCE(" + partners.stream().map(p -> p + "." + partnerColumnName).collect(Collectors.joining(",")) + ") = " + context.prefix + alias + "." + columnName;
         }
     }
 }

@@ -50,7 +50,11 @@ public class RdbmsColumn extends RdbmsField {
     private static final String DEFAULT_PATTERN = "{0}.{1}";
 
     @Override
-    public String toSql(final String prefix, final boolean includeAlias, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
+    public String toSql(SqlConverterContext context) {
+        final String prefix = context.prefix;
+        final EMap<Node, String> prefixes = context.prefixes;
+        final boolean includeAlias = context.includeAlias;
+
         final String partnerTableName;
         if (partnerTable != null) {
             final String partnerTableNameWithPrefix;
