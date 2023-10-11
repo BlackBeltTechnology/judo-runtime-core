@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
  */
 
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import lombok.Builder;
 import lombok.Getter;
@@ -37,7 +38,7 @@ public abstract class RdbmsMapper<T extends ParameterType> {
 
     private static final int MAX_ALIAS_LENGTH_WITHOUT_INDEX = 25;
 
-    public abstract Stream<? extends RdbmsField> map(T parameter, EMap<Node, EList<EClass>> ancestors, SubSelect parentIdFilterQuery, Map<String, Object> queryParameters);
+    public abstract Stream<? extends RdbmsField> map(T parameter, RdbmsBuilder.RdbmsBuilderContext context);
 
     public static Stream<RdbmsTarget> getTargets(final Feature feature) {
         if (feature.getTargetMappings().isEmpty()) {
