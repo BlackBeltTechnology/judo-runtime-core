@@ -43,18 +43,27 @@ public class AddFilterJoinAndConditions {
         RdbmsBuilder.RdbmsBuilderContext builderContext;
     }
     public static <ID> void addFilterJoinsAndConditions(AddFilterJoinsAndConditionsParameters params) {
-        if (!params.joins.stream().anyMatch(j -> Objects.equals(params.filter.getAlias(), j.getAlias()))) {
-            params.joins.add(RdbmsTableJoin.builder()
-                    .tableName(params.builderContext.rdbmsBuilder.getTableName(params.filter.getType()))
+        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) params.builderContext.rdbmsBuilder;
+        final List<RdbmsJoin> joins = params.joins;
+        final Filter filter = params.filter;
+        final SubSelect query = params.query;
+        final EList<Join> processedNodesForJoins = params.processedNodesForJoins;
+        final List<RdbmsField> conditions = params.conditions;
+        final String partnerTablePrefix = params.partnerTablePrefix;
+        final Node partnerTable = params.partnerTable;
+
+        if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
+            joins.add(RdbmsTableJoin.builder()
+                    .tableName(rdbmsBuilder.getTableName(filter.getType()))
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
-                    .partnerTablePrefix(params.partnerTablePrefix)
-                    .partnerTable(params.partnerTable)
-                    .partnerColumnName(params.partnerTable instanceof SubSelect ? getParentIdColumnAlias(params.query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
-                    .alias(params.filter.getAlias())
+                    .partnerTablePrefix(partnerTablePrefix)
+                    .partnerTable(partnerTable)
+                    .partnerColumnName(partnerTable instanceof SubSelect ? getParentIdColumnAlias(query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
+                    .alias(filter.getAlias())
                     .build());
             if (params.addJoinsOfFilterFeature) {
                 final EList<Join> navigationJoins = new UniqueEList<>();
-                final EList<Join> targetJoins = new UniqueEList<>(params.filter.getFeature().getNodes().stream()
+                final EList<Join> targetJoins = new UniqueEList<>(filter.getFeature().getNodes().stream()
                         .filter(n -> n instanceof Join)
                         .map(n -> (Join) n)
                         .collect(Collectors.toList()));
@@ -71,43 +80,43 @@ public class AddFilterJoinAndConditions {
 
                 ECollections.reverse(navigationJoins);
                 navigationJoins.stream()
-                        .filter(join -> !params.processedNodesForJoins.contains(join))
+                        .filter(join -> !processedNodesForJoins.contains(join))
                         .forEach(join -> {
-                            params.joins.addAll(params.builderContext.rdbmsBuilder.processJoin(
+                            joins.addAll(rdbmsBuilder.processJoin(
                                     RdbmsBuilder.ProcessJoinParameters.builder()
                                             .builderContext(params.builderContext)
                                             .join(join)
                                             .withoutFeatures(false)
                                             .build()
                             ));
-                            params.processedNodesForJoins.add(join);
+                            processedNodesForJoins.add(join);
                         });
-                params.filter.getFeature().getNodes().stream()
-                        .filter(n -> !params.processedNodesForJoins.contains(n) && !AsmUtils.equals(n, params.filter) && n instanceof Join)
+                filter.getFeature().getNodes().stream()
+                        .filter(n -> !processedNodesForJoins.contains(n) && !AsmUtils.equals(n, filter) && n instanceof Join)
                         .flatMap(n -> ((Join) n).getAllJoins().stream())
                         .forEach(join -> {
-                            params.joins.addAll(params.builderContext.rdbmsBuilder.processJoin(
+                            joins.addAll(rdbmsBuilder.processJoin(
                                     RdbmsBuilder.ProcessJoinParameters.builder()
                                             .builderContext(params.builderContext)
                                             .join(join)
                                             .withoutFeatures(false)
                                             .build()
                             ));
-                            params.processedNodesForJoins.add(join);
+                            processedNodesForJoins.add(join);
                         });
             }
         }
 
-        params.joins.addAll(params.filter.getFeatures().stream()
+        joins.addAll(filter.getFeatures().stream()
                 .filter(f -> f instanceof SubSelectFeature).map(f -> (SubSelectFeature) f)
-                .filter(f -> !params.joins.stream().anyMatch(j -> Objects.equals(f.getSubSelect().getAlias(), j.getAlias())))
+                .filter(f -> !joins.stream().anyMatch(j -> Objects.equals(f.getSubSelect().getAlias(), j.getAlias())))
                 .map(f -> RdbmsQueryJoin.<ID>builder()
                         .resultSet(
                                 RdbmsResultSet.<ID>builder()
                                         .query(f.getSubSelect())
                                         .filterByInstances(false)
                                         .parentIdFilterQuery(params.builderContext.parentIdFilterQuery)
-                                        .rdbmsBuilder((RdbmsBuilder<ID>) params.builderContext.rdbmsBuilder)
+                                        .rdbmsBuilder((RdbmsBuilder<ID>) rdbmsBuilder)
                                         .withoutFeatures(true)
                                         .queryParameters(params.builderContext.queryParameters)
                                         .skipParents(false)
@@ -119,8 +128,9 @@ public class AddFilterJoinAndConditions {
                         .alias(f.getSubSelect().getAlias())
                         .build())
                 .collect(Collectors.toList()));
-        params.conditions.addAll(params.builderContext.rdbmsBuilder.mapFeatureToRdbms(params.filter.getFeature(), params.builderContext).collect(Collectors.toList()));
-        params.joins.addAll(params.builderContext.rdbmsBuilder.getAncestorJoins(params.filter, params.builderContext.ancestors, params.joins));
+        conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), params.builderContext).collect(Collectors.toList()));
+
+        rdbmsBuilder.addAncestorJoins(joins, filter, params.builderContext.ancestors);
     }
 
 }

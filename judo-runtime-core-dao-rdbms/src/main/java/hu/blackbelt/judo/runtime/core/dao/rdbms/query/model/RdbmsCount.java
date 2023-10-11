@@ -77,7 +77,7 @@ public class RdbmsCount<ID> {
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
-        joins.addAll(rdbmsBuilder.getAncestorJoins(query.getSelect(), ancestors, joins));
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors);
         // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
 
         if (filterByInstances) {
@@ -134,105 +134,7 @@ public class RdbmsCount<ID> {
                                 .partnerTable(query.getSelect())
                                 .addJoinsOfFilterFeature(true)
                                 .build()));
-
-//        query.getFilters().forEach(filter ->
-//                addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getPartner() != null ? query : query.getSelect(), query.getPartner() != null ? RdbmsAliasUtil.AGGREGATE_PREFIX : "", addJoinOfFilterFeature, queryParameters));
-
-//        query.getSelect().getFilters().forEach(filter ->
-//                addFilterJoinsAndConditions(filter, rdbmsBuilder, parentIdFilterQuery, query.getSelect(), "", true, queryParameters));
-
     }
-
-    /*
-    private void addFilterJoinsAndConditions(final Filter filter, final RdbmsBuilder<ID> rdbmsBuilder, final SubSelect parentIdFilterQuery, final Node partnerTable, final String partnerTablePrefix, final boolean addJoinsOfFilterFeature, final Map<String, Object> queryParameters) {
-        RdbmsBuilder.RdbmsBuilderContext context = RdbmsBuilder.RdbmsBuilderContext.builder()
-                .ancestors(ancestors)
-                .descendants(descendants)
-                .parentIdFilterQuery(parentIdFilterQuery)
-                .queryParameters(queryParameters)
-                .build();
-
-
-        if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
-            joins.add(RdbmsTableJoin.builder()
-                    .tableName(rdbmsBuilder.getTableName(filter.getType()))
-                    .columnName(StatementExecutor.ID_COLUMN_NAME)
-                    .partnerTablePrefix(partnerTablePrefix)
-                    .partnerTable(partnerTable)
-                    .partnerColumnName(partnerTable instanceof SubSelect ? RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
-                    .alias(filter.getAlias())
-                    .build());
-            if (addJoinsOfFilterFeature) {
-                final EList<Join> navigationJoins = new UniqueEList<>();
-                final EList<Join> targetJoins = new UniqueEList<>(filter.getFeature().getNodes().stream()
-                        .filter(n -> n instanceof Join)
-                        .map(n -> (Join) n)
-                        .collect(Collectors.toList()));
-                while (!targetJoins.isEmpty()) {
-                    final List<Join> newNavigationJoins = targetJoins.stream()
-                            .map(j -> j.getPartner())
-                            .filter(n -> n instanceof Join && !navigationJoins.contains(n))
-                            .map(n -> (Join) n)
-                            .collect(Collectors.toList());
-                    navigationJoins.addAll(newNavigationJoins);
-                    targetJoins.clear();
-                    targetJoins.addAll(newNavigationJoins);
-                }
-
-                ECollections.reverse(navigationJoins);
-                navigationJoins.stream()
-                        .filter(join -> !processedNodesForJoins.contains(join))
-                        .forEach(join -> {
-                            joins.addAll(rdbmsBuilder.processJoin(
-                                    RdbmsBuilder.ProcessJoinParameters.builder()
-                                            .builderContext(context)
-                                            .join(join)
-                                            .withoutFeatures(false)
-                                            .build()));
-                            processedNodesForJoins.add(join);
-                        });
-                filter.getFeature().getNodes().stream()
-                        .filter(n -> !processedNodesForJoins.contains(n) && !AsmUtils.equals(n, filter) && n instanceof Join)
-                        .flatMap(n -> ((Join) n).getAllJoins().stream())
-                        .forEach(join -> {
-                            joins.addAll(rdbmsBuilder.processJoin(
-                                    RdbmsBuilder.ProcessJoinParameters.builder()
-                                            .builderContext(context)
-                                            .join(join)
-                                            .withoutFeatures(false)
-                                            .build()));
-                            processedNodesForJoins.add(join);
-                        });
-            }
-        }
-
-        joins.addAll(filter.getFeatures().stream()
-                .filter(f -> f instanceof SubSelectFeature).map(f -> (SubSelectFeature) f)
-                .filter(f -> !joins.stream().anyMatch(j -> Objects.equals(f.getSubSelect().getAlias(), j.getAlias())))
-                .map(f -> RdbmsQueryJoin.<ID>builder()
-                        .resultSet(
-                                RdbmsResultSet.<ID>builder()
-                                        .query(f.getSubSelect())
-                                        .filterByInstances(false)
-                                        .parentIdFilterQuery(parentIdFilterQuery)
-                                        .rdbmsBuilder(rdbmsBuilder)
-                                        .seek(null)
-                                        .withoutFeatures(true)
-                                        .mask(null)
-                                        .queryParameters(queryParameters)
-                                        .skipParents(false)
-                                        .build())
-                        .outer(true)
-                        .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(f.getSubSelect().getContainer()))
-                        .partnerTable(f.getSubSelect().getNavigationJoins().isEmpty() ? null : f.getSubSelect().getContainer())
-                        .partnerColumnName(f.getSubSelect().getNavigationJoins().isEmpty() ? null : StatementExecutor.ID_COLUMN_NAME)
-                        .alias(f.getSubSelect().getAlias())
-                        .build())
-                .collect(Collectors.toList()));
-        conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), context).collect(Collectors.toList()));
-        joins.addAll(rdbmsBuilder.getAncestorJoins(filter, ancestors, joins));
-    }
-    */
 
     public String toSql(SqlConverterContext context) {
 

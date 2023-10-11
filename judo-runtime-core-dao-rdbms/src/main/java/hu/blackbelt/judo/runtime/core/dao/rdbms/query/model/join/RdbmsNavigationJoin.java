@@ -100,36 +100,6 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     .build());
         }
 
-        // final Node join, final EMap<Node, EList<EClass>> ancestors, final EMap<Node, EList<EClass>> descendants, final SubSelect parentIdFilterQuery, final RdbmsBuilder<ID> rdbmsBuilder, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters
-        // j, ancestors, descendants, parentIdFilterQuery, rdbmsBuilder, true, null, queryParameters).stream())
-
-        /*
-                        .flatMap(subJoin -> subJoin.getAllJoins().stream()
-                        .flatMap(j -> rdbmsBuilder.processJoin(
-                                        RdbmsBuilder.ProcessJoinParameters.builder()
-                                                .join(j)
-                                                .ancestors(ancestors)
-                                                .descendants(descendants)
-                                                .parentIdFilterQuery(parentIdFilterQuery)
-                                                .withoutFeatures(true)
-                                                .queryParameters(queryParameters)
-                                                .build()).stream())
-                        .collect(Collectors.toList()).stream())
-
-         */
-
-        /*
-                                RdbmsBuilder.ProcessJoinParameters.builder()
-                                .join(join)
-                                .ancestors(subAncestors)
-                                .descendants(subDescendants)
-                                .parentIdFilterQuery(parentIdFilterQuery)
-                                .withoutFeatures(withoutFeatures)
-                                .queryParameters(queryParameters)
-                                .build()
-
-         */
-
         // list of JOINs using by nested query for embedding to container query
         final List<RdbmsJoin> navigationJoins = navigationJoinList.stream()
                 .flatMap(join -> rdbmsBuilder.processJoin(
@@ -142,7 +112,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .collect(Collectors.toList());
 
         if (query.getBase() != null) {
-            subJoins.addAll(rdbmsBuilder.getAncestorJoins(query.getBase(), subAncestors, subJoins));
+            rdbmsBuilder.addAncestorJoins(subJoins, query.getBase(), subAncestors);
         }
         subJoins.addAll(navigationJoins);
 
