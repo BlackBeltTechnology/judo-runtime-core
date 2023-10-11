@@ -25,6 +25,7 @@ import hu.blackbelt.judo.meta.query.IdAttribute;
 import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsColumn;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EList;
@@ -39,7 +40,9 @@ import java.util.stream.Stream;
 public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
 
     @Override
-    public Stream<RdbmsColumn> map(final IdAttribute idAttribute, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilder.RdbmsBuilderContext context) {
+        final EMap<Node, EList<EClass>> ancestors = context.ancestors;
+
         final EClass sourceType = idAttribute.getNode().getType();
         sourceType.getEAllSuperTypes().forEach(superType -> {
             log.trace("   - found super type: {}", AsmUtils.getClassifierFQName(superType));

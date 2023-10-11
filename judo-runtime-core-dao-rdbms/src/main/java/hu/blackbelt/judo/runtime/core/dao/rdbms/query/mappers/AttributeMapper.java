@@ -43,11 +43,11 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
 
-    @NonNull
-    private final RdbmsBuilder<ID> rdbmsBuilder;
-
     @Override
-    public Stream<RdbmsColumn> map(final Attribute attribute, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
+    public Stream<RdbmsColumn> map(final Attribute attribute, RdbmsBuilder.RdbmsBuilderContext context) {
+        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+        final EMap<Node, EList<EClass>> ancestors = context.ancestors;
+
         final EClass sourceType = attribute.getNode().getType();
         final EAttribute sourceAttribute = attribute.getSourceAttribute();
         final EClass attributeContainer = sourceAttribute.getEContainingClass();
