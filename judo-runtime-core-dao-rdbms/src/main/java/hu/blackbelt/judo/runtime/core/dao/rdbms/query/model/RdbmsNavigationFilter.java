@@ -61,7 +61,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
         final Map<String, Object> queryParameters = builderContext.queryParameters;
 
         this.filter = filter;
-        from = rdbmsBuilder.getTableName(filter.getType());
+        this.from = rdbmsBuilder.getTableName(filter.getType());
 
         RdbmsBuilder.RdbmsBuilderContext navigationBuilderContext = builderContext.toBuilder()
                 .ancestors(ancestors)

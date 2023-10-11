@@ -462,7 +462,6 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
         SqlConverterContext resultContext = context.toBuilder()
                 .prefixes(newPrefixes)
-                .includeAlias(false)
                 .build();
 
         final Collection<String> allConditions = Stream

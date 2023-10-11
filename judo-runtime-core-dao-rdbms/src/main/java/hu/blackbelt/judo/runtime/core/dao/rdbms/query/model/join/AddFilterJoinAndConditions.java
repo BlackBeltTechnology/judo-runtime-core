@@ -54,6 +54,7 @@ public class AddFilterJoinAndConditions {
         final List<RdbmsField> conditions = params.conditions;
         final String partnerTablePrefix = params.partnerTablePrefix;
         final Node partnerTable = params.partnerTable;
+        final Boolean addJoinsOfFilterFeature = params.addJoinsOfFilterFeature;
         final RdbmsBuilder.RdbmsBuilderContext builderContext = params.builderContext;
         final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
         final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
@@ -69,7 +70,7 @@ public class AddFilterJoinAndConditions {
                     .partnerColumnName(partnerTable instanceof SubSelect ? getParentIdColumnAlias(query.getContainer()) : StatementExecutor.ID_COLUMN_NAME)
                     .alias(filter.getAlias())
                     .build());
-            if (params.addJoinsOfFilterFeature) {
+            if (addJoinsOfFilterFeature) {
                 final EList<Join> navigationJoins = new UniqueEList<>();
                 final EList<Join> targetJoins = new UniqueEList<>(filter.getFeature().getNodes().stream()
                         .filter(n -> n instanceof Join)
@@ -95,6 +96,7 @@ public class AddFilterJoinAndConditions {
                                             .builderContext(builderContext)
                                             .join(join)
                                             .withoutFeatures(false)
+                                            .mask(null)
                                             .build()
                             ));
                             processedNodesForJoins.add(join);
@@ -108,6 +110,7 @@ public class AddFilterJoinAndConditions {
                                             .builderContext(builderContext)
                                             .join(join)
                                             .withoutFeatures(false)
+                                            .mask(null)
                                             .build()
                             ));
                             processedNodesForJoins.add(join);
@@ -125,7 +128,9 @@ public class AddFilterJoinAndConditions {
                                         .filterByInstances(false)
                                         .parentIdFilterQuery(parentIdFilterQuery)
                                         .rdbmsBuilder(rdbmsBuilder)
+                                        .seek(null)
                                         .withoutFeatures(true)
+                                        .mask(null)
                                         .queryParameters(queryParameters)
                                         .skipParents(false)
                                         .build())
@@ -137,7 +142,6 @@ public class AddFilterJoinAndConditions {
                         .build())
                 .collect(Collectors.toList()));
         conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), builderContext).collect(Collectors.toList()));
-
         rdbmsBuilder.addAncestorJoins(joins, filter, ancestors);
     }
 

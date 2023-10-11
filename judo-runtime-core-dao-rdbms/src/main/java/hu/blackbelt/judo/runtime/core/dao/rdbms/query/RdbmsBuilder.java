@@ -222,7 +222,7 @@ public class RdbmsBuilder<ID> {
 
             if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
                 joins.add(RdbmsTableJoin.builder()
-                        .tableName(getTableName(subSelect.getBase().getType()))
+                        .tableName(rdbmsBuilder.getTableName(subSelect.getBase().getType()))
                         .columnName(StatementExecutor.ID_COLUMN_NAME)
                         .partnerTable(((SubSelectJoin) join).getPartner())
                         .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)

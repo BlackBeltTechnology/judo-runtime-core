@@ -107,6 +107,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                 .join(join)
                                 .builderContext(builderContext)
                                 .withoutFeatures(withoutFeatures)
+                                .mask(null)
                                 .build()
                 ).stream())
                 .collect(Collectors.toList());
