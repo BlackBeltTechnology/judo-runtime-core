@@ -151,7 +151,6 @@ public class RdbmsBuilder<ID> {
                 .build();
 
         this.filterJoinProcessor = FilterJoinProcessor.builder()
-                .rdbmsResolver(rdbmsResolver)
                 .build();
 
 
@@ -239,7 +238,7 @@ public class RdbmsBuilder<ID> {
     }
 
     public void addFilterJoinsAndConditions(FilterJoinProcessorParameters params, RdbmsBuilderContext builderContext) {
-        filterJoinProcessor.process(params, builderContext);
+        filterJoinProcessor.addFilterJoinsAndConditions(params, builderContext);
     }
 
     public List<RdbmsJoin> processSimpleJoin(SimpleJoinProcessorParameters params) {

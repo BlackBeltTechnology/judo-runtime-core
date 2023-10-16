@@ -1,11 +1,16 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsQueryJoin;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.JoinProcessParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.Builder;
 import lombok.NonNull;
@@ -23,30 +28,11 @@ import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.getParentIdColumnAlias;
 
-public class AddFilterJoinAndConditions {
+@Builder
+public class FilterJoinProcessor {
 
-    @Builder
-    public static class AddFilterJoinsAndConditionsParameters {
-        @NonNull
-        List<RdbmsJoin> joins;
-        @NonNull
-        SubSelect query;
-        @NonNull
-        EList<Join> processedNodesForJoins;
-        @NonNull
-        List<RdbmsField> conditions;
-        @Builder.Default
-        String partnerTablePrefix = "";
-        @NonNull
-        Filter filter;
-        @NonNull
-        Node partnerTable;
-        boolean addJoinsOfFilterFeature;
-        @NonNull
-        RdbmsBuilder.RdbmsBuilderContext builderContext;
-    }
-    public static <ID> void addFilterJoinsAndConditions(AddFilterJoinsAndConditionsParameters params) {
-        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) params.builderContext.rdbmsBuilder;
+    public <ID> void addFilterJoinsAndConditions(final FilterJoinProcessorParameters params, final RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.rdbmsBuilder;
         final List<RdbmsJoin> joins = params.joins;
         final Filter filter = params.filter;
         final SubSelect query = params.query;
@@ -55,7 +41,6 @@ public class AddFilterJoinAndConditions {
         final String partnerTablePrefix = params.partnerTablePrefix;
         final Node partnerTable = params.partnerTable;
         final Boolean addJoinsOfFilterFeature = params.addJoinsOfFilterFeature;
-        final RdbmsBuilder.RdbmsBuilderContext builderContext = params.builderContext;
         final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
         final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
         final SubSelect parentIdFilterQuery = builderContext.parentIdFilterQuery;
@@ -93,7 +78,7 @@ public class AddFilterJoinAndConditions {
 
                 for (Join join : navigationJoinsNotProcessed) {
                     joins.addAll(rdbmsBuilder.processJoin(
-                            RdbmsBuilder.ProcessJoinParameters.builder()
+                            JoinProcessParameters.builder()
                                     .builderContext(builderContext)
                                     .join(join)
                                     .withoutFeatures(false)
@@ -110,7 +95,7 @@ public class AddFilterJoinAndConditions {
 
                 for (Join join : filterFeaturesNoProcessed) {
                     joins.addAll(rdbmsBuilder.processJoin(
-                            RdbmsBuilder.ProcessJoinParameters.builder()
+                            JoinProcessParameters.builder()
                                     .builderContext(builderContext)
                                     .join(join)
                                     .withoutFeatures(false)
