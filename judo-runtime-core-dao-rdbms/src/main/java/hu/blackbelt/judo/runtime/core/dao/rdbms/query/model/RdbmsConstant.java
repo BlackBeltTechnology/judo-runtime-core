@@ -44,8 +44,14 @@ public class RdbmsConstant extends RdbmsField {
     private int index;
 
     @Override
-    public String toSql(final String prefix, final boolean includeAlias, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
+    public String toSql(SqlConverterContext context) {
+        final String prefix = context.prefix;
+        final EMap<Node, String> prefixes = context.prefixes;
+        final Coercer coercer = context.coercer;
+        final MapSqlParameterSource sqlParameters = context.sqlParameters;
+        final boolean includeAlias = context.includeAlias;
         final String sql;
+        
         if (parameter.getSqlType() == Types.VARCHAR || parameter.getSqlType() == Types.CHAR || parameter.getSqlType() == Types.NVARCHAR) {
             final String value = coercer.coerce(parameter.getValue(), String.class);
             sql = "'" + (value != null ? value.replace("'", "''") : "NULL") + "'";
