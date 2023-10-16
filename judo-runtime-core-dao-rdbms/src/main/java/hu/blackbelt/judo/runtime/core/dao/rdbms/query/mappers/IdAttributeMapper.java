@@ -32,6 +32,8 @@ import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EClass;
 
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -50,6 +52,7 @@ public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
             // add ancestor for a given attribute
             ancestors.get(idAttribute.getNode()).add(superType);
         }
+
         return getTargets(idAttribute)
                 .map(t -> RdbmsColumn.builder()
                         .partnerTable(idAttribute.getNode())

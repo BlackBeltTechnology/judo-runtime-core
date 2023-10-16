@@ -103,18 +103,23 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
         final EMap<Target, Collection<String>> targetMask = mask != null ? getTargetMask(query.getSelect().getMainTarget(), mask, new BasicEMap<>()) : ECollections.emptyEMap();
-        columns.addAll(query.getSelect().getFeatures().stream()
-                .filter(f -> !f.getTargetMappings().isEmpty() && (!withoutFeatures && (mask == null && f.getTargetMappings().stream().noneMatch(tm -> tm.getTargetAttribute() != null && AsmUtils.annotatedAsTrue(tm.getTargetAttribute(), "parameterized")) || f.getTargetMappings().stream()
-                        .anyMatch(tm -> tm.getTarget() == null ||
-                                query.getSelect().getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
-                                query.getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
-                                targetMask.containsKey(tm.getTarget()) && (tm.getTargetAttribute() == null || targetMask.get(tm.getTarget()).contains(tm.getTargetAttribute().getName())))) ||
-                        query.getSelect().isAggregated() ||
-                        f instanceof IdAttribute && EcoreUtil.equals(((IdAttribute) f).getNode(), query.getSelect()) ||
-                        f instanceof TypeAttribute && EcoreUtil.equals(((TypeAttribute) f).getNode(), query.getSelect())))
-                .flatMap(feature -> rdbmsBuilder.mapFeatureToRdbms(feature, context))
-                .collect(Collectors.toList()));
+        final List<Feature> features = query.getSelect().getFeatures().stream()
+                .filter(
+                        f -> !f.getTargetMappings().isEmpty() &&
+                                (!withoutFeatures &&
+                                        isFeatureIncludedByMask(f, mask, targetMask) ||
+                                        query.getSelect().isAggregated() ||
+                                        isFeatureId(f) ||
+                                        isFeatureType(f)
+                                )
+                ).collect(Collectors.toList());
 
+        for (Feature feature : features) {
+            List<RdbmsField> featureFields = rdbmsBuilder.mapFeatureToRdbms(feature, context)
+                    .collect(Collectors.toList());
+            columns.addAll(featureFields);
+        }
+        
         rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors);
 
         List<Join> joinsToProcess = query.getSelect().getAllJoins().stream()
@@ -563,6 +568,26 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 joins.remove(staticJoin);
             }
         }
+    }
+
+    private boolean isFeatureIncludedByMask(Feature f, Map<String, Object> mask, EMap<Target, Collection<String>> targetMask) {
+        return (mask == null &&
+                f.getTargetMappings().stream().noneMatch(tm -> tm.getTargetAttribute() != null && AsmUtils.annotatedAsTrue(tm.getTargetAttribute(), "parameterized")) ||
+                f.getTargetMappings().stream().anyMatch(tm -> tm.getTarget() == null ||
+                        query.getSelect().getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
+                        query.getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
+                        targetMask.containsKey(tm.getTarget()) && (tm.getTargetAttribute() == null ||
+                                targetMask.get(tm.getTarget()).contains(tm.getTargetAttribute().getName()))
+                )
+        );
+    }
+
+    private boolean isFeatureId(Feature f) {
+        return f instanceof IdAttribute && EcoreUtil.equals(((IdAttribute) f).getNode(), query.getSelect());
+    }
+
+    private boolean isFeatureType(Feature f) {
+        return f instanceof TypeAttribute && EcoreUtil.equals(((TypeAttribute) f).getNode(), query.getSelect());
     }
 
     private static String getWhere(Collection<String> allConditions) {
