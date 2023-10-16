@@ -32,19 +32,19 @@ import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUti
 public class FilterJoinProcessor {
 
     public <ID> void addFilterJoinsAndConditions(final FilterJoinProcessorParameters params, final RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.rdbmsBuilder;
-        final List<RdbmsJoin> joins = params.joins;
-        final Filter filter = params.filter;
-        final SubSelect query = params.query;
-        final EList<Join> processedNodesForJoins = params.processedNodesForJoins;
-        final List<RdbmsField> conditions = params.conditions;
-        final String partnerTablePrefix = params.partnerTablePrefix;
-        final Node partnerTable = params.partnerTable;
-        final Boolean addJoinsOfFilterFeature = params.addJoinsOfFilterFeature;
-        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
-        final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
-        final SubSelect parentIdFilterQuery = builderContext.parentIdFilterQuery;
-        final Map<String, Object> queryParameters = builderContext.queryParameters;
+        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.getRdbmsBuilder();
+        final List<RdbmsJoin> joins = params.getJoins();
+        final Filter filter = params.getFilter();
+        final SubSelect query = params.getQuery();
+        final EList<Join> processedNodesForJoins = params.getProcessedNodesForJoins();
+        final List<RdbmsField> conditions = params.getConditions();
+        final String partnerTablePrefix = params.getPartnerTablePrefix();
+        final Node partnerTable = params.getPartnerTable();
+        final Boolean addJoinsOfFilterFeature = params.isAddJoinsOfFilterFeature();
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final EMap<Node, EList<EClass>> descendants = builderContext.getDescendants();
+        final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
+        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
             joins.add(RdbmsTableJoin.builder()
@@ -116,6 +116,7 @@ public class FilterJoinProcessor {
                 .map(f -> RdbmsQueryJoin.<ID>builder()
                         .resultSet(
                                 RdbmsResultSet.<ID>builder()
+                                        .level(builderContext.getLevel() + 1)
                                         .query(f.getSubSelect())
                                         .filterByInstances(false)
                                         .parentIdFilterQuery(parentIdFilterQuery)

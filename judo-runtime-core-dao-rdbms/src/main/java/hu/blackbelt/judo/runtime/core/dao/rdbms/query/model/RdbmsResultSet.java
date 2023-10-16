@@ -78,6 +78,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
     @Builder
     private RdbmsResultSet(
+            final int level,
             @NonNull final SubSelect query,
             final boolean filterByInstances,
             final SubSelect parentIdFilterQuery,
@@ -92,6 +93,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         this.rdbmsBuilder = rdbmsBuilder;
 
         RdbmsBuilderContext context = RdbmsBuilderContext.builder()
+                .level(level)
                 .rdbmsBuilder(rdbmsBuilder)
                 .ancestors(ancestors)
                 .descendants(descendants)
@@ -161,6 +163,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .map(s -> RdbmsQueryJoin.<ID>builder()
                             .resultSet(
                                     RdbmsResultSet.<ID>builder()
+                                            .level(context.getLevel())
                                             .query(s)
                                             .filterByInstances(false)
                                             .parentIdFilterQuery(parentIdFilterQuery)

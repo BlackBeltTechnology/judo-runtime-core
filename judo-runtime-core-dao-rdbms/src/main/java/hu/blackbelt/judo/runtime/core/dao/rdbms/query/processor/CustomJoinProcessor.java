@@ -34,7 +34,7 @@ public class CustomJoinProcessor {
     private final AsmUtils asmUtils;
 
     public List<RdbmsJoin> process(CustomJoin join, RdbmsBuilderContext builderContext) {
-        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
         final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         final List<RdbmsJoin> joins = new ArrayList<>();

@@ -37,7 +37,7 @@ public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
 
     @Override
     public Stream<? extends RdbmsField> map(final Constant constant, RdbmsBuilderContext context) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+        final RdbmsBuilder<?> rdbmsBuilder = context.getRdbmsBuilder();
 
         final String id = EcoreUtil.getIdentification(constant);
         if (id != null) {
@@ -56,7 +56,7 @@ public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
     }
 
     private Stream<? extends RdbmsField> getFields(RdbmsBuilderContext context, final Constant constant) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+        final RdbmsBuilder<?> rdbmsBuilder = context.getRdbmsBuilder();
 
         return getTargets(constant).map(t -> RdbmsConstant.builder()
                 .parameter(rdbmsBuilder.getParameterMapper().createParameter(constant.getValue(), null))

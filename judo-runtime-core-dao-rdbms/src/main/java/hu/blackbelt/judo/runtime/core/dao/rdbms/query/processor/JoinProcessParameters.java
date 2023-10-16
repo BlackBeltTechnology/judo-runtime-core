@@ -12,11 +12,11 @@ import java.util.Map;
 @Getter
 public class JoinProcessParameters {
     @NonNull
-    RdbmsBuilderContext builderContext;
+    private RdbmsBuilderContext builderContext;
 
     @NonNull
-    Node join;
+    private Node join;
 
-    boolean withoutFeatures;
-    Map<String, Object> mask;
+    private boolean withoutFeatures;
+    private Map<String, Object> mask;
 }

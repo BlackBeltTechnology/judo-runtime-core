@@ -14,12 +14,14 @@ import java.util.Map;
 @Builder(toBuilder = true)
 @Getter
 public class RdbmsBuilderContext {
+    private int level = 1;
+
     @NonNull
-    public RdbmsBuilder<?> rdbmsBuilder;
+    private RdbmsBuilder<?> rdbmsBuilder;
     @NonNull
-    public EMap<Node, EList<EClass>> ancestors;
+    private EMap<Node, EList<EClass>> ancestors;
     @NonNull
-    public EMap<Node, EList<EClass>> descendants;
-    public SubSelect parentIdFilterQuery;
-    public Map<String, Object> queryParameters;
+    private EMap<Node, EList<EClass>> descendants;
+    private SubSelect parentIdFilterQuery;
+    private Map<String, Object> queryParameters;
 }

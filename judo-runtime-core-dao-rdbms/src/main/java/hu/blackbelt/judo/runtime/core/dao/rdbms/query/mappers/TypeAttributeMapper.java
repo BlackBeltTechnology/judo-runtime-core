@@ -40,7 +40,7 @@ public class TypeAttributeMapper extends RdbmsMapper<TypeAttribute> {
 
     @Override
     public Stream<RdbmsColumn> map(final TypeAttribute typeAttribute, RdbmsBuilderContext context) {
-        final EMap<Node, EList<EClass>> ancestors = context.ancestors;
+        final EMap<Node, EList<EClass>> ancestors = context.getAncestors();
 
         final EClass sourceType = typeAttribute.getNode().getType();
         for (EClass superType : sourceType.getEAllSuperTypes()) {

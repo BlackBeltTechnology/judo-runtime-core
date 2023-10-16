@@ -31,7 +31,7 @@ public class CastJoinProcessor<ID> {
     private final RdbmsResolver rdbmsResolver;
 
     public List<RdbmsJoin> process(Node join, RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.rdbmsBuilder;
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         EClass castTargetType = join.getType();
         Set<EClass> typeSet = new HashSet<>(castTargetType.getEAllSuperTypes());

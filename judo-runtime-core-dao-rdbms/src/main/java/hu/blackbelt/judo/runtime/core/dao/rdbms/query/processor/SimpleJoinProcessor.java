@@ -41,12 +41,12 @@ public class SimpleJoinProcessor<ID> {
     private final AncestorNameFactory ancestorNameFactory;
 
     public List<RdbmsJoin> process(SimpleJoinProcessorParameters params) {
-        final String postfix = params.postfix;
-        final Join join = params.join;
-        final EReference reference = params.reference;
-        final EReference opposite = params.opposite;
-        final RdbmsBuilderContext builderContext = params.builderContext;
-        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
+        final String postfix = params.getPostfix();
+        final Join join = params.getJoin();
+        final EReference reference = params.getReference();
+        final EReference opposite = params.getOpposite();
+        final RdbmsBuilderContext builderContext = params.getBuilderContext();
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
 
 
         final EClass targetType = join.getType();

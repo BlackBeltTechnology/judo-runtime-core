@@ -54,11 +54,11 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
     @Builder
     private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.rdbmsBuilder;
-        final EMap<Node, EList<EClass>> ancestors = builderContext.ancestors;
-        final EMap<Node, EList<EClass>> descendants = builderContext.descendants;
-        final SubSelect parentIdFilterQuery = builderContext.parentIdFilterQuery;
-        final Map<String, Object> queryParameters = builderContext.queryParameters;
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final EMap<Node, EList<EClass>> descendants = builderContext.getDescendants();
+        final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
+        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         this.filter = filter;
         this.from = rdbmsBuilder.getTableName(filter.getType());
@@ -108,6 +108,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                     final RdbmsQueryJoin<ID> queryJoin = RdbmsQueryJoin.<ID>builder()
                             .resultSet(
                                     RdbmsResultSet.<ID>builder()
+                                            .level(builderContext.getLevel() + 1)
                                             .query(subSelect)
                                             .filterByInstances(false)
                                             .parentIdFilterQuery(parentIdFilterQuery)

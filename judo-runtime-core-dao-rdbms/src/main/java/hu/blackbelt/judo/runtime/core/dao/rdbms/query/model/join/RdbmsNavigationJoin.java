@@ -178,6 +178,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .map(subSelect -> RdbmsQueryJoin.<ID>builder()
                         .resultSet(
                                 RdbmsResultSet.<ID>builder()
+                                        .level(builderContext.getLevel() + 1)
                                         .query(subSelect)
                                         .filterByInstances(false)
                                         .parentIdFilterQuery(parentIdFilterQuery)

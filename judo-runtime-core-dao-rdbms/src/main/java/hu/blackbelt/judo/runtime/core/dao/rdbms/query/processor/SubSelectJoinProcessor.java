@@ -39,9 +39,10 @@ public class SubSelectJoinProcessor<ID> {
         final Map<String, Object> _mask = mask != null && subSelect.getTransferRelation() != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null;
         final RdbmsResultSet<ID> resultSetHandler =
                 RdbmsResultSet.<ID>builder()
+                        .level(builderContext.getLevel() + 1)
                         .query(subSelect)
                         .filterByInstances(false)
-                        .parentIdFilterQuery(builderContext.parentIdFilterQuery)
+                        .parentIdFilterQuery(builderContext.getParentIdFilterQuery())
                         .rdbmsBuilder((RdbmsBuilder<ID>) builderContext.getRdbmsBuilder())
                         .seek(null)
                         .withoutFeatures(withoutFeatures)

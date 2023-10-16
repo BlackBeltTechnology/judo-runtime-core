@@ -7,26 +7,28 @@ import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.emf.common.util.EList;
 
 import java.util.List;
 
 @Builder
+@Getter
 public class FilterJoinProcessorParameters {
     @NonNull
-    List<RdbmsJoin> joins;
+    private List<RdbmsJoin> joins;
     @NonNull
-    SubSelect query;
+    private SubSelect query;
     @NonNull
-    EList<Join> processedNodesForJoins;
+    private EList<Join> processedNodesForJoins;
     @NonNull
-    List<RdbmsField> conditions;
+    private List<RdbmsField> conditions;
     @Builder.Default
-    String partnerTablePrefix = "";
+    private String partnerTablePrefix = "";
     @NonNull
-    Filter filter;
+    private Filter filter;
     @NonNull
-    Node partnerTable;
-    boolean addJoinsOfFilterFeature;
+    private Node partnerTable;
+    private boolean addJoinsOfFilterFeature;
 }
