@@ -222,19 +222,21 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         .alias(orderBy.getAlias())
                         .build());
 
-                orderBy.getFeature().getNodes().stream()
+                List<Join> orderByJoins = orderBy.getFeature().getNodes().stream()
                         .filter(n -> n instanceof Join).map(n -> (Join) n)
                         .filter(n -> !AsmUtils.equals(n, query) && !AsmUtils.equals(n, query.getSelect()) && !query.getSelect().getAllJoins().contains(n))
-                        .forEach(join -> {
-                            joins.addAll(rdbmsBuilder.processJoin(
-                                    JoinProcessParameters.builder()
-                                            .builderContext(context)
-                                            .join(join)
-                                            .withoutFeatures(withoutFeatures)
-                                            .build()
-                            ));
-                            processedNodesForJoins.add(join);
-                        });
+                        .collect(Collectors.toList());
+
+                for (Join join : orderByJoins) {
+                    joins.addAll(rdbmsBuilder.processJoin(
+                            JoinProcessParameters.builder()
+                                    .builderContext(context)
+                                    .join(join)
+                                    .withoutFeatures(withoutFeatures)
+                                    .build()
+                    ));
+                    processedNodesForJoins.add(join);
+                }
 
                 final List<RdbmsField> orderByFields = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), context).collect(Collectors.toList());
                 if (!orderByFields.isEmpty()) {
