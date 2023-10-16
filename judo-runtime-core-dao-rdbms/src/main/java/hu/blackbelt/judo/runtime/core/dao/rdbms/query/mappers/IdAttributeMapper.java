@@ -32,6 +32,7 @@ import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EClass;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -41,14 +42,14 @@ public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
     @Override
     public Stream<RdbmsColumn> map(final IdAttribute idAttribute, final EMap<Node, EList<EClass>> ancestors, final SubSelect parentIdFilterQuery, final Map<String, Object> queryParameters) {
         final EClass sourceType = idAttribute.getNode().getType();
-        sourceType.getEAllSuperTypes().forEach(superType -> {
+        for (EClass superType : sourceType.getEAllSuperTypes()) {
             log.trace("   - found super type: {}", AsmUtils.getClassifierFQName(superType));
             if (!ancestors.containsKey(idAttribute.getNode())) {
                 ancestors.put(idAttribute.getNode(), new UniqueEList<>());
             }
             // add ancestor for a given attribute
             ancestors.get(idAttribute.getNode()).add(superType);
-        });
+        };
 
         return getTargets(idAttribute)
                 .map(t -> RdbmsColumn.builder()

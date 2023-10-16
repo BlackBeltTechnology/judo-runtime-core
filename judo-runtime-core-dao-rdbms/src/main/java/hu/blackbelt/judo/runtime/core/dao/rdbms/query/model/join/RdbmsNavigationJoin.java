@@ -102,10 +102,10 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final Collection<SubSelect> aggregations = new ArrayList<>();
 
         final Join lastJoin = getLastJoin();
-        navigationJoinList.forEach(navigationJoin -> {
+        for (Join navigationJoin : navigationJoinList) {
             final Set<String> joinedOrderByAliases = new HashSet<>();
 
-            navigationJoin.getOrderBys().forEach(orderBy -> {
+            for (OrderBy orderBy : navigationJoin.getOrderBys()) {
                 if (!joinedOrderByAliases.contains(orderBy.getAlias())) {
                     subJoins.add(RdbmsTableJoin.builder()
                             .tableName(rdbmsBuilder.getTableName(orderBy.getType()))
@@ -119,7 +119,10 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
 
                 final EList<Join> additionalJoins = new UniqueEList<>();
                 additionalJoins.addAll(orderBy.getJoins().stream().flatMap(j -> j.getAllJoins().stream()).collect(Collectors.toList()));
-                additionalJoins.forEach(j -> subJoins.addAll(rdbmsBuilder.processJoin(j, subAncestors, parentIdFilterQuery, rdbmsBuilder, withoutFeatures, null, queryParameters)));
+
+                for (Join join : additionalJoins) {
+                    subJoins.addAll(rdbmsBuilder.processJoin(join, subAncestors, parentIdFilterQuery, rdbmsBuilder, withoutFeatures, null, queryParameters));
+                }
 
                 if (orderBy.getFeature() instanceof SubSelectFeature) {
                     final SubSelect subSelect = ((SubSelectFeature) orderBy.getFeature()).getSubSelect();
@@ -141,8 +144,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     // only orderBys of last navigation are available for container
                     exposedOrderBys.addAll(newOrderBys);
                 }
-            });
-        });
+            };
+        }
 
         subJoins.addAll(aggregations.stream()
                 .map(subSelect -> RdbmsQueryJoin.<ID>builder()

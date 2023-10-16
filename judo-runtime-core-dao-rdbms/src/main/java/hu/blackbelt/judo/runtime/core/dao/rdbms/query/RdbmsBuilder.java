@@ -239,8 +239,9 @@ public class RdbmsBuilder<ID> {
                     .build());
 
             if (ancestors.containsKey(join)) {
-                ancestors.get(join).forEach(ancestor ->
-                        result.addAll(getAdditionalJoins(join, ancestors, result)));
+                for (EClass ancestor : ancestors.get(join)) {
+                    result.addAll(getAdditionalJoins(join, ancestors, result));
+                }
             }
             return result;
         } else {
@@ -417,10 +418,10 @@ public class RdbmsBuilder<ID> {
         result.add(rdbmsJoin);
 
         if (ancestors.containsKey(join)) {
-            ancestors.get(join).stream().forEach(ancestor ->
-                    result.addAll(getAdditionalJoins(join, ancestors, result)));
+            for (EClass ancestor : ancestors.get(join)) {
+                result.addAll(getAdditionalJoins(join, ancestors, result));
+            }
         }
-
         return result;
     }
 

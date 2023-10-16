@@ -65,8 +65,9 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                 .collect(Collectors.toList()));
 
         if (ancestors.containsKey(filter)) {
-            ancestors.get(filter).forEach(ancestor ->
-                    joins.addAll(rdbmsBuilder.getAdditionalJoins(filter, ancestors, joins)));
+            for (EClass ancestor : ancestors.get(filter)) {
+                joins.addAll(rdbmsBuilder.getAdditionalJoins(filter, ancestors, joins));
+            }
         }
 
         joins.addAll(filter.getSubSelects().stream()
