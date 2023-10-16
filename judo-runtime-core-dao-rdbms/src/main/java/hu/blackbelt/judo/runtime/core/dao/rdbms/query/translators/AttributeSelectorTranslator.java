@@ -83,7 +83,8 @@ public class AttributeSelectorTranslator implements Function<AttributeSelector, 
                 throw new IllegalStateException("Unsupported object variable");
             }
 
-            for (ObjectVariableReference selfReference : collectSelfReferences(cloned)) {
+            EList<ObjectVariableReference> selfReferences = collectSelfReferences(cloned);
+            for (ObjectVariableReference selfReference : selfReferences) {
                 selfReference.setVariable(objectVariable);
             }
             return cloned;
