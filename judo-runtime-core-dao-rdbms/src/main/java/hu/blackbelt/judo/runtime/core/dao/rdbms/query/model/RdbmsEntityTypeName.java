@@ -40,7 +40,7 @@ public class RdbmsEntityTypeName extends RdbmsField {
     private final EClass type;
 
     @Override
-    public String toSql(SqlConverterContext context) {
+    public String toSql(SqlConverterContext converterContext) {
         return tableName;
     }
 }

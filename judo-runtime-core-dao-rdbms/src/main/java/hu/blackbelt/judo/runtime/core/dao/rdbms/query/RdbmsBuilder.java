@@ -153,7 +153,6 @@ public class RdbmsBuilder<ID> {
         this.filterJoinProcessor = FilterJoinProcessor.builder()
                 .build();
 
-
         this.subSelectJoinProcessor = SubSelectJoinProcessor.builder()
                 .rdbmsResolver(rdbmsResolver)
                 .build();

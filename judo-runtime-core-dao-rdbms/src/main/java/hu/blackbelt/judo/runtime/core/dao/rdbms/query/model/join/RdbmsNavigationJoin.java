@@ -92,7 +92,9 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final EClass baseType = query.getBase() != null ? query.getBase().getType() : navigationJoinList.get(0).getType();
         subFrom = rdbmsBuilder.getTableName(baseType);
 
-        if (query.getBase() != null && !(query.getBase() instanceof Select && !(query.getContainer() instanceof SubSelectJoin) && query.getBase().getFeatures().isEmpty() && query.getSelect().isAggregated())) {
+        if (query.getBase() != null &&
+                !(query.getBase() instanceof Select && !(query.getContainer() instanceof SubSelectJoin) &&
+                        query.getBase().getFeatures().isEmpty() && query.getSelect().isAggregated())) {
             subFeatures.add(RdbmsColumn.builder()
                     .partnerTable(query.getBase())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
@@ -136,7 +138,10 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 }
 
                 final EList<Join> additionalJoins = new UniqueEList<>();
-                additionalJoins.addAll(orderBy.getJoins().stream().flatMap(j -> j.getAllJoins().stream()).collect(Collectors.toList()));
+                additionalJoins.addAll(orderBy.getJoins().stream()
+                        .flatMap(j -> j.getAllJoins().stream())
+                        .collect(Collectors.toList()));
+
                 for (Join j : additionalJoins) {
                     subJoins.addAll(rdbmsBuilder.processJoin(
                             JoinProcessParameters.builder()
@@ -149,12 +154,13 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
 
                 if (orderBy.getFeature() instanceof SubSelectFeature) {
                     final SubSelect subSelect = ((SubSelectFeature) orderBy.getFeature()).getSubSelect();
-                    checkArgument(subSelect.getSelect().isAggregated(), "SubSelect feature must be aggregated");
-
+                    checkArgument(subSelect.getSelect().isAggregated(),
+                            "SubSelect feature must be aggregated");
                     aggregations.add(subSelect);
                 }
 
-                final List<RdbmsOrderBy> newOrderBys = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), navigationBuilderContext)
+                final List<RdbmsOrderBy> newOrderBys = rdbmsBuilder
+                        .mapFeatureToRdbms(orderBy.getFeature(), navigationBuilderContext)
                         .map(o -> RdbmsOrderBy.builder()
                                 .rdbmsField(o)
                                 .fromSubSelect(true)
@@ -180,8 +186,12 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
-                        .partnerTable(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), subSelect.getContainer()) ? subSelect.getBase() : null)
-                        .partnerColumnName(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), subSelect.getContainer()) ? StatementExecutor.ID_COLUMN_NAME : null)
+                        .partnerTable(!subSelect.getNavigationJoins().isEmpty() &&
+                                AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(),
+                                        subSelect.getContainer()) ? subSelect.getBase() : null)
+                        .partnerColumnName(!subSelect.getNavigationJoins().isEmpty() &&
+                                AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(),
+                                        subSelect.getContainer()) ? StatementExecutor.ID_COLUMN_NAME : null)
                         .alias(subSelect.getAlias())
                         .build())
                 .collect(Collectors.toList()));
@@ -215,7 +225,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                         .build()))
                 .collect(Collectors.toList()));
 
-        if (parentIdFilterQuery != null && AsmUtils.equals(parentIdFilterQuery.getContainer(), query.getBase())) {
+        if (parentIdFilterQuery != null &&
+                AsmUtils.equals(parentIdFilterQuery.getContainer(), query.getBase())) {
             subConditions.add(RdbmsFunction.builder()
                     .pattern("{0} IN (:" + RdbmsAliasUtil.getParentIdsKey(parentIdFilterQuery.getSelect()) + ")")
                     .parameter(RdbmsColumn.builder()
@@ -223,7 +234,9 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .build())
                     .build());
-        } else if (parentIdFilterQuery != null && AsmUtils.equals(parentIdFilterQuery.getSelect(), query.getBase()) && !query.getSelect().isAggregated()) {
+        } else if (parentIdFilterQuery != null &&
+                AsmUtils.equals(parentIdFilterQuery.getSelect(), query.getBase()) &&
+                !query.getSelect().isAggregated()) {
             subConditions.add(RdbmsFunction.builder()
                     .pattern("{0} = {1}")
                     .parameter(RdbmsColumn.builder()
@@ -237,7 +250,9 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                             .build())
                     .build());
         }
-        if (query.getBase() != null && !query.getSelect().isAggregated() && query.getBase() instanceof Filter) {
+        if (query.getBase() != null &&
+                !query.getSelect().isAggregated() &&
+                query.getBase() instanceof Filter) {
             subConditions.add(RdbmsFunction.builder()
                     .pattern("{0} = {1}")
                     .parameter(RdbmsColumn.builder()
@@ -245,12 +260,13 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .build())
                     .parameter(RdbmsColumn.builder()
-                            .partnerTable(query.getBase().eContainer() instanceof SubSelect ? ((SubSelect)query.getBase().eContainer()).getSelect() : (Node) query.getBase().eContainer())
+                            .partnerTable(query.getBase().eContainer() instanceof SubSelect
+                                    ? ((SubSelect)query.getBase().eContainer()).getSelect()
+                                    : (Node) query.getBase().eContainer())
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .build())
                     .build());
         }
-
         aggregatedNavigation = !aggregations.isEmpty();
     }
 
@@ -263,12 +279,12 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
     }
 
     @Override
-    protected String getTableNameOrSubQuery(SqlConverterContext context) {
-        final String subSelectJoinPrefix = context.prefix + RdbmsAliasUtil.getNavigationSubSelectAlias(query);
-        aliasToCompareWith = context.prefix + alias;
+    protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {
+        final String subSelectJoinPrefix = converterContext.getPrefix() + RdbmsAliasUtil.getNavigationSubSelectAlias(query);
+        aliasToCompareWith = converterContext.getPrefix() + alias;
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
-        newPrefixes.putAll(context.prefixes);
+        newPrefixes.putAll(converterContext.getPrefixes());
         if (query.getBase() != null) {
             newPrefixes.put(query.getBase(), subSelectJoinPrefix);
         }
@@ -276,7 +292,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .collect(Collectors.toMap(join -> join, join -> subSelectJoinPrefix)));
 
 
-        SqlConverterContext subSelectSqlConverterContext = context.toBuilder()
+        SqlConverterContext subSelectSqlConverterContext = converterContext.toBuilder()
                 .prefix(subSelectJoinPrefix)
                 .prefixes(newPrefixes)
                 .build();
@@ -286,7 +302,9 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                         subJoins.stream().flatMap(j -> j.conditionToSql(subSelectSqlConverterContext).stream()),
                         subConditions.stream().map(c -> c.toSql(subSelectSqlConverterContext))
                 ).collect(Collectors.toList());
-        final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
+
+        final String sql =
+                //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "(" + "SELECT DISTINCT " + subFeatures.stream().map(o -> o.toSql(
                         subSelectSqlConverterContext.toBuilder()
                                 .includeAlias(true)
@@ -295,20 +313,23 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 "\n    FROM " + subFrom + (query.getBase() != null ? " AS " + subSelectJoinPrefix + query.getBase().getAlias() : "") +
                 getJoin(subSelectSqlConverterContext) +
                 (!allConditions.isEmpty() ? "\n    WHERE " + String.join(" AND ", allConditions) : "") +
-                (aggregatedNavigation ? "\nGROUP BY " + subFeatures.stream().map(f -> f.getRdbmsAlias()).collect(Collectors.joining(", ")) : "") +
+                (aggregatedNavigation ? "\nGROUP BY " + subFeatures.stream()
+                        .map(f -> f.getRdbmsAlias())
+                        .collect(Collectors.joining(", ")) : "") +
                 ")";
         return sql;
     }
 
-    private String getJoin(SqlConverterContext context) {
-        Map<RdbmsJoin, String> joinMap = subJoins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(context, false)));
+    private String getJoin(SqlConverterContext converterContext) {
+        Map<RdbmsJoin, String> joinMap = subJoins.stream()
+                .collect(Collectors.toMap(j -> j, j -> j.toSql(converterContext, false)));
         return subJoins.stream()
-                       .sorted(new RdbmsJoinComparator(subJoins))
-                       .map(j -> {
-                           joinConditionTableAliases.addAll(j.getJoinConditionTableAliases());
-                           return joinMap.get(j);
-                       })
-                       .collect(Collectors.joining());
+                .sorted(new RdbmsJoinComparator(subJoins))
+                .map(j -> {
+                    joinConditionTableAliases.addAll(j.getJoinConditionTableAliases());
+                    return joinMap.get(j);
+                })
+                .collect(Collectors.joining());
     }
 
 }

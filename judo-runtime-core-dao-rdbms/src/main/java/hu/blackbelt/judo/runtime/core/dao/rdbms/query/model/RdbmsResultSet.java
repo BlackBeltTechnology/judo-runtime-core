@@ -105,7 +105,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
-        final EMap<Target, Collection<String>> targetMask = mask != null ? getTargetMask(query.getSelect().getMainTarget(), mask, new BasicEMap<>()) : ECollections.emptyEMap();
+        final EMap<Target, Collection<String>> targetMask = mask != null
+                ? getTargetMask(query.getSelect().getMainTarget(), mask, new BasicEMap<>())
+                : ECollections.emptyEMap();
+
         final List<Feature> features = query.getSelect().getFeatures().stream()
                 .filter(
                         f -> !f.getTargetMappings().isEmpty() &&
@@ -118,7 +121,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 ).collect(Collectors.toList());
 
         for (Feature feature : features) {
-            List<RdbmsField> featureFields = rdbmsBuilder.mapFeatureToRdbms(feature, resultSetBuilderContext.toBuilder().parentIdFilterQuery(query).build())
+            List<RdbmsField> featureFields = rdbmsBuilder.mapFeatureToRdbms(feature,
+                            resultSetBuilderContext.toBuilder().parentIdFilterQuery(query).build())
                     .collect(Collectors.toList());
             columns.addAll(featureFields);
         }
@@ -126,7 +130,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), resultSetBuilderContext);
 
         List<Join> joinsToProcess = query.getSelect().getAllJoins().stream()
-                .filter(j -> !withoutFeatures || query.getSelect().isAggregated() && !processedNodesForJoins.contains(j))
+                .filter(j -> !withoutFeatures ||
+                                query.getSelect().isAggregated() &&
+                                !processedNodesForJoins.contains(j))
                 .collect(Collectors.toList());
 
         for (Join join : joinsToProcess) {
@@ -144,8 +150,13 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             conditions.add(RdbmsFunction.builder()
                     .pattern("{0} IN ({1})")
                     .parameters(Arrays.asList(
-                            RdbmsColumn.builder().partnerTable(query.getSelect()).columnName(StatementExecutor.ID_COLUMN_NAME).build(),
-                            RdbmsParameter.builder().parameterName(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect())).build()
+                            RdbmsColumn.builder()
+                                    .partnerTable(query.getSelect())
+                                    .columnName(StatementExecutor.ID_COLUMN_NAME)
+                                    .build(),
+                            RdbmsParameter.builder()
+                                    .parameterName(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()))
+                                    .build()
                     )).build());
         }
 
@@ -187,13 +198,16 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 }
                 n = (Node) n.eContainer();
             }
-            group = query.getNavigationJoins().get(0).getPartner() != null && nodes.contains(query.getNavigationJoins().get(0).getPartner());
+            group = query.getNavigationJoins().get(0).getPartner() != null &&
+                    nodes.contains(query.getNavigationJoins().get(0).getPartner());
         } else {
             group = false;
         }
 
         if (!query.getNavigationJoins().isEmpty()) {
-            if (query.getContainer() != null && (group || !query.getSelect().isAggregated()) && !skipParents && !query.getSelect().isSingleColumnedSelect()) {
+            if (query.getContainer() != null &&
+                    (group || !query.getSelect().isAggregated()) &&
+                    !skipParents && !query.getSelect().isSingleColumnedSelect()) {
                 // add parent ID to result set that will be used to move result records under their container records
                 columns.add(RdbmsColumn.builder()
                         .partnerTablePrefix(AGGREGATE_PREFIX)
@@ -224,7 +238,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
                 List<Join> orderByJoins = orderBy.getFeature().getNodes().stream()
                         .filter(n -> n instanceof Join).map(n -> (Join) n)
-                        .filter(n -> !AsmUtils.equals(n, query) && !AsmUtils.equals(n, query.getSelect()) && !query.getSelect().getAllJoins().contains(n))
+                        .filter(n -> !AsmUtils.equals(n, query) &&
+                                !AsmUtils.equals(n, query.getSelect()) &&
+                                !query.getSelect().getAllJoins().contains(n))
                         .collect(Collectors.toList());
 
                 for (Join join : orderByJoins) {
@@ -238,7 +254,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     processedNodesForJoins.add(join);
                 }
 
-                final List<RdbmsField> orderByFields = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), resultSetBuilderContext).collect(Collectors.toList());
+                final List<RdbmsField> orderByFields = rdbmsBuilder
+                        .mapFeatureToRdbms(orderBy.getFeature(), resultSetBuilderContext)
+                        .collect(Collectors.toList());
                 if (!orderByFields.isEmpty()) {
                     orderByFeatures.put(orderBy, orderByFields.get(0));
                 }
@@ -258,7 +276,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         offset = query.getOffset();
 
         for (OrderBy orderBy : query.getSelect().getOrderBys()) {
-            final List<RdbmsField> orderByFields = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), resultSetBuilderContext).collect(Collectors.toList());
+            final List<RdbmsField> orderByFields = rdbmsBuilder
+                    .mapFeatureToRdbms(orderBy.getFeature(), resultSetBuilderContext)
+                    .collect(Collectors.toList());
             if (!orderByFields.isEmpty()) {
                 orderByFeatures.put(orderBy, orderByFields.get(0));
             }
@@ -277,8 +297,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 (query.getBase() != null &&
                         !(query.getBase() instanceof Select &&
                                 !(query.getContainer() instanceof SubSelectJoin) &&
-                                query.getBase().getFeatures().isEmpty() && query.getSelect().isAggregated())) ||
-                        (query.getPartner() == null && query.eContainer() == null);
+                                query.getBase().getFeatures().isEmpty() &&
+                                query.getSelect().isAggregated())) ||
+                        (query.getPartner() == null &&
+                                query.eContainer() == null);
 
         for (Filter filter : query.getFilters()) {
             rdbmsBuilder.addFilterJoinsAndConditions(
@@ -288,8 +310,12 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .processedNodesForJoins(processedNodesForJoins)
                             .query(query)
                             .filter(filter)
-                            .partnerTable(query.getPartner() != null ? query : query.getSelect())
-                            .partnerTablePrefix(query.getPartner() != null ? AGGREGATE_PREFIX : "")
+                            .partnerTable(query.getPartner() != null
+                                    ? query
+                                    : query.getSelect())
+                            .partnerTablePrefix(query.getPartner() != null
+                                    ? AGGREGATE_PREFIX
+                                    : "")
                             .addJoinsOfFilterFeature(addJoinOfFilterFeature)
                             .build(), resultSetBuilderContext);
         }
@@ -310,7 +336,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         if (limit != null && seek != null && seek.getLastItem() != null && from != null) {
             orderByFeatures.stream()
                     .findFirst().ifPresent(orderBy -> {
-                        final Object value = getLastItemValue(rdbmsBuilder, query.getSelect().getMainTarget().getType(), seek, orderBy.getKey());
+                        final Object value = getLastItemValue(rdbmsBuilder,
+                                query.getSelect().getMainTarget().getType(),
+                                seek,
+                                orderBy.getKey());
 
                         if (value != null) {
                             conditions.add(RdbmsFunction.builder()
@@ -331,7 +360,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
 
         if (limit != null && seek != null && seek.getLastItem() != null) {
-            final Object lastId = rdbmsBuilder.getCoercer().coerce(seek.getLastItem().get(rdbmsBuilder.getIdentifierProvider().getName()), rdbmsBuilder.getIdentifierProvider().getType());
+            final Object lastId = rdbmsBuilder.getCoercer()
+                    .coerce(seek.getLastItem().get(rdbmsBuilder.getIdentifierProvider().getName()),
+                            rdbmsBuilder.getIdentifierProvider().getType());
             checkArgument(lastId != null, "Missing identifier from last item");
 
             final Collection<RdbmsField> conditionOrFragments = new ArrayList<>();
@@ -341,15 +372,22 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 final Iterator<Map.Entry<OrderBy, RdbmsField>> nestedIt = orderByFeatures.entrySet().iterator();
                 for (int i = 0; i < index; i++) {
                     final Map.Entry<OrderBy, RdbmsField> nestedItem = nestedIt.next();
-                    final Object value = getLastItemValue(rdbmsBuilder, query.getSelect().getMainTarget().getType(), seek, nestedItem.getKey());
+                    final Object value = getLastItemValue(rdbmsBuilder,
+                            query.getSelect().getMainTarget().getType(),
+                            seek,
+                            nestedItem.getKey());
 
                     if (value != null) {
                         conditionAndFragments.add(RdbmsFunction.builder()
                                 .pattern("{0} = {1}")
                                 .parameter(nestedItem.getValue())
                                 .parameter(RdbmsNamedParameter.builder()
-                                        .parameter(rdbmsBuilder.getParameterMapper().createParameter(value, null))
-                                        .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                        .parameter(rdbmsBuilder
+                                                .getParameterMapper()
+                                                .createParameter(value, null))
+                                        .index(rdbmsBuilder
+                                                .getConstantCounter()
+                                                .getAndIncrement())
                                         .build())
                                 .build());
                     } else {
@@ -362,15 +400,22 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
                 if (nestedIt.hasNext()) {
                     final Map.Entry<OrderBy, RdbmsField> nestedItem = nestedIt.next();
-                    final Object value = getLastItemValue(rdbmsBuilder, query.getSelect().getMainTarget().getType(), seek, nestedItem.getKey());
+                    final Object value = getLastItemValue(rdbmsBuilder,
+                            query.getSelect().getMainTarget().getType(),
+                            seek,
+                            nestedItem.getKey());
 
                     if (value != null) {
                         conditionAndFragments.add(RdbmsFunction.builder()
                                 .pattern(nestedItem.getKey().isDescending() ? "{0} < {1}" : "({0} > {1} OR {0} IS NULL)")
                                 .parameter(nestedItem.getValue())
                                 .parameter(RdbmsNamedParameter.builder()
-                                        .parameter(rdbmsBuilder.getParameterMapper().createParameter(value, null))
-                                        .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                        .parameter(rdbmsBuilder
+                                                .getParameterMapper()
+                                                .createParameter(value, null))
+                                        .index(rdbmsBuilder
+                                                .getConstantCounter()
+                                                .getAndIncrement())
                                         .build())
                                 .build());
                     } else if (nestedItem.getKey().isDescending()) {
@@ -387,22 +432,28 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                     .partnerTable(query.getSelect())
                                     .build())
                             .parameter(RdbmsNamedParameter.builder()
-                                    .parameter(rdbmsBuilder.getParameterMapper().createParameter(lastId, null))
-                                    .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
+                                    .parameter(rdbmsBuilder
+                                            .getParameterMapper()
+                                            .createParameter(lastId, null))
+                                    .index(rdbmsBuilder
+                                            .getConstantCounter()
+                                            .getAndIncrement())
                                     .build())
                             .build());
                 }
 
                 if (!conditionAndFragments.isEmpty()) {
                     conditionOrFragments.add(RdbmsFunction.builder()
-                            .pattern(IntStream.range(0, conditionAndFragments.size()).mapToObj(i -> "{" + i + "}").collect(Collectors.joining(" AND ")))
+                            .pattern(IntStream.range(0, conditionAndFragments.size())
+                                    .mapToObj(i -> "{" + i + "}").collect(Collectors.joining(" AND ")))
                             .parameters(conditionAndFragments)
                             .build());
                 }
             }
 
             conditions.add(RdbmsFunction.builder()
-                    .pattern(IntStream.range(0, conditionOrFragments.size()).mapToObj(i -> "{" + i + "}").collect(Collectors.joining(" OR ")))
+                    .pattern(IntStream.range(0, conditionOrFragments.size())
+                            .mapToObj(i -> "{" + i + "}").collect(Collectors.joining(" OR ")))
                     .parameters(conditionOrFragments)
                     .build());
         }
@@ -419,15 +470,20 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
     }
 
-    private EMap<Target, Collection<String>> getTargetMask(final Target target, final Map<String, Object> mask, final EMap<Target, Collection<String>> result) {
+    private EMap<Target, Collection<String>> getTargetMask(
+            final Target target,
+            final Map<String, Object> mask,
+            final EMap<Target, Collection<String>> result) {
         result.put(target, mask.entrySet().stream()
-                .filter(e -> target.getType().getEAllAttributes().stream().anyMatch(a -> Objects.equals(a.getName(), e.getKey())))
+                .filter(e -> target.getType().getEAllAttributes().stream()
+                        .anyMatch(a -> Objects.equals(a.getName(), e.getKey())))
                 .map(e -> e.getKey())
                 .collect(Collectors.toList()));
 
         Collection<ReferencedTarget> referencedTargets =
         mask.entrySet().stream()
-                .filter(e -> target.getType().getEAllReferences().stream().anyMatch(r -> Objects.equals(r.getName(), e.getKey())))
+                .filter(e -> target.getType().getEAllReferences().stream()
+                        .anyMatch(r -> Objects.equals(r.getName(), e.getKey())))
                 .map(e -> target.getReferencedTargets().stream()
                         .filter(rt -> Objects.equals(rt.getReference().getName(), e.getKey()))
                         .findAny().orElse(null))
@@ -442,13 +498,20 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         return result;
     }
 
-    private Object getLastItemValue(final RdbmsBuilder<ID> rdbmsBuilder, final EClass type, final DAO.Seek seek, final OrderBy orderBy) {
+    private Object getLastItemValue(
+            final RdbmsBuilder<ID> rdbmsBuilder,
+            final EClass type,
+            final DAO.Seek seek,
+            final OrderBy orderBy) {
         if (!orderBy.getFeature().getTargetMappings().isEmpty()) {
-            return seek.getLastItem().get(orderBy.getFeature().getTargetMappings().get(0).getTargetAttribute().getName());
-        } else if (orderBy.getFeature().getTargetMappings().isEmpty() && orderBy.getFeature() instanceof Attribute) {
+            return seek.getLastItem()
+                    .get(orderBy.getFeature().getTargetMappings().get(0).getTargetAttribute().getName());
+        } else if (orderBy.getFeature().getTargetMappings().isEmpty() &&
+                orderBy.getFeature() instanceof Attribute) {
             final EAttribute entityAttribute = ((Attribute) orderBy.getFeature()).getSourceAttribute();
             final EAttribute transferAttribute = type.getEAllAttributes().stream()
-                    .filter(a -> AsmUtils.equals(entityAttribute, rdbmsBuilder.getAsmUtils().getMappedAttribute(a).orElse(null)))
+                    .filter(a -> AsmUtils.equals(entityAttribute,
+                            rdbmsBuilder.getAsmUtils().getMappedAttribute(a).orElse(null)))
                     .findAny()
                     .orElseThrow(() -> new IllegalArgumentException("Unable to find order by attribute of last item"));
             return seek.getLastItem().get(transferAttribute.getName());
@@ -459,9 +522,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
 
     @Override
-    public String toSql(SqlConverterContext context) {
-        final String prefix = context.prefix;
-        final EMap<Node, String> prefixes = context.prefixes;
+    public String toSql(SqlConverterContext converterContext) {
+        final String prefix = converterContext.getPrefix();
+        final EMap<Node, String> prefixes = converterContext.getPrefixes();
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
         newPrefixes.putAll(prefixes);
@@ -469,25 +532,35 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
                 .collect(Collectors.toMap(join -> join, join -> prefix)));
 
-        SqlConverterContext resultContext = context.toBuilder()
+        SqlConverterContext resultContext = converterContext.toBuilder()
                 .prefixes(newPrefixes)
                 .build();
 
         final Collection<String> allConditions = Stream
                 .concat(
                         joins.stream().flatMap(j -> j.conditionToSql(resultContext).stream()),
-                        conditions.stream().map(c -> c.toSql(resultContext.toBuilder().includeAlias(false).build()))
+                        conditions.stream().map(c -> c.toSql(resultContext.toBuilder()
+                                .includeAlias(false)
+                                .build()))
                 )
                 .collect(Collectors.toList());
 
-        final List<String> orderByAttributes = orderBys.stream().map(o -> o.toSql(context)).collect(Collectors.toList());
+        final List<String> orderByAttributes = orderBys.stream()
+                .map(o -> o.toSql(converterContext))
+                .collect(Collectors.toList());
 
         boolean multiplePaths = false;
-        boolean foundManyCardinality = query.getBase() != null && query.getBase().getFeatures().isEmpty();
+        boolean foundManyCardinality = query.getBase() != null &&
+                query.getBase().getFeatures().isEmpty();
         for (final Join j : query.getNavigationJoins()) {
-            if (!foundManyCardinality && j instanceof ReferencedJoin && ((ReferencedJoin) j).getReference() != null && ((ReferencedJoin) j).getReference().isMany()) {
+            if (!foundManyCardinality &&
+                    j instanceof ReferencedJoin &&
+                    ((ReferencedJoin) j).getReference() != null &&
+                    ((ReferencedJoin) j).getReference().isMany()) {
                 foundManyCardinality = true;
-            } else if (foundManyCardinality && (j instanceof ReferencedJoin || j instanceof ContainerJoin)) {
+            } else if (foundManyCardinality &&
+                    (j instanceof ReferencedJoin ||
+                            j instanceof ContainerJoin)) {
                 multiplePaths = true;
             }
         }
@@ -504,9 +577,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         return sql;
     }
 
-    private String getSelect(boolean addDistinct, SqlConverterContext context) {
+    private String getSelect(boolean addDistinct, SqlConverterContext converterContext) {
         String columns = this.columns.stream()
-                .map(c -> c.toSql(context.toBuilder().includeAlias(true).build()))
+                .map(c -> c.toSql(converterContext.toBuilder().includeAlias(true).build()))
                 .sorted() // sorting serves debugging purposes only
                 .collect(Collectors.joining(", "));
         return "SELECT " + (addDistinct ? "DISTINCT " : "") + columns;
@@ -522,13 +595,13 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         return "";
     }
 
-    private String getJoin(SqlConverterContext context) {
+    private String getJoin(SqlConverterContext converterContext) {
         fixStaticJoins();
         final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
         Map<RdbmsJoin, String> joinMap = joins.stream()
                 .collect(Collectors.toMap(
                         j -> j,
-                        j -> j.toSql(context, from == null && Objects.equals(j, firstJoin))));
+                        j -> j.toSql(converterContext, from == null && Objects.equals(j, firstJoin))));
 
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
@@ -542,18 +615,17 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private void fixStaticJoins() {
         List<RdbmsJoin> staticJoins =
                 joins.stream()
-                     .filter(j -> query.getSelect() != null && j.getPartnerTable() != null
-                                  && !AsmUtils.equals(query.getSelect(), j.getPartnerTable())
-
-                                  // current join is not a partner table to any other join in this scope
-                                  && joins.stream().noneMatch(jj -> j.getPartnerTable() != null
-                                                                    && jj.getAlias().equals(j.getPartnerTable().getAlias())))
+                        .filter(j -> query.getSelect() != null && j.getPartnerTable() != null &&
+                                !AsmUtils.equals(query.getSelect(), j.getPartnerTable()) &&
+                                // current join is not a partner table to any other join in this scope
+                                joins.stream().noneMatch(jj -> j.getPartnerTable() != null &&
+                                        jj.getAlias().equals(j.getPartnerTable().getAlias())))
                      .collect(Collectors.toList());
 
         for (RdbmsJoin staticJoin : staticJoins) {
-            List<RdbmsJoin> dependantJoins = joins.stream().filter(j -> j.getPartnerTable() != null
-                                                                        && j.getPartnerTable().getAlias().equals(staticJoin.getAlias()))
-                                                  .collect(Collectors.toList());
+            List<RdbmsJoin> dependantJoins = joins.stream().filter(j -> j.getPartnerTable() != null &&
+                            j.getPartnerTable().getAlias().equals(staticJoin.getAlias()))
+                    .collect(Collectors.toList());
             if (!dependantJoins.isEmpty()) {
                 for (RdbmsJoin dependantJoin : dependantJoins) {
                     dependantJoin.setPartnerTable(query.getSelect());
@@ -565,14 +637,22 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
     }
 
-    private boolean isFeatureIncludedByMask(Feature f, Map<String, Object> mask, EMap<Target, Collection<String>> targetMask) {
+    private boolean isFeatureIncludedByMask(
+            Feature f,
+            Map<String, Object> mask,
+            EMap<Target, Collection<String>> targetMask) {
         return (mask == null &&
-                f.getTargetMappings().stream().noneMatch(tm -> tm.getTargetAttribute() != null && AsmUtils.annotatedAsTrue(tm.getTargetAttribute(), "parameterized")) ||
-                f.getTargetMappings().stream().anyMatch(tm -> tm.getTarget() == null ||
-                        query.getSelect().getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
-                        query.getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
-                        targetMask.containsKey(tm.getTarget()) && (tm.getTargetAttribute() == null ||
-                                targetMask.get(tm.getTarget()).contains(tm.getTargetAttribute().getName()))
+                f.getTargetMappings().stream()
+                        .noneMatch(tm -> tm.getTargetAttribute() != null &&
+                                AsmUtils.annotatedAsTrue(tm.getTargetAttribute(), "parameterized")) ||
+                f.getTargetMappings().stream()
+                        .anyMatch(tm -> tm.getTarget() == null ||
+                        query.getSelect().getOrderBys().stream()
+                                .anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
+                                query.getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
+                                targetMask.containsKey(tm.getTarget()) &&
+                                        (tm.getTargetAttribute() == null ||
+                                                targetMask.get(tm.getTarget()).contains(tm.getTargetAttribute().getName()))
                 )
         );
     }
@@ -594,7 +674,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
     private String getGroupBy(String prefix) {
         if (group) {
-            return "\nGROUP BY " + prefix + AGGREGATE_PREFIX + query.getAlias() + "." + getParentIdColumnAlias(query.getContainer());
+            return "\nGROUP BY " + prefix + AGGREGATE_PREFIX + query.getAlias() + "." +
+                    getParentIdColumnAlias(query.getContainer());
         }
         return "";
     }

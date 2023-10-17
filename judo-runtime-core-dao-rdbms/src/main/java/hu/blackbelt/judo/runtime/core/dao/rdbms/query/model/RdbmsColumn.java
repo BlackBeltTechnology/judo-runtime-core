@@ -50,21 +50,28 @@ public class RdbmsColumn extends RdbmsField {
     private static final String DEFAULT_PATTERN = "{0}.{1}";
 
     @Override
-    public String toSql(SqlConverterContext context) {
-        final String prefix = context.prefix;
-        final EMap<Node, String> prefixes = context.prefixes;
-        final boolean includeAlias = context.includeAlias;
+    public String toSql(SqlConverterContext converterContext) {
+        final String prefix = converterContext.getPrefix();
+        final EMap<Node, String> prefixes = converterContext.getPrefixes();
+        final boolean includeAlias = converterContext.isIncludeAlias();
 
         final String partnerTableName;
         if (partnerTable != null) {
             final String partnerTableNameWithPrefix;
             if (prefixes.containsKey(partnerTable)) {
-                partnerTableNameWithPrefix = prefixes.get(partnerTable) + (partnerTablePrefix != null ? partnerTablePrefix : "") + partnerTable.getAlias() + (partnerTablePostfix != null ? partnerTablePostfix : "");
+                partnerTableNameWithPrefix = prefixes.get(partnerTable) +
+                        (partnerTablePrefix != null ? partnerTablePrefix : "") +
+                        partnerTable.getAlias() +
+                        (partnerTablePostfix != null ? partnerTablePostfix : "");
             } else {
-                partnerTableNameWithPrefix = prefix + (partnerTablePrefix != null ? partnerTablePrefix : "") + partnerTable.getAlias() + (partnerTablePostfix != null ? partnerTablePostfix : "");
+                partnerTableNameWithPrefix = prefix +
+                        (partnerTablePrefix != null ? partnerTablePrefix : "") +
+                        partnerTable.getAlias() +
+                        (partnerTablePostfix != null ? partnerTablePostfix : "");
             }
             if (skipLastPrefix) {
-                partnerTableName = partnerTableNameWithPrefix.replaceFirst("^" + Pattern.quote(prefix), "");
+                partnerTableName = partnerTableNameWithPrefix
+                        .replaceFirst("^" + Pattern.quote(prefix), "");
             } else {
                 partnerTableName = partnerTableNameWithPrefix;
             }
@@ -72,7 +79,11 @@ public class RdbmsColumn extends RdbmsField {
             partnerTableName = null;
         }
 
-        final String sql = cast(MessageFormat.format(pattern != null ? pattern : DEFAULT_PATTERN, new Object[]{partnerTableName, columnName}), null, targetAttribute);
+        final String sql = cast(MessageFormat.format(pattern != null ? pattern : DEFAULT_PATTERN,
+                        partnerTableName,
+                        columnName),
+                null,
+                targetAttribute);
         return getWithAlias(sql, includeAlias);
     }
 

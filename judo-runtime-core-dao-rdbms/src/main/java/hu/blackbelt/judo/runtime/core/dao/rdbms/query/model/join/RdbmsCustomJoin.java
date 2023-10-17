@@ -20,13 +20,9 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
-import org.eclipse.emf.common.util.EMap;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 @SuperBuilder
 public class RdbmsCustomJoin extends RdbmsJoin {
@@ -38,7 +34,7 @@ public class RdbmsCustomJoin extends RdbmsJoin {
     private final String sourceIdSetParameterName;
 
     @Override
-    protected String getTableNameOrSubQuery(SqlConverterContext context) {
+    protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {
         return "(" + sql + ")";
     }
 }

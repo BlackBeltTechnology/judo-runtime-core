@@ -131,9 +131,9 @@ public class RdbmsCount<ID> {
         }
     }
 
-    public String toSql(SqlConverterContext context) {
-        final String prefix = context.prefix;
-        final EMap<Node, String> prefixes = context.prefixes;
+    public String toSql(SqlConverterContext converterContext) {
+        final String prefix = converterContext.getPrefix();
+        final EMap<Node, String> prefixes = converterContext.getPrefixes();
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
         newPrefixes.putAll(prefixes);
@@ -143,7 +143,7 @@ public class RdbmsCount<ID> {
 
         final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
 
-        SqlConverterContext countContext = context.toBuilder()
+        SqlConverterContext countContext = converterContext.toBuilder()
                 .prefixes(newPrefixes)
                 .build();
 
@@ -157,15 +157,19 @@ public class RdbmsCount<ID> {
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "SELECT COUNT (1)" +
-                (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
+                (from != null
+                        ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias()
+                        : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
                 getJoin(countContext, firstJoin) +
                 (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "");
 
         return sql;
     }
 
-    private String getJoin(SqlConverterContext context, RdbmsJoin firstJoin) {
-        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(context, from == null && Objects.equals(j, firstJoin))));
+    private String getJoin(SqlConverterContext converterContext, RdbmsJoin firstJoin) {
+        Map<RdbmsJoin, String> joinMap = joins.stream()
+                .collect(Collectors.toMap(j -> j,
+                        j -> j.toSql(converterContext, from == null && Objects.equals(j, firstJoin))));
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(joinMap::get)

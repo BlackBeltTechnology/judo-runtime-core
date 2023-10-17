@@ -36,8 +36,8 @@ public class RdbmsQueryJoin<ID> extends RdbmsJoin {
     private final RdbmsResultSet<ID> resultSet;
 
     @Override
-    protected String getTableNameOrSubQuery(SqlConverterContext context) {
-        String resultSetSql = resultSet.toSql(context.toBuilder().includeAlias(true).build());
+    protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {
+        String resultSetSql = resultSet.toSql(converterContext.toBuilder().includeAlias(true).build());
         joinConditionTableAliases.addAll(resultSet.getJoinConditionTableAliases());
         return "(" + resultSetSql + ")";
     }

@@ -95,7 +95,8 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                             }
                             n = (Node) n.eContainer();
                         }
-                        group = subSelect.getNavigationJoins().get(0).getPartner() != null && nodes.contains(subSelect.getNavigationJoins().get(0).getPartner());
+                        group = subSelect.getNavigationJoins().get(0).getPartner() != null &&
+                                nodes.contains(subSelect.getNavigationJoins().get(0).getPartner());
                     } else {
                         group = false;
                     }
@@ -120,9 +121,9 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     }
 
     @Override
-    public String toSql(SqlConverterContext context) {
-        final String prefix = context.prefix;
-        final EMap<Node, String> prefixes = context.prefixes;
+    public String toSql(SqlConverterContext converterContext) {
+        final String prefix = converterContext.getPrefix();
+        final EMap<Node, String> prefixes = converterContext.getPrefixes();
 
         final String filterPrefix = RdbmsAliasUtil.getFilterPrefix(prefix);
 
@@ -131,9 +132,11 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
         newPrefixes.put(filter, filterPrefix);
 
         final String partnerAlias;
-        if (filter.eContainer() instanceof SubSelect && !(((SubSelect) filter.eContainer()).getNavigationJoins().isEmpty())) {
+        if (filter.eContainer() instanceof SubSelect &&
+                !(((SubSelect) filter.eContainer()).getNavigationJoins().isEmpty())) {
             partnerAlias = RdbmsAliasUtil.AGGREGATE_PREFIX + ((Node) filter.eContainer()).getAlias();
-        } else if (filter.eContainer() instanceof SubSelect && (((SubSelect) filter.eContainer()).getNavigationJoins().isEmpty())) {
+        } else if (filter.eContainer() instanceof SubSelect &&
+                (((SubSelect) filter.eContainer()).getNavigationJoins().isEmpty())) {
             partnerAlias = ((SubSelect) filter.eContainer()).getSelect().getAlias();
         } else {
             partnerAlias = ((Node) filter.eContainer()).getAlias();
@@ -141,7 +144,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
         checkArgument(from != null || joins.size() < 2, "Size of JOINs must be at most 1 if FROM is not set");
 
-        final SqlConverterContext navigationContext = context.toBuilder()
+        final SqlConverterContext navigationContext = converterContext.toBuilder()
                 .prefix(filterPrefix)
                 .prefixes(newPrefixes)
                 .build();
@@ -149,24 +152,26 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
         return "SELECT 1 " + getFrom(navigationContext) + getWhere(prefix, partnerAlias, navigationContext);
     }
 
-    private String getFrom(SqlConverterContext context) {
-        return (from != null ? " FROM " + from + " AS " + context.prefix + filter.getAlias() : "") + getJoin(context);
+    private String getFrom(SqlConverterContext converterContext) {
+        return (from != null ? " FROM " + from + " AS " +
+                converterContext.getPrefix() + filter.getAlias() : "") + getJoin(converterContext);
     }
 
-    private String getWhere(String partnerPrefix, String partnerAlias, SqlConverterContext context) {
+    private String getWhere(String partnerPrefix, String partnerAlias, SqlConverterContext converterContext) {
         return "\nWHERE " +
                 partnerPrefix + partnerAlias + "." + StatementExecutor.ID_COLUMN_NAME + " = " +
-                    context.prefix + filter.getAlias() + "." + StatementExecutor.ID_COLUMN_NAME +
+                    converterContext.getPrefix() + filter.getAlias() + "." + StatementExecutor.ID_COLUMN_NAME +
                 joins.stream()
-                        .flatMap(j -> j.conditionToSql(context).stream().map(c -> " AND " + c))
+                        .flatMap(j -> j.conditionToSql(converterContext).stream().map(c -> " AND " + c))
                         .collect(Collectors.joining()) +
                 conditions.stream()
-                        .map(c -> " AND " + c.toSql(context.toBuilder().includeAlias(false).build()))
+                        .map(c -> " AND " + c.toSql(converterContext.toBuilder().includeAlias(false).build()))
                         .collect(Collectors.joining());
     }
 
-    private String getJoin(SqlConverterContext context) {
-        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(context, from == null)));
+    private String getJoin(SqlConverterContext converterContext) {
+        Map<RdbmsJoin, String> joinMap = joins.stream()
+                .collect(Collectors.toMap(j -> j, j -> j.toSql(converterContext, from == null)));
 
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))

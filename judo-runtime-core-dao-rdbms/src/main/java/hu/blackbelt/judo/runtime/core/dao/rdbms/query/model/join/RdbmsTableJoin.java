@@ -42,29 +42,32 @@ public class RdbmsTableJoin extends RdbmsJoin {
     private final RdbmsTableJoin rdbmsPartnerTable;
 
     @Override
-    protected String getTableNameOrSubQuery(SqlConverterContext params) {
+    protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {
         return tableName;
     }
 
     @Override
-    protected String getJoinCondition(SqlConverterContext context) {
+    protected String getJoinCondition(SqlConverterContext converterContext) {
+        final String prefix = converterContext.getPrefix();
         if (rdbmsPartnerTable != null && partnerTable != null) {
             log.warn("Both rdbmsPartnerTable and partnerTable are set for RdbmsTableJoin, rdbmsPartnerTable will be used instead of partnerTable");
         }
         if (rdbmsPartnerTable != null) {
-            final String joinCondition = context.prefix + rdbmsPartnerTable.alias + "." + rdbmsPartnerTable.columnName + " = " + context.prefix + alias + "." + columnName;
-            joinConditionTableAliases.addAll(List.of(context.prefix + rdbmsPartnerTable.alias, context.prefix + alias));
-            aliasToCompareWith = context.prefix + alias;
+            final String joinCondition = prefix + rdbmsPartnerTable.alias + "." + rdbmsPartnerTable.columnName + " = " +
+                    prefix + alias + "." + columnName;
+            joinConditionTableAliases.addAll(List.of(prefix + rdbmsPartnerTable.alias, prefix + alias));
+            aliasToCompareWith = prefix + alias;
 
             if (!onConditions.isEmpty()) {
-                return joinCondition + " AND " + onConditions.stream()
-                                                             .map(c -> c.toSql(context.toBuilder().includeAlias(false).build()))
-                                                             .collect(Collectors.joining(" AND "));
+                return joinCondition + " AND " +
+                        onConditions.stream()
+                                .map(c -> c.toSql(converterContext.toBuilder().includeAlias(false).build()))
+                                .collect(Collectors.joining(" AND "));
             }
 
             return joinCondition;
         } else {
-            return super.getJoinCondition(context);
+            return super.getJoinCondition(converterContext);
         }
     }
 

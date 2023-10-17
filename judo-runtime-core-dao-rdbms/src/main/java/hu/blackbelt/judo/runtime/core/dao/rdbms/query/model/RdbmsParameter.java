@@ -34,7 +34,7 @@ public class RdbmsParameter extends RdbmsField {
     private final String parameterName;
 
     @Override
-    public String toSql(SqlConverterContext context) {
+    public String toSql(SqlConverterContext converterContext) {
         return ":" + parameterName;
     }
 }

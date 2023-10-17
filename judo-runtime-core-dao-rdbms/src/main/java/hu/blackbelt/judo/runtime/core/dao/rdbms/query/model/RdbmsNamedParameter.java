@@ -38,9 +38,9 @@ public class RdbmsNamedParameter extends RdbmsField {
     private int index;
 
     @Override
-    public String toSql(SqlConverterContext context) {
-        final MapSqlParameterSource sqlParameters = context.sqlParameters;
-        final boolean includeAlias = context.includeAlias;
+    public String toSql(SqlConverterContext converterContext) {
+        final MapSqlParameterSource sqlParameters = converterContext.getSqlParameters();
+        final boolean includeAlias = converterContext.isIncludeAlias();
 
         final String parameterName = "p" + index;
 
@@ -48,7 +48,10 @@ public class RdbmsNamedParameter extends RdbmsField {
         if (parameter.getValue() == null) {
             sql = "NULL";
         } else {
-            sqlParameters.addValue(parameterName, parameter.getValue(), parameter.getSqlType(), parameter.getRdbmsTypeName());
+            sqlParameters.addValue(parameterName,
+                    parameter.getValue(),
+                    parameter.getSqlType(),
+                    parameter.getRdbmsTypeName());
             sql = cast(":" + parameterName, parameter.getRdbmsTypeName(), targetAttribute);
         }
         return getWithAlias(sql, includeAlias);

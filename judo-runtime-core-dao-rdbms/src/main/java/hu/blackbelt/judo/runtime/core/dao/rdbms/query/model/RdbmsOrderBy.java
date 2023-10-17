@@ -36,9 +36,9 @@ public class RdbmsOrderBy {
     @NonNull
     private final Boolean descending;
 
-    public String toSql(SqlConverterContext context) {
+    public String toSql(SqlConverterContext converterContext) {
         return (fromSubSelect ? rdbmsField.getRdbmsAlias() : rdbmsField.toSql(
-                context.toBuilder()
+                converterContext.toBuilder()
                         .includeAlias(false)
                         .build())) +
                 (descending ? " DESC" : " ASC") + " NULLS " + (descending ? "FIRST" : "LAST");
