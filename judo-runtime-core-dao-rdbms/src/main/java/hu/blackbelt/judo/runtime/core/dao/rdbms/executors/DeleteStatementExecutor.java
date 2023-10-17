@@ -117,11 +117,13 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                                 String tableName = getRdbmsResolver().rdbmsTable(entityForCurrentStatement).getSqlName();
                                 String sql = "DELETE FROM " + tableName + " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName();
 
-                                log.debug("Delete: " + getClassifierFQName(
-                                        entityForCurrentStatement) + " " + tableName +
-                                        " ID: " + identifier +
-                                        " SQL: " + sql +
-                                        " Params: " + ImmutableMap.copyOf(deleteStatementParameters.getValues()).toString());
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Delete: " + getClassifierFQName(
+                                            entityForCurrentStatement) + " " + tableName +
+                                            " ID: " + identifier +
+                                            " SQL: " + sql +
+                                            " Params: " + ImmutableMap.copyOf(deleteStatementParameters.getValues()).toString());
+                                }
 
                                 int count = jdbcTemplate.update(sql, deleteStatementParameters);
                                 checkState(count == 0 || count == 1, "Maximum of 1 record should have been deleted. Actual: " + count);

@@ -178,10 +178,12 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                     String sql = "SELECT " + fieldsMatching + " FROM " + tableName + where;
 
-                                    log.debug("Check unique identifier: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
-                                            " ID: " + identifier +
-                                            " SQL: " + sql +
-                                            " Params: " + checkUniqueIdentifiersStatementNamedParameters.getValues());
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Check unique identifier: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
+                                                " ID: " + identifier +
+                                                " SQL: " + sql +
+                                                " Params: " + checkUniqueIdentifiersStatementNamedParameters.getValues());
+                                    }
 
                                     List<Map<String, Object>> violations = jdbcTemplate.queryForList(sql, checkUniqueIdentifiersStatementNamedParameters);
 

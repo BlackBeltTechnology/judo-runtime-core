@@ -22,11 +22,12 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 
 import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
-import hu.blackbelt.mapper.api.Coercer;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EMap;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
  */
 @SuperBuilder
 @NoArgsConstructor
+@Slf4j
 public abstract class RdbmsJoin {
 
     protected String columnName;
@@ -71,12 +73,12 @@ public abstract class RdbmsJoin {
     @Singular
     protected Collection<RdbmsField> onConditions = new ArrayList<>();
 
-    public String toSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes, final boolean fromIsEmpty) {
-        final String joinCondition = getJoinCondition(prefix, prefixes, coercer, sqlParameters);
+    public String toSql(SqlConverterContext context, final boolean fromIsEmpty) {
+        final String joinCondition = getJoinCondition(context);
 
-        String table = getTableNameOrSubQuery(prefix, coercer, sqlParameters, prefixes) + " AS " + prefix + alias;
-        joinConditionTableAliases.add(prefix + alias);
-        aliasToCompareWith = prefix + alias;
+        String table = getTableNameOrSubQuery(context) + " AS " + context.prefix + alias;
+        joinConditionTableAliases.add(context.prefix + alias);
+        aliasToCompareWith = context.prefix + alias;
         if (fromIsEmpty) {
             return "\nFROM " + table;
         } else {
@@ -102,8 +104,18 @@ public abstract class RdbmsJoin {
         return partnerTableName;
     }
 
-    protected String getJoinCondition(final String prefix, final EMap<Node, String> prefixes, final Coercer coercer, final MapSqlParameterSource sqlParameters) {
-        final String partnerTableName = getPartnerTableName(prefix, prefixes);
+    protected String getJoinCondition(SqlConverterContext context) {
+        final String partnerTableName = getPartnerTableName(context.prefix, context.prefixes);
+
+        if (log.isTraceEnabled()) {
+            log.trace("Converter context:             " + context.toString());
+            log.trace("Junction table name:           " + junctionTableName);
+            log.trace("Junction column name:          " + junctionColumnName);
+            log.trace("Junction opposite column name: " + junctionOppositeColumnName);
+            log.trace("Partner table name:            " + partnerTableName);
+            log.trace("Partner column name:           " + partnerColumnName);
+
+        }
 
         final String joinCondition;
         if (junctionTableName != null) {
@@ -111,30 +123,37 @@ public abstract class RdbmsJoin {
                             "   SELECT 1" +
                             "   FROM " + junctionTableName +
                             "   WHERE " + partnerTableName + "." + partnerColumnName + " = " + junctionTableName + "." + junctionOppositeColumnName +
-                            "       AND " + junctionTableName + "." + junctionColumnName + " = " + prefix + alias + "." + columnName +
+                            "       AND " + junctionTableName + "." + junctionColumnName + " = " + context.prefix + alias + "." + columnName +
                             ")";
-            joinConditionTableAliases.addAll(List.of(partnerTableName, junctionTableName, prefix + alias));
-            aliasToCompareWith = prefix + alias;
+            joinConditionTableAliases.addAll(List.of(partnerTableName, junctionTableName, context.prefix + alias));
+            aliasToCompareWith = context.prefix + alias;
         } else if (partnerTableName != null && partnerColumnName != null && columnName != null) {
-            joinCondition = partnerTableName + "." + partnerColumnName + " = " + prefix + alias + "." + columnName;
-            joinConditionTableAliases.addAll(List.of(partnerTableName, prefix + alias));
-            aliasToCompareWith = prefix + alias;
+            joinCondition = partnerTableName + "." + partnerColumnName + " = " + context.prefix + alias + "." + columnName;
+            joinConditionTableAliases.addAll(List.of(partnerTableName, context.prefix + alias));
+            aliasToCompareWith = context.prefix + alias;
         } else {
             joinCondition = "1 = 1";
         }
 
         if (!onConditions.isEmpty()) {
             return joinCondition + " AND " + onConditions.stream()
-                                                         .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
-                                                         .collect(Collectors.joining(" AND "));
+                                                         .map(c -> c.toSql(
+                                                                 context.toBuilder()
+                                                                         .includeAlias(false)
+                                                                         .build()
+                                                         )).collect(Collectors.joining(" AND "));
         } else {
             return joinCondition;
         }
     }
 
-    public Collection<String> conditionToSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        return conditions.stream().map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes)).collect(Collectors.toList());
+    public Collection<String> conditionToSql(SqlConverterContext context) {
+        return conditions.stream().map(c -> c.toSql(
+                context.toBuilder()
+                        .includeAlias(false)
+                        .build()
+        )).collect(Collectors.toList());
     }
 
-    protected abstract String getTableNameOrSubQuery(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> prefixes);
+    protected abstract String getTableNameOrSubQuery(SqlConverterContext context);
 }
