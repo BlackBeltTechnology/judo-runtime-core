@@ -42,10 +42,11 @@ public class ContainerJoinProcessor {
         final EClass sourceType = node != null ? node.getType() : references.get(0).getEReferenceType();
 
         if (log.isTraceEnabled()) {
-            log.trace(" => processing JOIN: {}", join);
-            log.trace("    target type: {}", targetType.getName());
-            log.trace("    source type: {}", sourceType.getName());
-            log.trace("    references: {}", references.stream().map(r -> AsmUtils.getReferenceFQName(r)).collect(Collectors.joining(", ")));
+            log.trace("  ".repeat(builderContext.getLevel()) + " => processing JOIN: {}", join);
+            log.trace("  ".repeat(builderContext.getLevel()) + "    target type: {}", targetType.getName());
+            log.trace("  ".repeat(builderContext.getLevel()) + "    source type: {}", sourceType.getName());
+            log.trace("  ".repeat(builderContext.getLevel()) + "    references: {}", references.stream().map(r -> AsmUtils.getReferenceFQName(r)).collect(Collectors.joining(", ")));
+            log.trace("  ".repeat(builderContext.getLevel()) + builderContext.toString());
         }
 
         final List<RdbmsJoin> result = new ArrayList<>();

@@ -9,12 +9,14 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.ToString;
 import org.eclipse.emf.common.util.EList;
 
 import java.util.List;
 
 @Builder
 @Getter
+@ToString
 public class FilterJoinProcessorParameters {
     @NonNull
     private List<RdbmsJoin> joins;

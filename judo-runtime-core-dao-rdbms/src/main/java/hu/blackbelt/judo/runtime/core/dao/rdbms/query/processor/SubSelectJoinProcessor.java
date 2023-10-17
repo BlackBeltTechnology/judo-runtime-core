@@ -33,6 +33,13 @@ public class SubSelectJoinProcessor<ID> {
         final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
         final SubSelect subSelect = join.getSubSelect();
 
+        if (log.isTraceEnabled()) {
+            log.trace("  ".repeat(builderContext.getLevel()) + "Join:            " + join.toString());
+            log.trace("  ".repeat(builderContext.getLevel()) + "WithoutFeatures: " + withoutFeatures);
+            log.trace("  ".repeat(builderContext.getLevel()) + "Mask:            " + (mask == null ? "" : mask));
+            log.trace("  ".repeat(builderContext.getLevel()) + builderContext);
+        }
+
         subSelect.getFilters().addAll(join.getFilters());
 
         final List<RdbmsJoin> joins = new ArrayList<>();
@@ -87,7 +94,7 @@ public class SubSelectJoinProcessor<ID> {
                 .build());
 
         if (builderContext.getAncestors().containsKey(join)) {
-            builderContext.getRdbmsBuilder().addAncestorJoins(joins, join, builderContext.getAncestors());
+            builderContext.getRdbmsBuilder().addAncestorJoins(joins, join, builderContext.getAncestors(), builderContext);
         }
         return joins;
     }

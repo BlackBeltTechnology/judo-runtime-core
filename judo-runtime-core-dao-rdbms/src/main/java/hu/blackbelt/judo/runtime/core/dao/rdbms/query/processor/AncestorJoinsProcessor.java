@@ -6,11 +6,13 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.DescendantNameFactory;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.EMap;
@@ -22,6 +24,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Builder
+@Slf4j
 public class AncestorJoinsProcessor {
 
     @NonNull
@@ -33,7 +36,13 @@ public class AncestorJoinsProcessor {
     @NonNull
     private final DescendantNameFactory descendantNameFactory;
 
-    public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, final EMap<Node, EList<EClass>> ancestors) {
+    public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, final EMap<Node, EList<EClass>> ancestors, RdbmsBuilderContext builderContext) {
+        if (log.isTraceEnabled()) {
+            log.trace("  ".repeat(builderContext.getLevel()) + "Node:       " + node);
+            log.trace("  ".repeat(builderContext.getLevel()) + "Joins:      " + joins);
+            log.trace("  ".repeat(builderContext.getLevel()) + "Ancestors:  " + ancestors);
+        }
+
         final EList<EClass> list;
         if (ancestors.containsKey(node)) {
             list = ancestors.get(node);

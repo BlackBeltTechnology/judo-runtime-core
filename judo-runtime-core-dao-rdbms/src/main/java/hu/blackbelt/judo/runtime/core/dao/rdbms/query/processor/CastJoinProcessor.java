@@ -14,6 +14,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
 import lombok.Builder;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 
 import java.util.ArrayList;
@@ -25,12 +26,18 @@ import java.util.stream.Collectors;
 
 
 @Builder
+@Slf4j
 public class CastJoinProcessor<ID> {
 
     @NonNull
     private final RdbmsResolver rdbmsResolver;
 
     public List<RdbmsJoin> process(Node join, RdbmsBuilderContext builderContext) {
+        if (log.isTraceEnabled()) {
+            log.trace("  ".repeat(builderContext.getLevel()) + "Node:       " + join);
+            log.trace("  ".repeat(builderContext.getLevel()) + builderContext.toString());
+        }
+
         final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         EClass castTargetType = join.getType();

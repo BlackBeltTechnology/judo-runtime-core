@@ -79,7 +79,7 @@ public class RdbmsCount<ID> {
         this.from = type != null ? rdbmsBuilder.getTableName(type) : (String) null;
 
 
-        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors);
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, context);
         // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
 
         if (filterByInstances) {

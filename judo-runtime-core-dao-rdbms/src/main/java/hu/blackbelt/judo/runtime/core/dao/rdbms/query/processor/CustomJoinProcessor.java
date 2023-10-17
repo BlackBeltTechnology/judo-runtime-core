@@ -37,6 +37,11 @@ public class CustomJoinProcessor {
         final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
         final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
+        if (log.isTraceEnabled()) {
+            log.trace("  ".repeat(builderContext.getLevel()) + "Node:       " + join);
+            log.trace("  ".repeat(builderContext.getLevel()) + builderContext.toString());
+        }
+
         final List<RdbmsJoin> joins = new ArrayList<>();
         final String sql;
         if (join.getNavigationSql().indexOf('`') != -1) {
@@ -56,7 +61,7 @@ public class CustomJoinProcessor {
                 .build());
 
         if (ancestors.containsKey(join)) {
-            rdbmsBuilder.addAncestorJoins(joins, join, ancestors);
+            rdbmsBuilder.addAncestorJoins(joins, join, ancestors, builderContext);
         }
         return joins;
     }

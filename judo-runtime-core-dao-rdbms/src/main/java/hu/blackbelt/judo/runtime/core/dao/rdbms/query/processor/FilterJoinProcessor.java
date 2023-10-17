@@ -14,6 +14,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.JoinProcessParam
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.Builder;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.EMap;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.getParentIdColumnAlias;
 
 @Builder
+@Slf4j
 public class FilterJoinProcessor {
 
     public <ID> void addFilterJoinsAndConditions(final FilterJoinProcessorParameters params, final RdbmsBuilderContext builderContext) {
@@ -45,6 +47,11 @@ public class FilterJoinProcessor {
         final EMap<Node, EList<EClass>> descendants = builderContext.getDescendants();
         final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
         final Map<String, Object> queryParameters = builderContext.getQueryParameters();
+
+        if (log.isTraceEnabled()) {
+            log.trace("  ".repeat(builderContext.getLevel()) + params.toString());
+            log.trace("  ".repeat(builderContext.getLevel()) + builderContext.toString());
+        }
 
         if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
             joins.add(RdbmsTableJoin.builder()
@@ -137,7 +144,7 @@ public class FilterJoinProcessor {
 
         joins.addAll(subSelectFilterFeaturesQueryJoins);
         conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), builderContext).collect(Collectors.toList()));
-        rdbmsBuilder.addAncestorJoins(joins, filter, ancestors);
+        rdbmsBuilder.addAncestorJoins(joins, filter, ancestors, builderContext);
     }
 
 }

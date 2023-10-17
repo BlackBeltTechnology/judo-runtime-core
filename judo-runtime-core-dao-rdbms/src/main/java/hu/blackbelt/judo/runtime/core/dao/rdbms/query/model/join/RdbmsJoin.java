@@ -25,6 +25,8 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EMap;
 
 import java.util.*;
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
  */
 @SuperBuilder
 @NoArgsConstructor
+@Slf4j
 public abstract class RdbmsJoin {
 
     protected String columnName;
@@ -103,6 +106,16 @@ public abstract class RdbmsJoin {
 
     protected String getJoinCondition(SqlConverterContext context) {
         final String partnerTableName = getPartnerTableName(context.prefix, context.prefixes);
+
+        if (log.isTraceEnabled()) {
+            log.trace("Converter context:             " + context.toString());
+            log.trace("Junction table name:           " + junctionTableName);
+            log.trace("Junction column name:          " + junctionColumnName);
+            log.trace("Junction opposite column name: " + junctionOppositeColumnName);
+            log.trace("Partner table name:            " + partnerTableName);
+            log.trace("Partner column name:           " + partnerColumnName);
+
+        }
 
         final String joinCondition;
         if (junctionTableName != null) {

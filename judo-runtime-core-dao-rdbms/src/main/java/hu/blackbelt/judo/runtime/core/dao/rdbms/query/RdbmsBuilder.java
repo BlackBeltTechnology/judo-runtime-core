@@ -233,8 +233,8 @@ public class RdbmsBuilder<ID> {
     }
 
 
-    public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, final EMap<Node, EList<EClass>> ancestors) {
-        ancestorJoinsProcessor.addAncestorJoins(joins, node, ancestors);
+    public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, final EMap<Node, EList<EClass>> ancestors, RdbmsBuilderContext builderContext) {
+        ancestorJoinsProcessor.addAncestorJoins(joins, node, ancestors, builderContext);
     }
 
     public void addFilterJoinsAndConditions(FilterJoinProcessorParameters params, RdbmsBuilderContext builderContext) {

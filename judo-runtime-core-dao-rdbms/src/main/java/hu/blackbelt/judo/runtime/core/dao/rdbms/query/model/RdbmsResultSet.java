@@ -92,6 +92,16 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         this.skipParents = skipParents;
         this.rdbmsBuilder = rdbmsBuilder;
 
+        if (log.isTraceEnabled()) {
+            log.trace("  ".repeat(level) + "Query:              " + query.toString());
+            log.trace("  ".repeat(level) + "Filter by instance: " + filterByInstances);
+            log.trace("  ".repeat(level) + "Parent ID Query:    " + parentIdFilterQuery);
+            log.trace("  ".repeat(level) + "Without features:   " + withoutFeatures);
+            log.trace("  ".repeat(level) + "Mask:               " + (mask == null ? "" : withoutFeatures));
+            log.trace("  ".repeat(level) + "Query parameters:   " + queryParameters);
+            log.trace("  ".repeat(level) + "Skip parents:       " + skipParents);
+
+        }
         RdbmsBuilderContext context = RdbmsBuilderContext.builder()
                 .level(level)
                 .rdbmsBuilder(rdbmsBuilder)
@@ -122,7 +132,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             columns.addAll(featureFields);
         }
         
-        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors);
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, context);
 
         List<Join> joinsToProcess = query.getSelect().getAllJoins().stream()
                 .filter(j -> !withoutFeatures || query.getSelect().isAggregated() && !processedNodesForJoins.contains(j))
