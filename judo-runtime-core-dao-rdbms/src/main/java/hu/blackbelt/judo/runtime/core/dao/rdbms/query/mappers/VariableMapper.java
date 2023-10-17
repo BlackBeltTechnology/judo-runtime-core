@@ -41,8 +41,8 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
     public static final String PARAMETER_VARIABLE_KEY = "PARAMETER";
 
     @Override
-    public Stream<? extends RdbmsField> map(final Variable variable, RdbmsBuilderContext context) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.getRdbmsBuilder();
+    public Stream<? extends RdbmsField> map(final Variable variable, RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         final String id = EcoreUtil.getIdentification(variable);
         if (id != null) {
@@ -50,19 +50,19 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
                 if (rdbmsBuilder.getConstantFields().get().containsKey(id)) {
                     return rdbmsBuilder.getConstantFields().get().get(id).stream();
                 } else {
-                    final List<? extends RdbmsField> fields = getFields(context, variable).collect(Collectors.toList());
+                    final List<? extends RdbmsField> fields = getFields(builderContext, variable).collect(Collectors.toList());
                     rdbmsBuilder.getConstantFields().get().put(id, fields);
                     return fields.stream();
                 }
             }
         } else {
-            return getFields(context, variable);
+            return getFields(builderContext, variable);
         }
     }
 
-    private Stream<? extends RdbmsField> getFields(final RdbmsBuilderContext context, final Variable variable) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.getRdbmsBuilder();
-        final Map<String, Object> queryParameters = context.getQueryParameters();
+    private Stream<? extends RdbmsField> getFields(final RdbmsBuilderContext builderContext, final Variable variable) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         boolean isParameter = PARAMETER_VARIABLE_KEY.equals(variable.getCategory());
         final Object resolvedValue;

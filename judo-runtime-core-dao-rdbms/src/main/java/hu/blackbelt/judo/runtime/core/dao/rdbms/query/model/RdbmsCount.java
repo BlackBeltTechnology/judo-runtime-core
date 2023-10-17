@@ -64,7 +64,7 @@ public class RdbmsCount<ID> {
             final RdbmsBuilder<ID> rdbmsBuilder,
             final Map<String, Object> queryParameters) {
 
-        RdbmsBuilderContext context = RdbmsBuilderContext.builder()
+        RdbmsBuilderContext builderContext = RdbmsBuilderContext.builder()
                 .rdbmsBuilder(rdbmsBuilder)
                 .ancestors(ancestors)
                 .descendants(descendants)
@@ -79,7 +79,7 @@ public class RdbmsCount<ID> {
         this.from = type != null ? rdbmsBuilder.getTableName(type) : (String) null;
 
 
-        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, context);
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, builderContext);
         // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
 
         if (filterByInstances) {
@@ -121,7 +121,7 @@ public class RdbmsCount<ID> {
                             .partnerTable(query.getPartner() != null ? query : query.getSelect())
                             .partnerTablePrefix(query.getPartner() != null ? AGGREGATE_PREFIX : "")
                             .addJoinsOfFilterFeature(addJoinOfFilterFeature)
-                            .build(), context);
+                            .build(), builderContext);
         }
 
         for (Filter filter : query.getSelect().getFilters()) {
@@ -134,7 +134,7 @@ public class RdbmsCount<ID> {
                             .filter(filter)
                             .partnerTable(query.getSelect())
                             .addJoinsOfFilterFeature(true)
-                            .build(), context);
+                            .build(), builderContext);
         }
     }
 

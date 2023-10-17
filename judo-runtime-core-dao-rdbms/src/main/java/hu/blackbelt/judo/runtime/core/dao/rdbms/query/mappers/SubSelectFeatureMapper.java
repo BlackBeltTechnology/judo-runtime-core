@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 public class SubSelectFeatureMapper extends RdbmsMapper<SubSelectFeature> {
 
     @Override
-    public Stream<RdbmsField> map(final SubSelectFeature feature, RdbmsBuilderContext context) {
+    public Stream<RdbmsField> map(final SubSelectFeature feature, RdbmsBuilderContext builderContext) {
         final String pattern;
         if ((feature.getFeature() instanceof Function) && ((Function) feature.getFeature()).getSignature() == FunctionSignature.COUNT) {
             pattern = "COALESCE({0}.{1}, 0)";

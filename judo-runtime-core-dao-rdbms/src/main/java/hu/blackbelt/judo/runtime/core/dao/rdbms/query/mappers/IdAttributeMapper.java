@@ -40,8 +40,8 @@ import java.util.stream.Stream;
 public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
 
     @Override
-    public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilderContext context) {
-        final EMap<Node, EList<EClass>> ancestors = context.getAncestors();
+    public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilderContext builderContext) {
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
 
         final EClass sourceType = idAttribute.getNode().getType();
         for (EClass superType : sourceType.getEAllSuperTypes()) {

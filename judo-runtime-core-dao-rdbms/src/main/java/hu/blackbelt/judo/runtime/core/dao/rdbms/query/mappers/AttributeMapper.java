@@ -42,9 +42,9 @@ import java.util.stream.Stream;
 public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
 
     @Override
-    public Stream<RdbmsColumn> map(final Attribute attribute, RdbmsBuilderContext context) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.getRdbmsBuilder();
-        final EMap<Node, EList<EClass>> ancestors = context.getAncestors();
+    public Stream<RdbmsColumn> map(final Attribute attribute, RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
 
         final EClass sourceType = attribute.getNode().getType();
         final EAttribute sourceAttribute = attribute.getSourceAttribute();

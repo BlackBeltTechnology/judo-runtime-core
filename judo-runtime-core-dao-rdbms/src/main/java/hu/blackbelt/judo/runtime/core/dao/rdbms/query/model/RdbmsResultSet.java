@@ -102,7 +102,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             log.trace("  ".repeat(level) + "Skip parents:       " + skipParents);
 
         }
-        RdbmsBuilderContext context = RdbmsBuilderContext.builder()
+        RdbmsBuilderContext builderContext = RdbmsBuilderContext.builder()
                 .level(level)
                 .rdbmsBuilder(rdbmsBuilder)
                 .ancestors(ancestors)
@@ -127,12 +127,12 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 ).collect(Collectors.toList());
 
         for (Feature feature : features) {
-            List<RdbmsField> featureFields = rdbmsBuilder.mapFeatureToRdbms(feature, context.toBuilder().parentIdFilterQuery(query).build())
+            List<RdbmsField> featureFields = rdbmsBuilder.mapFeatureToRdbms(feature, builderContext.toBuilder().parentIdFilterQuery(query).build())
                     .collect(Collectors.toList());
             columns.addAll(featureFields);
         }
         
-        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, context);
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, builderContext);
 
         List<Join> joinsToProcess = query.getSelect().getAllJoins().stream()
                 .filter(j -> !withoutFeatures || query.getSelect().isAggregated() && !processedNodesForJoins.contains(j))
@@ -142,7 +142,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             joins.addAll(rdbmsBuilder.processJoin(
                     JoinProcessParameters.builder()
                             .join(join)
-                            .builderContext(context)
+                            .builderContext(builderContext)
                             .withoutFeatures(withoutFeatures)
                             .build()
             ));
@@ -173,7 +173,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .map(s -> RdbmsQueryJoin.<ID>builder()
                             .resultSet(
                                     RdbmsResultSet.<ID>builder()
-                                            .level(context.getLevel())
+                                            .level(builderContext.getLevel())
                                             .query(s)
                                             .filterByInstances(false)
                                             .parentIdFilterQuery(parentIdFilterQuery)
@@ -248,7 +248,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 for (Join join : orderByJoins) {
                     joins.addAll(rdbmsBuilder.processJoin(
                             JoinProcessParameters.builder()
-                                    .builderContext(context)
+                                    .builderContext(builderContext)
                                     .join(join)
                                     .withoutFeatures(withoutFeatures)
                                     .build()
@@ -256,7 +256,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     processedNodesForJoins.add(join);
                 }
 
-                final List<RdbmsField> orderByFields = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), context).collect(Collectors.toList());
+                final List<RdbmsField> orderByFields = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), builderContext).collect(Collectors.toList());
                 if (!orderByFields.isEmpty()) {
                     orderByFeatures.put(orderBy, orderByFields.get(0));
                 }
@@ -276,7 +276,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         offset = query.getOffset();
 
         for (OrderBy orderBy : query.getSelect().getOrderBys()) {
-            final List<RdbmsField> orderByFields = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), context).collect(Collectors.toList());
+            final List<RdbmsField> orderByFields = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), builderContext).collect(Collectors.toList());
             if (!orderByFields.isEmpty()) {
                 orderByFeatures.put(orderBy, orderByFields.get(0));
             }
@@ -309,7 +309,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .partnerTable(query.getPartner() != null ? query : query.getSelect())
                             .partnerTablePrefix(query.getPartner() != null ? AGGREGATE_PREFIX : "")
                             .addJoinsOfFilterFeature(addJoinOfFilterFeature)
-                            .build(), context);
+                            .build(), builderContext);
         }
 
         for (Filter filter : query.getSelect().getFilters()) {
@@ -322,7 +322,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                             .filter(filter)
                             .partnerTable(query.getSelect())
                             .addJoinsOfFilterFeature(true)
-                            .build(), context);
+                            .build(), builderContext);
         }
 
         if (limit != null && seek != null && seek.getLastItem() != null && from != null) {

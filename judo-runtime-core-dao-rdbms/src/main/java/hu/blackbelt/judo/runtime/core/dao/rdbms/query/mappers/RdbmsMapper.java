@@ -34,7 +34,7 @@ public abstract class RdbmsMapper<T extends ParameterType> {
 
     private static final int MAX_ALIAS_LENGTH_WITHOUT_INDEX = 25;
 
-    public abstract Stream<? extends RdbmsField> map(T parameter, RdbmsBuilderContext context);
+    public abstract Stream<? extends RdbmsField> map(T parameter, RdbmsBuilderContext builderContext);
 
     public static Stream<RdbmsTarget> getTargets(final Feature feature) {
         if (feature.getTargetMappings().isEmpty()) {
