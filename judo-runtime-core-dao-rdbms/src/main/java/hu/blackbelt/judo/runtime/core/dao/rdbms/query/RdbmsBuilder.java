@@ -129,6 +129,7 @@ public class RdbmsBuilder<ID> {
                 .rdbmsResolver(rdbmsResolver)
                 .rules(rules)
                 .ancestorNameFactory(ancestorNameFactory)
+                .descendantNameFactory(descendantNameFactory)
                 .build();
 
         this.ancestorJoinsProcessor = AncestorJoinsProcessor.builder()

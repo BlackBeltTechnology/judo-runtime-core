@@ -300,7 +300,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         referenceChain.add(subSelect.getReference());
 
         if (log.isTraceEnabled()) {
-            log.trace("Collecting instances of {} based on {}", referenceChain.stream().filter(r -> r != null).map(r -> AsmUtils.getReferenceFQName(r)).collect(Collectors.toList()), graphs.keySet());
+            log.trace("Collecting instances of {} based on {}", referenceChain.stream()
+                    .filter(r -> r != null).map(r -> AsmUtils.getReferenceFQName(r))
+                    .collect(Collectors.toList()), graphs.keySet());
         }
 
         final String subSelectSql = subSelect.toSql();
@@ -414,7 +416,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         };
 
         // add all references
-        List<EReference> assaciationReferences =         entityType.getEAllReferences().stream()
+        List<EReference> assaciationReferences = entityType.getEAllReferences().stream()
                 .filter(reference -> !reference.isDerived() &&
                         !reference.isContainer() && // NOTE - containers are ignored because they are processed by opposite (containment) references
                         !reference.isContainment()).collect(Collectors.toList());
@@ -452,16 +454,21 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
         // TODO - test if changed with reference
         // add all back references
-        List<EReference> backReferences =  asmUtils.all(EReference.class)
+        List<EReference> backReferences = asmUtils.all(EReference.class)
                 .filter(reference -> !reference.isDerived() &&
                         !reference.isContainer() && // NOTE - containers are ignored because they are processed by opposite (containment) references
-                        (!reference.isContainment() || source instanceof RdbmsSelect) && // NOTE - if reference is a containment but source is RdbmsSelect a back reference should be checked before operations
-                        (AsmUtils.equals(reference.getEReferenceType(), entityType) || entityType.getEAllSuperTypes().contains(reference.getEReferenceType()))).collect(Collectors.toList());
+                        (!reference.isContainment() ||
+                                source instanceof RdbmsSelect) &&
+                        // NOTE - if reference is a containment but source is RdbmsSelect a back reference should be checked before operations
+                        (AsmUtils.equals(reference.getEReferenceType(), entityType) ||
+                                entityType.getEAllSuperTypes().contains(reference.getEReferenceType())))
+                .collect(Collectors.toList());
 
 
         for (EReference opposite : backReferences) {
             if (log.isTraceEnabled()) {
-                log.trace(pad(level) + "  - opposite reference from entity type: {}.{}", getClassifierFQName(opposite.getEContainingClass()), opposite.getName());
+                log.trace(pad(level) + "  - opposite reference from entity type: {}.{}",
+                        getClassifierFQName(opposite.getEContainingClass()), opposite.getName());
             }
 
             final Source oppositeSource;

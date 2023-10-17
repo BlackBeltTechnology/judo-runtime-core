@@ -29,6 +29,7 @@ import hu.blackbelt.judo.meta.rdbmsRules.Rules;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.DescendantNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsFunction;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsNavigationFilter;
@@ -59,6 +60,9 @@ public class SimpleJoinProcessor<ID> {
 
     @NonNull
     private final AncestorNameFactory ancestorNameFactory;
+
+    @NonNull
+    private final DescendantNameFactory descendantNameFactory;
 
     public List<RdbmsJoin> process(SimpleJoinProcessorParameters params) {
         final String postfix = params.getPostfix();
