@@ -42,8 +42,11 @@ public class RdbmsFunction extends RdbmsField {
     private List<RdbmsField> parameters;
 
     @Override
-    public String toSql(final String prefix, final boolean includeAlias, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        final String sql = cast(MessageFormat.format(pattern, parameters.stream().map(p -> p.toSql(prefix, false, coercer, sqlParameters, prefixes)).toArray()), null, targetAttribute);
+    public String toSql(SqlConverterContext context) {
+        final boolean includeAlias = context.includeAlias;
+
+        final String sql = cast(MessageFormat.format(pattern, parameters.stream()
+                .map(p -> p.toSql(context.toBuilder().includeAlias(false).build())).toArray()), null, targetAttribute);
         return getWithAlias(sql, includeAlias);
     }
 }
