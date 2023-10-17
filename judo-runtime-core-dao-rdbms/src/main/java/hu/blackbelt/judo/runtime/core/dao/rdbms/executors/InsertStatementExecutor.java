@@ -234,10 +234,12 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                         fields.entrySet().stream().map(e -> ":" + e.getKey()).collect(joining(", ")) +
                                         ")";
 
-                                log.debug("Insert: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
-                                        " ID: " + identifier +
-                                        " SQL: " + sql +
-                                        " Params: " + ImmutableMap.copyOf(insertStatementNamedParameters.getValues()).toString());
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Insert: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
+                                            " ID: " + identifier +
+                                            " SQL: " + sql +
+                                            " Params: " + ImmutableMap.copyOf(insertStatementNamedParameters.getValues()).toString());
+                                }
 
                                 int count = jdbcTemplate.update(sql, insertStatementNamedParameters);
                                 checkState(count == 1, "There is illegal state, no records inserted");
