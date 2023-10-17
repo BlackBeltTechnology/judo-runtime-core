@@ -621,8 +621,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         if (log.isTraceEnabled()) {
             log.trace(" - logical query:\n{}", query.getSelect());
         }
-        log.debug("Instance IDs: {}", instanceIds);
-        log.debug("Parent IDs: {}", parentIds);
+        if (log.isDebugEnabled()) {
+            log.debug("Instance IDs: {}", instanceIds);
+            log.debug("Parent IDs: {}", parentIds);
+        }
 
         final RdbmsResultSet<ID> resultSetHandler = RdbmsResultSet.<ID>builder()
                 .query(query)
@@ -656,7 +658,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             chunks.add(Chunk.<ID>builder().build());
         }
         chunks.forEach(chunk -> {
-            log.debug("Running chunk: {}", chunk);
+            if (log.isDebugEnabled()) {
+                log.debug("Running chunk: {}", chunk);
+            }
             final MapSqlParameterSource sqlParameters = new MapSqlParameterSource();
             if (chunk.parentIds != null) {
                 sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
@@ -675,8 +679,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             .prefixes(ECollections.emptyEMap())
                             .build()
             );
-            log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
-            log.debug("Parameters: {}", sqlParameters.getValues());
+            if (log.isDebugEnabled()) {
+                log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
+                log.debug("Parameters: {}", sqlParameters.getValues());
+            }
 
             List<Map<String, Object>> resultSet;
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_QUERY)) {
@@ -685,7 +691,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
                 resultSet.forEach(record -> {
-                    log.debug("Processing record:\n{}", record);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Processing record:\n{}", record);
+                    }
 
                     // map containing records by target (extracted from current JDBC record)
                     final EMap<Target, Payload> recordsByTarget = ECollections.asEMap(new HashMap<>());
@@ -821,7 +829,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         final String className;
                                         Object value = field.getValue();
                                         if (customTypeName.isPresent()) {
-                                            log.debug("Using custom type: {}", customTypeName.get());
+                                            if (log.isDebugEnabled()) {
+                                                log.debug("Using custom type: {}", customTypeName.get());
+                                            }
                                             final Optional<EDataType> dataType = asmUtils.resolve(customTypeName.get()).filter(type -> type instanceof EDataType).map(type -> (EDataType) type);
                                             checkArgument(dataType.isPresent(), "Unknown data type: " + customTypeName.get());
                                             className = dataTypeManager.getCustomTypeName(dataType.get()).orElse(null);
@@ -867,7 +877,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     foundTargets.add(featureTargetMapping.get().getTarget());
                                 }
                             });
-                            if (foundTargets.isEmpty()) {
+                            if (log.isDebugEnabled() && foundTargets.isEmpty()) {
                                 log.debug("No target found for {}, value: {}", field.getKey(), field.getValue());
                             }
                         }
@@ -912,7 +922,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     final ID targetID = idsByTarget.get(target);
 
                                     if (parentKey != null && results.get(target).containsKey(targetID) && results.get(target).get(targetID).get(parentKey) != null) {
-                                        log.debug("Record already added, add new parentId only");
+                                        if (log.isDebugEnabled()) {
+                                            log.debug("Record already added, add new parentId only");
+                                        }
                                         final Collection<ID> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
                                         if (log.isTraceEnabled()) {
                                             log.trace("Current  parent IDs: {}", currentParentIds);
@@ -977,8 +989,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         if (log.isTraceEnabled()) {
             log.trace(" - logical query:\n{}", query.getSelect());
         }
-        log.debug("Instance IDs: {}", instanceIds);
-        log.debug("Parent IDs: {}", parentIds);
+        if (log.isDebugEnabled()) {
+            log.debug("Instance IDs: {}", instanceIds);
+            log.debug("Parent IDs: {}", parentIds);
+        }
 
         final RdbmsCount<ID> resultSetHandler = RdbmsCount.<ID>builder()
                 .query(query)
@@ -1010,7 +1024,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
         AtomicLong count = new AtomicLong(0);
         chunks.forEach(chunk -> {
-            log.debug("Running chunk: {}", chunk);
+            if (log.isDebugEnabled()) {
+                log.debug("Running chunk: {}", chunk);
+            }
             final MapSqlParameterSource sqlParameters = new MapSqlParameterSource();
             if (chunk.parentIds != null) {
                 sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
@@ -1028,8 +1044,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             .build()
             );
 
-            log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
-            log.debug("Parameters: {}", sqlParameters.getValues());
+            if (log.isDebugEnabled()) {
+                log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
+                log.debug("Parameters: {}", sqlParameters.getValues());
+            }
 
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_COUNT_QUERY)) {
                 count.addAndGet(jdbcTemplate.queryForObject(sql, sqlParameters, Integer.class));
@@ -1114,10 +1132,14 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     containers.add(targetResult.get(id));
                 } else {
                     if (subSelect.getPartner() instanceof SubSelectJoin) {
-                        log.debug("No (parent) ID found in container but object selector used, adding all targets");
+                        if (log.isDebugEnabled()) {
+                            log.debug("No (parent) ID found in container but object selector used, adding all targets");
+                        }
                         containers.addAll(targetResult.values());
                     } else {
-                        log.debug("No (parent) ID found in container result");
+                        if (log.isDebugEnabled()) {
+                            log.debug("No (parent) ID found in container result");
+                        }
                     }
                 }
             } else {
@@ -1136,10 +1158,14 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     containers.add(targetResult.get(parentId));
                                 } else {
                                     if (subSelect.getPartner() instanceof SubSelectJoin) {
-                                        log.debug("No parent ID found in container but object selector used, adding all targets");
+                                        if (log.isDebugEnabled()) {
+                                            log.debug("No parent ID found in container but object selector used, adding all targets");
+                                        }
                                         containers.addAll(targetResult.values());
                                     } else {
-                                        log.debug("No parent ID found in container result");
+                                        if (log.isDebugEnabled()) {
+                                            log.debug("No parent ID found in container result");
+                                        }
                                     }
                                 }
                             });

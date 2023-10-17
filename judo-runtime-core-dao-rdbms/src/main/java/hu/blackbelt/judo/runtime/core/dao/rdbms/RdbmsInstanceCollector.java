@@ -261,7 +261,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         final Map<ID, InstanceGraph<ID>> graphs = new HashMap<>();
 
         final String sql = select.toSql();
-        log.debug("SQL:\n{}", sql);
+        if (log.isDebugEnabled()) {
+            log.debug("SQL:\n{}", sql);
+        }
 
         final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> selectContainments;
         if (ids != null && !ids.isEmpty()) {
@@ -303,8 +305,10 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
         final String subSelectSql = subSelect.toSql();
 
-        log.debug("SQL:\n{}", subSelectSql);
-        log.debug("  - parent IDs: {}", graphs.keySet());
+        if (log.isDebugEnabled()) {
+            log.debug("SQL:\n{}", subSelectSql);
+            log.debug("  - parent IDs: {}", graphs.keySet());
+        }
 
         final boolean loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, subSelect.getReference())).count() > 1;
         if (loopDetected && log.isTraceEnabled()) {
