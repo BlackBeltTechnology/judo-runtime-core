@@ -50,16 +50,19 @@ public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
         final EAttribute sourceAttribute = attribute.getSourceAttribute();
         final EClass attributeContainer = sourceAttribute.getEContainingClass();
 
-        log.trace("  ".repeat(context.getLevel()) + "Checking attributes");
-        log.trace("  ".repeat(context.getLevel()) + " - source type: {}", sourceType.getName());
-        log.trace("  ".repeat(context.getLevel()) + " - source attribute: {}", sourceAttribute.getName());
-        log.trace("  ".repeat(context.getLevel()) + " - source attribute container: {}", attributeContainer.getName());
+        if (log.isTraceEnabled()) {
+            log.trace("Checking attributes");
+            log.trace(" - source type: {}", sourceType.getName());
+            log.trace(" - source attribute: {}", sourceAttribute.getName());
+            log.trace(" - source attribute container: {}", attributeContainer.getName());
+        }
 
         // add column to list
         final String postfix;
         if (!AsmUtils.equals(sourceType, attributeContainer)) {  // inherited attribute
-            log.trace("  ".repeat(context.getLevel()) + "   - found inherited attribute: {}", sourceAttribute.getName());
-
+            if (log.isTraceEnabled()) {
+                log.trace("   - found inherited attribute: {}", sourceAttribute.getName());
+            }
             if (!ancestors.containsKey(attribute.getNode())) {
                 ancestors.put(attribute.getNode(), new UniqueEList<>());
             }

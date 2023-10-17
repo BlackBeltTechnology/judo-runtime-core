@@ -38,9 +38,9 @@ public class AncestorJoinsProcessor {
 
     public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, final EMap<Node, EList<EClass>> ancestors, RdbmsBuilderContext builderContext) {
         if (log.isTraceEnabled()) {
-            log.trace("  ".repeat(builderContext.getLevel()) + "Node:       " + node);
-            log.trace("  ".repeat(builderContext.getLevel()) + "Joins:      " + joins);
-            log.trace("  ".repeat(builderContext.getLevel()) + "Ancestors:  " + ancestors);
+            log.trace("Node:       " + node);
+            log.trace("Joins:      " + joins);
+            log.trace("Ancestors:  " + ancestors);
         }
 
         final EList<EClass> list;

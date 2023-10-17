@@ -38,8 +38,8 @@ public class CustomJoinProcessor {
         final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         if (log.isTraceEnabled()) {
-            log.trace("  ".repeat(builderContext.getLevel()) + "Node:       " + join);
-            log.trace("  ".repeat(builderContext.getLevel()) + builderContext.toString());
+            log.trace("Node:       " + join);
+            log.trace(builderContext.toString());
         }
 
         final List<RdbmsJoin> joins = new ArrayList<>();

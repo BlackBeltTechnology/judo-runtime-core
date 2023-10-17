@@ -55,10 +55,10 @@ public class SimpleJoinProcessor<ID> {
 
 
         if (log.isTraceEnabled()) {
-            log.trace("  ".repeat(builderContext.getLevel()) + params.toString());
-            log.trace("  ".repeat(builderContext.getLevel()) + " => processing JOIN: {}", join);
-            log.trace("  ".repeat(builderContext.getLevel()) + "    target type: {}", targetType.getName());
-            log.trace("  ".repeat(builderContext.getLevel()) + "    source type: {}", sourceType.getName());
+            log.trace(params.toString());
+            log.trace(" => processing JOIN: {}", join);
+            log.trace("    target type: {}", targetType.getName());
+            log.trace("    source type: {}", sourceType.getName());
         }
 
         final String tableName = rdbmsResolver.rdbmsTable(targetType).getSqlName();
@@ -92,8 +92,8 @@ public class SimpleJoinProcessor<ID> {
 
             final EClass oppositeContainer = opposite.getEReferenceType();
             if (log.isTraceEnabled()) {
-                log.trace("  ".repeat(builderContext.getLevel()) + "    opposite: {}", opposite.getName());
-                log.trace("  ".repeat(builderContext.getLevel()) + "    opposite reference container: {}", oppositeContainer.getName());
+                log.trace("    opposite: {}", opposite.getName());
+                log.trace("    opposite reference container: {}", oppositeContainer.getName());
             }
 
             if (sourceContainer == null) {
@@ -104,7 +104,9 @@ public class SimpleJoinProcessor<ID> {
         }
 
         if (!AsmUtils.equals(sourceType, sourceContainer)) { // reference is inherited from another class, resolve ancestor too
-            log.trace("  - reference '{}' is inherited");
+            if (log.isTraceEnabled()) {
+                log.trace("  - reference '{}' is inherited", reference.getName());
+            }
 
             if (!ancestors.containsKey(node)) {
                 ancestors.put(node, new UniqueEList<>());
@@ -120,31 +122,38 @@ public class SimpleJoinProcessor<ID> {
         }
 
         if (rule != null && rule.isForeignKey()) { // reference is owned by source class, target class has reference to the ID with different name
-            log.trace("  ".repeat(builderContext.getLevel()) + "  - reference '{}' is foreign key", reference.getName());
-
+            if (log.isTraceEnabled()) {
+                log.trace("  - reference '{}' is foreign key", reference.getName());
+            }
             builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(reference).getSqlName());
         } else if (rule != null && rule.isInverseForeignKey()) {  // reference is owned by target class, source class has reference to the ID with different name
-            log.trace("  ".repeat(builderContext.getLevel()) + "  - reference '{}' is inverse foreign key", reference.getName());
-
+            if (log.isTraceEnabled()) {
+                log.trace("  - reference '{}' is inverse foreign key", reference.getName());
+            }
             builder.columnName(rdbmsResolver.rdbmsField(reference).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
         } else if (rule != null && rule.isJoinTable()) { // JOIN tables are not supported yet
-            log.trace("  ".repeat(builderContext.getLevel()) + "  - reference '{}' is JOIN table", reference.getName());
-
+            if (log.isTraceEnabled()) {
+                log.trace("  - reference '{}' is JOIN table", reference.getName());
+            }
             builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
                     .junctionTableName(rdbmsResolver.rdbmsJunctionTable(reference).getSqlName())
                     .junctionColumnName(rdbmsResolver.rdbmsJunctionField(reference).getSqlName())
                     .junctionOppositeColumnName(rdbmsResolver.rdbmsJunctionOppositeField(reference).getSqlName());
         } else if (oppositeRule != null && oppositeRule.isForeignKey()) { // reference is owned by source class, target class has reference to the ID with different name (defined by opposite reference)
-            log.trace("  ".repeat(builderContext.getLevel()) + "  - opposite reference '{}' is foreign key", opposite.getName());
+            if (log.isTraceEnabled()) {
+                log.trace("  - opposite reference '{}' is foreign key", opposite.getName());
+            }
 
             builder.columnName(rdbmsResolver.rdbmsField(opposite).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
         } else if (oppositeRule != null && oppositeRule.isInverseForeignKey()) {  // reference is owned by target class, source class has reference to the ID with different name (defined by opposite reference)
-            log.trace("  ".repeat(builderContext.getLevel()) + "  - opposite reference '{}' is inverse foreign key", opposite.getName());
-
+            if (log.isTraceEnabled()) {
+                log.trace("  - opposite reference '{}' is inverse foreign key", opposite.getName());
+            }
             builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(opposite).getSqlName());
         } else if (oppositeRule != null && oppositeRule.isJoinTable()) { // JOIN tables are not supported yet
-            log.trace("  ".repeat(builderContext.getLevel()) + "  - opposite reference '{}' is JOIN table", opposite.getName());
-
+            if (log.isTraceEnabled()) {
+                log.trace("  - opposite reference '{}' is JOIN table", opposite.getName());
+            }
             builder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
                     .junctionTableName(rdbmsResolver.rdbmsJunctionTable(opposite).getSqlName())
                     .junctionColumnName(rdbmsResolver.rdbmsJunctionField(opposite).getSqlName())

@@ -49,8 +49,8 @@ public class FilterJoinProcessor {
         final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         if (log.isTraceEnabled()) {
-            log.trace("  ".repeat(builderContext.getLevel()) + params.toString());
-            log.trace("  ".repeat(builderContext.getLevel()) + builderContext.toString());
+            log.trace(params.toString());
+            log.trace(builderContext.toString());
         }
 
         if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {

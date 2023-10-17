@@ -44,7 +44,9 @@ public class TypeAttributeMapper extends RdbmsMapper<TypeAttribute> {
 
         final EClass sourceType = typeAttribute.getNode().getType();
         for (EClass superType : sourceType.getEAllSuperTypes()) {
-            log.trace("  ".repeat(context.getLevel()) + "   - found super type: {}", AsmUtils.getClassifierFQName(superType));
+            if (log.isTraceEnabled()) {
+                log.trace("   - found super type: {}", AsmUtils.getClassifierFQName(superType));
+            }
             if (!ancestors.containsKey(typeAttribute.getNode())) {
                 ancestors.put(typeAttribute.getNode(), new UniqueEList<>());
             }

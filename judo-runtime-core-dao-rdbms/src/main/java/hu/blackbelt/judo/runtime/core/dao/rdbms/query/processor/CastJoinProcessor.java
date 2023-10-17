@@ -34,8 +34,8 @@ public class CastJoinProcessor<ID> {
 
     public List<RdbmsJoin> process(Node join, RdbmsBuilderContext builderContext) {
         if (log.isTraceEnabled()) {
-            log.trace("  ".repeat(builderContext.getLevel()) + "Node:       " + join);
-            log.trace("  ".repeat(builderContext.getLevel()) + builderContext.toString());
+            log.trace("Node:       " + join);
+            log.trace(builderContext.toString());
         }
 
         final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();

@@ -34,10 +34,10 @@ public class SubSelectJoinProcessor<ID> {
         final SubSelect subSelect = join.getSubSelect();
 
         if (log.isTraceEnabled()) {
-            log.trace("  ".repeat(builderContext.getLevel()) + "Join:            " + join.toString());
-            log.trace("  ".repeat(builderContext.getLevel()) + "WithoutFeatures: " + withoutFeatures);
-            log.trace("  ".repeat(builderContext.getLevel()) + "Mask:            " + (mask == null ? "" : mask));
-            log.trace("  ".repeat(builderContext.getLevel()) + builderContext);
+            log.trace("Join:            " + join.toString());
+            log.trace("WithoutFeatures: " + withoutFeatures);
+            log.trace("Mask:            " + (mask == null ? "" : mask));
+            log.trace(builderContext.toString());
         }
 
         subSelect.getFilters().addAll(join.getFilters());

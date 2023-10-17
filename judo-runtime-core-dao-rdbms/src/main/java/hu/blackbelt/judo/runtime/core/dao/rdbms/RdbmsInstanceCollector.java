@@ -145,16 +145,20 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> containmentIds = new BasicEMap<>();
         containmentIds.put(referenceChain, new HashMap<>());
 
-        if (!result.isEmpty()) {
+        if (!result.isEmpty() && log.isTraceEnabled()) {
             log.trace("Processing results of base: {}, reference type: {}", select.getTableName(), referenceType);
         }
 
         for (Map<String, Object> record : result) {
-            log.trace("  - record: {}", record);
+            if (log.isTraceEnabled()) {
+                log.trace("  - record: {}", record);
+            }
             final Optional<ID> parentId = parentIdName.map(name -> coercer.coerce(record.get(name), identifierProvider.getType()));
             final ID id = coercer.coerce(record.get(select.getAlias() + "_ID"), identifierProvider.getType());
 
-            log.trace("    - ID: {}, parent ID: {}", id, parentId);
+            if (log.isTraceEnabled()) {
+                log.trace("    - ID: {}, parent ID: {}", id, parentId);
+            }
 
             final InstanceGraph<ID> graphOfRecord = InstanceGraph.<ID>builder().id(id).build();
             final Map<ID, InstanceGraph<ID>> graphs = new ConcurrentHashMap<>();
@@ -192,7 +196,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             List<RdbmsJoin> selectJoins = select.getAllJoins();
             for (RdbmsJoin join : selectJoins) {
                 if (referenceType != ReferenceType.CONTAINMENT) {
-                    log.trace("Reference type {} is not supported yet for JOINed elements.", referenceType);
+                    if (log.isTraceEnabled()) {
+                        log.trace("Reference type {} is not supported yet for JOINed elements.", referenceType);
+                    }
                     continue;
                 }
 
@@ -200,7 +206,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 path.addAll(referenceChain);
                 path.addAll(join.getAllReferences());
 
-                log.trace("    - joined table: {} AS {}, partner: {}", new Object[]{join.getTableName(), join.getAlias(), join.getPartner().getAlias()});
+                if (log.isTraceEnabled()) {
+                    log.trace("    - joined table: {} AS {}, partner: {}", new Object[]{join.getTableName(), join.getAlias(), join.getPartner().getAlias()});
+                }
 
                 final Object joinedIdObject = record.get(join.getAlias() + "_ID");
                 final ID joinedId = joinedIdObject != null ? coercer.coerce(joinedIdObject, identifierProvider.getType()) : null;
@@ -208,7 +216,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 final Object joinedPartnerIdObject = record.get(join.getPartner().getAlias() + "_ID");
                 final ID joinedPartnerId = joinedPartnerIdObject != null ? coercer.coerce(joinedPartnerIdObject, identifierProvider.getType()) : null;
 
-                log.trace("      - joined ID: {} (partner ID: {}), reference name: {}, type: {}", new Object[]{joinedId, joinedPartnerId, join.getReference() != null ? AsmUtils.getReferenceFQName(join.getReference()) : "-", join.getReferenceType()});
+                if (log.isTraceEnabled()) {
+                    log.trace("      - joined ID: {} (partner ID: {}), reference name: {}, type: {}", new Object[]{joinedId, joinedPartnerId, join.getReference() != null ? AsmUtils.getReferenceFQName(join.getReference()) : "-", join.getReferenceType()});
+                }
 
                 if (joinedId != null && join.getReference() != null) {
                     final InstanceGraph<ID> joinedGraph = InstanceGraph.<ID>builder().id(joinedId).build();
@@ -221,10 +231,14 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
                     if (join.getReferenceType() == ReferenceType.REFERENCE) {
                         graphs.get(joinedPartnerId).getReferences().add(instanceReference);
-                        log.trace("        - added as reference");
+                        if (log.isTraceEnabled()) {
+                            log.trace("        - added as reference");
+                        }
                     } else if (join.getReferenceType() == ReferenceType.BACK_REFERENCE) {
                         graphs.get(joinedPartnerId).getBackReferences().add(instanceReference);
-                        log.trace("        - added as back reference");
+                        if (log.isTraceEnabled()) {
+                            log.trace("        - added as back reference");
+                        }
                     } else if (join.getReferenceType() == ReferenceType.CONTAINMENT) {
                         if (!containmentIds.containsKey(path)) {
                             containmentIds.put(path, new ConcurrentHashMap<>());
@@ -232,7 +246,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         containmentIds.get(path).put(joinedId, joinedGraph);
 
                         graphs.get(joinedPartnerId).getContainments().add(instanceReference);
-                        log.trace("        - added as containment");
+                        if (log.isTraceEnabled()) {
+                            log.trace("        - added as containment");
+                        }
                     }
                 }
             };
@@ -291,7 +307,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         log.debug("  - parent IDs: {}", graphs.keySet());
 
         final boolean loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, subSelect.getReference())).count() > 1;
-        if (loopDetected) {
+        if (loopDetected && log.isTraceEnabled()) {
             log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r != null ? r.getName() : "null").collect(Collectors.toList()));
         }
 
@@ -361,7 +377,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 .filter(containment -> !containment.isDerived()).collect(Collectors.toList());
 
         for (EReference containment : containmentReferences) {
-            log.trace(pad(level) + "  - containment: {}", containment.getName());
+            if (log.isTraceEnabled()) {
+                log.trace(pad(level) + "  - containment: {}", containment.getName());
+            }
 
             if (!AsmUtils.equals(entityType, containment.getEContainingClass())) {
                 if (!sources.containsKey(containment.getEContainingClass())) {
@@ -398,7 +416,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         !reference.isContainment()).collect(Collectors.toList());
 
         for (EReference reference : assaciationReferences) {
-            log.trace(pad(level) + "  - reference to entity type: {}", reference.getName());
+            if (log.isTraceEnabled()) {
+                log.trace(pad(level) + "  - reference to entity type: {}", reference.getName());
+            }
 
             if (!AsmUtils.equals(entityType, reference.getEContainingClass())) {
                 if (!sources.containsKey(reference.getEContainingClass())) {
@@ -436,7 +456,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
 
         for (EReference opposite : backReferences) {
-            log.trace(pad(level) + "  - opposite reference from entity type: {}.{}", getClassifierFQName(opposite.getEContainingClass()), opposite.getName());
+            if (log.isTraceEnabled()) {
+                log.trace(pad(level) + "  - opposite reference from entity type: {}.{}", getClassifierFQName(opposite.getEContainingClass()), opposite.getName());
+            }
 
             final Source oppositeSource;
             if (!AsmUtils.equals(opposite.getEReferenceType(), entityType)) {
@@ -520,7 +542,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
         if (rule.isForeignKey() && !inverse || rule.isInverseForeignKey() && inverse) { // reference is owned by source class, target class has reference to the ID with different name
             final boolean join = !circularDependencyFound && (!inverse && !reference.isMany() || inverse && opposite != null && !opposite.isMany());
-            log.trace(pad(level) + "    '{}' is foreign key -> {}", AsmUtils.getReferenceFQName(reference), join ? "JOIN" : "SUBQUERY");
+            if (log.isTraceEnabled()) {
+                log.trace(pad(level) + "    '{}' is foreign key -> {}", AsmUtils.getReferenceFQName(reference), join ? "JOIN" : "SUBQUERY");
+            }
 
             if (join) {
                 joinBuilder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(reference).getSqlName());
@@ -531,7 +555,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             }
         } else if (rule.isInverseForeignKey() && !inverse || rule.isForeignKey() && inverse) {  // reference is owned by target class, source class has reference to the ID with different name
             final boolean join = !circularDependencyFound && (!inverse && !reference.isMany() || inverse && opposite != null && !opposite.isMany());
-            log.trace(pad(level) + "    '{}' is inverse foreign key -> {}", AsmUtils.getReferenceFQName(reference), join ? "JOIN" : "SUBQUERY");
+            if (log.isTraceEnabled()) {
+                log.trace(pad(level) + "    '{}' is inverse foreign key -> {}", AsmUtils.getReferenceFQName(reference), join ? "JOIN" : "SUBQUERY");
+            }
 
             if (join) {
                 joinBuilder.columnName(rdbmsResolver.rdbmsField(reference).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
@@ -550,7 +576,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         } else if (oppositeRule.isPresent()) { // RBDMS can use opposite (partner) reference to store relationship
             if (oppositeRule.get().isForeignKey() && !inverse || oppositeRule.get().isInverseForeignKey() && inverse) { // reference is owned by source class, target class has reference to the ID with different name (defined by opposite reference)
                 final boolean join = (!reference.isMany() && !inverse || !opposite.isMany() && inverse) && !circularDependencyFound;
-                log.trace(pad(level) + "    opposite of '{}' ({}) is foreign key -> {}", new Object[]{AsmUtils.getReferenceFQName(reference), AsmUtils.getReferenceFQName(opposite), join ? "JOIN" : "SUBQUERY"});
+                if (log.isTraceEnabled()) {
+                    log.trace(pad(level) + "    opposite of '{}' ({}) is foreign key -> {}", new Object[]{AsmUtils.getReferenceFQName(reference), AsmUtils.getReferenceFQName(opposite), join ? "JOIN" : "SUBQUERY"});
+                }
 
                 if (join) {
                     joinBuilder.columnName(rdbmsResolver.rdbmsField(opposite).getSqlName()).partnerColumnName(StatementExecutor.ID_COLUMN_NAME);
@@ -561,8 +589,9 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 }
             } else if (oppositeRule.get().isInverseForeignKey() && !inverse || oppositeRule.get().isForeignKey() && inverse) {  // reference is owned by target class, source class has reference to the ID with different name (defined by opposite reference)
                 final boolean join = (!reference.isMany() && !inverse || !opposite.isMany() && inverse) && !circularDependencyFound;
-                log.trace(pad(level) + "    opposite of '{}' ({}) is inverse foreign key -> {}", new Object[]{AsmUtils.getReferenceFQName(reference), AsmUtils.getReferenceFQName(opposite), join ? "JOIN" : "SUBQUERY"});
-
+                if (log.isTraceEnabled()) {
+                    log.trace(pad(level) + "    opposite of '{}' ({}) is inverse foreign key -> {}", new Object[]{AsmUtils.getReferenceFQName(reference), AsmUtils.getReferenceFQName(opposite), join ? "JOIN" : "SUBQUERY"});
+                }
                 if (join) {
                     joinBuilder.columnName(StatementExecutor.ID_COLUMN_NAME).partnerColumnName(rdbmsResolver.rdbmsField(opposite).getSqlName());
                     createJoin = true;
