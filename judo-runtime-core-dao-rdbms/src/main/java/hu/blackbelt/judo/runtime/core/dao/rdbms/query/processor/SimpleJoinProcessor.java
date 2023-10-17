@@ -181,7 +181,7 @@ public class SimpleJoinProcessor<ID> {
         joins.add(rdbmsJoin);
 
         if (ancestors.containsKey(join)) {
-            builderContext.getRdbmsBuilder().addAncestorJoins(joins, join, ancestors, builderContext);
+            builderContext.getRdbmsBuilder().addAncestorJoins(joins, join, builderContext);
         }
 
         return joins;

@@ -112,7 +112,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .collect(Collectors.toList());
 
         if (query.getBase() != null) {
-            rdbmsBuilder.addAncestorJoins(subJoins, query.getBase(), subAncestors, navigationBuilderContext);
+            rdbmsBuilder.addAncestorJoins(subJoins, query.getBase(), navigationBuilderContext);
         }
         subJoins.addAll(navigationJoins);
 

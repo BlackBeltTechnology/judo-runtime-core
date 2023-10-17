@@ -61,7 +61,7 @@ public class CustomJoinProcessor {
                 .build());
 
         if (ancestors.containsKey(join)) {
-            rdbmsBuilder.addAncestorJoins(joins, join, ancestors, builderContext);
+            rdbmsBuilder.addAncestorJoins(joins, join, builderContext);
         }
         return joins;
     }

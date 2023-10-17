@@ -123,7 +123,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             columns.addAll(featureFields);
         }
         
-        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, resultSetBuilderContext);
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), resultSetBuilderContext);
 
         List<Join> joinsToProcess = query.getSelect().getAllJoins().stream()
                 .filter(j -> !withoutFeatures || query.getSelect().isAggregated() && !processedNodesForJoins.contains(j))

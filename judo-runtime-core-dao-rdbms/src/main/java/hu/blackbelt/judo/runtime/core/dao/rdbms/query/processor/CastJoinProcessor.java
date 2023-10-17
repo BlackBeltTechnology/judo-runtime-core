@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-
-
 @Builder
 @Slf4j
 public class CastJoinProcessor<ID> {
@@ -73,6 +71,7 @@ public class CastJoinProcessor<ID> {
                                 && joinFilters.stream()
                                 .noneMatch(filter -> filter.getFeatures().stream()
                                         .anyMatch(feature -> feature instanceof SubSelectFeature));
+
                 if (joinFiltersWithoutSubSelectFeatures) {
                     onConditions = joinFilters.stream()
                             .map(f -> RdbmsFunction.builder()

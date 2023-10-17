@@ -10,10 +10,8 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsQueryJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.JoinProcessParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.Builder;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.EList;
@@ -21,7 +19,6 @@ import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EClass;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,7 +30,7 @@ import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUti
 @Slf4j
 public class FilterJoinProcessor {
 
-    public <ID> void addFilterJoinsAndConditions(final FilterJoinProcessorParameters params, final RdbmsBuilderContext builderContext) {
+    public <ID> void process(final FilterJoinProcessorParameters params, final RdbmsBuilderContext builderContext) {
         final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.getRdbmsBuilder();
         final List<RdbmsJoin> joins = params.getJoins();
         final Filter filter = params.getFilter();
@@ -43,10 +40,6 @@ public class FilterJoinProcessor {
         final String partnerTablePrefix = params.getPartnerTablePrefix();
         final Node partnerTable = params.getPartnerTable();
         final Boolean addJoinsOfFilterFeature = params.isAddJoinsOfFilterFeature();
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
-        final EMap<Node, EList<EClass>> descendants = builderContext.getDescendants();
-        final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
-        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         if (log.isTraceEnabled()) {
             log.trace(params.toString());
@@ -133,7 +126,7 @@ public class FilterJoinProcessor {
 
         joins.addAll(subSelectFilterFeaturesQueryJoins);
         conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), builderContext).collect(Collectors.toList()));
-        rdbmsBuilder.addAncestorJoins(joins, filter, ancestors, builderContext);
+        rdbmsBuilder.addAncestorJoins(joins, filter, builderContext);
     }
 
 }

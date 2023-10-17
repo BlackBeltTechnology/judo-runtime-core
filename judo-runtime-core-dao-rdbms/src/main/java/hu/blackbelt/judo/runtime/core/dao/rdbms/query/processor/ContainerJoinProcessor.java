@@ -31,10 +31,6 @@ public class ContainerJoinProcessor {
 
     public List<RdbmsJoin> process(ContainerJoin join, RdbmsBuilderContext builderContext) {
         final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
-        final EMap<Node, EList<EClass>> descendants = builderContext.getDescendants();
-        final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
-        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         final EClass targetType = join.getType();
         final Node node = join.getPartner();

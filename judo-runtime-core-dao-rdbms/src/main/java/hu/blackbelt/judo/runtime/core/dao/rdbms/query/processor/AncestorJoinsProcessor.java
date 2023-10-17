@@ -10,7 +10,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
 import lombok.Builder;
-import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
@@ -36,7 +35,8 @@ public class AncestorJoinsProcessor {
     @NonNull
     private final DescendantNameFactory descendantNameFactory;
 
-    public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, final EMap<Node, EList<EClass>> ancestors, RdbmsBuilderContext builderContext) {
+    public void process(final Collection<RdbmsJoin> joins, final Node node, RdbmsBuilderContext builderContext) {
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
         if (log.isTraceEnabled()) {
             log.trace("Node:       " + node);
             log.trace("Joins:      " + joins);
@@ -55,7 +55,8 @@ public class AncestorJoinsProcessor {
         }
 
         List<RdbmsJoin> newJoins = list.stream()
-                .filter(c -> joins.stream().noneMatch(j -> Objects.equals(node.getAlias() + ancestorNameFactory.getAncestorPostfix(c), j.getAlias())))
+                .filter(c -> joins.stream()
+                        .noneMatch(j -> Objects.equals(node.getAlias() + ancestorNameFactory.getAncestorPostfix(c), j.getAlias())))
                 .map(ancestor -> RdbmsTableJoin.builder()
                         .tableName(rdbmsResolver.rdbmsTable(ancestor).getSqlName())
                         .alias(node.getAlias() + ancestorNameFactory.getAncestorPostfix(ancestor))

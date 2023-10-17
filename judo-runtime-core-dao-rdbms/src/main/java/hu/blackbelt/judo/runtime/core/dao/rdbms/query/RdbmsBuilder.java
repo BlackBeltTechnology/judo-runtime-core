@@ -233,12 +233,12 @@ public class RdbmsBuilder<ID> {
     }
 
 
-    public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, final EMap<Node, EList<EClass>> ancestors, RdbmsBuilderContext builderContext) {
-        ancestorJoinsProcessor.addAncestorJoins(joins, node, ancestors, builderContext);
+    public void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, RdbmsBuilderContext builderContext) {
+        ancestorJoinsProcessor.process(joins, node, builderContext);
     }
 
     public void addFilterJoinsAndConditions(FilterJoinProcessorParameters params, RdbmsBuilderContext builderContext) {
-        filterJoinProcessor.addFilterJoinsAndConditions(params, builderContext);
+        filterJoinProcessor.process(params, builderContext);
     }
 
     public List<RdbmsJoin> processSimpleJoin(SimpleJoinProcessorParameters params) {

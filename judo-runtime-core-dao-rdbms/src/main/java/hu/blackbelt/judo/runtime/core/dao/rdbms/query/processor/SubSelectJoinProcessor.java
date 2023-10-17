@@ -43,7 +43,11 @@ public class SubSelectJoinProcessor<ID> {
         subSelect.getFilters().addAll(join.getFilters());
 
         final List<RdbmsJoin> joins = new ArrayList<>();
-        final Map<String, Object> _mask = mask != null && subSelect.getTransferRelation() != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null;
+        final Map<String, Object> _mask = mask != null &&
+                subSelect.getTransferRelation() != null
+                ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName())
+                : null;
+
         final RdbmsResultSet<ID> resultSetHandler =
                 RdbmsResultSet.<ID>builder()
                         .query(subSelect)
@@ -66,18 +70,19 @@ public class SubSelectJoinProcessor<ID> {
                 .resultSet(resultSetHandler)
                 .outer(true)
                 .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
-//                    .partnerTable(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), join) ? subSelect.getBase() : null)
-//                    .partnerColumnName(!subSelect.getNavigationJoins().isEmpty() && AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(), join) ? StatementExecutor.ID_COLUMN_NAME : null)
                 .partnerTable(subSelect.getBase())
                 .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
                 .alias(subSelect.getAlias())
                 .build());
+
         final Optional<Feature> selectorFeature = subSelect.getSelect().getFeatures().stream()
                 .filter(f -> (f instanceof Function) && (FunctionSignature.MIN_INTEGER.equals(((Function) f).getSignature()) || FunctionSignature.MAX_INTEGER.equals(((Function) f).getSignature())))
                 .findAny();
         checkArgument(selectorFeature.isPresent(), "SubSelectFeature of head/tail/any must exists");
+
         final Optional<RdbmsMapper.RdbmsTarget> selectorTarget = RdbmsMapper.getTargets(selectorFeature.get()).findAny();
         checkArgument(selectorTarget.isPresent(), "SubSelectFeature target must exists");
+
         joins.add(RdbmsTableJoin.builder()
                 .tableName(rdbmsResolver.rdbmsTable(join.getType()).getSqlName())
                 .alias(join.getAlias())
@@ -88,7 +93,7 @@ public class SubSelectJoinProcessor<ID> {
                 .build());
 
         if (builderContext.getAncestors().containsKey(join)) {
-            builderContext.getRdbmsBuilder().addAncestorJoins(joins, join, builderContext.getAncestors(), builderContext);
+            builderContext.getRdbmsBuilder().addAncestorJoins(joins, join, builderContext);
         }
         return joins;
     }
