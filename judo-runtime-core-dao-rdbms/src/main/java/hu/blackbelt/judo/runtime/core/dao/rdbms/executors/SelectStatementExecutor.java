@@ -49,6 +49,7 @@ import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsCount;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
@@ -580,7 +581,17 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @return result set
      */
     @SuppressWarnings("unchecked")
-    private EMap<Target, Map<ID, Payload>> runQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final Collection<ID> instanceIds, final Collection<ID> parentIds, final EList<EReference> referenceChain, final DAO.Seek seek, final boolean withoutFeatures, final Map<String, Object> mask, final Map<String, Object> queryParameters, final boolean skipParents) {
+    private EMap<Target, Map<ID, Payload>> runQuery(
+            final NamedParameterJdbcTemplate jdbcTemplate,
+            final SubSelect query,
+            final Collection<ID> instanceIds,
+            final Collection<ID> parentIds,
+            final EList<EReference> referenceChain,
+            final DAO.Seek seek,
+            final boolean withoutFeatures,
+            final Map<String, Object> mask,
+            final Map<String, Object> queryParameters,
+            final boolean skipParents) {
         // map of sources, key is ID column alias, value is the source object (including SELECT and all JOINs)
         final Map<String, Node> sources = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getIdColumnAlias, j -> j)));
         sources.put(RdbmsAliasUtil.getIdColumnAlias(query.getSelect()), query.getSelect());
@@ -628,13 +639,15 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
         final RdbmsResultSet<ID> resultSetHandler = RdbmsResultSet.<ID>builder()
                 .query(query)
+                .builderContext(RdbmsBuilderContext.builder()
+                        .parentIdFilterQuery(parentIds != null ? query : null)
+                        .rdbmsBuilder(rdbmsBuilder)
+                        .queryParameters(queryParameters)
+                        .build())
                 .filterByInstances(instanceIds != null)
-                .parentIdFilterQuery(parentIds != null ? query : null)
-                .rdbmsBuilder(rdbmsBuilder)
                 .seek(seek)
                 .withoutFeatures(withoutFeatures)
                 .mask(mask)
-                .queryParameters(queryParameters)
                 .skipParents(skipParents)
                 .build();
 
@@ -996,10 +1009,12 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
         final RdbmsCount<ID> resultSetHandler = RdbmsCount.<ID>builder()
                 .query(query)
+                .builderContext(RdbmsBuilderContext.builder()
+                        .parentIdFilterQuery(parentIds != null ? query : null)
+                        .rdbmsBuilder(rdbmsBuilder)
+                        .queryParameters(queryParameters)
+                        .build())
                 .filterByInstances(instanceIds != null)
-                .parentIdFilterQuery(parentIds != null ? query : null)
-                .rdbmsBuilder(rdbmsBuilder)
-                .queryParameters(queryParameters)
                 .build();
 
         final List<Chunk<ID>> chunks = new ArrayList<>();

@@ -60,26 +60,21 @@ public class RdbmsCount<ID> {
     private RdbmsCount(
             @NonNull final SubSelect query,
             final boolean filterByInstances,
-            final SubSelect parentIdFilterQuery,
-            final RdbmsBuilder<ID> rdbmsBuilder,
-            final Map<String, Object> queryParameters) {
+            final RdbmsBuilderContext builderContext) {
 
-        RdbmsBuilderContext builderContext = RdbmsBuilderContext.builder()
-                .rdbmsBuilder(rdbmsBuilder)
+        RdbmsBuilderContext countBuilderContext = builderContext.toBuilder()
                 .ancestors(ancestors)
                 .descendants(descendants)
-                .parentIdFilterQuery(parentIdFilterQuery)
-                .queryParameters(queryParameters)
                 .build();
 
         final EClass type = query.getSelect().getType();
 
         this.query = query;
-        this.rdbmsBuilder = rdbmsBuilder;
+        this.rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.getRdbmsBuilder();
         this.from = type != null ? rdbmsBuilder.getTableName(type) : (String) null;
 
 
-        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, builderContext);
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors, countBuilderContext);
         // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
 
         if (filterByInstances) {
@@ -102,10 +97,8 @@ public class RdbmsCount<ID> {
             final RdbmsNavigationJoin<ID> customJoin =
                     RdbmsNavigationJoin.<ID>builder()
                             .query(query)
-                            .parentIdFilterQuery(parentIdFilterQuery)
-                            .rdbmsBuilder(rdbmsBuilder)
+                            .builderContext(countBuilderContext)
                             .withoutFeatures(true)
-                            .queryParameters(queryParameters)
                             .build();
             joins.add(customJoin);
         }
@@ -121,7 +114,7 @@ public class RdbmsCount<ID> {
                             .partnerTable(query.getPartner() != null ? query : query.getSelect())
                             .partnerTablePrefix(query.getPartner() != null ? AGGREGATE_PREFIX : "")
                             .addJoinsOfFilterFeature(addJoinOfFilterFeature)
-                            .build(), builderContext);
+                            .build(), countBuilderContext);
         }
 
         for (Filter filter : query.getSelect().getFilters()) {
@@ -134,7 +127,7 @@ public class RdbmsCount<ID> {
                             .filter(filter)
                             .partnerTable(query.getSelect())
                             .addJoinsOfFilterFeature(true)
-                            .build(), builderContext);
+                            .build(), countBuilderContext);
         }
     }
 

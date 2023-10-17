@@ -88,8 +88,6 @@ public class FilterJoinProcessor {
                             JoinProcessParameters.builder()
                                     .builderContext(builderContext)
                                     .join(join)
-                                    .withoutFeatures(false)
-                                    .mask(null)
                                     .build()
                     ));
                     processedNodesForJoins.add(join);
@@ -105,8 +103,6 @@ public class FilterJoinProcessor {
                             JoinProcessParameters.builder()
                                     .builderContext(builderContext)
                                     .join(join)
-                                    .withoutFeatures(false)
-                                    .mask(null)
                                     .build()
                     ));
                     processedNodesForJoins.add(join);
@@ -123,16 +119,9 @@ public class FilterJoinProcessor {
                 .map(f -> RdbmsQueryJoin.<ID>builder()
                         .resultSet(
                                 RdbmsResultSet.<ID>builder()
-                                        .level(builderContext.getLevel() + 1)
                                         .query(f.getSubSelect())
-                                        .filterByInstances(false)
-                                        .parentIdFilterQuery(parentIdFilterQuery)
-                                        .rdbmsBuilder(rdbmsBuilder)
-                                        .seek(null)
+                                        .builderContext(builderContext)
                                         .withoutFeatures(true)
-                                        .mask(null)
-                                        .queryParameters(queryParameters)
-                                        .skipParents(false)
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(f.getSubSelect().getContainer()))

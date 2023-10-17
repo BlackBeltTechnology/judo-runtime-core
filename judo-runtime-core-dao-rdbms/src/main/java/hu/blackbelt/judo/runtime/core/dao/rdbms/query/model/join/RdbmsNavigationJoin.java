@@ -62,19 +62,17 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
 
     @Builder
     private RdbmsNavigationJoin(@NonNull final SubSelect query,
-                                final SubSelect parentIdFilterQuery,
-                                final RdbmsBuilder<ID> rdbmsBuilder,
-                                final boolean withoutFeatures,
-                                final Map<String, Object> queryParameters) {
+                                final RdbmsBuilderContext builderContext,
+                                final boolean withoutFeatures) {
         super();
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
+
         this.query = query;
 
-        final RdbmsBuilderContext builderContext = RdbmsBuilderContext.builder()
-                .rdbmsBuilder(rdbmsBuilder)
+        final RdbmsBuilderContext navigationBuilderContext = builderContext.toBuilder()
                 .ancestors(subAncestors)
                 .descendants(subDescendants)
-                .parentIdFilterQuery(parentIdFilterQuery)
-                .queryParameters(queryParameters)
                 .build();
 
         outer = false;
@@ -107,15 +105,14 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .flatMap(join -> rdbmsBuilder.processJoin(
                         JoinProcessParameters.builder()
                                 .join(join)
-                                .builderContext(builderContext)
+                                .builderContext(navigationBuilderContext)
                                 .withoutFeatures(withoutFeatures)
-                                .mask(null)
                                 .build()
                 ).stream())
                 .collect(Collectors.toList());
 
         if (query.getBase() != null) {
-            rdbmsBuilder.addAncestorJoins(subJoins, query.getBase(), subAncestors, builderContext);
+            rdbmsBuilder.addAncestorJoins(subJoins, query.getBase(), subAncestors, navigationBuilderContext);
         }
         subJoins.addAll(navigationJoins);
 
@@ -144,9 +141,8 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     subJoins.addAll(rdbmsBuilder.processJoin(
                             JoinProcessParameters.builder()
                                     .join(j)
-                                    .builderContext(builderContext)
+                                    .builderContext(navigationBuilderContext)
                                     .withoutFeatures(withoutFeatures)
-                                    .mask(null)
                                     .build()
                     ));
                 }
@@ -158,7 +154,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     aggregations.add(subSelect);
                 }
 
-                final List<RdbmsOrderBy> newOrderBys = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), builderContext)
+                final List<RdbmsOrderBy> newOrderBys = rdbmsBuilder.mapFeatureToRdbms(orderBy.getFeature(), navigationBuilderContext)
                         .map(o -> RdbmsOrderBy.builder()
                                 .rdbmsField(o)
                                 .fromSubSelect(true)
@@ -178,16 +174,9 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .map(subSelect -> RdbmsQueryJoin.<ID>builder()
                         .resultSet(
                                 RdbmsResultSet.<ID>builder()
-                                        .level(builderContext.getLevel() + 1)
                                         .query(subSelect)
-                                        .filterByInstances(false)
-                                        .parentIdFilterQuery(parentIdFilterQuery)
-                                        .rdbmsBuilder(rdbmsBuilder)
-                                        .seek(null)
+                                        .builderContext(navigationBuilderContext)
                                         .withoutFeatures(withoutFeatures)
-                                        .mask(null)
-                                        .queryParameters(queryParameters)
-                                        .skipParents(false)
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
@@ -221,7 +210,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                         .pattern("EXISTS ({0})")
                         .parameter(RdbmsNavigationFilter.<ID>builder()
                                 .filter(f)
-                                .builderContext(builderContext)
+                                .builderContext(navigationBuilderContext)
                                 .build())
                         .build()))
                 .collect(Collectors.toList()));

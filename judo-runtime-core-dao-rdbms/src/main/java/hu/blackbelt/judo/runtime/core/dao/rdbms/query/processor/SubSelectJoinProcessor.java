@@ -46,16 +46,10 @@ public class SubSelectJoinProcessor<ID> {
         final Map<String, Object> _mask = mask != null && subSelect.getTransferRelation() != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null;
         final RdbmsResultSet<ID> resultSetHandler =
                 RdbmsResultSet.<ID>builder()
-                        .level(builderContext.getLevel() + 1)
                         .query(subSelect)
-                        .filterByInstances(false)
-                        .parentIdFilterQuery(builderContext.getParentIdFilterQuery())
-                        .rdbmsBuilder((RdbmsBuilder<ID>) builderContext.getRdbmsBuilder())
-                        .seek(null)
+                        .builderContext(builderContext)
                         .withoutFeatures(withoutFeatures)
                         .mask(_mask)
-                        .queryParameters(builderContext.getQueryParameters())
-                        .skipParents(false)
                         .build();
 
         if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
