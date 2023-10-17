@@ -504,7 +504,9 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         clazz.getEAllSuperTypes().stream()
                 .filter(s -> AsmUtils.annotatedAsTrue(s, "transferObjectType") && !getAsmUtils().isMappedTransferObjectType(s))
                 .forEach(unmappedType -> {
-                    log.debug("Adding static features of {}", AsmUtils.getClassifierFQName(unmappedType));
+                    if (log.isDebugEnabled()) {
+                        log.debug("Adding static features of {}", AsmUtils.getClassifierFQName(unmappedType));
+                    }
                     final Payload staticFeatures;
                     if (loadedPayloads.containsKey(unmappedType)) {
                         staticFeatures = loadedPayloads.get(unmappedType);
@@ -520,7 +522,9 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         clazz.getEAllReferences().stream()
                 .filter(r -> AsmUtils.isEmbedded(r) && !r.isTransient() && getAsmUtils().isMappedTransferObjectType(r.getEReferenceType()) && payload.get(r.getName()) != null)
                 .forEach(reference -> {
-                    log.debug("Adding static features: {}", AsmUtils.getReferenceFQName(reference));
+                    if (log.isDebugEnabled()) {
+                        log.debug("Adding static features: {}", AsmUtils.getReferenceFQName(reference));
+                    }
                     if (reference.isMany()) {
                         payload.getAsCollectionPayload(reference.getName()).forEach(containment -> {
                             final boolean added = addStaticFeaturesToPayload(containment, reference.getEReferenceType(), loadedPayloads);

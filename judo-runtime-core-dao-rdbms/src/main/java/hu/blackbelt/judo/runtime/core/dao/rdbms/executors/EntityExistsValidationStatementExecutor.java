@@ -81,8 +81,10 @@ class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> 
 
         String sql = "SELECT count(1) FROM " + tableName + " WHERE ID = :" + getIdentifierProvider().getName();
 
-        log.debug("EntityExistsCheck: " + AsmUtils.getClassifierFQName(statement.getInstance().getType()) +
-                " " + tableName + " ID: " + identifier + " SQL: " + sql);
+        if (log.isDebugEnabled()) {
+            log.debug("EntityExistsCheck: " + AsmUtils.getClassifierFQName(statement.getInstance().getType()) +
+                    " " + tableName + " ID: " + identifier + " SQL: " + sql);
+        }
 
         SqlParameterSource namedParameters = new MapSqlParameterSource()
                 .addValue(getIdentifierProvider().getName(),
