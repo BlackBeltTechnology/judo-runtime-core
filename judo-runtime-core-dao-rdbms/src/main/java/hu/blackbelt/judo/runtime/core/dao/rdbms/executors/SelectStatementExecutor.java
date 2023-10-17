@@ -52,6 +52,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsCount;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.query.Context;
@@ -667,7 +668,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             // key used to identify parent instance in subselects
             final String parentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
 
-            final String sql = resultSetHandler.toSql("", false, getCoercer(), sqlParameters, ECollections.emptyEMap());
+            final String sql = resultSetHandler.toSql(
+                    SqlConverterContext.builder()
+                            .coercer(getCoercer())
+                            .sqlParameters(sqlParameters)
+                            .prefixes(ECollections.emptyEMap())
+                            .build()
+            );
             log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
             log.debug("Parameters: {}", sqlParameters.getValues());
 
@@ -983,7 +990,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
 
             // key used to identify parent instance in subselects
-            final String sql = resultSetHandler.toSql("", getCoercer(), sqlParameters, ECollections.emptyEMap());
+            final String sql = resultSetHandler.toSql(
+                    SqlConverterContext.builder()
+                            .coercer(getCoercer())
+                            .sqlParameters(sqlParameters)
+                            .prefixes(ECollections.emptyEMap())
+                            .build()
+            );
 
             log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
             log.debug("Parameters: {}", sqlParameters.getValues());

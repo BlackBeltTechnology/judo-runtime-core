@@ -31,6 +31,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.AncestorNameFactory;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.DescendantNameFactory;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 
@@ -75,6 +76,7 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
         return RdbmsBuilder.builder()
                 .rdbmsModel(rdbmsModel)
                 .ancestorNameFactory(new AncestorNameFactory(asm.all(EClass.class)))
+                .descendantNameFactory(new DescendantNameFactory(asm.all(EClass.class)))
                 .rdbmsResolver(rdbmsResolver)
                 .parameterMapper(rdbmsParameterMapper)
                 .asmUtils(asm)
