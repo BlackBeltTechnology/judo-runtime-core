@@ -39,6 +39,7 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -83,8 +84,10 @@ public class AttributeSelectorTranslator implements Function<AttributeSelector, 
                 throw new IllegalStateException("Unsupported object variable");
             }
 
-            collectSelfReferences(cloned).stream().forEach(selfReference -> selfReference.setVariable(objectVariable));
-
+            List<ObjectVariableReference> selfReferences = collectSelfReferences(cloned).stream().collect(Collectors.toList());
+            for (ObjectVariableReference selfReference : selfReferences) {
+                selfReference.setVariable(objectVariable);
+            }
             return cloned;
         } else {
             final AttributeSelector selector = EcoreUtil.copy(attributeSelector);

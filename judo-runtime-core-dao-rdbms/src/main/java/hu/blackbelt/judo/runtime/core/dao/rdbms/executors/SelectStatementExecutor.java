@@ -52,6 +52,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsCount;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.query.Context;
@@ -389,7 +390,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final String subParentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
             subQueryResults.get(subQueryTarget).values().forEach(subQueryRecord -> {
                 if (subParentKey != null) {
-                    if (!subQueryRecord.containsKey(subParentKey)) { // container record of subquery record found
+                    if (log.isTraceEnabled() && !subQueryRecord.containsKey(subParentKey)) { // container record of subquery record found
                         log.trace("Unknown parent ID ({})", subParentKey);
                     }
                     subQueryRecord.remove(subParentKey); // remove parent key from subquery record because it will be added as nested list
@@ -667,7 +668,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             // key used to identify parent instance in subselects
             final String parentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
 
-            final String sql = resultSetHandler.toSql("", false, getCoercer(), sqlParameters, ECollections.emptyEMap());
+            final String sql = resultSetHandler.toSql(
+                    SqlConverterContext.builder()
+                            .coercer(getCoercer())
+                            .sqlParameters(sqlParameters)
+                            .prefixes(ECollections.emptyEMap())
+                            .build()
+            );
             log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
             log.debug("Parameters: {}", sqlParameters.getValues());
 
@@ -695,8 +702,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                     // process fields of record
                     record.entrySet().forEach(field -> {
-                        log.trace("  - key: {}", field.getKey());
-                        log.trace("  - value: {} ({})", field.getValue(), field.getValue() != null ? field.getValue().getClass().getName() : "-");
+                        if (log.isTraceEnabled()) {
+                            log.trace("  - key: {}", field.getKey());
+                            log.trace("  - value: {} ({})", field.getValue(), field.getValue() != null ? field.getValue().getClass().getName() : "-");
+                        }
 
                         final Optional<Map.Entry<String, Node>> idSource = sources.entrySet().stream().filter(s -> s.getKey().equalsIgnoreCase(field.getKey())).findAny();
                         final Optional<Map.Entry<String, Node>> typeSource = types.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
@@ -720,7 +729,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 .build();
 
                         if (idSource.isPresent()) {
-                            log.trace("    - id source: {}", idSource.get().getValue().getAlias());
+                            if (log.isTraceEnabled()) {
+                                log.trace("    - id source: {}", idSource.get().getValue().getAlias());
+                            }
 
                             final EList<Target> foundTargets = ECollections.asEList(query.getSelect().getTargets().stream()
                                     .filter(t -> Objects.equals(t.getNode(), idSource.get().getValue()))
@@ -728,7 +739,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                             if (!foundTargets.isEmpty()) {
                                 foundTargets.forEach(target -> {
-                                    log.trace("    - id target: {}", target);
+                                    if (log.isTraceEnabled()) {
+                                        log.trace("    - id target: {}", target);
+                                    }
                                     final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                                     recordsByTarget.get(target).put(getIdentifierProvider().getName(), id);
 
@@ -738,13 +751,17 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     }
                                 });
                             } else {
-                                log.trace("    - no target of ID, source alias: {}, column: {}", idSource.get().getValue().getAlias(), idSource.get().getKey());
+                                if (log.isTraceEnabled()) {
+                                    log.trace("    - no target of ID, source alias: {}, column: {}", idSource.get().getValue().getAlias(), idSource.get().getKey());
+                                }
                             }
                         } else if (metaSources.entrySet().stream().anyMatch(e -> e.getValue().isPresent())) {
                             metaSources.entrySet().stream()
                                     .filter(e -> e.getValue().isPresent())
                                     .forEach(e -> {
-                                        log.trace("    - meta source: {}", e.getValue().get().getValue().getAlias());
+                                        if (log.isTraceEnabled()) {
+                                            log.trace("    - meta source: {}", e.getValue().get().getValue().getAlias());
+                                        }
 
                                         final EList<Target> foundTargets = ECollections.asEList(query.getSelect().getTargets().stream()
                                                 .filter(t -> Objects.equals(t.getNode(), e.getValue().get().getValue()))
@@ -752,7 +769,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                                         if (!foundTargets.isEmpty()) {
                                             foundTargets.forEach(target -> {
-                                                log.trace("    - meta target: {}", target);
+                                                if (log.isTraceEnabled()) {
+                                                    log.trace("    - meta target: {}", target);
+                                                }
 
                                                 final Object value;
                                                 if (ENTITY_CREATE_TIMESTAMP_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_TIMESTAMP_MAP_KEY.equals(e.getKey())) {
@@ -766,17 +785,23 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                                 recordsByTarget.get(target).put(e.getKey(), value);
                                             });
                                         } else {
-                                            log.trace("    - no target of type, source alias: {}, column: {}", e.getValue().get().getValue().getAlias(), e.getValue().get().getKey());
+                                            if (log.isTraceEnabled()) {
+                                                log.trace("    - no target of type, source alias: {}, column: {}", e.getValue().get().getValue().getAlias(), e.getValue().get().getKey());
+                                            }
                                         }
                                     });
                         } else if (chunk.parentIds != null && parentKey != null && parentKey.equalsIgnoreCase(field.getKey())) {
                             final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
-                            log.trace("    - parent key: {}", parentKey);
+                            if (log.isTraceEnabled()) {
+                                log.trace("    - parent key: {}", parentKey);
+                            }
                             recordsByTarget.get(query.getSelect().getMainTarget()).getAs(Collection.class, parentKey).add(id);
                         } else {
                             final Set<Target> foundTargets = new HashSet<>();
                             query.getSelect().getTargets().forEach(target -> {
-                                log.trace("   - target: {}", target);
+                                if (log.isTraceEnabled()) {
+                                    log.trace("   - target: {}", target);
+                                }
                                 // get attribute the field is matching to
                                 final Optional<FeatureTargetMapping> featureTargetMapping = query.getSelect().getFeatures().stream()
                                         .flatMap(f -> f.getTargetMappings().stream()
@@ -785,7 +810,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 if (featureTargetMapping.isPresent()) { // attribute found in the current target
                                     final Feature feature = (Feature) featureTargetMapping.get().eContainer();
 
-                                    log.trace("    - attribute: {}", feature);
+                                    if (log.isTraceEnabled()) {
+                                        log.trace("    - attribute: {}", feature);
+                                    }
                                     final EAttribute attribute = featureTargetMapping.get().getTargetAttribute();
                                     final Optional<String> customTypeName = AsmUtils.getExtensionAnnotationCustomValue(attribute, "constraints", "customType", false);
 
@@ -833,7 +860,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         convertedValue = null;
                                     }
 
-                                    log.trace("    - converted value: {}", convertedValue);
+                                    if (log.isTraceEnabled()) {
+                                        log.trace("    - converted value: {}", convertedValue);
+                                    }
                                     recordsByTarget.get(featureTargetMapping.get().getTarget()).put(featureTargetMapping.get().getTargetAttribute().getName(), convertedValue);
                                     foundTargets.add(featureTargetMapping.get().getTarget());
                                 }
@@ -885,9 +914,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     if (parentKey != null && results.get(target).containsKey(targetID) && results.get(target).get(targetID).get(parentKey) != null) {
                                         log.debug("Record already added, add new parentId only");
                                         final Collection<ID> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
-                                        log.trace("Current  parent IDs: {}", currentParentIds);
+                                        if (log.isTraceEnabled()) {
+                                            log.trace("Current  parent IDs: {}", currentParentIds);
+                                        }
                                         final Collection<ID> newParentIds = recordsByTarget.get(target).getAs(Collection.class, parentKey);
-                                        log.trace("New parent IDs: {}", newParentIds);
+                                        if (log.isTraceEnabled()) {
+                                            log.trace("New parent IDs: {}", newParentIds);
+                                        }
                                         currentParentIds.addAll(newParentIds);
                                     } else {
                                         results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
@@ -898,7 +931,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 }
                             });
 
-                    log.trace("Records by target:\n{}", recordsByTarget);
+                    if (log.isTraceEnabled()) {
+                        log.trace("Records by target:\n{}", recordsByTarget);
+                    }
                 });
 
                 if (!withoutFeatures) {
@@ -912,7 +947,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                             .forEach(subSelect -> runSubQuery(jdbcTemplate, query, subSelect, ECollections.asEList(ImmutableList.<EReference>builder().addAll(referenceChain).addAll(tp.getKey()).build()), results, mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null, queryParameters)));
                 }
 
-                log.trace("Query results:\n{}", results);
+                if (log.isTraceEnabled()) {
+                    log.trace("Query results:\n{}", results);
+                }
             }
         });
 
@@ -983,7 +1020,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
 
             // key used to identify parent instance in subselects
-            final String sql = resultSetHandler.toSql("", getCoercer(), sqlParameters, ECollections.emptyEMap());
+            final String sql = resultSetHandler.toSql(
+                    SqlConverterContext.builder()
+                            .coercer(getCoercer())
+                            .sqlParameters(sqlParameters)
+                            .prefixes(ECollections.emptyEMap())
+                            .build()
+            );
 
             log.debug("SQL:\n--------------------------------------------------------------------------------\n{}", sql);
             log.debug("Parameters: {}", sqlParameters.getValues());
@@ -1003,12 +1046,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         newReferenceChain.addAll(referenceChain);
         newReferenceChain.add(subSelect.getTransferRelation());
 
-        log.trace("Preparing subselect: {} joining {}", subSelect.getTransferRelation().getName(),
-                subSelect.getNavigationJoins().stream().map(j ->
-                        (j instanceof ReferencedJoin)
-                                ? ((ReferencedJoin) j).getReference().getName()
-                                : "?").collect(Collectors.joining(", ")));
-
+        if (log.isTraceEnabled()) {
+            log.trace("Preparing subselect: {} joining {}", subSelect.getTransferRelation().getName(),
+                    subSelect.getNavigationJoins().stream().map(j ->
+                            (j instanceof ReferencedJoin)
+                                    ? ((ReferencedJoin) j).getReference().getName()
+                                    : "?").collect(Collectors.joining(", ")));
+        }
         Optional<Target> subTarget = query.getSelect().getTargets().stream().filter(t -> AsmUtils.equals(t.getNode(), subSelect.getContainer())).findAny();
         if (subTarget.isPresent()) {
             final Set<ID> ids = results.get(subTarget.get()).keySet();
@@ -1027,7 +1071,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private void executeSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> newReferenceChain, final EMap<Target, Map<ID, Payload>> results, final Collection<ID> ids, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
-        log.trace("  IDs: {}", ids);
+        if (log.isTraceEnabled()) {
+            log.trace("  IDs: {}", ids);
+        }
 
         // map storing subquery results, it will be filled by recursive call
         final EMap<Target, Map<ID, Payload>> subQueryResults = runQuery(jdbcTemplate, subSelect, null, ids, newReferenceChain, null, false, mask, queryParameters, false);
@@ -1038,21 +1084,29 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
         final Target subQueryTarget = subSelect.getSelect().getMainTarget();
         final String subParentKey = RdbmsAliasUtil.getParentIdColumnAlias(subSelect.getContainer());
-        log.trace("  - subquery target: {}", subQueryTarget);
-        log.trace("  - parent key: {}", subParentKey);
+        if (log.isTraceEnabled()) {
+            log.trace("  - subquery target: {}", subQueryTarget);
+            log.trace("  - parent key: {}", subParentKey);
+        }
 
         subQueryResults.get(subQueryTarget).values().forEach(subQueryRecord -> {
             final Collection<ID> parentIds = (Collection<ID>) subQueryRecord.get(subParentKey);
-            log.trace("    - parent IDs: {}", parentIds);
+            if (log.isTraceEnabled()) {
+                log.trace("    - parent IDs: {}", parentIds);
+            }
 
             checkArgument(parentIds != null, "Unknown parent ID");
             final Collection<Payload> containers = new ArrayList<>();
             if (parentIds.isEmpty()) {
                 checkArgument(ids.size() == 1, "Parent IDs must be single");
                 final ID id = ids.iterator().next();
-                log.trace("      - (parent) ID: {}", id);
+                if (log.isTraceEnabled()) {
+                    log.trace("      - (parent) ID: {}", id);
+                }
                 final Target target = query.getSelect().getMainTarget();
-                log.trace("        - target: {}", target);
+                if (log.isTraceEnabled()) {
+                    log.trace("        - target: {}", target);
+                }
                 checkArgument(results.containsKey(target), "No target found in results");
 
                 final Map<ID, Payload> targetResult = results.get(target);
@@ -1068,9 +1122,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 }
             } else {
                 parentIds.forEach(parentId -> {
-                            log.trace("      - parent ID: {}", parentId);
+                            if (log.isTraceEnabled()) {
+                                log.trace("      - parent ID: {}", parentId);
+                            }
                             query.getSelect().getTargets().forEach(target -> {
-                                log.trace("        - target: {}", target);
+                                if (log.isTraceEnabled()) {
+                                    log.trace("        - target: {}", target);
+                                }
                                 checkArgument(results.containsKey(target), "No target found in results");
 
                                 final Map<ID, Payload> targetResult = results.get(target);
