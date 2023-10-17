@@ -126,10 +126,12 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
                                             fields.entrySet().stream().map(e -> e.getValue() + " = :" + e.getKey()).collect(Collectors.joining(", ")) +
                                             " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName();
 
-                                    log.debug("Update: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
-                                            " ID: " + identifier +
-                                            " SQL: " + sql +
-                                            " Params: " + ImmutableMap.copyOf(updateStatementNamedParameters.getValues()).toString());
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Update: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
+                                                " ID: " + identifier +
+                                                " SQL: " + sql +
+                                                " Params: " + ImmutableMap.copyOf(updateStatementNamedParameters.getValues()).toString());
+                                    }
 
                                     int count = jdbcTemplate.update(sql, updateStatementNamedParameters);
                                     checkState(count == 1, "There is illegal state, no records updated");
