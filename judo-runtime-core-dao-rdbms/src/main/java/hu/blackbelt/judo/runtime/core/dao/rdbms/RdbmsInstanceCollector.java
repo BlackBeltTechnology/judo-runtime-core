@@ -282,7 +282,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         referenceChain.add(subSelect.getReference());
 
         if (log.isTraceEnabled()) {
-            log.trace("Collecting instances of {} based on {}", referenceChain.stream().map(r -> AsmUtils.getReferenceFQName(r)).collect(Collectors.toList()), graphs.keySet());
+            log.trace("Collecting instances of {} based on {}", referenceChain.stream().filter(r -> r != null).map(r -> AsmUtils.getReferenceFQName(r)).collect(Collectors.toList()), graphs.keySet());
         }
 
         final String subSelectSql = subSelect.toSql();
