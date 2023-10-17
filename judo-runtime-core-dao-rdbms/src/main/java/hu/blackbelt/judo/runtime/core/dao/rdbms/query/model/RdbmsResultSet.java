@@ -127,7 +127,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 ).collect(Collectors.toList());
 
         for (Feature feature : features) {
-            List<RdbmsField> featureFields = rdbmsBuilder.mapFeatureToRdbms(feature, context)
+            List<RdbmsField> featureFields = rdbmsBuilder.mapFeatureToRdbms(feature, context.toBuilder().parentIdFilterQuery(query).build())
                     .collect(Collectors.toList());
             columns.addAll(featureFields);
         }
