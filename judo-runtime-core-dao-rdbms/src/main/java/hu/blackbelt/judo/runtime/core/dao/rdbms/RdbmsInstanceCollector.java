@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.meta.query.Join;
+import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.Rule;
@@ -106,18 +108,19 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     public void createSelects() {
         synchronized (selectsCreated) {
             if (selectsCreated.compareAndSet(false, true)) {
-                asmUtils.all(EClass.class)
-                        .filter(e -> AsmUtils.isEntityType(e))
-                        .forEach(entityType -> {
-                            final RdbmsSelect select = RdbmsSelect.builder()
-                                    .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
-                                    .entityType(entityType)
-                                    .tableName(rdbmsResolver.rdbmsTable(entityType).getSqlName())
-                                    .build();
+                List<EClass> allEntities = asmUtils.all(EClass.class)
+                        .filter(e -> AsmUtils.isEntityType(e)).collect(Collectors.toList());
 
-                            getContainmentsWithReferences(0, entityType, select, null);
-                            selectsByEntityType.put(entityType, select);
-                        });
+                for (EClass entityType : allEntities) {
+                    final RdbmsSelect select = RdbmsSelect.builder()
+                            .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
+                            .entityType(entityType)
+                            .tableName(rdbmsResolver.rdbmsTable(entityType).getSqlName())
+                            .build();
+
+                    getContainmentsWithReferences(0, entityType, select, null);
+                    selectsByEntityType.put(entityType, select);
+                }
             }
         }
     }
@@ -146,7 +149,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             log.trace("Processing results of base: {}, reference type: {}", select.getTableName(), referenceType);
         }
 
-        result.forEach(record -> {
+        for (Map<String, Object> record : result) {
             log.trace("  - record: {}", record);
             final Optional<ID> parentId = parentIdName.map(name -> coercer.coerce(record.get(name), identifierProvider.getType()));
             final ID id = coercer.coerce(record.get(select.getAlias() + "_ID"), identifierProvider.getType());
@@ -186,10 +189,11 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 baseGraphs.put(id, graphOfRecord);
             }
 
-            select.getAllJoins().stream().forEach(join -> {
+            List<RdbmsJoin> selectJoins = select.getAllJoins();
+            for (RdbmsJoin join : selectJoins) {
                 if (referenceType != ReferenceType.CONTAINMENT) {
                     log.trace("Reference type {} is not supported yet for JOINed elements.", referenceType);
-                    return;
+                    continue;
                 }
 
                 final EList<EReference> path = new BasicEList<>();
@@ -231,8 +235,8 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         log.trace("        - added as containment");
                     }
                 }
-            });
-        });
+            };
+        };
 
         return containmentIds;
     }
@@ -252,22 +256,23 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             selectContainments = ECollections.emptyEMap();
         }
 
-        select.getSubSelects().forEach(subSelect -> {
+        for (RdbmsSubSelect subSelect : select.getSubSelects()) {
             if (ids != null && !ids.isEmpty()) {
                 collectSubSelectInstances(subSelect, graphs, ECollections.emptyEList(), parameterMapper);
             }
-        });
+        };
 
-        select.getAllJoins().stream()
-                .filter(join -> join.isContainment())
-                .forEach(join ->
-                        join.getSubSelects().forEach(subSelect -> {
-                            final Map<ID, InstanceGraph<ID>> joinedGraphs = selectContainments.get(join.getAllReferences());
-                            if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
-                                collectSubSelectInstances(subSelect, joinedGraphs, join.getAllReferences(), parameterMapper);
-                            }
-                        }));
+        List<RdbmsJoin> containments = select.getAllJoins().stream()
+                .filter(join -> join.isContainment()).collect(Collectors.toList());
 
+        for (RdbmsJoin join : containments) {
+            for (RdbmsSubSelect subSelect : join.getSubSelects()) {
+                final Map<ID, InstanceGraph<ID>> joinedGraphs = selectContainments.get(join.getAllReferences());
+                if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
+                    collectSubSelectInstances(subSelect, joinedGraphs, join.getAllReferences(), parameterMapper);
+                }
+            };
+        }
         return graphs;
     }
 
@@ -305,35 +310,41 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 log.trace("Containments: {}", subSelectContainments.values().stream().flatMap(e -> e.keySet().stream()).collect(Collectors.toList()));
             }
 
-            subSelect.getBase().getSelect().getSubSelects().stream()
-                    .forEach(subSubSelect -> {
-                        final Map<ID, InstanceGraph<ID>> subGraphs = subSelectContainments.entrySet().stream()
-                                .filter(e -> !e.getValue().isEmpty())
-                                .filter(e -> EcoreUtil.equals(e.getKey(), referenceChain))
-                                .flatMap(e -> e.getValue().entrySet().stream())
-                                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                        if (subGraphs != null && !subGraphs.isEmpty()) {
-                            collectSubSelectInstances(subSubSelect, subGraphs != null ? subGraphs : Collections.emptyMap(), referenceChain, parameterMapper);
-                        }
-                    });
+            List<RdbmsSubSelect> subSubSelects = subSelect.getBase().getSelect().getSubSelects().stream().collect(Collectors.toList());
+            for (RdbmsSubSelect subSubSelect : subSubSelects) {
+                final Map<ID, InstanceGraph<ID>> subGraphs = subSelectContainments.entrySet().stream()
+                        .filter(e -> !e.getValue().isEmpty())
+                        .filter(e -> EcoreUtil.equals(e.getKey(), referenceChain))
+                        .flatMap(e -> e.getValue().entrySet().stream())
+                        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                if (subGraphs != null && !subGraphs.isEmpty()) {
+                    collectSubSelectInstances(subSubSelect, subGraphs != null ? subGraphs : Collections.emptyMap(), referenceChain, parameterMapper);
+                }
+            };
 
-            subSelect.getBase().getSelect().getAllJoins().stream()
-                    .filter(join -> join.isContainment())
-                    .forEach(join ->
-                            join.getSubSelects().stream()
-                                    .forEach(subSubSelect -> {
-                                        final EList<EReference> nextReferenceChain = new BasicEList<>();
-                                        nextReferenceChain.addAll(referenceChain);
-                                        nextReferenceChain.addAll(join.getAllReferences());
-                                        final Map<ID, InstanceGraph<ID>> joinedGraphs = subSelectContainments.entrySet().stream()
-                                                .filter(e -> !e.getValue().isEmpty())
-                                                .filter(e -> EcoreUtil.equals(e.getKey(), nextReferenceChain))
-                                                .flatMap(e -> e.getValue().entrySet().stream())
-                                                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
-                                        if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
-                                            collectSubSelectInstances(subSubSelect, joinedGraphs != null ? joinedGraphs : Collections.emptyMap(), ECollections.asEList(Stream.concat(referenceChain.stream(), join.getAllReferences().stream()).collect(Collectors.toList())), parameterMapper);
-                                        }
-                                    }));
+            List<RdbmsJoin> containments = subSelect.getBase().getSelect().getAllJoins().stream()
+                    .filter(join -> join.isContainment()).collect(Collectors.toList());
+
+            for (RdbmsJoin join : containments) {
+                for (RdbmsSubSelect subSubSelect : join.getSubSelects()) {
+                    final EList<EReference> nextReferenceChain = new BasicEList<>();
+                    nextReferenceChain.addAll(referenceChain);
+                    nextReferenceChain.addAll(join.getAllReferences());
+                    final Map<ID, InstanceGraph<ID>> joinedGraphs = subSelectContainments.entrySet().stream()
+                            .filter(e -> !e.getValue().isEmpty())
+                            .filter(e -> EcoreUtil.equals(e.getKey(), nextReferenceChain))
+                            .flatMap(e -> e.getValue().entrySet().stream())
+                            .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                    if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
+                        collectSubSelectInstances(
+                                subSubSelect,
+                                joinedGraphs != null ? joinedGraphs : Collections.emptyMap(),
+                                ECollections.asEList(Stream.concat(referenceChain.stream(),
+                                        join.getAllReferences().stream()).collect(Collectors.toList())),
+                                parameterMapper);
+                    }
+                }
+            }
         }
     }
 
@@ -345,111 +356,115 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         }
 
         // add all containments
-        entityType.getEAllReferences().stream()
+        List<EReference> containmentReferences = entityType.getEAllReferences().stream()
                 .filter(reference -> reference.isContainment() /*|| AsmUtils.isCascadeDelete(reference) */)
-                .filter(containment -> !containment.isDerived())
-                .forEach(containment -> {
-                    log.trace(pad(level) + "  - containment: {}", containment.getName());
+                .filter(containment -> !containment.isDerived()).collect(Collectors.toList());
 
-                    if (!AsmUtils.equals(entityType, containment.getEContainingClass())) {
-                        if (!sources.containsKey(containment.getEContainingClass())) {
-                            final RdbmsJoin join = RdbmsJoin.builder()
-                                    .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
-                                    .entityType(containment.getEContainingClass())
-                                    .tableName(rdbmsResolver.rdbmsTable(containment.getEContainingClass()).getSqlName())
-                                    .columnName(StatementExecutor.ID_COLUMN_NAME)
-                                    .partner(source)
-                                    .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
-                                    .referenceType(ReferenceType.ANCESTOR)
-                                    .build();
-                            sources.put(containment.getEContainingClass(), join);
-                            source.getJoins().add(join);
-                        }
-                    } else {
-                        sources.put(entityType, source);
-                    }
+        for (EReference containment : containmentReferences) {
+            log.trace(pad(level) + "  - containment: {}", containment.getName());
 
-                    final Joinable joinable = createJoin(level, containment, ReferenceType.CONTAINMENT, sources.get(containment.getEContainingClass()), false);
-                    if (joinable instanceof RdbmsJoin) {
-                        source.getJoins().add((RdbmsJoin) joinable);
+            if (!AsmUtils.equals(entityType, containment.getEContainingClass())) {
+                if (!sources.containsKey(containment.getEContainingClass())) {
+                    final RdbmsJoin join = RdbmsJoin.builder()
+                            .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
+                            .entityType(containment.getEContainingClass())
+                            .tableName(rdbmsResolver.rdbmsTable(containment.getEContainingClass()).getSqlName())
+                            .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .partner(source)
+                            .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
+                            .referenceType(ReferenceType.ANCESTOR)
+                            .build();
+                    sources.put(containment.getEContainingClass(), join);
+                    source.getJoins().add(join);
+                }
+            } else {
+                sources.put(entityType, source);
+            }
 
-                        getContainmentsWithReferences(level + 1, containment.getEReferenceType(), (RdbmsJoin) joinable, containment);
-                    } else if (joinable instanceof RdbmsSubSelect) {
-                        source.getSubSelects().add((RdbmsSubSelect) joinable);
-                    }
-                });
+            final Joinable joinable = createJoin(level, containment, ReferenceType.CONTAINMENT, sources.get(containment.getEContainingClass()), false);
+            if (joinable instanceof RdbmsJoin) {
+                source.getJoins().add((RdbmsJoin) joinable);
+
+                getContainmentsWithReferences(level + 1, containment.getEReferenceType(), (RdbmsJoin) joinable, containment);
+            } else if (joinable instanceof RdbmsSubSelect) {
+                source.getSubSelects().add((RdbmsSubSelect) joinable);
+            }
+        };
 
         // add all references
-        entityType.getEAllReferences().stream()
+        List<EReference> assaciationReferences =         entityType.getEAllReferences().stream()
                 .filter(reference -> !reference.isDerived() &&
                         !reference.isContainer() && // NOTE - containers are ignored because they are processed by opposite (containment) references
-                        !reference.isContainment())
-                .forEach(reference -> {
-                    log.trace(pad(level) + "  - reference to entity type: {}", reference.getName());
+                        !reference.isContainment()).collect(Collectors.toList());
 
-                    if (!AsmUtils.equals(entityType, reference.getEContainingClass())) {
-                        if (!sources.containsKey(reference.getEContainingClass())) {
-                            final RdbmsJoin join = RdbmsJoin.builder()
-                                    .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
-                                    .entityType(reference.getEContainingClass())
-                                    .tableName(rdbmsResolver.rdbmsTable(reference.getEContainingClass()).getSqlName())
-                                    .columnName(StatementExecutor.ID_COLUMN_NAME)
-                                    .partner(source)
-                                    .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
-                                    .referenceType(ReferenceType.ANCESTOR)
-                                    .build();
-                            sources.put(reference.getEContainingClass(), join);
-                            source.getJoins().add(join);
-                        }
-                    } else {
-                        sources.put(entityType, source);
-                    }
+        for (EReference reference : assaciationReferences) {
+            log.trace(pad(level) + "  - reference to entity type: {}", reference.getName());
 
-                    final Joinable joinable = createJoin(level, reference, ReferenceType.REFERENCE, sources.get(reference.getEContainingClass()), false);
-                    if (joinable instanceof RdbmsJoin) {
-                        source.getJoins().add((RdbmsJoin) joinable);
-                    } else if (joinable instanceof RdbmsSubSelect) {
-                        source.getSubSelects().add((RdbmsSubSelect) joinable);
-                    }
-                });
+            if (!AsmUtils.equals(entityType, reference.getEContainingClass())) {
+                if (!sources.containsKey(reference.getEContainingClass())) {
+                    final RdbmsJoin join = RdbmsJoin.builder()
+                            .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
+                            .entityType(reference.getEContainingClass())
+                            .tableName(rdbmsResolver.rdbmsTable(reference.getEContainingClass()).getSqlName())
+                            .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .partner(source)
+                            .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
+                            .referenceType(ReferenceType.ANCESTOR)
+                            .build();
+                    sources.put(reference.getEContainingClass(), join);
+                    source.getJoins().add(join);
+                }
+            } else {
+                sources.put(entityType, source);
+            }
+
+            final Joinable joinable = createJoin(level, reference, ReferenceType.REFERENCE, sources.get(reference.getEContainingClass()), false);
+            if (joinable instanceof RdbmsJoin) {
+                source.getJoins().add((RdbmsJoin) joinable);
+            } else if (joinable instanceof RdbmsSubSelect) {
+                source.getSubSelects().add((RdbmsSubSelect) joinable);
+            }
+        };
 
         // TODO - test if changed with reference
         // add all back references
-        asmUtils.all(EReference.class)
+        List<EReference> backReferences =  asmUtils.all(EReference.class)
                 .filter(reference -> !reference.isDerived() &&
                         !reference.isContainer() && // NOTE - containers are ignored because they are processed by opposite (containment) references
                         (!reference.isContainment() || source instanceof RdbmsSelect) && // NOTE - if reference is a containment but source is RdbmsSelect a back reference should be checked before operations
-                        (AsmUtils.equals(reference.getEReferenceType(), entityType) || entityType.getEAllSuperTypes().contains(reference.getEReferenceType())))
-                .forEach(opposite -> {
-                    log.trace(pad(level) + "  - opposite reference from entity type: {}.{}", getClassifierFQName(opposite.getEContainingClass()), opposite.getName());
+                        (AsmUtils.equals(reference.getEReferenceType(), entityType) || entityType.getEAllSuperTypes().contains(reference.getEReferenceType()))).collect(Collectors.toList());
 
-                    final Source oppositeSource;
-                    if (!AsmUtils.equals(opposite.getEReferenceType(), entityType)) {
-                        if (!sources.containsKey(opposite.getEReferenceType())) {
-                            final RdbmsJoin join = RdbmsJoin.builder()
-                                    .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
-                                    .entityType(opposite.getEReferenceType())
-                                    .tableName(rdbmsResolver.rdbmsTable(opposite.getEReferenceType()).getSqlName())
-                                    .columnName(StatementExecutor.ID_COLUMN_NAME)
-                                    .partner(source)
-                                    .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
-                                    .referenceType(ReferenceType.ANCESTOR)
-                                    .build();
-                            sources.put(opposite.getEReferenceType(), join);
-                            source.getJoins().add(join);
-                        }
-                        oppositeSource = sources.get(opposite.getEReferenceType());
-                    } else {
-                        oppositeSource = source;
-                    }
 
-                    final Joinable joinable = createJoin(level, opposite, ReferenceType.BACK_REFERENCE, oppositeSource, true);
-                    if (joinable instanceof RdbmsJoin) {
-                        source.getJoins().add((RdbmsJoin) joinable);
-                    } else if (joinable instanceof RdbmsSubSelect) {
-                        source.getSubSelects().add((RdbmsSubSelect) joinable);
-                    }
-                });
+        for (EReference opposite : backReferences) {
+            log.trace(pad(level) + "  - opposite reference from entity type: {}.{}", getClassifierFQName(opposite.getEContainingClass()), opposite.getName());
+
+            final Source oppositeSource;
+            if (!AsmUtils.equals(opposite.getEReferenceType(), entityType)) {
+                if (!sources.containsKey(opposite.getEReferenceType())) {
+                    final RdbmsJoin join = RdbmsJoin.builder()
+                            .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
+                            .entityType(opposite.getEReferenceType())
+                            .tableName(rdbmsResolver.rdbmsTable(opposite.getEReferenceType()).getSqlName())
+                            .columnName(StatementExecutor.ID_COLUMN_NAME)
+                            .partner(source)
+                            .partnerColumnName(StatementExecutor.ID_COLUMN_NAME)
+                            .referenceType(ReferenceType.ANCESTOR)
+                            .build();
+                    sources.put(opposite.getEReferenceType(), join);
+                    source.getJoins().add(join);
+                }
+                oppositeSource = sources.get(opposite.getEReferenceType());
+            } else {
+                oppositeSource = source;
+            }
+
+            final Joinable joinable = createJoin(level, opposite, ReferenceType.BACK_REFERENCE, oppositeSource, true);
+            if (joinable instanceof RdbmsJoin) {
+                source.getJoins().add((RdbmsJoin) joinable);
+            } else if (joinable instanceof RdbmsSubSelect) {
+                source.getSubSelects().add((RdbmsSubSelect) joinable);
+            }
+        };
     }
 
     private EList<EReference> getReferenceList(final Source source) {
