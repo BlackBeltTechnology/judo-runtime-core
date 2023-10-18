@@ -22,11 +22,12 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 
 import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
-import hu.blackbelt.mapper.api.Coercer;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.java.Log;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EMap;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
  */
 @SuperBuilder
 @NoArgsConstructor
+@Slf4j
 public abstract class RdbmsJoin {
 
     protected String columnName;
@@ -71,12 +73,12 @@ public abstract class RdbmsJoin {
     @Singular
     protected Collection<RdbmsField> onConditions = new ArrayList<>();
 
-    public String toSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes, final boolean fromIsEmpty) {
-        final String joinCondition = getJoinCondition(prefix, prefixes, coercer, sqlParameters);
+    public String toSql(SqlConverterContext converterContext, final boolean fromIsEmpty) {
+        final String joinCondition = getJoinCondition(converterContext);
 
-        String table = getTableNameOrSubQuery(prefix, coercer, sqlParameters, prefixes) + " AS " + prefix + alias;
-        joinConditionTableAliases.add(prefix + alias);
-        aliasToCompareWith = prefix + alias;
+        String table = getTableNameOrSubQuery(converterContext) + " AS " + converterContext.getPrefix() + alias;
+        joinConditionTableAliases.add(converterContext.getPrefix() + alias);
+        aliasToCompareWith = converterContext.getPrefix() + alias;
         if (fromIsEmpty) {
             return "\nFROM " + table;
         } else {
@@ -88,9 +90,14 @@ public abstract class RdbmsJoin {
         final String partnerTableName;
         if (partnerTable != null) {
             if (prefixes.containsKey(partnerTable)) {
-                partnerTableName = prefixes.get(partnerTable) + (partnerTablePrefix != null ? partnerTablePrefix : "") + partnerTable.getAlias() + (partnerTablePostfix != null ? partnerTablePostfix : "");
+                partnerTableName = prefixes.get(partnerTable) +
+                        (partnerTablePrefix != null ? partnerTablePrefix : "") +
+                        partnerTable.getAlias() +
+                        (partnerTablePostfix != null ? partnerTablePostfix : "");
             } else {
-                partnerTableName = prefix + (partnerTablePrefix != null ? partnerTablePrefix : "") + partnerTable.getAlias() + (partnerTablePostfix != null ? partnerTablePostfix : "");
+                partnerTableName = prefix + (partnerTablePrefix != null ? partnerTablePrefix : "") +
+                        partnerTable.getAlias() +
+                        (partnerTablePostfix != null ? partnerTablePostfix : "");
             }
         } else {
             partnerTableName = null;
@@ -102,8 +109,19 @@ public abstract class RdbmsJoin {
         return partnerTableName;
     }
 
-    protected String getJoinCondition(final String prefix, final EMap<Node, String> prefixes, final Coercer coercer, final MapSqlParameterSource sqlParameters) {
-        final String partnerTableName = getPartnerTableName(prefix, prefixes);
+    protected String getJoinCondition(SqlConverterContext converterContext) {
+        final String partnerTableName = getPartnerTableName(converterContext.getPrefix(), converterContext.getPrefixes());
+        final String prefix = converterContext.getPrefix();
+
+        if (log.isTraceEnabled()) {
+            log.trace("Converter context:             " + converterContext.toString());
+            log.trace("Junction table name:           " + junctionTableName);
+            log.trace("Junction column name:          " + junctionColumnName);
+            log.trace("Junction opposite column name: " + junctionOppositeColumnName);
+            log.trace("Partner table name:            " + partnerTableName);
+            log.trace("Partner column name:           " + partnerColumnName);
+
+        }
 
         final String joinCondition;
         if (junctionTableName != null) {
@@ -125,16 +143,22 @@ public abstract class RdbmsJoin {
 
         if (!onConditions.isEmpty()) {
             return joinCondition + " AND " + onConditions.stream()
-                                                         .map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes))
-                                                         .collect(Collectors.joining(" AND "));
+                    .map(c -> c.toSql(converterContext.toBuilder()
+                                    .includeAlias(false)
+                                    .build()
+                    )).collect(Collectors.joining(" AND "));
         } else {
             return joinCondition;
         }
     }
 
-    public Collection<String> conditionToSql(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        return conditions.stream().map(c -> c.toSql(prefix, false, coercer, sqlParameters, prefixes)).collect(Collectors.toList());
+    public Collection<String> conditionToSql(SqlConverterContext converterContext) {
+        return conditions.stream().map(c -> c.toSql(
+                converterContext.toBuilder()
+                        .includeAlias(false)
+                        .build()
+        )).collect(Collectors.toList());
     }
 
-    protected abstract String getTableNameOrSubQuery(String prefix, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> prefixes);
+    protected abstract String getTableNameOrSubQuery(SqlConverterContext converterContext);
 }

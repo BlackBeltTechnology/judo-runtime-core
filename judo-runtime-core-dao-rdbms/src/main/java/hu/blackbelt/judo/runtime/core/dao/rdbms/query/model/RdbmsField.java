@@ -21,11 +21,9 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  */
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.Target;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.types.RdbmsDecimalType;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -33,7 +31,6 @@ import lombok.experimental.SuperBuilder;
 import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EAttribute;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.Optional;
 
@@ -57,7 +54,7 @@ public abstract class RdbmsField {
      *
      * @return SQL string
      */
-    public abstract String toSql(String prefix, boolean includeAlias, Coercer coercer, MapSqlParameterSource sqlParameters, EMap<Node, String> prefixes);
+    public abstract String toSql(SqlConverterContext converterContext);
 
     protected String getWithAlias(final String sql, final boolean includeAlias) {
         return sql + (includeAlias && alias != null ? " AS " + getRdbmsAlias() : "");
@@ -73,9 +70,15 @@ public abstract class RdbmsField {
         if (constraints.isPresent()) {
             final EMap<String, String> details = constraints.get().getDetails();
             return DomainConstraints.builder()
-                    .precision(details.containsKey("precision") ? Integer.parseInt(details.get("precision")) : null)
-                    .scale(details.containsKey("scale") ? Integer.parseInt(details.get("scale")) : null)
-                    .maxLength(details.containsKey("maxLength") ? Integer.parseInt(details.get("maxLength")) : null)
+                    .precision(details.containsKey("precision")
+                            ? Integer.parseInt(details.get("precision"))
+                            : null)
+                    .scale(details.containsKey("scale")
+                            ? Integer.parseInt(details.get("scale"))
+                            : null)
+                    .maxLength(details.containsKey("maxLength")
+                            ? Integer.parseInt(details.get("maxLength"))
+                            : null)
                     .build();
         } else {
             return null;
@@ -87,7 +90,9 @@ public abstract class RdbmsField {
         if (domainConstraints == null) {
             sqlType = "";
         } else if (domainConstraints.getPrecision() != null) {
-            sqlType = new RdbmsDecimalType(domainConstraints.getPrecision() + domainConstraints.getScale(), domainConstraints.getScale()).toSql();
+            sqlType = new RdbmsDecimalType(domainConstraints.getPrecision() +
+                    domainConstraints.getScale(),
+                    domainConstraints.getScale()).toSql();
         } else if (domainConstraints.getMaxLength() != null) {
             sqlType = "VARCHAR(" + domainConstraints.getMaxLength() + ")";
         } else {
@@ -109,8 +114,12 @@ public abstract class RdbmsField {
         if (typeName != null && !typeName.isBlank()) {
             return "CAST(" + sql + " AS " + typeName + ")";
         } else if (sqlType != null && !sqlType.isBlank()) {
-            if (domainConstraints != null && domainConstraints.getPrecision() != null && domainConstraints.getScale() != null
-                && (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION || domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE || domainConstraints.getScale() == 0)) {
+            if (domainConstraints != null &&
+                    domainConstraints.getPrecision() != null &&
+                    domainConstraints.getScale() != null &&
+                    (domainConstraints.getPrecision() > FLOATING_POINT_TYPE_MAX_PRECISION ||
+                            domainConstraints.getScale() > FLOATING_POINT_TYPE_MAX_SCALE ||
+                            domainConstraints.getScale() == 0)) {
                 String defaultType = new RdbmsDecimalType().toSql();
                 if (domainConstraints.getScale() == 0) {
                     return String.format("CAST(FLOOR(CAST(%s AS %s)) AS %s)", sql, defaultType, sqlType);

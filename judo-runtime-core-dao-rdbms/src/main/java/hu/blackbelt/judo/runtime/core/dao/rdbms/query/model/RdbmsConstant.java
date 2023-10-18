@@ -44,17 +44,30 @@ public class RdbmsConstant extends RdbmsField {
     private int index;
 
     @Override
-    public String toSql(final String prefix, final boolean includeAlias, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
+    public String toSql(SqlConverterContext converterContext) {
+        final Coercer coercer = converterContext.getCoercer();
+        final MapSqlParameterSource sqlParameters = converterContext.getSqlParameters();
+        final boolean includeAlias = converterContext.isIncludeAlias();
         final String sql;
-        if (parameter.getSqlType() == Types.VARCHAR || parameter.getSqlType() == Types.CHAR || parameter.getSqlType() == Types.NVARCHAR) {
+        
+        if (parameter.getSqlType() == Types.VARCHAR ||
+                parameter.getSqlType() == Types.CHAR ||
+                parameter.getSqlType() == Types.NVARCHAR) {
             final String value = coercer.coerce(parameter.getValue(), String.class);
             sql = "'" + (value != null ? value.replace("'", "''") : "NULL") + "'";
-        } else if (parameter.getSqlType() == Types.BIGINT || parameter.getSqlType() == Types.DECIMAL || parameter.getSqlType() == Types.DOUBLE
-                || parameter.getSqlType() == Types.FLOAT || parameter.getSqlType() == Types.INTEGER || parameter.getSqlType() == Types.SMALLINT
-                || parameter.getSqlType() == Types.TINYINT || parameter.getSqlType() == Types.REAL || parameter.getSqlType() == Types.NUMERIC) {
+        } else if (parameter.getSqlType() == Types.BIGINT ||
+                parameter.getSqlType() == Types.DECIMAL ||
+                parameter.getSqlType() == Types.DOUBLE ||
+                parameter.getSqlType() == Types.FLOAT ||
+                parameter.getSqlType() == Types.INTEGER ||
+                parameter.getSqlType() == Types.SMALLINT ||
+                parameter.getSqlType() == Types.TINYINT ||
+                parameter.getSqlType() == Types.REAL ||
+                parameter.getSqlType() == Types.NUMERIC) {
             final BigDecimal value = coercer.coerce(parameter.getValue(), BigDecimal.class);
             sql = value != null ? value.toPlainString() : "NULL";
-        } else if (parameter.getSqlType() == Types.TIMESTAMP || parameter.getSqlType() == Types.TIMESTAMP_WITH_TIMEZONE) {
+        } else if (parameter.getSqlType() == Types.TIMESTAMP ||
+                parameter.getSqlType() == Types.TIMESTAMP_WITH_TIMEZONE) {
             sql = timestampToSql(coercer);
         } else if (parameter.getSqlType() == Types.TIME) {
             final String value = coercer.coerce(parameter.getValue(), String.class);
@@ -62,7 +75,8 @@ public class RdbmsConstant extends RdbmsField {
         } else if (parameter.getSqlType() == Types.DATE) {
             final Date value = coercer.coerce(parameter.getValue(), Date.class);
             sql = "CAST(" + (value != null ? "'" + value + "'" : "NULL") + " AS " + parameter.getRdbmsTypeName() + ")";
-        } else if (parameter.getSqlType() == Types.BOOLEAN || parameter.getSqlType() == Types.BIT) {
+        } else if (parameter.getSqlType() == Types.BOOLEAN ||
+                parameter.getSqlType() == Types.BIT) {
             final Boolean value = coercer.coerce(parameter.getValue(), Boolean.class);
             if (value == null) {
                 sql = "NULL";
@@ -71,7 +85,8 @@ public class RdbmsConstant extends RdbmsField {
             } else {
                 sql = "(1 = 0)";
             }
-        } else if (parameter.getSqlType() == Types.BINARY || parameter.getSqlType() == Types.OTHER) {
+        } else if (parameter.getSqlType() == Types.BINARY ||
+                parameter.getSqlType() == Types.OTHER) {
             final String value = coercer.coerce(parameter.getValue(), String.class);
             sql = "'" + (value != null ? value.replace("'", "''") : "NULL") + "'";
         } else {
@@ -81,7 +96,10 @@ public class RdbmsConstant extends RdbmsField {
             if (parameter.getValue() == null) {
                 sql = "NULL";
             } else {
-                sqlParameters.addValue(parameterName, parameter.getValue(), parameter.getSqlType(), parameter.getRdbmsTypeName());
+                sqlParameters.addValue(parameterName,
+                        parameter.getValue(),
+                        parameter.getSqlType(),
+                        parameter.getRdbmsTypeName());
                 sql = cast(":" + parameterName, parameter.getRdbmsTypeName(), targetAttribute);
             }
         }
