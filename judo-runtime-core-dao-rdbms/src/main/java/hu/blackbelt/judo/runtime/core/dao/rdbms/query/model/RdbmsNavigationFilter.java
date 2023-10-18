@@ -43,10 +43,6 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
     private final Filter filter;
 
-    private final EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());
-
-    private final EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());
-
     private final String from;
 
     private final List<RdbmsJoin> joins = new ArrayList<>();
@@ -59,25 +55,20 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
         this.filter = filter;
         this.from = rdbmsBuilder.getTableName(filter.getType());
 
-        RdbmsBuilderContext navigationBuilderContext = builderContext.toBuilder()
-                .ancestors(ancestors)
-                .descendants(descendants)
-                .build();
-
         joins.addAll(filter.getJoins().stream()
                 .flatMap(subJoin -> subJoin.getAllJoins().stream()
                         .flatMap(j -> (Stream<RdbmsJoin>) rdbmsBuilder.processJoin(JoinProcessParameters.builder()
                                         .join(j)
-                                        .builderContext(navigationBuilderContext)
+                                        .builderContext(builderContext)
                                         .withoutFeatures(true)
                                         .build()).stream())
                         .collect(Collectors.toList()).stream())
                 .collect(Collectors.toList()));
 
-        conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), navigationBuilderContext)
+        conditions.addAll(rdbmsBuilder.mapFeatureToRdbms(filter.getFeature(), builderContext)
                 .collect(Collectors.toList()));
 
-        if (ancestors.containsKey(filter)) {
+        if (builderContext.getAncestors().containsKey(filter)) {
             rdbmsBuilder.addAncestorJoins(joins, filter, builderContext);
         }
 
@@ -105,7 +96,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                             .resultSet(
                                     RdbmsResultSet.<ID>builder()
                                             .query(subSelect)
-                                            .builderContext(navigationBuilderContext)
+                                            .builderContext(builderContext)
                                             .withoutFeatures(true)
                                             .build()
                             )
