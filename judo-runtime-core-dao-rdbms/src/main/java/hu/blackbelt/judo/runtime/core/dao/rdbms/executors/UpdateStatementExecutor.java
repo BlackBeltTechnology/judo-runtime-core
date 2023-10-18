@@ -147,10 +147,12 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
                                             " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName() +
                                             (version != null ? " AND " + ENTITY_VERSION_COLUMN_NAME + " = :" + ENTITY_VERSION_MAP_KEY : "");
 
-                                    log.debug("Update: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
-                                            " ID: " + identifier +
-                                            " SQL: " + sql +
-                                            " Params: " + metaUpdateStatementNamedParameters.getValues());
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Update: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
+                                                " ID: " + identifier +
+                                                " SQL: " + sql +
+                                                " Params: " + metaUpdateStatementNamedParameters.getValues());
+                                    }
 
                                     int count = jdbcTemplate.update(sql, metaUpdateStatementNamedParameters);
                                     checkState(count == 1, "There is illegal state, no records updated");
@@ -184,11 +186,12 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
                                                             HashMap::putAll
                                                     );
 
-
-                                    log.debug("Update: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
-                                            " ID: " + identifier +
-                                            " SQL: " + sql +
-                                            " Params: " + ImmutableMap.copyOf(paramNullReplaced).toString());
+                                    if (log.isDebugEnabled()) {
+                                        log.debug("Update: " + getClassifierFQName(entityForCurrentStatement) + " " + tableName +
+                                                " ID: " + identifier +
+                                                " SQL: " + sql +
+                                                " Params: " + ImmutableMap.copyOf(paramNullReplaced).toString());
+                                    }
 
                                     int count = jdbcTemplate.update(sql, updateStatementNamedParameters);
                                     checkState(count == 1, "There is illegal state, no records updated");

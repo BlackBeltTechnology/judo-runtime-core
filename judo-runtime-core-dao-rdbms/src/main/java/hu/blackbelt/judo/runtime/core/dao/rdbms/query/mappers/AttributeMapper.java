@@ -23,11 +23,10 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.Attribute;
 import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsColumn;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.EList;
@@ -36,7 +35,6 @@ import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 
-import java.util.Map;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -44,24 +42,27 @@ import java.util.stream.Stream;
 public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
 
     @Override
-    public Stream<RdbmsColumn> map(final Attribute attribute, RdbmsBuilder.RdbmsBuilderContext context) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
-        final EMap<Node, EList<EClass>> ancestors = context.ancestors;
+    public Stream<RdbmsColumn> map(final Attribute attribute, RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
 
         final EClass sourceType = attribute.getNode().getType();
         final EAttribute sourceAttribute = attribute.getSourceAttribute();
         final EClass attributeContainer = sourceAttribute.getEContainingClass();
 
-        log.trace("Checking attributes");
-        log.trace(" - source type: {}", sourceType.getName());
-        log.trace(" - source attribute: {}", sourceAttribute.getName());
-        log.trace(" - source attribute container: {}", attributeContainer.getName());
+        if (log.isTraceEnabled()) {
+            log.trace("Checking attributes");
+            log.trace(" - source type: {}", sourceType.getName());
+            log.trace(" - source attribute: {}", sourceAttribute.getName());
+            log.trace(" - source attribute container: {}", attributeContainer.getName());
+        }
 
         // add column to list
         final String postfix;
         if (!AsmUtils.equals(sourceType, attributeContainer)) {  // inherited attribute
-            log.trace("   - found inherited attribute: {}", sourceAttribute.getName());
-
+            if (log.isTraceEnabled()) {
+                log.trace("   - found inherited attribute: {}", sourceAttribute.getName());
+            }
             if (!ancestors.containsKey(attribute.getNode())) {
                 ancestors.put(attribute.getNode(), new UniqueEList<>());
             }

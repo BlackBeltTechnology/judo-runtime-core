@@ -21,20 +21,14 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
  */
 
 import hu.blackbelt.judo.meta.query.Constant;
-import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsConstant;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,8 +36,8 @@ import java.util.stream.Stream;
 public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
 
     @Override
-    public Stream<? extends RdbmsField> map(final Constant constant, RdbmsBuilder.RdbmsBuilderContext context) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+    public Stream<? extends RdbmsField> map(final Constant constant, RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         final String id = EcoreUtil.getIdentification(constant);
         if (id != null) {
@@ -51,18 +45,18 @@ public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
                 if (rdbmsBuilder.getConstantFields().get().containsKey(id)) {
                     return rdbmsBuilder.getConstantFields().get().get(id).stream();
                 } else {
-                    final List<? extends RdbmsField> fields = getFields(context, constant).collect(Collectors.toList());
+                    final List<? extends RdbmsField> fields = getFields(builderContext, constant).collect(Collectors.toList());
                     rdbmsBuilder.getConstantFields().get().put(id, fields);
                     return fields.stream();
                 }
             }
         } else {
-            return getFields(context, constant);
+            return getFields(builderContext, constant);
         }
     }
 
-    private Stream<? extends RdbmsField> getFields(RdbmsBuilder.RdbmsBuilderContext context, final Constant constant) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+    private Stream<? extends RdbmsField> getFields(RdbmsBuilderContext builderContext, final Constant constant) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         return getTargets(constant).map(t -> RdbmsConstant.builder()
                 .parameter(rdbmsBuilder.getParameterMapper().createParameter(constant.getValue(), null))

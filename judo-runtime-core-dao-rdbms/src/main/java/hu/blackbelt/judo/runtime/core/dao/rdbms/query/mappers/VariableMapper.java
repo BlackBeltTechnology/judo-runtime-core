@@ -23,13 +23,10 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsNamedParameter;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
-import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EEnum;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
@@ -44,8 +41,8 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
     public static final String PARAMETER_VARIABLE_KEY = "PARAMETER";
 
     @Override
-    public Stream<? extends RdbmsField> map(final Variable variable, RdbmsBuilder.RdbmsBuilderContext context) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
+    public Stream<? extends RdbmsField> map(final Variable variable, RdbmsBuilderContext builderContext) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         final String id = EcoreUtil.getIdentification(variable);
         if (id != null) {
@@ -53,19 +50,19 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
                 if (rdbmsBuilder.getConstantFields().get().containsKey(id)) {
                     return rdbmsBuilder.getConstantFields().get().get(id).stream();
                 } else {
-                    final List<? extends RdbmsField> fields = getFields(context, variable).collect(Collectors.toList());
+                    final List<? extends RdbmsField> fields = getFields(builderContext, variable).collect(Collectors.toList());
                     rdbmsBuilder.getConstantFields().get().put(id, fields);
                     return fields.stream();
                 }
             }
         } else {
-            return getFields(context, variable);
+            return getFields(builderContext, variable);
         }
     }
 
-    private Stream<? extends RdbmsField> getFields(final RdbmsBuilder.RdbmsBuilderContext context, final Variable variable) {
-        final RdbmsBuilder<?> rdbmsBuilder = context.rdbmsBuilder;
-        final Map<String, Object> queryParameters = context.queryParameters;
+    private Stream<? extends RdbmsField> getFields(final RdbmsBuilderContext builderContext, final Variable variable) {
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         boolean isParameter = PARAMETER_VARIABLE_KEY.equals(variable.getCategory());
         final Object resolvedValue;

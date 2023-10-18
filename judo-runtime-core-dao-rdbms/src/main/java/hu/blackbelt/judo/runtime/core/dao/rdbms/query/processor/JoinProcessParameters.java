@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor;
 
 /*-
  * #%L
@@ -20,21 +20,25 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  * #L%
  */
 
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
+import hu.blackbelt.judo.meta.query.Node;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
-import lombok.experimental.SuperBuilder;
+import lombok.ToString;
 
-@SuperBuilder
-public class RdbmsCustomJoin extends RdbmsJoin {
+import java.util.Map;
+
+@Builder
+@Getter
+@ToString
+public class JoinProcessParameters {
+    @NonNull
+    private RdbmsBuilderContext builderContext;
 
     @NonNull
-    private final String sql;
+    private Node join;
 
-    @NonNull
-    private final String sourceIdSetParameterName;
-
-    @Override
-    protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {
-        return "(" + sql + ")";
-    }
+    private boolean withoutFeatures;
+    private Map<String, Object> mask;
 }

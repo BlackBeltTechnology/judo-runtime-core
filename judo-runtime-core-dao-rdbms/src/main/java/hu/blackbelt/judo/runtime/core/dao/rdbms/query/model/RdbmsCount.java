@@ -22,15 +22,16 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.FilterJoinProcessor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.FilterJoinProcessorParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -59,25 +60,21 @@ public class RdbmsCount<ID> {
     private RdbmsCount(
             @NonNull final SubSelect query,
             final boolean filterByInstances,
-            final SubSelect parentIdFilterQuery,
-            final RdbmsBuilder<ID> rdbmsBuilder,
-            final Map<String, Object> queryParameters) {
+            final RdbmsBuilderContext builderContext) {
 
-        RdbmsBuilder.RdbmsBuilderContext context = RdbmsBuilder.RdbmsBuilderContext.builder()
-                .rdbmsBuilder(rdbmsBuilder)
+        RdbmsBuilderContext countBuilderContext = builderContext.toBuilder()
                 .ancestors(ancestors)
                 .descendants(descendants)
-                .parentIdFilterQuery(parentIdFilterQuery)
-                .queryParameters(queryParameters)
                 .build();
 
-        this.query = query;
-        this.rdbmsBuilder = rdbmsBuilder;
-
         final EClass type = query.getSelect().getType();
-        from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
-        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), ancestors);
+        this.query = query;
+        this.rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.getRdbmsBuilder();
+        this.from = type != null ? rdbmsBuilder.getTableName(type) : (String) null;
+
+
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), countBuilderContext);
         // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
 
         if (filterByInstances) {
@@ -100,45 +97,43 @@ public class RdbmsCount<ID> {
             final RdbmsNavigationJoin<ID> customJoin =
                     RdbmsNavigationJoin.<ID>builder()
                             .query(query)
-                            .parentIdFilterQuery(parentIdFilterQuery)
-                            .rdbmsBuilder(rdbmsBuilder)
+                            .builderContext(countBuilderContext)
                             .withoutFeatures(true)
-                            .queryParameters(queryParameters)
                             .build();
             joins.add(customJoin);
         }
 
-        query.getFilters().forEach(filter ->
-                AddFilterJoinAndConditions.addFilterJoinsAndConditions(
-                        AddFilterJoinAndConditions.AddFilterJoinsAndConditionsParameters.builder()
-                                .builderContext(context)
-                                .joins(joins)
-                                .conditions(conditions)
-                                .processedNodesForJoins(processedNodesForJoins)
-                                .query(query)
-                                .filter(filter)
-                                .partnerTable(query.getPartner() != null ? query : query.getSelect())
-                                .partnerTablePrefix(query.getPartner() != null ? AGGREGATE_PREFIX : "")
-                                .addJoinsOfFilterFeature(addJoinOfFilterFeature)
-                                .build()));
+        for (Filter filter : query.getFilters()) {
+            rdbmsBuilder.addFilterJoinsAndConditions(
+                    FilterJoinProcessorParameters.builder()
+                            .joins(joins)
+                            .conditions(conditions)
+                            .processedNodesForJoins(processedNodesForJoins)
+                            .query(query)
+                            .filter(filter)
+                            .partnerTable(query.getPartner() != null ? query : query.getSelect())
+                            .partnerTablePrefix(query.getPartner() != null ? AGGREGATE_PREFIX : "")
+                            .addJoinsOfFilterFeature(addJoinOfFilterFeature)
+                            .build(), countBuilderContext);
+        }
 
-        query.getSelect().getFilters().forEach(filter ->
-                AddFilterJoinAndConditions.addFilterJoinsAndConditions(
-                        AddFilterJoinAndConditions.AddFilterJoinsAndConditionsParameters.builder()
-                                .builderContext(context)
-                                .joins(joins)
-                                .conditions(conditions)
-                                .processedNodesForJoins(processedNodesForJoins)
-                                .query(query)
-                                .filter(filter)
-                                .partnerTable(query.getSelect())
-                                .addJoinsOfFilterFeature(true)
-                                .build()));
+        for (Filter filter : query.getSelect().getFilters()) {
+            rdbmsBuilder.addFilterJoinsAndConditions(
+                    FilterJoinProcessorParameters.builder()
+                            .joins(joins)
+                            .conditions(conditions)
+                            .processedNodesForJoins(processedNodesForJoins)
+                            .query(query)
+                            .filter(filter)
+                            .partnerTable(query.getSelect())
+                            .addJoinsOfFilterFeature(true)
+                            .build(), countBuilderContext);
+        }
     }
 
-    public String toSql(SqlConverterContext context) {
-        final String prefix = context.prefix;
-        final EMap<Node, String> prefixes = context.prefixes;
+    public String toSql(SqlConverterContext converterContext) {
+        final String prefix = converterContext.getPrefix();
+        final EMap<Node, String> prefixes = converterContext.getPrefixes();
 
         final EMap<Node, String> newPrefixes = new BasicEMap<>();
         newPrefixes.putAll(prefixes);
@@ -148,7 +143,7 @@ public class RdbmsCount<ID> {
 
         final RdbmsJoin firstJoin = !joins.isEmpty() ? joins.get(0) : null;
 
-        SqlConverterContext countContext = context.toBuilder()
+        SqlConverterContext countContext = converterContext.toBuilder()
                 .prefixes(newPrefixes)
                 .build();
 
@@ -162,15 +157,19 @@ public class RdbmsCount<ID> {
         final String dual = rdbmsBuilder.getDialect().getDualTable();
         final String sql = //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "SELECT COUNT (1)" +
-                (from != null ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias() : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
+                (from != null
+                        ? "\nFROM " + from + " AS " + prefix + query.getSelect().getAlias()
+                        : (dual != null && joins.isEmpty() ? "\n FROM " + dual : "")) +
                 getJoin(countContext, firstJoin) +
                 (!allConditions.isEmpty() ? "\nWHERE (" + String.join(") AND (", allConditions) + ")" : "");
 
         return sql;
     }
 
-    private String getJoin(SqlConverterContext context, RdbmsJoin firstJoin) {
-        Map<RdbmsJoin, String> joinMap = joins.stream().collect(Collectors.toMap(j -> j, j -> j.toSql(context, from == null && Objects.equals(j, firstJoin))));
+    private String getJoin(SqlConverterContext converterContext, RdbmsJoin firstJoin) {
+        Map<RdbmsJoin, String> joinMap = joins.stream()
+                .collect(Collectors.toMap(j -> j,
+                        j -> j.toSql(converterContext, from == null && Objects.equals(j, firstJoin))));
         return joins.stream()
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(joinMap::get)

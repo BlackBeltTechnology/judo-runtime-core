@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
+package hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor;
 
 /*-
  * #%L
@@ -20,21 +20,27 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  * #L%
  */
 
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
+import hu.blackbelt.judo.meta.query.Join;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
+import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
-import lombok.experimental.SuperBuilder;
+import lombok.ToString;
+import org.eclipse.emf.ecore.EReference;
 
-@SuperBuilder
-public class RdbmsCustomJoin extends RdbmsJoin {
+@SuppressWarnings("unchecked")
+@Builder
+@Getter
+@ToString
+public class SimpleJoinProcessorParameters {
+    @Builder.Default
+    private String postfix = "";
+    @NonNull
+    private Join join;
+
+    private EReference reference;
+    private EReference opposite;
 
     @NonNull
-    private final String sql;
-
-    @NonNull
-    private final String sourceIdSetParameterName;
-
-    @Override
-    protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {
-        return "(" + sql + ")";
-    }
+    private RdbmsBuilderContext builderContext;
 }

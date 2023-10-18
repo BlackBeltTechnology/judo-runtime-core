@@ -61,7 +61,7 @@
 
         <structured-map-proxy-version>2.0.0.20230826_230931_03ebb103_develop</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.6.20231001_040726_e76a8ff2_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20231010_041232_6978e3ee_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20230826_230852_5723dcb6_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20230914_123910_22c72dd5_develop</osgi-filestore-version>
@@ -335,7 +335,7 @@
                     <dependency>
                         <groupId>org.projectlombok</groupId>
                         <artifactId>lombok</artifactId>
-                        <version>1.18.24</version>
+                        <version>1.18.30</version>
                     </dependency>
                 </dependencies>
             </plugin>
@@ -439,7 +439,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.24</version>
+            <version>1.18.30</version>
         </dependency>
 
         <dependency>
