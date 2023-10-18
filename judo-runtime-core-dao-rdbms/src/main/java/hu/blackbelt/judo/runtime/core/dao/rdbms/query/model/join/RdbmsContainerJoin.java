@@ -20,14 +20,11 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.mapper.api.Coercer;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EReference;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,14 +44,15 @@ public class RdbmsContainerJoin extends RdbmsJoin {
     private final EList<EReference> references;
 
     @Override
-    protected String getTableNameOrSubQuery(final String prefix, final Coercer coercer, final MapSqlParameterSource sqlParameters, final EMap<Node, String> prefixes) {
-        aliasToCompareWith = prefix + alias;
+    protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {
+        aliasToCompareWith = converterContext.getPrefix() + alias;
         return tableName;
     }
 
     @Override
-    protected String getJoinCondition(String prefix, EMap<Node, String> prefixes, final Coercer coercer, final MapSqlParameterSource sqlParameters) {
+    protected String getJoinCondition(SqlConverterContext converterContext) {
         final List<String> partners = new ArrayList<>();
+        final String prefix = converterContext.getPrefix();
         for (int index = 0; index < references.size(); index++) {
             partners.add(prefix + alias + POSTFIX + index);
         }
@@ -66,7 +64,9 @@ public class RdbmsContainerJoin extends RdbmsJoin {
         if (partners.size() == 1) {
             return partners.get(0) + "." + partnerColumnName + " = " + prefix + alias + "." + columnName;
         } else {
-            return "COALESCE(" + partners.stream().map(p -> p + "." + partnerColumnName).collect(Collectors.joining(",")) + ") = " + prefix + alias + "." + columnName;
+            return "COALESCE(" + partners.stream()
+                    .map(p -> p + "." + partnerColumnName)
+                    .collect(Collectors.joining(",")) + ") = " + prefix + alias + "." + columnName;
         }
     }
 }

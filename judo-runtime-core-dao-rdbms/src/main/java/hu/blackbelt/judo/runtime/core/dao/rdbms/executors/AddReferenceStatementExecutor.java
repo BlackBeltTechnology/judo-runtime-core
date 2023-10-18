@@ -163,12 +163,14 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                                                 " = :" + getReferenceFQName(reference)
                                                 + " WHERE " + ID_COLUMN_NAME + " = :" + getIdentifierProvider().getName();
 
-                                log.debug("Add reference: " + getClassifierFQName(
-                                        entityForCurrentStatement) + " " + tableName +
-                                        " ID: " + identifier.get() +
-                                        " Reference ID: " + referenceIdentifier.get() +
-                                        " SQL: " + sql +
-                                        " Params: " + ImmutableMap.copyOf(updateStatementNamedParameters.getValues()).toString());
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Add reference: " + getClassifierFQName(
+                                            entityForCurrentStatement) + " " + tableName +
+                                            " ID: " + identifier.get() +
+                                            " Reference ID: " + referenceIdentifier.get() +
+                                            " SQL: " + sql +
+                                            " Params: " + ImmutableMap.copyOf(updateStatementNamedParameters.getValues()).toString());
+                                }
 
                                 int count = jdbcTemplate.update(sql, updateStatementNamedParameters);
                                 checkState(count == 1, "There is illegal state, no records updated on delete reference");
@@ -202,10 +204,12 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                             aFk.getSqlName() + " = :aId AND " +
                             bFk.getSqlName() + " = :bId";
 
-                    log.debug("JoinTableExistsCheck: " + AsmUtils.getClassifierFQName(
-                            r.getStatement().getInstance().getType()) +
-                            " " + joinTable.getSqlName() + " A ID: " + aId +
-                            " B ID: " + bId  + " SQL: " + exitenceCheckSql);
+                    if (log.isDebugEnabled()) {
+                        log.debug("JoinTableExistsCheck: " + AsmUtils.getClassifierFQName(
+                                r.getStatement().getInstance().getType()) +
+                                " " + joinTable.getSqlName() + " A ID: " + aId +
+                                " B ID: " + bId + " SQL: " + exitenceCheckSql);
+                    }
 
                     int count = jdbcTemplate.queryForObject(exitenceCheckSql, jointPairNamedParameters, Integer.class);
 
@@ -222,10 +226,12 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                             ") VALUES (" +
                             ":id, :aId, :bId)";
 
-                    log.debug("Add reference: " + AsmUtils.getClassifierFQName(
-                            r.getStatement().getInstance().getType()) +
-                            " " + joinTable.getSqlName() + " A ID: " + aId +
-                            " B ID: " + bId  + " SQL: " + exitenceCheckSql);
+                    if (log.isDebugEnabled()) {
+                        log.debug("Add reference: " + AsmUtils.getClassifierFQName(
+                                r.getStatement().getInstance().getType()) +
+                                " " + joinTable.getSqlName() + " A ID: " + aId +
+                                " B ID: " + bId + " SQL: " + exitenceCheckSql);
+                    }
 
                     count = jdbcTemplate.update(insertJoinTableSql, jointPairNamedParameters);
                     checkState(count == 1, "There is illegal state, no records updated on delete reference");
