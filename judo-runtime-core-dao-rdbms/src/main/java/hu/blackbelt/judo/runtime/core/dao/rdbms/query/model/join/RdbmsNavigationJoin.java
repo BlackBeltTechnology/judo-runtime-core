@@ -304,7 +304,6 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 ).collect(Collectors.toList());
 
         final String sql =
-                //"-- " + newPrefixes.stream().map(p -> p.getKey().getAlias() + ": " + p.getValue()).collect(Collectors.joining(", ")) + "\n" +
                 "(" + "SELECT DISTINCT " + subFeatures.stream().map(o -> o.toSql(
                         subSelectSqlConverterContext.toBuilder()
                                 .includeAlias(true)
