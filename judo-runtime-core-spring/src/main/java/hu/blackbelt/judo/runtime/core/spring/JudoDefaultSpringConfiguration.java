@@ -65,6 +65,7 @@ import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -126,6 +127,12 @@ public class JudoDefaultSpringConfiguration {
 
     @Autowired
     private Sequence sequence;
+
+    @Value("${judo.floatingTypeMaxPrecision:}")
+    private int floatingTypeMaxPrecision;
+
+    @Value("${judo.floatingTypeMaxScale:}")
+    private int floatingTypeMaxScale;
 
     @Autowired
     private RdbmsParameterMapper rdbmsParameterMapper;
@@ -194,6 +201,8 @@ public class JudoDefaultSpringConfiguration {
                 .variableResolver(variableResolver)
                 .mapperFactory(mapperFactory)
                 .dialect(dialect)
+                .precision(floatingTypeMaxPrecision)
+                .scale(floatingTypeMaxScale)
                 .build();
     }
 

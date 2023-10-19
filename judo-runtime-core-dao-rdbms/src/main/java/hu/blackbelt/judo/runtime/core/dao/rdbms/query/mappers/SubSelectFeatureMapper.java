@@ -44,6 +44,8 @@ public class SubSelectFeatureMapper extends RdbmsMapper<SubSelectFeature> {
                 .partnerTable(feature.getSubSelect())
                 .columnName(getTargets(feature.getFeature()).map(tt -> tt.getAlias() + (tt.getTarget() != null ? "_" + tt.getTarget().getIndex() : "")).findAny().get())
                 .pattern(pattern)
+                .scale(builderContext.getRdbmsBuilder().getScale())
+                .precision(builderContext.getRdbmsBuilder().getPrecision())
                 .alias(t.getAlias())
                 .build());
     }

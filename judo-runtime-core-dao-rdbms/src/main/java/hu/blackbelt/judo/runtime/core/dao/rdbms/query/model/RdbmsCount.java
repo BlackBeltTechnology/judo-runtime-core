@@ -81,9 +81,13 @@ public class RdbmsCount<ID> {
             conditions.add(RdbmsFunction.builder()
                     .pattern("{0} IN ({1})")
                     .parameters(Arrays.asList(
-                            RdbmsColumn.builder().partnerTable(query.getSelect()).columnName(StatementExecutor.ID_COLUMN_NAME).build(),
+                            RdbmsColumn.builder()
+                                    .partnerTable(query.getSelect())
+                                    .columnName(StatementExecutor.ID_COLUMN_NAME)
+                                    .build(),
                             RdbmsParameter.builder().parameterName(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect())).build()
-                    )).build());
+                    ))
+                    .build());
         }
 
         final boolean addJoinOfFilterFeature =

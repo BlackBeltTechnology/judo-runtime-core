@@ -306,8 +306,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
 
         functionBuilderMap.put(FunctionSignature.TYPE_OF, c ->
                 c.builder.pattern("EXISTS (SELECT 1 FROM {1} WHERE " + StatementExecutor.ID_COLUMN_NAME + " = {0} AND " + StatementExecutor.ENTITY_TYPE_COLUMN_NAME + " = {2})")
-                        .parameters(List.of(c.parameters.get(ParameterName.INSTANCE), c.parameters.get(ParameterName.TYPE), RdbmsConstant.builder()
-                                .parameter(rdbmsBuilder.getParameterMapper().createParameter(AsmUtils.getClassifierFQName(((RdbmsEntityTypeName) c.parameters.get(ParameterName.TYPE)).getType()), null))
+                        .parameters(List.of(c.parameters.get(ParameterName.INSTANCE), c.parameters.get(ParameterName.TYPE),
+                                RdbmsConstant.builder()
+                                        .parameter(rdbmsBuilder.getParameterMapper()
+                                                .createParameter(AsmUtils.getClassifierFQName(
+                                                        ((RdbmsEntityTypeName) c.parameters.get(ParameterName.TYPE)).getType()), null))
                                 .index(rdbmsBuilder.getConstantCounter().getAndIncrement())
                                 .build())));
 
@@ -504,6 +507,8 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
             RdbmsFunction.RdbmsFunctionBuilder builder = RdbmsFunction.builder()
                     .target(t.getTarget())
                     .targetAttribute(t.getTargetAttribute())
+                    .scale(builderContext.getRdbmsBuilder().getScale())
+                    .precision(builderContext.getRdbmsBuilder().getPrecision())
                     .alias(t.getAlias());
 
             java.util.function.Function<FunctionContext, RdbmsFunction.RdbmsFunctionBuilder> func = functionBuilderMap.get(function.getSignature());
