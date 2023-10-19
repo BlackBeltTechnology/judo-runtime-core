@@ -108,14 +108,14 @@
             <url>https://www.eclipse.org/org/documents/epl-2.0/EPL-2.0.txt</url>
         </license>
     </licenses>
-	<!--
+    <!--
     <repositories>
         <repository>
             <id>ecentral</id>
             <url>https://raw.githubusercontent.com/jmini/ecentral/HEAD/repo</url>
         </repository>
     </repositories>
-	-->
+    -->
     <build>
         <pluginManagement>
             <plugins>
@@ -528,6 +528,7 @@
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
+                <module>judo-runtime-core-export</module>
                 <module>judo-runtime-core-bootstrap</module>
                 <module>judo-runtime-core-bootstrap-hsqldb</module>
                 <module>judo-runtime-core-bootstrap-postgresql</module>
@@ -535,7 +536,6 @@
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>
                 <module>judo-runtime-core-spring-postgresql</module>
-
             </modules>
         </profile>
 
@@ -754,9 +754,9 @@
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <licenseName>epl_v2</licenseName>
-									<excludes>
-										<exclude>**/*.json</exclude>
-									</excludes>
+                                    <excludes>
+                                        <exclude>**/*.json</exclude>
+                                    </excludes>
                                 </configuration>
                             </execution>
                             <execution>
