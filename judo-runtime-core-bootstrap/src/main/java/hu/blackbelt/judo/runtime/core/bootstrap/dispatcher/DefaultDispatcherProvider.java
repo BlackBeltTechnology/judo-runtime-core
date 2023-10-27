@@ -34,6 +34,7 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
 import hu.blackbelt.judo.runtime.core.bootstrap.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
+import hu.blackbelt.judo.runtime.core.dispatcher.Export;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
@@ -96,6 +97,9 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     @Inject
     ValidatorProvider validatorProvider;
 
+    @Inject
+    Export exporter;
+
     @Inject(optional = true)
     @Nullable
     OpenIdConfigurationProvider openIdConfigurationProvider;
@@ -154,6 +158,7 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
                 .enableValidation(enableValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
+                .exporter(exporter)
                 .build();
     }
 }
