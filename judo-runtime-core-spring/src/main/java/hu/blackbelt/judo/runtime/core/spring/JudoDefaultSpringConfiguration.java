@@ -116,6 +116,9 @@ public class JudoDefaultSpringConfiguration {
     private MetricsCollector metricsCollector;
 
     @Autowired
+    private Export exporter;
+
+    @Autowired
     DispatcherFunctionProvider dispatcherFunctionProvider;
 
     @Autowired
@@ -369,6 +372,7 @@ public class JudoDefaultSpringConfiguration {
                 .enableValidation(enableValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
+                .exporter(exporter)
                 .build();
     }
 
