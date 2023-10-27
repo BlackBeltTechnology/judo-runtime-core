@@ -187,7 +187,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             @NonNull Context context,
             @NonNull MetricsCollector metricsCollector,
             @NonNull PayloadValidator payloadValidator,
-            Export exporter,
+            @NonNull Export exporter,
             ValidatorProvider validatorProvider,
             OpenIdConfigurationProvider openIdConfigurationProvider,
             TokenIssuer filestoreTokenIssuer,
