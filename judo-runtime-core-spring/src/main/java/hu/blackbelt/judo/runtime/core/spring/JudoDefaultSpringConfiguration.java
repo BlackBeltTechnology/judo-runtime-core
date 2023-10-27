@@ -116,13 +116,13 @@ public class JudoDefaultSpringConfiguration {
     private MetricsCollector metricsCollector;
 
     @Autowired
+    private Export exporter;
+
+    @Autowired
     DispatcherFunctionProvider dispatcherFunctionProvider;
 
     @Autowired
     OperationCallInterceptorProvider operationCallInterceptorProvider;
-
-    @Autowired
-    Export exporter;
 
     @Autowired
     private Context context;

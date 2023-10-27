@@ -57,8 +57,6 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
 
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    private static final String XLSX = "xlsx";
-
     public ExportCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
                       final PlatformTransactionManager transactionManager, final OperationCallInterceptorProvider interceptorProvider,
                       final Coercer coercer, final ActorResolver actorResolver, boolean caseInsensitiveLike, final Export exporter) {
@@ -123,7 +121,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                 final ID id = (ID) actor.get(identifierProvider.getName());
 
                 try {
-                    result = exporter.exportToInputStream(XLSX,
+                    result = exporter.exportToInputStream(null,
                             dao.searchNavigationResultAt(id, owner, queryCustomizer),
                             queryCustomizer.getMask().keySet().stream().toList(),
                             null,
@@ -132,8 +130,6 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-
-                //result = extractResult(operation, dao.searchNavigationResultAt(id, owner, queryCustomizer));
 
             } else if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
                 checkArgument(!bound, "Operation must be unbound");
@@ -145,7 +141,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                 }
 
                 try {
-                    result = exporter.exportToInputStream(XLSX,
+                    result = exporter.exportToInputStream(null,
                             resultList,
                             queryCustomizer.getMask().keySet().stream().toList(),
                             null,
@@ -169,7 +165,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                         Payload resultAsPayload = ((Payload) result);
 
                         try {
-                            result = exporter.exportToInputStream(XLSX,
+                            result = exporter.exportToInputStream(null,
                                     List.of(resultAsPayload),
                                     queryCustomizer.getMask().keySet().stream().toList(),
                                     null,
@@ -179,10 +175,9 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                             throw new RuntimeException(e);
                         }
                     }
-                    //result = resultInThis.get().orElse(null);
                 } else {
                     try {
-                        result = exporter.exportToInputStream(XLSX,
+                        result = exporter.exportToInputStream(null,
                                 dao.searchNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer),
                                 queryCustomizer.getMask().keySet().stream().toList(),
                                 null,
