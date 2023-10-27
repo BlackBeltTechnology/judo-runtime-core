@@ -122,6 +122,9 @@ public class JudoDefaultSpringConfiguration {
     OperationCallInterceptorProvider operationCallInterceptorProvider;
 
     @Autowired
+    Export exporter;
+
+    @Autowired
     private Context context;
 
     @Autowired
@@ -369,6 +372,7 @@ public class JudoDefaultSpringConfiguration {
                 .enableValidation(enableValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
+                .exporter(exporter)
                 .build();
     }
 

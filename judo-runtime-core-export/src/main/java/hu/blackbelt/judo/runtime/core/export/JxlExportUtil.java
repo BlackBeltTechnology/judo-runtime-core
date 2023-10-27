@@ -15,8 +15,7 @@ import org.jxls.common.CellRef;
 import org.jxls.common.Context;
 import org.jxls.transform.poi.SelectSheetsForStreamingPoiTransformer;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -92,6 +91,20 @@ public class JxlExportUtil {
         return transformed;
     }
 
+    private static InputStream convertOutputStreamIntoInputStream (ByteArrayOutputStream outputStream) throws IOException {
+        PipedInputStream in = new PipedInputStream();
+        final PipedOutputStream out = new PipedOutputStream(in);
+        new Thread(() -> {
+            try {
+                outputStream.writeTo(out);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+
+        return in;
+    }
+
 
     public static void createExcelExport(String sheetName, OutputStream outputStream, List<Payload> list, Map<String, Class<?>> targetTypes, List<String> attributes) throws IOException {
         Workbook workbook = new XSSFWorkbook();
@@ -116,6 +129,39 @@ public class JxlExportUtil {
                 headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
                 transformer.write();
         }
+    }
+
+    public static InputStream createExcelExportToInputStream(String sheetName, OutputStream outputStream, List<Payload> list, Map<String, Class<?>> targetTypes, List<String> attributes) throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        createTemplateSheet(workbook, sheetName, targetTypes, attributes);
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+        if (targetTypes.size() > 0) {
+            char column = ((char) ((int) 'A' + targetTypes.size()));
+
+            SelectSheetsForStreamingPoiTransformer transformer = new SelectSheetsForStreamingPoiTransformer(workbook);
+            transformer.setOutputStream(byteArrayOutputStream);
+
+            XlsArea headerArea = new XlsArea(sheetName + "!A1:" + column + list.size() + 1, transformer);
+            XlsArea dataArea = new XlsArea(sheetName + "!A2:" + column + "2", transformer);
+
+            EachCommand employeeEachCommand = new EachCommand("context", "list", dataArea);
+            headerArea.addCommand("A2:" + column +"2", employeeEachCommand);
+
+            Context context = new Context();
+            context.putVar("list", transformPayloadList(list));
+
+            // To debug use: headerArea.applyAt(new CellRef(RESULT_SHEET_NAME + "!A1"), context)
+            headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
+            transformer.write();
+        }
+
+        if (outputStream != null) {
+            outputStream.write(byteArrayOutputStream.toByteArray());
+        }
+
+        return convertOutputStreamIntoInputStream(byteArrayOutputStream);
     }
 
 

@@ -23,11 +23,11 @@ public class JxlsExport implements Export {
 
     @Override
     public InputStream exportToInputStream(String type, List<Payload> list, List<String> attributes, OutputStream output, Class clazz) throws IOException {
-        throw new RuntimeException("Not implemented yet");
+        return JxlExportUtil.createExcelExportToInputStream(clazz.getSimpleName(), output, list, JxlExportUtil.getAttributesFromClass(clazz), attributes);
     }
 
     @Override
     public InputStream exportToInputStream(String type, List<Payload> list, List<String> attributes, OutputStream output, AsmModel asmModel, String fqName) throws IOException {
-        throw new RuntimeException("Not implemented yet");
+        return JxlExportUtil.createExcelExportToInputStream(fqName, output, list, JxlExportUtil.getAttributesFromModel(asmModel, fqName), attributes);
     }
 }

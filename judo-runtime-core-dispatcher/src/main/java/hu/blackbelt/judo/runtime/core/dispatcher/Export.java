@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import org.osgi.annotation.versioning.ProviderType;
 
 import java.io.IOException;
 import java.io.InputStream;
