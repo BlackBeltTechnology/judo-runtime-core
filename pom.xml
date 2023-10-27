@@ -48,7 +48,7 @@
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2.20230923_041153_b3d97dc4_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.4.20230923_041100_b3f7550c_develop</judo-meta-asm-version>
+        <judo-meta-asm-version>1.1.4.20231027_100239_7b2641c9_feature_JNG_5250_create_excel_export_service</judo-meta-asm-version>
         <judo-meta-expression-version>1.0.5.20230924_204811_9c6b2d5b_develop</judo-meta-expression-version>
         <judo-meta-expression-asm-version>1.0.5.20230924_205057_0d4f568c_develop</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.2.20230923_041142_aad96a83_develop</judo-meta-measure-version>

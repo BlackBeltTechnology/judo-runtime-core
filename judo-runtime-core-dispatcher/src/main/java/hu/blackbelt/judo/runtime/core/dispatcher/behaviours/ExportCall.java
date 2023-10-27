@@ -72,7 +72,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
 
     @Override
     public boolean isSuitableForOperation(EOperation operation) {
-        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.LIST).isPresent();
+        return AsmUtils.getBehaviour(operation).filter(o -> o == AsmUtils.OperationBehaviour.EXPORT).isPresent();
     }
 
     @SuppressWarnings("unchecked")
