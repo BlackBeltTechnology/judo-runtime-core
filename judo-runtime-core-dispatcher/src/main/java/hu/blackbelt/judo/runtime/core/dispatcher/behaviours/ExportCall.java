@@ -152,17 +152,18 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                 }
             }
 
-            try {
-                result = exporter.exportToInputStream(null,
-                        resultPayload,
-                        queryCustomizer.getMask().keySet().stream().toList(),
-                        null,
-                        asmModel,
-                        AsmUtils.getClassifierFQName(operation.getEContainingClass()));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+            if (resultPayload != null) {
+                try {
+                    result = exporter.exportToInputStream(null,
+                            resultPayload,
+                            queryCustomizer.getMask().keySet().stream().toList(),
+                            null,
+                            asmModel,
+                            AsmUtils.getClassifierFQName(operation.getEContainingClass()));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
-
         }
 
         if (inputParameter.getRecordCount() > -1) {

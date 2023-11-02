@@ -73,6 +73,11 @@ public class JxlExportUtil {
 
     private static Collection<Map<String, Object>> transformPayloadList(Collection<Payload> payloadList) {
         Collection<Map<String, Object>> transformed = new ArrayList<>();
+
+        if (payloadList == null) {
+            return null;
+        }
+
         for (Payload payload : payloadList) {
             Map<String, Object> entry = new HashMap<>();
 
@@ -112,11 +117,16 @@ public class JxlExportUtil {
 
         if (targetTypes.size() > 0) {
                 char column = ((char) ((int) 'A' + targetTypes.size()));
+                int columns = 0;
+
+                if (list != null) {
+                    columns = list.size();
+                }
 
                 SelectSheetsForStreamingPoiTransformer transformer = new SelectSheetsForStreamingPoiTransformer(workbook);
                 transformer.setOutputStream(outputStream);
 
-                XlsArea headerArea = new XlsArea(sheetName + "!A1:" + column + list.size() + 1, transformer);
+                XlsArea headerArea = new XlsArea(sheetName + "!A1:" + column + columns + 1, transformer);
                 XlsArea dataArea = new XlsArea(sheetName + "!A2:" + column + "2", transformer);
 
                 EachCommand employeeEachCommand = new EachCommand("context", "list", dataArea);
@@ -139,11 +149,16 @@ public class JxlExportUtil {
 
         if (targetTypes.size() > 0) {
             char column = ((char) ((int) 'A' + targetTypes.size()));
+            int columns = 0;
+
+            if (list != null) {
+                columns = list.size();
+            }
 
             SelectSheetsForStreamingPoiTransformer transformer = new SelectSheetsForStreamingPoiTransformer(workbook);
             transformer.setOutputStream(byteArrayOutputStream);
 
-            XlsArea headerArea = new XlsArea(sheetName + "!A1:" + column + list.size() + 1, transformer);
+            XlsArea headerArea = new XlsArea(sheetName + "!A1:" + column + columns + 1, transformer);
             XlsArea dataArea = new XlsArea(sheetName + "!A2:" + column + "2", transformer);
 
             EachCommand employeeEachCommand = new EachCommand("context", "list", dataArea);
