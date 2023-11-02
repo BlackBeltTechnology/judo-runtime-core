@@ -108,14 +108,6 @@
             <url>https://www.eclipse.org/org/documents/epl-2.0/EPL-2.0.txt</url>
         </license>
     </licenses>
-    <!--
-    <repositories>
-        <repository>
-            <id>ecentral</id>
-            <url>https://raw.githubusercontent.com/jmini/ecentral/HEAD/repo</url>
-        </repository>
-    </repositories>
-    -->
     <build>
         <pluginManagement>
             <plugins>

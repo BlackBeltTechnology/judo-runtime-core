@@ -33,8 +33,11 @@ import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.dispatcher.Export;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
-import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.ListCall.ListCallPayload;
 import hu.blackbelt.mapper.api.Coercer;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.Setter;
 import org.eclipse.emf.ecore.*;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -79,8 +82,8 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
     @Override
     public Object callInRollbackTransaction(final Map<String, Object> exchange, final EOperation operation) {
 
-        CallInterceptorUtil<ListCallPayload<ID>, Object> callInterceptorUtil = new CallInterceptorUtil<>(
-                ListCallPayload.class, Object.class, asmModel, operation, interceptorProvider
+        CallInterceptorUtil<ExportCallPayload<ID>, Object> callInterceptorUtil = new CallInterceptorUtil<>(
+                ExportCallPayload.class, Object.class, asmModel, operation, interceptorProvider
         );
 
         final boolean bound = AsmUtils.isBound(operation);
@@ -94,13 +97,14 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
 
         final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor.build(queryCustomizerParameter.orElse(null), owner.getEReferenceType());
 
-        ListCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(ListCallPayload.<ID>builder()
+        ExportCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(ExportCallPayload.<ID>builder()
                         .instance(Payload.asPayload(exchange))
                         .owner(owner)
                         .queryCustomizer(queryCustomizer)
                         .build());
 
         Object result = null;
+        List<Payload> resultPayload = null;
 
         if (callInterceptorUtil.shouldCallOriginal()) {
             if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access")
@@ -120,37 +124,16 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
 
                 final ID id = (ID) actor.get(identifierProvider.getName());
 
-                try {
-                    result = exporter.exportToInputStream(null,
-                            dao.searchNavigationResultAt(id, owner, queryCustomizer),
-                            queryCustomizer.getMask().keySet().stream().toList(),
-                            null,
-                            asmModel,
-                            AsmUtils.getClassifierFQName(operation.getEContainingClass()));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                resultPayload = dao.searchNavigationResultAt(id, owner, queryCustomizer);
 
             } else if (AsmUtils.annotatedAsTrue(owner, "access") || !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
                 checkArgument(!bound, "Operation must be unbound");
                 final List<Payload> resultList;
                 if (AsmUtils.annotatedAsTrue(owner, "access") && !owner.isDerived()) {
-                    resultList = dao.search(owner.getEReferenceType(), queryCustomizer);
+                    resultPayload = dao.search(owner.getEReferenceType(), queryCustomizer);
                 } else {
-                    resultList = dao.searchReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
+                    resultPayload = dao.searchReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
                 }
-
-                try {
-                    result = exporter.exportToInputStream(null,
-                            resultList,
-                            queryCustomizer.getMask().keySet().stream().toList(),
-                            null,
-                            asmModel,
-                            AsmUtils.getClassifierFQName(operation.getEContainingClass()));
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
             } else {
                 checkArgument(bound, "Operation must be bound");
 
@@ -162,38 +145,47 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                     result = resultInThis.get().orElse(null);
 
                     if(result != null && result instanceof Payload) {
-                        Payload resultAsPayload = ((Payload) result);
-
-                        try {
-                            result = exporter.exportToInputStream(null,
-                                    List.of(resultAsPayload),
-                                    queryCustomizer.getMask().keySet().stream().toList(),
-                                    null,
-                                    asmModel,
-                                    AsmUtils.getClassifierFQName(operation.getEContainingClass()));
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+                        resultPayload = List.of((Payload) result);
                     }
                 } else {
-                    try {
-                        result = exporter.exportToInputStream(null,
-                                dao.searchNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer),
-                                queryCustomizer.getMask().keySet().stream().toList(),
-                                null,
-                                asmModel,
-                                AsmUtils.getClassifierFQName(operation.getEContainingClass()));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                    resultPayload = dao.searchNavigationResultAt((ID) exchange.get(identifierProvider.getName()), owner, queryCustomizer);
                 }
             }
+
+            try {
+                result = exporter.exportToInputStream(null,
+                        resultPayload,
+                        queryCustomizer.getMask().keySet().stream().toList(),
+                        null,
+                        asmModel,
+                        AsmUtils.getClassifierFQName(operation.getEContainingClass()));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
         }
 
         if (inputParameter.getRecordCount() > -1) {
             exchange.put(DefaultDispatcher.RECORD_COUNT_KEY, inputParameter.getRecordCount());
         }
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);
+    }
+
+    @Builder
+    @Getter
+    public static class ExportCallPayload<ID> {
+        @NonNull
+        EReference owner;
+
+        @NonNull
+        Payload instance;
+
+        DAO.QueryCustomizer<ID> queryCustomizer;
+
+        @Setter
+        @Builder.Default
+        long recordCount = -1L;
+
     }
 
 }
