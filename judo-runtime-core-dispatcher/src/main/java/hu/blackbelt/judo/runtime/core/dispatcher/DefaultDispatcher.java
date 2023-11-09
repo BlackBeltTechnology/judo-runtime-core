@@ -145,10 +145,13 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final Validator rangeValidator;
 
+    private final Export exporter;
+
     @SuppressWarnings("unchecked")
     private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel) {
         behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
+                        new ExportCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike, exporter),
                         new ListCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
                         new CreateInstanceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
                         new ValidateCreateCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
@@ -184,6 +187,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             @NonNull Context context,
             @NonNull MetricsCollector metricsCollector,
             @NonNull PayloadValidator payloadValidator,
+            @NonNull Export exporter,
             ValidatorProvider validatorProvider,
             OpenIdConfigurationProvider openIdConfigurationProvider,
             TokenIssuer filestoreTokenIssuer,
@@ -193,8 +197,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             Boolean metricsReturned,
             Boolean enableValidation,
             Boolean trimString,
-            Boolean caseInsensitiveLike
-        ) {
+            Boolean caseInsensitiveLike) {
         this.asmModel = asmModel;
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -211,6 +214,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.context = context;
         this.metricsCollector = metricsCollector;
         this.payloadValidator = payloadValidator;
+        this.exporter = exporter;
         this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider<>(dao, identifierProvider, asmModel, context));
 
         if (enableValidation != null && !enableValidation) {
