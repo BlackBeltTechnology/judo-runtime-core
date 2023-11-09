@@ -59,9 +59,6 @@ public class JxlExportUtil {
             }
             if (!attributeName.isBlank()) {
                 Class<?> attributeType = getMethodReturnType(method);
-                if (attributeName.equals("totalWeight")) {
-                    int a = 5;
-                }
                 if (isAttributeType(attributeType)) {
                     attributeNames.put(attributeName, attributeType);
                 }
