@@ -29,6 +29,22 @@ import java.util.stream.Collectors;
 public class JxlExportUtil {
     private static String METHOD_PREFIX = "get";
 
+    private static boolean isAttributeType(Class<?> attributeType) {
+        return attributeType.equals(LocalDate.class) ||
+                attributeType.equals(LocalTime.class) ||
+                attributeType.equals(LocalDateTime.class) ||
+                attributeType.equals(String.class) ||
+                attributeType.equals(Boolean.class) ||
+                attributeType.equals(Character.class) ||
+                attributeType.equals(Byte.class) ||
+                attributeType.equals(Short.class) ||
+                attributeType.equals(Integer.class) ||
+                attributeType.equals(Long.class) ||
+                attributeType.equals(Float.class) ||
+                attributeType.equals(Double.class) ||
+                attributeType.equals(Void.class);
+    }
+
     public static Map<String, Class<?>> getAttributesFromClass(Class clazz) {
         Map<String, Class<?>> attributeNames = new HashMap<>();
         for (Method method : clazz.getDeclaredMethods()) {
@@ -43,7 +59,12 @@ public class JxlExportUtil {
             }
             if (!attributeName.isBlank()) {
                 Class<?> attributeType = getMethodReturnType(method);
-                attributeNames.put(attributeName, attributeType);
+                if (attributeName.equals("totalWeight")) {
+                    int a = 5;
+                }
+                if (isAttributeType(attributeType)) {
+                    attributeNames.put(attributeName, attributeType);
+                }
             }
         }
         return attributeNames;
@@ -86,7 +107,7 @@ public class JxlExportUtil {
                 Object value = payload.get(key);
 
                 if (value instanceof Optional<?>) {
-                    entry.put(key, ((Optional<?>) value).orElseThrow());
+                    entry.put(key, ((Optional<?>) value).orElse(null));
                 } else {
                     entry.put(key, value);
                 }
@@ -193,10 +214,10 @@ public class JxlExportUtil {
                 createHelper.createDataFormat().getFormat("hh:mm:ss"));
         CellStyle dateCellStyle = workbook.createCellStyle();
         dateCellStyle.setDataFormat(
-                createHelper.createDataFormat().getFormat("yyyy.mm.dd."));
+                createHelper.createDataFormat().getFormat("dd/mm/yyyy"));
         CellStyle dateTimeCellStyle = workbook.createCellStyle();
         dateTimeCellStyle.setDataFormat(
-                createHelper.createDataFormat().getFormat("yyyy.mm.dd. hh:mm:ss"));
+                createHelper.createDataFormat().getFormat("dd/mm/yyyy hh:mm:ss"));
 
 
         for (String attributeName : attributes) {
