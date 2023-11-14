@@ -66,6 +66,8 @@ import java.util.function.Consumer;
 
 import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsBuilderProvider.RDBMS_DAO_FLOATING_POINT_TYPE_MAX_PRECISION;
+import static hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms.RdbmsBuilderProvider.RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultDispatcherProvider.*;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultIdentifierSignerProvider.IDENTIFIER_SIGNER_SECRET;
 import static hu.blackbelt.judo.runtime.core.bootstrap.dispatcher.DefaultMetricsCollectorProvider.*;
@@ -164,6 +166,8 @@ public class JudoDefaultModule extends AbstractModule {
         bind(Boolean.class).annotatedWith(Names.named(RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED)).toInstance(true);
         bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)).toInstance(1000);
         bind(Boolean.class).annotatedWith(Names.named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)).toInstance(false);
+        bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_PRECISION)).toInstance(15);
+        bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE)).toInstance(4);
 
         bind(ActorResolver.class).toProvider(DefaultActorResolverProvider.class).in(Singleton.class);
         bind(Boolean.class).annotatedWith(Names.named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS)).toInstance(Boolean.FALSE);

@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.bootstrap.dao.rdbms;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
@@ -38,8 +39,14 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.ecore.EClass;
 
+import javax.annotation.Nullable;
+
 @SuppressWarnings("rawtypes")
 public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
+
+
+    public static final String RDBMS_DAO_FLOATING_POINT_TYPE_MAX_PRECISION = "rdbmsDaoFloatingTypeMaxPrecision";
+    public static final String RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE = "rdbmsDaoFloatingTypeMaxScale";
 
     @Inject
     AsmModel asmModel;
@@ -68,6 +75,16 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     @Inject
     Dialect dialect;
 
+    @Inject(optional = true)
+    @Named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_PRECISION)
+    @Nullable
+    private int precision = 15;
+
+    @Inject(optional = true)
+    @Named(RDBMS_DAO_FLOATING_POINT_TYPE_MAX_SCALE)
+    @Nullable
+    private int scale = 4;
+
     @SuppressWarnings({ "unchecked" })
     @Override
     public RdbmsBuilder get() {
@@ -85,6 +102,8 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
                 .variableResolver(variableResolver)
                 .mapperFactory(mapperFactory)
                 .dialect(dialect)
+                .precision(precision)
+                .scale(scale)
                 .build();
     }
 }

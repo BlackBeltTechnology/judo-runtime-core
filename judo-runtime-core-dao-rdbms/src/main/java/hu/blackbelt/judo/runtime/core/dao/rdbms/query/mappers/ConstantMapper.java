@@ -64,6 +64,8 @@ public class ConstantMapper<ID> extends RdbmsMapper<Constant> {
                 .target(t.getTarget())
                 .targetAttribute(t.getTargetAttribute())
                 .alias(t.getAlias())
+                .precision(rdbmsBuilder.getPrecision())
+                .scale(rdbmsBuilder.getScale())
                 .build());
     }
 }
