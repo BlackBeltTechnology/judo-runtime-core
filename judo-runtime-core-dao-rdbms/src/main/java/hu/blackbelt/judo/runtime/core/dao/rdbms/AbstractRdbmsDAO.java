@@ -183,6 +183,17 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    public List<Payload> createAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+        List resultPayloads = new ArrayList<>();
+
+        for (Payload payload : payloads) {
+            resultPayloads.add(create(eClass, payload, queryCustomizer));
+        }
+
+        return ImmutableList.copyOf(resultPayloads);
+    }
+
+    @Override
     public Payload create(EClass eClass, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         return create(eClass, payload, queryCustomizer, true);
     }
@@ -195,6 +206,17 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
             logResult(result);
             return result;
         }
+    }
+
+    @Override
+    public List<Payload> updateAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+        List resultPayloads = new ArrayList<>();
+
+        for (Payload payload : payloads) {
+            resultPayloads.add(update(eClass, payload, queryCustomizer));
+        }
+
+        return ImmutableList.copyOf(resultPayloads);
     }
 
     @Override
@@ -223,6 +245,16 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public void delete(EClass eClass, ID id) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             deletePayload(eClass, ImmutableSet.of(id));
+        }
+    }
+
+    @Override
+    @SneakyThrows(SQLException.class)
+    public void deleteAll(EClass eClass, Iterable<ID> ids) {
+        try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
+            for (ID id : ids) {
+                deletePayload(eClass, ImmutableSet.of(id));
+            }
         }
     }
 
