@@ -350,6 +350,7 @@
                     <doclint>none</doclint>
                     <failOnError>false</failOnError>
                     <detectJavaApiLink>false</detectJavaApiLink>
+                    <sourcepath>${project.basedir}/target/classes;${project.basedir}/target/generated-sources</sourcepath>
                     <tags>
                         <tag>
                             <name>model</name>
