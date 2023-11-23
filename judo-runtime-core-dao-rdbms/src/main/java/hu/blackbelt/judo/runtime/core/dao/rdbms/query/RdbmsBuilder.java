@@ -196,12 +196,6 @@ public class RdbmsBuilder<ID> {
         final Map<String, Object> mask = params.getMask();
         final RdbmsBuilderContext builderContext = params.getBuilderContext();
 
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
-        final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
-        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
-
-
         if (join instanceof ReferencedJoin) {
             return simpleJoinProcessor.process(SimpleJoinProcessorParameters.builder()
                     .join((ReferencedJoin) join)
