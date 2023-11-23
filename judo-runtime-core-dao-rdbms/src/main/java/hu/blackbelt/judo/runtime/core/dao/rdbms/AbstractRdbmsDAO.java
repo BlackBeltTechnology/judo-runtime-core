@@ -155,6 +155,11 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    public boolean existsById(EClass clazz, ID identifier) {
+        return searchByIdentifier(clazz, identifier, null).isPresent();
+    }
+
+    @Override
     public Optional<Payload> getMetadata(EClass clazz, ID identifier) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             return readMetadataByIdentifier(clazz, identifier);
