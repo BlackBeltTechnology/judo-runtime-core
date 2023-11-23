@@ -252,9 +252,12 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     @SneakyThrows(SQLException.class)
     public void deleteAll(EClass eClass, Iterable<ID> ids) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
-            for (ID id : ids) {
-                deletePayload(eClass, ImmutableSet.of(id));
-            }
+            List<ID> list = new ArrayList<>();
+            ids.forEach(list::add);
+            deletePayload(eClass, list);
+            //for (ID id : ids) {
+            //    deletePayload(eClass, ImmutableSet.of(id));
+            //}
         }
     }
 
