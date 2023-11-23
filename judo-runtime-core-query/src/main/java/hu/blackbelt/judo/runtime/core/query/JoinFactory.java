@@ -83,7 +83,12 @@ public abstract class JoinFactory {
         return pathEnds;
     }
 
-    private PathEnds.PathEndsBuilder buildPath(Node container, final Context context, Node lastPartner, final Deque<Navigation> navigations) {
+    private PathEnds.PathEndsBuilder buildPath(
+            Node container,
+            final Context context,
+            Node lastPartner,
+            final Deque<Navigation> navigations) {
+
         boolean ordered = false;
         boolean limited = false;
 
@@ -114,7 +119,8 @@ public abstract class JoinFactory {
                     }
 
                     if (log.isTraceEnabled()) {
-                        log.trace("  => Embedded navigation steps:{}", embeddedNavigations.stream().map(en -> "\n   - " + en).collect(Collectors.joining()));
+                        log.trace("  => Embedded navigation steps:{}",
+                                embeddedNavigations.stream().map(en -> "\n   - " + en).collect(Collectors.joining()));
                     }
                 }
             } else {
@@ -130,8 +136,13 @@ public abstract class JoinFactory {
 
                 newContext.setNode(join);
 
-                final Feature feature = featureFactory.convert(objectSelection.get().getObjectSelector(), newContext, null);
-                checkArgument(feature instanceof SubSelectFeature, "Feature of object selector must be a SubSelectFeature");
+                final Feature feature = featureFactory.convert(
+                        objectSelection.get().getObjectSelector(),
+                        newContext,
+                        null);
+
+                checkArgument(feature instanceof SubSelectFeature,
+                        "Feature of object selector must be a SubSelectFeature");
 
                 ((SubSelectJoin) join).setSubSelect(((SubSelectFeature) feature).getSubSelect());
 
@@ -141,16 +152,30 @@ public abstract class JoinFactory {
                 ordered = false;
                 continue;
             } else if (navigation.getFeatureName() != null) {
-                final EReference reference =
+                Optional<EReference> referenceForFeature =
                         lastPartner.getType()
-                                   .getEAllReferences().stream()
-                                   .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
-                                   .findAny()
-                                   .orElseThrow(() -> new NoSuchElementException(String.format("Reference with name %s cannot be found.",
-                                                                                               navigation.getFeatureName())));
-                checkArgument(reference != null, "Unknown reference: " + navigation.getFeatureName());
-                checkArgument(!reference.isDerived(), String.format("Derived references must be resolved by expression builder: %s (%s)",
-                                                                    reference.getName(), modelAdapter.getFqName(reference.eContainer())));
+                                .getEAllReferences().stream()
+                                .filter(r -> r != null && navigation.getFeatureName().equals(r.getName()))
+                                .findAny();
+
+                if (referenceForFeature.isEmpty()) {
+                    Node finalLastPartner = lastPartner;
+                    referenceForFeature = modelAdapter.getAllEntityTypes().stream()
+                            .filter(e -> finalLastPartner.getType().isSuperTypeOf(e))
+                            .flatMap(e -> e.getEReferences().stream()).findAny();
+                }
+
+                EReference reference = referenceForFeature
+                        .orElseThrow(() -> new NoSuchElementException(
+                                String.format("Reference with name %s cannot be found.", navigation.getFeatureName())));
+
+                checkArgument(reference != null,
+                        "Unknown reference: " + navigation.getFeatureName());
+
+                checkArgument(!reference.isDerived(),
+                        String.format("Derived references must be resolved by expression builder: %s (%s)",
+                                reference.getName(), modelAdapter.getFqName(reference.eContainer())));
+
                 if (limited) {
                     checkArgument(!reference.isMany(), "Collection navigation is not allowed here");
                     if (ordered) {
@@ -165,7 +190,6 @@ public abstract class JoinFactory {
                         .build();
 
                 // TODO: check if JOIN not included yet
-
                 container.getJoins().add(join);
                 lastPartner = join;
                 container = join;
@@ -176,10 +200,12 @@ public abstract class JoinFactory {
                 final EClass lastPartnerType = lastPartner.getType();
                 final EList<EReference> references =
                         asEList(modelAdapter.getAsmUtils().all(EClass.class)
-                                            .filter(c -> AsmUtils.equals(containerType, c) || c.getEAllSuperTypes().contains(containerType))
+                                            .filter(c -> AsmUtils.equals(containerType, c) ||
+                                                    c.getEAllSuperTypes().contains(containerType))
                                             .flatMap(c -> c.getEAllReferences().stream()
-                                                           .filter(r -> r.isContainment() && (AsmUtils.equals(r.getEReferenceType(), lastPartnerType)
-                                                                                              || lastPartnerType.getEAllSuperTypes().contains(r.getEReferenceType()))))
+                                                    .filter(r -> r.isContainment() &&
+                                                            (AsmUtils.equals(r.getEReferenceType(), lastPartnerType) ||
+                                                                    lastPartnerType.getEAllSuperTypes().contains(r.getEReferenceType()))))
                                             .collect(Collectors.toList()));
 
                 final Join join = newContainerJoinBuilder()
