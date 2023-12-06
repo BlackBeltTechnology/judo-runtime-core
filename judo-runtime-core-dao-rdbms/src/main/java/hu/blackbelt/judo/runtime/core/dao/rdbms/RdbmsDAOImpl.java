@@ -654,13 +654,16 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     final EAttribute defaultAttribute = clazz.getEAllAttributes().stream()
                             .filter(df -> Objects.equals(df.getName(), defaultFeatureName))
                             .findAny()
-                            .orElseThrow(() -> new IllegalStateException("Default attribute not found: " + defaultFeatureName));
+                            .orElse(null);
+                            //.orElseThrow(() -> new IllegalStateException("Default attribute not found: " + defaultFeatureName));
 
-                    final Payload defaultValue = getStaticData(defaultAttribute);
-                    if (defaultValue.get(defaultAttribute.getName()) == null && a.isRequired()) {
-                        throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultFeatureName);
+                    if (defaultAttribute != null) {
+                        final Payload defaultValue = getStaticData(defaultAttribute);
+                        if (defaultValue.get(defaultAttribute.getName()) == null && a.isRequired()) {
+                            throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultFeatureName);
+                        }
+                        template.put(a.getName(), defaultValue.get(defaultAttribute.getName()));
                     }
-                    template.put(a.getName(), defaultValue.get(defaultAttribute.getName()));
                 }));
 
         clazz.getEAllReferences().stream()
