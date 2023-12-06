@@ -144,6 +144,17 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .flatMap(c -> c.getEAllStructuralFeatures().stream())
                 .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {
             return true;
+        } else if (
+             classes.stream()
+                    .map(eClass -> getAsmUtils().getMappedEntityType(eClass))
+                    .map(eClass ->
+                            eClass.flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
+                                    .flatMap(dr -> getAsmUtils().resolve(dr)))
+                            .filter(t -> t instanceof EClass).map(t -> (EClass) t))
+                    .filter(eClass -> eClass.isPresent())
+                    .flatMap(eClass -> eClass.get().getEAllStructuralFeatures().stream())
+                    .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {;
+            return true;
         }
         checked.addAll(classes);
         return haveDefaultsAnyOf(classes.stream()
