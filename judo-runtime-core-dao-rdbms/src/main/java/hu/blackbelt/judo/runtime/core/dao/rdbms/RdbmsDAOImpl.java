@@ -655,7 +655,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                             .filter(df -> Objects.equals(df.getName(), defaultFeatureName))
                             .findAny()
                             .orElse(null);
-                            //.orElseThrow(() -> new IllegalStateException("Default attribute not found: " + defaultFeatureName));
 
                     if (defaultAttribute != null) {
                         final Payload defaultValue = getStaticData(defaultAttribute);
