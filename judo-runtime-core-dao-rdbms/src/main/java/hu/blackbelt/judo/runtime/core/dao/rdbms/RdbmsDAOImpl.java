@@ -144,6 +144,17 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .flatMap(c -> c.getEAllStructuralFeatures().stream())
                 .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {
             return true;
+        } else if (
+             classes.stream()
+                    .map(eClass -> getAsmUtils().getMappedEntityType(eClass))
+                    .map(eClass ->
+                            eClass.flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
+                                    .flatMap(dr -> getAsmUtils().resolve(dr)))
+                            .filter(t -> t instanceof EClass).map(t -> (EClass) t))
+                    .filter(eClass -> eClass.isPresent())
+                    .flatMap(eClass -> eClass.get().getEAllStructuralFeatures().stream())
+                    .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {;
+            return true;
         }
         checked.addAll(classes);
         return haveDefaultsAnyOf(classes.stream()
@@ -643,13 +654,15 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     final EAttribute defaultAttribute = clazz.getEAllAttributes().stream()
                             .filter(df -> Objects.equals(df.getName(), defaultFeatureName))
                             .findAny()
-                            .orElseThrow(() -> new IllegalStateException("Default attribute not found: " + defaultFeatureName));
+                            .orElse(null);
 
-                    final Payload defaultValue = getStaticData(defaultAttribute);
-                    if (defaultValue.get(defaultAttribute.getName()) == null && a.isRequired()) {
-                        throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultFeatureName);
+                    if (defaultAttribute != null) {
+                        final Payload defaultValue = getStaticData(defaultAttribute);
+                        if (defaultValue.get(defaultAttribute.getName()) == null && a.isRequired()) {
+                            throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultFeatureName);
+                        }
+                        template.put(a.getName(), defaultValue.get(defaultAttribute.getName()));
                     }
-                    template.put(a.getName(), defaultValue.get(defaultAttribute.getName()));
                 }));
 
         clazz.getEAllReferences().stream()
