@@ -350,7 +350,7 @@
                     <doclint>none</doclint>
                     <failOnError>false</failOnError>
                     <detectJavaApiLink>false</detectJavaApiLink>
-                    <sourcepath>${project.basedir}/target/classes;${project.basedir}/target/generated-sources</sourcepath>
+                    <sourcepath>${project.basedir}/target/classes</sourcepath>
                     <tags>
                         <tag>
                             <name>model</name>
@@ -410,7 +410,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.11</version>
+            <version>1.4.11</version>
         </dependency>
 
         <dependency>
@@ -532,6 +532,9 @@
                 <module>judo-runtime-core-guice</module>
                 <module>judo-runtime-core-guice-hsqldb</module>
                 <module>judo-runtime-core-guice-postgresql</module>
+                <module>judo-runtime-core-dagger2</module>
+                <module>judo-runtime-core-dagger2-hsqldb</module>
+                <module>judo-runtime-core-dagger2-postgresql</module>
                 <module>judo-runtime-core-dependencies</module>
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>
