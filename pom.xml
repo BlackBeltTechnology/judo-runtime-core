@@ -529,9 +529,9 @@
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
-                <module>judo-runtime-core-bootstrap</module>
-                <module>judo-runtime-core-bootstrap-hsqldb</module>
-                <module>judo-runtime-core-bootstrap-postgresql</module>
+                <module>judo-runtime-core-guice</module>
+                <module>judo-runtime-core-guice-hsqldb</module>
+                <module>judo-runtime-core-guice-postgresql</module>
                 <module>judo-runtime-core-dependencies</module>
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>
