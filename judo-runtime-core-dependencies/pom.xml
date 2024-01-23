@@ -247,7 +247,7 @@
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-export</artifactId>
+                <artifactId>judo-runtime-core-export-jxls</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
