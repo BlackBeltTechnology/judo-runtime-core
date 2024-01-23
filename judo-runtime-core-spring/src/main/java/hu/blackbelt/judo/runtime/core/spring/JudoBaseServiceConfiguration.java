@@ -117,6 +117,11 @@ public class JudoBaseServiceConfiguration {
         return new NoPasswordPolicy();
     }
 
+    @Bean
+    public Export getExport() {
+        return new UnsupportedExportImpl();
+    }
+
 }
 
 
