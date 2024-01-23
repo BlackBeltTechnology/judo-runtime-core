@@ -58,11 +58,6 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-export-jxls</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dao-rdbms-hsqldb</artifactId>
         </dependency>
 

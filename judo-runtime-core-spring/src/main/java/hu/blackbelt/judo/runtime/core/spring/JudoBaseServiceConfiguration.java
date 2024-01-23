@@ -29,7 +29,6 @@ import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.*;
 import hu.blackbelt.judo.runtime.core.dispatcher.context.ThreadContext;
 import hu.blackbelt.judo.runtime.core.security.*;
-import hu.blackbelt.judo.runtime.core.export.JxlsExport;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
@@ -120,7 +119,7 @@ public class JudoBaseServiceConfiguration {
 
     @Bean
     public Export getExport() {
-        return new JxlsExport();
+        return new UnsupportedExportImpl();
     }
 
 }
