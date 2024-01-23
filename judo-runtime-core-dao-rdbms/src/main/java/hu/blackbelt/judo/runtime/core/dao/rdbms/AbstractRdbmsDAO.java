@@ -155,6 +155,11 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    public boolean existsById(EClass clazz, ID identifier) {
+        return searchByIdentifier(clazz, identifier, null).isPresent();
+    }
+
+    @Override
     public Optional<Payload> getMetadata(EClass clazz, ID identifier) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             return readMetadataByIdentifier(clazz, identifier);
@@ -193,6 +198,17 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    public List<Payload> createAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+        List resultPayloads = new ArrayList<>();
+
+        for (Payload payload : payloads) {
+            resultPayloads.add(create(eClass, payload, queryCustomizer));
+        }
+
+        return ImmutableList.copyOf(resultPayloads);
+    }
+
+    @Override
     public Payload update(EClass eClass, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         return update(eClass, payload, queryCustomizer, true);
     }
@@ -214,10 +230,31 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    public List<Payload> updateAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+        List resultPayloads = new ArrayList<>();
+
+        for (Payload payload : payloads) {
+            resultPayloads.add(update(eClass, payload, queryCustomizer));
+        }
+
+        return ImmutableList.copyOf(resultPayloads);
+    }
+
+    @Override
     @SneakyThrows(SQLException.class)
     public void delete(EClass eClass, ID id) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             deletePayload(eClass, ImmutableSet.of(id));
+        }
+    }
+
+    @Override
+    @SneakyThrows(SQLException.class)
+    public void deleteAll(EClass eClass, Iterable<ID> ids) {
+        try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
+            List<ID> idList = new ArrayList<>();
+            ids.forEach(idList::add);
+            deletePayload(eClass, idList);
         }
     }
 

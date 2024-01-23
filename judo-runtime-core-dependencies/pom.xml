@@ -253,19 +253,19 @@
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-			    <artifactId>judo-runtime-core-bootstrap</artifactId>
+			    <artifactId>judo-runtime-core-guice</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-bootstrap-hsqldb</artifactId>
+                <artifactId>judo-runtime-core-guice-hsqldb</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-bootstrap-postgresql</artifactId>
+                <artifactId>judo-runtime-core-guice-postgresql</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -470,17 +470,17 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
-		    <artifactId>judo-runtime-core-bootstrap</artifactId>
+		    <artifactId>judo-runtime-core-guice</artifactId>
         </dependency>
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-bootstrap-hsqldb</artifactId>
+            <artifactId>judo-runtime-core-guice-hsqldb</artifactId>
         </dependency>
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-bootstrap-postgresql</artifactId>
+            <artifactId>judo-runtime-core-guice-postgresql</artifactId>
         </dependency>
 
         <dependency>
