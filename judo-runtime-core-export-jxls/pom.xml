@@ -7,7 +7,7 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>judo-runtime-core-export-jxsl</artifactId>
+    <artifactId>judo-runtime-core-export-jxls</artifactId>
     <packaging>bundle</packaging>
 
     <name>JUDO Runtime Core :: Export :: Jxls</name>
