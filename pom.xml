@@ -48,7 +48,7 @@
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2.20231107_041230_4167c814_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.4.20231107_041242_3043885c_develop</judo-meta-asm-version>
+        <judo-meta-asm-version>1.1.4.20240123_195302_b5351bc4_feature_JNG_5250_create_excel_export_service</judo-meta-asm-version>
         <judo-meta-expression-version>1.0.5.20231107_042129_0d5eab73_develop</judo-meta-expression-version>
         <judo-meta-expression-asm-version>1.0.5.20231107_042449_3447ad51_develop</judo-meta-expression-asm-version>
         <judo-meta-measure-version>1.0.2.20231107_041238_36e3764d_develop</judo-meta-measure-version>
@@ -61,7 +61,7 @@
 
         <structured-map-proxy-version>2.0.0.20231122_182717_c1fe065e_develop</structured-map-proxy-version>
 
-        <judo-tatami-base-version>1.1.6.20240116_082147_ef997bb3_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20240123_201058_41035436_feature_JNG_5248_AddExportBehaviour</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20230826_230852_5723dcb6_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20230914_123910_22c72dd5_develop</osgi-filestore-version>
@@ -108,14 +108,6 @@
             <url>https://www.eclipse.org/org/documents/epl-2.0/EPL-2.0.txt</url>
         </license>
     </licenses>
-	<!--
-    <repositories>
-        <repository>
-            <id>ecentral</id>
-            <url>https://raw.githubusercontent.com/jmini/ecentral/HEAD/repo</url>
-        </repository>
-    </repositories>
-	-->
     <build>
         <pluginManagement>
             <plugins>
@@ -529,6 +521,7 @@
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
+                <module>judo-runtime-core-export-jxls</module>
                 <module>judo-runtime-core-guice</module>
                 <module>judo-runtime-core-guice-hsqldb</module>
                 <module>judo-runtime-core-guice-postgresql</module>
@@ -536,7 +529,6 @@
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>
                 <module>judo-runtime-core-spring-postgresql</module>
-
             </modules>
         </profile>
 
@@ -755,9 +747,9 @@
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <licenseName>epl_v2</licenseName>
-									<excludes>
-										<exclude>**/*.json</exclude>
-									</excludes>
+                                    <excludes>
+                                        <exclude>**/*.json</exclude>
+                                    </excludes>
                                 </configuration>
                             </execution>
                             <execution>
