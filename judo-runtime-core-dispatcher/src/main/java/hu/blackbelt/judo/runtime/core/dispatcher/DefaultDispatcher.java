@@ -366,7 +366,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     @SuppressWarnings("unchecked")
-    private void processFault(final Payload result, String outputParameterName, EClassifier operationType, boolean exposed, ETypedElement producedBy, boolean immutable, boolean isMany) {
+    private void processFault(final Payload result, String outputParameterName, EClassifier operationType, boolean exposed, ETypedElement producedBy, boolean immutable, boolean isMany, String implementationName) {
         if (result != null && result.get(FAULT) != null) {
             Map<String, Object> fault = (Map<String, Object>) result.get(FAULT);
             throw new BusinessException((String) fault.get(FAULT_TYPE), (String) fault.get(FAULT_ERROR_CODE), fault, (Throwable) fault.get(FAULT_CAUSE));
@@ -380,6 +380,10 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     .build();
 
             if (isMany) {
+                if (implementationName.equals("EXPORT")) {
+                    return;
+                }
+
                 final Collection<Payload> payloadList = ((Collection<Map<String, Object>>) result.get(outputParameterName)).stream()
                         .map(input -> responseConverter.convert(input).orElse(null))
                         .filter(Objects::nonNull)
@@ -729,7 +733,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 producedBy = operation;
             }
 
-            processFault(result, outputParameterName.orElse(null), operationType, exposed, producedBy, immutable, operation.isMany());
+            processFault(result, outputParameterName.orElse(null), operationType, exposed, producedBy, immutable, operation.isMany(), implementationName);
             if (log.isTraceEnabled()) {
                 log.trace("Operation result: {}", result);
             }

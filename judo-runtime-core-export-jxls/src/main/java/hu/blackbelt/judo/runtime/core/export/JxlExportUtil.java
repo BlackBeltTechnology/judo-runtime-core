@@ -120,6 +120,7 @@ public class JxlExportUtil {
         new Thread(() -> {
             try {
                 outputStream.writeTo(out);
+                out.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -127,7 +128,6 @@ public class JxlExportUtil {
 
         return in;
     }
-
 
     public static void createExcelExport(String sheetName, OutputStream outputStream, List<Payload> list, Map<String, Class<?>> targetTypes, List<String> attributes) throws IOException {
         Workbook workbook = new XSSFWorkbook();
