@@ -88,10 +88,9 @@ public class ValidateOperationInputCall<ID> extends AlwaysRollbackTransactionalB
 
         Payload result = null;
         if (callInterceptorUtil.shouldCallOriginal()) {
-            // Maybe haven't to do anyhing
+            result = dao.getDefaultsOf(owner.getEContainingClass());
         }
 
-        markedIdRemover.process(result);
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
 
