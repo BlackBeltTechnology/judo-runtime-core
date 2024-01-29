@@ -131,7 +131,7 @@ public class JxlExportUtil {
 
     public static void createExcelExport(String sheetName, OutputStream outputStream, List<Payload> list, Map<String, Class<?>> targetTypes, List<String> attributes) throws IOException {
         Workbook workbook = new XSSFWorkbook();
-        createTemplateSheet(workbook, sheetName, targetTypes, attributes);
+        createTemplateSheet(workbook, sheetName, targetTypes, attributes, list.size() == 0);
 
         if (targetTypes.size() > 0) {
                 char column = ((char) ((int) 'A' + targetTypes.size()));
@@ -161,7 +161,7 @@ public class JxlExportUtil {
 
     public static InputStream createExcelExportToInputStream(String sheetName, OutputStream outputStream, List<Payload> list, Map<String, Class<?>> targetTypes, List<String> attributes) throws IOException {
         Workbook workbook = new XSSFWorkbook();
-        createTemplateSheet(workbook, sheetName, targetTypes, attributes);
+        createTemplateSheet(workbook, sheetName, targetTypes, attributes, list.size() == 0);
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
@@ -182,11 +182,13 @@ public class JxlExportUtil {
             EachCommand employeeEachCommand = new EachCommand("context", "list", dataArea);
             headerArea.addCommand("A2:" + column +"2", employeeEachCommand);
 
-            Context context = new Context();
-            context.putVar("list", transformPayloadList(list));
+            Collection<Map<String, Object>> transformedPayloadList = transformPayloadList(list);
+            if (transformedPayloadList != null && transformedPayloadList.size() != 0) {
+                Context context = new Context();
+                context.putVar("list", transformedPayloadList);
+                headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
+            }
 
-            // To debug use: headerArea.applyAt(new CellRef(RESULT_SHEET_NAME + "!A1"), context)
-            headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
             transformer.write();
         }
 
@@ -198,7 +200,7 @@ public class JxlExportUtil {
     }
 
 
-    private static void createTemplateSheet(Workbook workbook, String templateSheetName, Map<String, Class<?>> targetTypes, List<String> attributes) throws IOException {
+    private static void createTemplateSheet(Workbook workbook, String templateSheetName, Map<String, Class<?>> targetTypes, List<String> attributes, boolean isEmpty) {
         workbook.createSheet(templateSheetName);
         workbook.getSheet(templateSheetName).createRow(0);
         workbook.getSheet(templateSheetName).createRow(1);
@@ -216,12 +218,15 @@ public class JxlExportUtil {
         dateTimeCellStyle.setDataFormat(
                 createHelper.createDataFormat().getFormat("dd/mm/yyyy hh:mm:ss"));
 
-
         for (String attributeName : attributes) {
             Class<?> returnType = targetTypes.get(attributeName);
 
             if (returnType != null) {
                 workbook.getSheet(templateSheetName).getRow(0).createCell(column).setCellValue(attributeName);
+                if (isEmpty) {
+                    column++;
+                    continue;
+                }
                 workbook.getSheet(templateSheetName).getRow(1).createCell(column).setCellValue("${context." + attributeName + "}");
 
                 if (returnType.equals(LocalDateTime.class)) {

@@ -153,15 +153,13 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
             }
 
             if (resultPayload != null) {
-                List<String> mask = queryCustomizer.getMask().keySet().stream().toList();
-                String fqName = operation.getEGenericType().getEClassifier().getName();
                 try {
                     result = exporter.exportToInputStream(null,
                             resultPayload,
-                            mask,
+                            queryCustomizer.getMask().keySet().stream().toList(),
                             null,
                             asmModel,
-                            fqName);
+                            operation.getEGenericType().getEClassifier().getName());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
