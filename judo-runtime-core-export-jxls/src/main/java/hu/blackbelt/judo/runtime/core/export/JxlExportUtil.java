@@ -150,11 +150,14 @@ public class JxlExportUtil {
                 EachCommand employeeEachCommand = new EachCommand("context", "list", dataArea);
                 headerArea.addCommand("A2:" + column +"2", employeeEachCommand);
 
-                Context context = new Context();
-                context.putVar("list", transformPayloadList(list));
+                Collection<Map<String, Object>> transformedPayloadList = transformPayloadList(list);
+                if (transformedPayloadList != null && transformedPayloadList.size() != 0) {
+                    Context context = new Context();
+                    context.putVar("list", transformedPayloadList);
+                    // To debug use: headerArea.applyAt(new CellRef(RESULT_SHEET_NAME + "!A1"), context)
+                    headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
+                }
 
-                // To debug use: headerArea.applyAt(new CellRef(RESULT_SHEET_NAME + "!A1"), context)
-                headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
                 transformer.write();
         }
     }
@@ -186,6 +189,7 @@ public class JxlExportUtil {
             if (transformedPayloadList != null && transformedPayloadList.size() != 0) {
                 Context context = new Context();
                 context.putVar("list", transformedPayloadList);
+                // To debug use: headerArea.applyAt(new CellRef(RESULT_SHEET_NAME + "!A1"), context)
                 headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
             }
 
