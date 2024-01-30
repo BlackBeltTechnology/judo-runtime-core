@@ -165,6 +165,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         new RemoveReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
                         new GetReferenceRangeCall<>(context, dao, identifierProvider, asmModel, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
                         new GetInputRangeCall<>(context, dao, identifierProvider, asmModel, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
+                        new ValidateOperationInputCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer()),
                         new GetPrincipalCall<>(dao, identifierProvider, asmModel, actorResolver, operationCallInterceptorProvider),
                         new GetTemplateCall<>(dao, asmModel, operationCallInterceptorProvider),
                         new GetMetadataCall<>(asmModel, () -> openIdConfigurationProvider, operationCallInterceptorProvider),
@@ -512,6 +513,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 || AsmUtils.OperationBehaviour.VALIDATE_UPDATE.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
             validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false);
+        } else if (OperationBehaviour.VALIDATE_OPERATION_INPUT.equals(operationBehaviour)) {
+            validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
         } else if (AsmUtils.OperationBehaviour.SET_REFERENCE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.UNSET_REFERENCE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.ADD_REFERENCE.equals(operationBehaviour)
