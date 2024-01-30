@@ -34,12 +34,10 @@ import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Singular;
-import org.eclipse.emf.ecore.EAttribute;
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EDataType;
-import org.eclipse.emf.ecore.EEnum;
+import org.eclipse.emf.ecore.*;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ResponseConverter {
 
@@ -81,9 +79,12 @@ public class ResponseConverter {
                                     : convertNonEnumerationValue(a, instance.get(a.getName()))));
                     for (final Iterator<Map.Entry<String, Object>> it = instance.entrySet().iterator(); it.hasNext(); ) {
                         final Map.Entry<String, Object> entry = it.next();
-                        if (!ctx.getType().getEAllStructuralFeatures().stream()
+                        List<EStructuralFeature> asd = ctx.getType().getEAllStructuralFeatures().stream()
+                                .filter(f -> !ctx.getType().getEAllStructuralFeatures().stream().anyMatch(d -> Objects.equals(f.getName(), AsmUtils.getExtensionAnnotationValue(d, "default", false).orElse("-")))).toList();
+                        boolean b = !ctx.getType().getEAllStructuralFeatures().stream()
                                 .filter(f -> !ctx.getType().getEAllStructuralFeatures().stream().anyMatch(d -> Objects.equals(f.getName(), AsmUtils.getExtensionAnnotationValue(d, "default", false).orElse("-"))))
-                                .anyMatch(f -> Objects.equals(f.getName(), entry.getKey()))
+                                .anyMatch(f -> Objects.equals(f.getName(), entry.getKey()));
+                        if (b
                                 && !keepProperties.contains(entry.getKey())
                                 || entry.getValue() == null) {
                             it.remove();
