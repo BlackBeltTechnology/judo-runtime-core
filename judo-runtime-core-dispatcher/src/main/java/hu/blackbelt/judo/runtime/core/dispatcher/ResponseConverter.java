@@ -79,12 +79,9 @@ public class ResponseConverter {
                                     : convertNonEnumerationValue(a, instance.get(a.getName()))));
                     for (final Iterator<Map.Entry<String, Object>> it = instance.entrySet().iterator(); it.hasNext(); ) {
                         final Map.Entry<String, Object> entry = it.next();
-                        List<EStructuralFeature> asd = ctx.getType().getEAllStructuralFeatures().stream()
-                                .filter(f -> !ctx.getType().getEAllStructuralFeatures().stream().anyMatch(d -> Objects.equals(f.getName(), AsmUtils.getExtensionAnnotationValue(d, "default", false).orElse("-")))).toList();
-                        boolean b = !ctx.getType().getEAllStructuralFeatures().stream()
+                        if (!ctx.getType().getEAllStructuralFeatures().stream()
                                 .filter(f -> !ctx.getType().getEAllStructuralFeatures().stream().anyMatch(d -> Objects.equals(f.getName(), AsmUtils.getExtensionAnnotationValue(d, "default", false).orElse("-"))))
-                                .anyMatch(f -> Objects.equals(f.getName(), entry.getKey()));
-                        if (b
+                                .anyMatch(f -> Objects.equals(f.getName(), entry.getKey()))
                                 && !keepProperties.contains(entry.getKey())
                                 || entry.getValue() == null) {
                             it.remove();

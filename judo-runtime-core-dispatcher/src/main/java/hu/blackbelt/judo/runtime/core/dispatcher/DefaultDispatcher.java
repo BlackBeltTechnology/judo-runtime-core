@@ -372,6 +372,10 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             Map<String, Object> fault = (Map<String, Object>) result.get(FAULT);
             throw new BusinessException((String) fault.get(FAULT_TYPE), (String) fault.get(FAULT_ERROR_CODE), fault, (Throwable) fault.get(FAULT_CAUSE));
         } else if (exposed && outputParameterName != null && result != null && result.get(outputParameterName) != null) {
+            if (implementationName.equals("EXPORT")) {
+                return;
+            }
+
             final ResponseConverter responseConverter = ResponseConverter.builder()
                     .transferObjectType((EClass) operationType)
                     .coercer(dataTypeManager.getCoercer())
@@ -381,10 +385,6 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     .build();
 
             if (isMany) {
-                if (implementationName.equals("EXPORT")) {
-                    return;
-                }
-
                 final Collection<Payload> payloadList = ((Collection<Map<String, Object>>) result.get(outputParameterName)).stream()
                         .map(input -> responseConverter.convert(input).orElse(null))
                         .filter(Objects::nonNull)
