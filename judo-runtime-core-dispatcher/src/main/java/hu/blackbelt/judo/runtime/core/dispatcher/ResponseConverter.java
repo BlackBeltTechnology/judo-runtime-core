@@ -34,12 +34,10 @@ import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.Singular;
-import org.eclipse.emf.ecore.EAttribute;
-import org.eclipse.emf.ecore.EClass;
-import org.eclipse.emf.ecore.EDataType;
-import org.eclipse.emf.ecore.EEnum;
+import org.eclipse.emf.ecore.*;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 public class ResponseConverter {
 
