@@ -186,7 +186,7 @@ public class JudoDefaultModule extends AbstractModule {
         bind(PayloadValidator.class).toProvider(DefaultPayloadValidatorProvider.class).asEagerSingleton();
         bind(String.class).annotatedWith(Names.named(PAYLOAD_VALIDATOR_REQUIRED_STRING_VALIDATOR_OPTION)).toInstance("ACCEPT_NON_EMPTY");
 
-        bind(Export.class).toInstance(new UnsupportedExportImpl());
+        bind(Export.class).to(UnsupportedExportImpl.class);
 
     }
 }
