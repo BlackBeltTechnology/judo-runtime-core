@@ -155,10 +155,10 @@ public class TransferObjectTypeBindingsCollector {
      * @return root node of expression tree
      */
     public Optional<MappedTransferObjectTypeBindings> getTransferObjectGraph(final EClass mappedTransferObjectType) {
-        return getTransferObjectGraph(mappedTransferObjectType, new BasicEMap<>());
+        return getTransferObjectGraph(mappedTransferObjectType, new ConcurrentHashMap<>());
     }
 
-    public Optional<MappedTransferObjectTypeBindings> getTransferObjectGraph(final EClass mappedTransferObjectType, final EMap<EClass, MappedTransferObjectTypeBindings> processedMappedTransferObjectTypeBindings) {
+    public Optional<MappedTransferObjectTypeBindings> getTransferObjectGraph(final EClass mappedTransferObjectType, final Map<EClass, MappedTransferObjectTypeBindings> processedMappedTransferObjectTypeBindings) {
         final Optional<EClass> mappedEntityType = asmUtils.getMappedEntityType(mappedTransferObjectType);
 
         if (!mappedEntityType.isPresent()) {
@@ -168,6 +168,10 @@ public class TransferObjectTypeBindingsCollector {
 
             return Optional.empty();
         } else {
+            if (processedMappedTransferObjectTypeBindings.containsKey(mappedEntityType.get())) {
+                return Optional.of(processedMappedTransferObjectTypeBindings.get(mappedEntityType.get()));
+            }
+
             final MappedTransferObjectTypeBindings mappedTransferObjectTypeBindings = MappedTransferObjectTypeBindings.builder()
                     .entityType(mappedEntityType.get())
                     .transferObjectType(mappedTransferObjectType)
