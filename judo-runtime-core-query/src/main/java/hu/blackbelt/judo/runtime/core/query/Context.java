@@ -26,7 +26,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import org.eclipse.emf.ecore.EObject;
 
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +43,7 @@ public class Context implements Cloneable {
     @Setter
     private Node node;
 
-    private final QueryModelResourceSupport queryModelResourceSupport;
+    private final List<EObject> createdQueryObjects;
 
     @NonNull
     private final Map<String, Node> variables;
@@ -55,7 +57,7 @@ public class Context implements Cloneable {
     public Context clone() {
         return Context.builder()
                 .node(node)
-                .queryModelResourceSupport(queryModelResourceSupport)
+                .createdQueryObjects(createdQueryObjects)
                 .variables(new TreeMap<>(variables))
                 .sourceCounter(sourceCounter)
                 .targetCounter(targetCounter)
@@ -70,7 +72,7 @@ public class Context implements Cloneable {
 
         return Context.builder()
                 .node(node)
-                .queryModelResourceSupport(queryModelResourceSupport)
+                .createdQueryObjects(createdQueryObjects)
                 .variables(newVariables)
                 .sourceCounter(sourceCounter)
                 .targetCounter(targetCounter)
