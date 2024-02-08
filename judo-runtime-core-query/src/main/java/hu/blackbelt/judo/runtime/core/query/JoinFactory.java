@@ -333,7 +333,7 @@ public abstract class JoinFactory {
                         .build();
                 ((Select) base).getTargets().add(((Select) base).getMainTarget());
                 context.setNode(base);
-                context.getQueryModelResourceSupport().addContent(base);
+                context.getCreatedQueryObjects().add(base);
             } else if (expr instanceof SortExpression) {
                 final SortExpression sortExpression = (SortExpression) expr;
                 if (!ignoreOrderBy) {

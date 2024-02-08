@@ -507,13 +507,14 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
     }
 
-    private synchronized <T extends EObject> T clone(final T original) {
+    private <T extends EObject> T clone(final T original) {
         final EcoreUtil.Copier copier = new EcoreUtil.Copier(true, true);
-        @SuppressWarnings("unchecked")
-        final T result = (T) copier.copy(original);
-        copier.copyReferences();
 
-        return result;
+        synchronized (original.eResource()) {
+            final T result = (T) copier.copy(original);
+            copier.copyReferences();
+            return result;
+        }
     }
 
     private Filter createFilter(final EClass type, final Node node, final String filterExpressionString) {
@@ -534,10 +535,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .build();
         context.pushVariable(_this);
 
-        JqlExpression filterExpressionJql;
-        synchronized (this) {
-            filterExpressionJql = new JqlParser().parseString(filterExpressionString);
-        }
+        JqlExpression filterExpressionJql = new JqlParser().parseString(filterExpressionString);
         final LogicalExpression filterExpression = (LogicalExpression)
                 jqlExpressionBuilder.createExpression(CreateExpressionArguments.<EClass, EClass, EClassifier>builder()
                                                                                .withJqlExpression(filterExpressionJql)
