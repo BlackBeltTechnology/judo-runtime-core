@@ -45,6 +45,7 @@ import org.eclipse.emf.common.notify.Notifier;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 import org.eclipse.emf.ecore.util.builder.EAttributeBuilder;
@@ -53,6 +54,7 @@ import org.eclipse.emf.ecore.util.builder.EClassBuilder;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -97,6 +99,8 @@ public class QueryFactory {
     @Getter
     private final QueryModelResourceSupport queryModelResourceSupport;
 
+    private final List<EObject> createdQueryObjects = new CopyOnWriteArrayList<>();
+
     public static final String EXPOSED_ALIAS = "__exposed";
     public static final String DATA_ALIAS = "__data";
 
@@ -136,6 +140,10 @@ public class QueryFactory {
 
         createQueries();
         createNavigations();
+
+        for (EObject object : createdQueryObjects) {
+            queryModelResourceSupport.addContent(object);
+        }
 
         if (!queryModelResourceSupport.isValid()) {
             log.error("Invalid query model: {}", queryModelResourceSupport.getDiagnosticsAsString());
@@ -201,7 +209,7 @@ public class QueryFactory {
             select.getTargets().add(select.getMainTarget());
             select.getMainTarget().setContainerWithIdFeature(select, true);
 
-            queryModelResourceSupport.addContent(select);
+            createdQueryObjects.add(select);
 
             transferObjectQueries.put(mappedTransferObjectType, select);
         } else {
@@ -219,7 +227,7 @@ public class QueryFactory {
 
             final Select select = transferObjectQueries.get(mappedTransferObjectType);
             final Context context = Context.builder()
-                    .queryModelResourceSupport(queryModelResourceSupport)
+                    .createdQueryObjects(createdQueryObjects)
                     .node(select)
                     .sourceCounter(nextSourceIndex)
                     .targetCounter(nextTargetIndex)
@@ -240,7 +248,7 @@ public class QueryFactory {
             }
             final Select select = transferObjectQueries.get(mappedTransferObjectType);
             addReferences(node.get(), Context.builder()
-                            .queryModelResourceSupport(queryModelResourceSupport)
+                            .createdQueryObjects(createdQueryObjects)
                             .node(select)
                             .sourceCounter(nextSourceIndex)
                             .targetCounter(nextTargetIndex)
@@ -334,7 +342,7 @@ public class QueryFactory {
                             .withNode(select)
                             .build();
                     final Feature feature = featureFactory.convert(dataExpression, Context.builder()
-                                    .queryModelResourceSupport(queryModelResourceSupport)
+                                    .createdQueryObjects(createdQueryObjects)
                                     .node(select)
                                     .sourceCounter(nextSourceIndex)
                                     .targetCounter(nextTargetIndex)
@@ -356,8 +364,9 @@ public class QueryFactory {
                             .withEmbeddedSelect(select)
                             .withAlias(EXPOSED_ALIAS)
                             .build();
-                    queryModelResourceSupport.addContent(subSelect);
-                    queryModelResourceSupport.addContent(resultType);
+
+                    createdQueryObjects.add(subSelect);
+                    createdQueryObjects.add(resultType);
 
                     dataQueries.put(attribute, subSelect);
                 });
@@ -366,7 +375,6 @@ public class QueryFactory {
                 .filter(r -> asmUtils.isMappedTransferObjectType(r.getEReferenceType()) && r.isDerived() && !AsmUtils.isEntityType(r.getEContainingClass()) && isStaticReference(r)).collect(Collectors.toSet());
 
         referencesToProcess.parallelStream()
-                .filter(r -> asmUtils.isMappedTransferObjectType(r.getEReferenceType()) && r.isDerived() && !AsmUtils.isEntityType(r.getEContainingClass()) && isStaticReference(r))
                 .forEach(navigation -> {
                     final ReferenceExpression selector;
                     if (asmUtils.isMappedTransferObjectType(navigation.getEContainingClass())) {
@@ -401,7 +409,7 @@ public class QueryFactory {
                             .build();
 
                     final JoinFactory.PathEnds pathEnds = joinFactory.convertNavigationToJoins(Context.builder()
-                                    .queryModelResourceSupport(queryModelResourceSupport)
+                                    .createdQueryObjects(createdQueryObjects)
                                     .sourceCounter(nextSourceIndex)
                                     .targetCounter(nextTargetIndex)
                                     .variables(Collections.emptyMap()).build(),
@@ -415,7 +423,8 @@ public class QueryFactory {
                     if (pathEnds.isOrdered()) {
                         orderedTransferRelations.add(navigation);
                     }
-                    queryModelResourceSupport.addContent(subSelect);
+
+                    createdQueryObjects.add(subSelect);
 
                     navigationQueries.put(navigation, subSelect);
                 });
