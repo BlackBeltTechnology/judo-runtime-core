@@ -20,11 +20,10 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query;
  * #L%
  */
 
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
 
 import java.text.MessageFormat;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -32,7 +31,7 @@ import java.util.stream.Stream;
 
 public class AncestorNameFactory {
 
-    private final EMap<EClass, Integer> ancestorIndexes = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EClass, Integer> ancestorIndexes = new ConcurrentHashMap<>();
     private final AtomicInteger nextAncestorIndex = new AtomicInteger(0);
     private static final String ANCESTOR_ALIAS_FORMAT = "_a{0,number,00}";
 

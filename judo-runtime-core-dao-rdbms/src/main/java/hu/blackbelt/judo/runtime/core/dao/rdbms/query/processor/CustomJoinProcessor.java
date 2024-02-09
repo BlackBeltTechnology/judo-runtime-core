@@ -32,8 +32,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -42,6 +40,7 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Builder
@@ -54,7 +53,7 @@ public class CustomJoinProcessor {
     private final AsmUtils asmUtils;
 
     public List<RdbmsJoin> process(CustomJoin join, RdbmsBuilderContext builderContext) {
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
         final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         if (log.isTraceEnabled()) {

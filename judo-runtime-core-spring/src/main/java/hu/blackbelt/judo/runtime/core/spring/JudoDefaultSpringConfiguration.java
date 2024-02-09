@@ -61,15 +61,11 @@ import hu.blackbelt.judo.tatami.core.TransformationTraceServiceImpl;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
-import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -171,7 +167,7 @@ public class JudoDefaultSpringConfiguration {
                 measureModel.getResourceSet(),
                 asmJqlExtractor.extractExpressions(),
                 coercer,
-                ECollections.asEMap(new ConcurrentHashMap<>()));
+                new ConcurrentHashMap<>());
                 //requireNonNullElse(customJoinDefinitions, ECollections.asEMap(new ConcurrentHashMap<>())));
 
         return queryFactory;

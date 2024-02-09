@@ -32,8 +32,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -52,7 +50,7 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
     @AllArgsConstructor
     @Builder
     public static class FunctionContext {
-        public EMap<ParameterName, RdbmsField> parameters;
+        public Map<ParameterName, RdbmsField> parameters;
         public RdbmsFunction.RdbmsFunctionBuilder builder;
         public Function function;
     }
@@ -494,11 +492,11 @@ public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
 
     @Override
     public Stream<? extends RdbmsField> map(final Function function, RdbmsBuilderContext builderContext) {
-        final EMap<ParameterName, RdbmsField> parameters = ECollections.asEMap(function.getParameters().stream()
+        final Map<ParameterName, RdbmsField> parameters = function.getParameters().stream()
                 .collect(Collectors.<FunctionParameter, ParameterName, RdbmsField>toMap(
                         FunctionParameter::getParameterName,
                         e -> rdbmsBuilder.mapFeatureToRdbms(e.getParameterValue(), builderContext).findAny().
-                                orElseThrow(() -> new IllegalStateException("Rdbms field not found for parameter: " + e.getParameterName())))));
+                                orElseThrow(() -> new IllegalStateException("Rdbms field not found for parameter: " + e.getParameterName()))));
 
         return getTargets(function).map(t -> {
             RdbmsFunction.RdbmsFunctionBuilder builder = RdbmsFunction.builder()

@@ -42,9 +42,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
 
-    private final EMap<Node, EList<EClass>> subAncestors = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> subAncestors = new HashMap<>();
 
-    private final EMap<Node, EList<EClass>> subDescendants = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> subDescendants = new HashMap<>();
 
     private final String subFrom;
     private final List<RdbmsJoin> subJoins = new ArrayList<>();
@@ -84,7 +84,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         }
         alias = RdbmsAliasUtil.AGGREGATE_PREFIX + query.getAlias();
 
-        final EList<Join> navigationJoinList = query.getNavigationJoins();
+        final List<Join> navigationJoinList = query.getNavigationJoins();
 
         checkArgument(query.getBase() != null, "Base must not be null");
         checkArgument(!navigationJoinList.isEmpty(), "Navigation JOINs must not be empty");
@@ -137,7 +137,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                     joinedOrderByAliases.add(orderBy.getAlias());
                 }
 
-                final EList<Join> additionalJoins = new UniqueEList<>();
+                final List<Join> additionalJoins = new UniqueEList<>();
                 additionalJoins.addAll(orderBy.getJoins().stream()
                         .flatMap(j -> j.getAllJoins().stream())
                         .collect(Collectors.toList()));
@@ -283,7 +283,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final String subSelectJoinPrefix = converterContext.getPrefix() + RdbmsAliasUtil.getNavigationSubSelectAlias(query);
         aliasToCompareWith = converterContext.getPrefix() + alias;
 
-        final EMap<Node, String> newPrefixes = new BasicEMap<>();
+        final Map<Node, String> newPrefixes = new HashMap<>();
         newPrefixes.putAll(converterContext.getPrefixes());
         if (query.getBase() != null) {
             newPrefixes.put(query.getBase(), subSelectJoinPrefix);

@@ -21,10 +21,10 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query;
  */
 
 import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
 
 import java.text.MessageFormat;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 
 public class DescendantNameFactory {
 
-    private final EMap<EClass, Integer> descendantIndexes = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EClass, Integer> descendantIndexes = new ConcurrentHashMap<>();
     private final AtomicInteger nextDescendantIndex = new AtomicInteger(0);
     private static final String DESCENDANT_ALIAS_FORMAT = "_d{0,number,00}";
 

@@ -29,12 +29,11 @@ import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.mapper.api.Coercer;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EReference;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.util.Objects.requireNonNullElse;
@@ -52,7 +51,7 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
     @Inject(optional = true)
     @Named(QUERY_FACTORY_CUSTOM_JOIN_DEFINITIONS)
     @Nullable
-    EMap<EReference, CustomJoinDefinition> customJoinDefinitions;
+    Map<EReference, CustomJoinDefinition> customJoinDefinitions;
 
     @Override
     public QueryFactory get() {
@@ -68,7 +67,7 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
                 models.getMeasureModel().getResourceSet(),
                 asmJqlExtractor.extractExpressions(),
                 coercer,
-                requireNonNullElse(customJoinDefinitions, ECollections.asEMap(new ConcurrentHashMap<>())));
+                requireNonNullElse(customJoinDefinitions, new ConcurrentHashMap<>()));
 
         return queryFactory;
     }

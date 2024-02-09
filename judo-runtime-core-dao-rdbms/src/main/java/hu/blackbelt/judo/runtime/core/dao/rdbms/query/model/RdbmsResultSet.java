@@ -51,9 +51,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private SubSelect query;
 
     // map of ancestors (the are holder of an attribute) of a given source
-    private final EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> ancestors = new HashMap<>();
 
-    private final EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> descendants = new HashMap<>();
 
     private final String from;
     private final Collection<RdbmsField> columns = new ArrayList<>();
@@ -61,7 +61,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final List<RdbmsField> conditions = new ArrayList<>();
     private final List<RdbmsOrderBy> orderBys = new ArrayList<>();
 
-    private final EMap<OrderBy, RdbmsField> orderByFeatures = ECollections.asEMap(new LinkedHashMap<>());
+    private final Map<OrderBy, RdbmsField> orderByFeatures = new LinkedHashMap<>();
 
     private Integer limit = null;
     private Integer offset = null;
@@ -69,7 +69,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final boolean group;
     private final boolean skipParents;
 
-    private final EList<Join> processedNodesForJoins = ECollections.newBasicEList();
+    private final List<Join> processedNodesForJoins = new ArrayList<>();
 
     private final RdbmsBuilder<ID> rdbmsBuilder;
 
@@ -105,9 +105,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
-        final EMap<Target, Collection<String>> targetMask = mask != null
-                ? getTargetMask(query.getSelect().getMainTarget(), mask, new BasicEMap<>())
-                : ECollections.emptyEMap();
+        final Map<Target, Collection<String>> targetMask = mask != null
+                ? getTargetMask(query.getSelect().getMainTarget(), mask, new HashMap<>())
+                : Collections.emptyMap();
 
         final List<Feature> features = query.getSelect().getFeatures().stream()
                 .filter(
@@ -334,7 +334,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
 
         if (limit != null && seek != null && seek.getLastItem() != null && from != null) {
-            orderByFeatures.stream()
+            orderByFeatures.entrySet().stream()
                     .findFirst().ifPresent(orderBy -> {
                         final Object value = getLastItemValue(rdbmsBuilder,
                                 query.getSelect().getMainTarget().getType(),
@@ -470,10 +470,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
     }
 
-    private EMap<Target, Collection<String>> getTargetMask(
+    private Map<Target, Collection<String>> getTargetMask(
             final Target target,
             final Map<String, Object> mask,
-            final EMap<Target, Collection<String>> result) {
+            final Map<Target, Collection<String>> result) {
         result.put(target, mask.entrySet().stream()
                 .filter(e -> target.getType().getEAllAttributes().stream()
                         .anyMatch(a -> Objects.equals(a.getName(), e.getKey())))
@@ -524,9 +524,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     @Override
     public String toSql(SqlConverterContext converterContext) {
         final String prefix = converterContext.getPrefix();
-        final EMap<Node, String> prefixes = converterContext.getPrefixes();
+        final Map<Node, String> prefixes = converterContext.getPrefixes();
 
-        final EMap<Node, String> newPrefixes = new BasicEMap<>();
+        final Map<Node, String> newPrefixes = new HashMap<>();
         newPrefixes.putAll(prefixes);
         newPrefixes.put(query.getSelect(), prefix);
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
@@ -640,7 +640,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private boolean isFeatureIncludedByMask(
             Feature f,
             Map<String, Object> mask,
-            EMap<Target, Collection<String>> targetMask) {
+            Map<Target, Collection<String>> targetMask) {
         return (mask == null &&
                 f.getTargetMappings().stream()
                         .noneMatch(tm -> tm.getTargetAttribute() != null &&
