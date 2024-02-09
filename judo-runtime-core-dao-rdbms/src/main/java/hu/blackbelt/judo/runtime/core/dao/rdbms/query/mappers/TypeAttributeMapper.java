@@ -27,12 +27,12 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsColumn;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EClass;
 
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -40,7 +40,7 @@ public class TypeAttributeMapper extends RdbmsMapper<TypeAttribute> {
 
     @Override
     public Stream<RdbmsColumn> map(final TypeAttribute typeAttribute, RdbmsBuilderContext builderContext) {
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
 
         final EClass sourceType = typeAttribute.getNode().getType();
         for (EClass superType : sourceType.getEAllSuperTypes()) {

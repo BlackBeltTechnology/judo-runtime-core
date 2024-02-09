@@ -32,6 +32,7 @@ import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EAttribute;
 
+import java.util.Map;
 import java.util.Optional;
 
 @SuperBuilder

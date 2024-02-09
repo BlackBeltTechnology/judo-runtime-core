@@ -42,7 +42,8 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.emf.common.notify.Notifier;
-import org.eclipse.emf.common.util.*;
+import org.eclipse.emf.common.util.URI;
+import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EObject;
@@ -82,9 +83,9 @@ public class QueryFactory {
     private final AsmModelAdapter modelAdapter;
     private final AsmUtils asmUtils;
 
-    private EMap<EClass, Select> transferObjectQueries = ECollections.asEMap(new ConcurrentHashMap<>()); // key: ASM mapped transfer object type
-    private EMap<EReference, SubSelect> navigationQueries = ECollections.asEMap(new ConcurrentHashMap<>()); // key: ASM exposed graph
-    private EMap<EAttribute, SubSelect> dataQueries = ECollections.asEMap(new ConcurrentHashMap<>()); // key: ASM exposed graph
+    private Map<EClass, Select> transferObjectQueries = new ConcurrentHashMap<>(); // key: ASM mapped transfer object type
+    private Map<EReference, SubSelect> navigationQueries = new ConcurrentHashMap<>(); // key: ASM exposed graph
+    private Map<EAttribute, SubSelect> dataQueries = new ConcurrentHashMap<>(); // key: ASM exposed graph
 
     public static final String TABLE_ALIAS_FORMAT = "t{0,number,00}";
 
@@ -92,9 +93,9 @@ public class QueryFactory {
     private JoinFactory joinFactory;
 
     @Getter
-    private final EMap<EReference, CustomJoinDefinition> customJoinDefinitions;
+    private final Map<EReference, CustomJoinDefinition> customJoinDefinitions;
 
-    private final EList<EReference> orderedTransferRelations = new UniqueEList<>();
+    private final List<EReference> orderedTransferRelations = new UniqueEList<>();
 
     @Getter
     private final QueryModelResourceSupport queryModelResourceSupport;
@@ -105,7 +106,7 @@ public class QueryFactory {
     public static final String DATA_ALIAS = "__data";
 
     public QueryFactory(final ResourceSet asmResourceSet, final ResourceSet expressionResourceSet, final Coercer coercer) {
-        this(asmResourceSet, MeasureModelResourceSupport.createMeasureResourceSet(), expressionResourceSet, coercer, ECollections.emptyEMap());
+        this(asmResourceSet, MeasureModelResourceSupport.createMeasureResourceSet(), expressionResourceSet, coercer, Collections.emptyMap());
     }
 
     @Builder
@@ -114,10 +115,10 @@ public class QueryFactory {
             @NonNull final ResourceSet measureResourceSet,
             @NonNull final ResourceSet expressionResourceSet,
             @NonNull final Coercer coercer,
-            final EMap<EReference, CustomJoinDefinition> customJoinDefinitions) {
+            final Map<EReference, CustomJoinDefinition> customJoinDefinitions) {
 
         this.asmResourceSet = asmResourceSet;
-        this.customJoinDefinitions = customJoinDefinitions == null ?  ECollections.asEMap(new ConcurrentHashMap<>()) : customJoinDefinitions;
+        this.customJoinDefinitions = customJoinDefinitions == null ?  new ConcurrentHashMap<>() : customJoinDefinitions;
         queryModelResourceSupport = QueryModelResourceSupport.queryModelResourceSupportBuilder()
                 .uri(URI.createURI("query:in-memory"))
                 .build();
@@ -155,7 +156,7 @@ public class QueryFactory {
         return modelAdapter;
     }
 
-    public EMap<EClass, EntityTypeExpressions> getEntityTypeExpressionsMap() {
+    public Map<EClass, EntityTypeExpressions> getEntityTypeExpressionsMap() {
         return transferObjectTypeBindingsCollector.getEntityTypeExpressionsMap();
     }
 
@@ -254,7 +255,7 @@ public class QueryFactory {
                             .targetCounter(nextTargetIndex)
                             .variables(Collections.singletonMap(JqlExpressionBuilder.SELF_NAME, select)).build(),
                     select.getMainTarget(),
-                    ECollections.emptyEList()); // add all references to logical query
+                    Collections.emptyList()); // add all references to logical query
         } else {
             log.error("No root node of expression tree found for mapped transfer object type: {}, reference not added", AsmUtils.getClassifierFQName(mappedTransferObjectType));
         }
@@ -479,15 +480,15 @@ public class QueryFactory {
      * @param mappedTransferObjectTypeBindings node of expression tree
      * @param context                          context
      */
-    private void addReferences(final MappedTransferObjectTypeBindings mappedTransferObjectTypeBindings, final Context context, final Target target, final EList<EReference> referenceChain) {
-        final EList<EReference> subSelectReferences = new UniqueEList<>();
+    private void addReferences(final MappedTransferObjectTypeBindings mappedTransferObjectTypeBindings, final Context context, final Target target, final List<EReference> referenceChain) {
+        final List<EReference> subSelectReferences = new UniqueEList<>();
 
         mappedTransferObjectTypeBindings.getReferences().entrySet().stream()
                 .filter(c -> mappedTransferObjectTypeBindings.getGetterReferenceExpressions().containsKey(c.getKey()))
                 .forEach(c -> {
                     EReference reference = c.getKey();
 
-                    final EList<EReference> newReferenceChain = new BasicEList<>();
+                    final List<EReference> newReferenceChain = new ArrayList<>();
                     newReferenceChain.addAll(referenceChain);
                     newReferenceChain.add(reference);
 
@@ -556,7 +557,7 @@ public class QueryFactory {
                     EReference reference = c.getKey();
                     MappedTransferObjectTypeBindings transferObjectTypeBindings = c.getValue();
 
-                    final EList<EReference> newReferenceChain = new BasicEList<>();
+                    final List<EReference> newReferenceChain = new ArrayList<>();
                     newReferenceChain.addAll(referenceChain);
                     newReferenceChain.add(reference);
 
@@ -642,30 +643,30 @@ public class QueryFactory {
                 .orElse(true); // static=true returned for transfer attributes without binding
     }
 
-    private boolean isCircularAggregation(final EList<EReference> references, final EReference reference) {
-        final EList<EClass> sourceTypes = new UniqueEList<>();
+    private boolean isCircularAggregation(final List<EReference> references, final EReference reference) {
+        final List<EClass> sourceTypes = new UniqueEList<>();
         sourceTypes.addAll(references.stream()
                 .map(r -> r.getEContainingClass())
                 .collect(Collectors.toList()));
         sourceTypes.add(reference.getEContainingClass());
 
-        return isCircularAggregation(sourceTypes, new UniqueEList<>(), ECollections.singletonEList(reference));
+        return isCircularAggregation(sourceTypes, new UniqueEList<>(), Collections.singletonList(reference));
     }
 
-    private boolean isCircularAggregation(final EList<EClass> sourceTypes, final EList<EClass> checkedTypes, final EList<EReference> references) {
+    private boolean isCircularAggregation(final List<EClass> sourceTypes, final List<EClass> checkedTypes, final List<EReference> references) {
         if (references.stream()
                 .map(r -> r.getEReferenceType())
                 .anyMatch(t -> sourceTypes.contains(t))) {
             return true;
         }
 
-        final EList<EClass> nextTypes = new UniqueEList<>();
+        final List<EClass> nextTypes = new UniqueEList<>();
         nextTypes.addAll(references.stream()
                 .filter(r -> !checkedTypes.contains(r.getEReferenceType()))
                 .map(r -> r.getEReferenceType())
                 .collect(Collectors.toList()));
 
-        final EList<EReference> nextReferences = new UniqueEList<>();
+        final List<EReference> nextReferences = new UniqueEList<>();
         nextReferences.addAll(nextTypes.stream()
                 .flatMap(c -> c.getEAllReferences().stream()
                         .filter(r -> AsmUtils.isEmbedded(r)))

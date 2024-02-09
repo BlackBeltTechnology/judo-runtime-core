@@ -23,7 +23,6 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EReference;
 
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ public class RdbmsContainerJoin extends RdbmsJoin {
     private final String tableName;
 
     @NonNull
-    private final EList<EReference> references;
+    private final List<EReference> references;
 
     @Override
     protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {

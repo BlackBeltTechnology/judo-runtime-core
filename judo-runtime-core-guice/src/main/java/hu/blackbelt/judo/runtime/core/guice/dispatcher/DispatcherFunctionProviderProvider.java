@@ -23,27 +23,26 @@ package hu.blackbelt.judo.runtime.core.guice.dispatcher;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.runtime.core.dispatcher.DispatcherFunctionProvider;
-import org.eclipse.emf.common.util.BasicEMap;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EOperation;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 public class DispatcherFunctionProviderProvider implements Provider<DispatcherFunctionProvider> {
     @Override
     public DispatcherFunctionProvider get() {
-        final EMap<EOperation, Function<Payload, Payload>> scripts = new BasicEMap<>();
-        final EMap<EOperation, Function<Payload, Payload>> sdkFunctions = new BasicEMap<>();
+        final Map<EOperation, Function<Payload, Payload>> scripts = new HashMap<>();
+        final Map<EOperation, Function<Payload, Payload>> sdkFunctions = new HashMap<>();
 
         DispatcherFunctionProvider dispatcherFunctionProvider = new DispatcherFunctionProvider() {
             @Override
-            public EMap<EOperation, Function<Payload, Payload>> getSdkFunctions() {
+            public Map<EOperation, Function<Payload, Payload>> getSdkFunctions() {
                 return sdkFunctions;
             }
 
             @Override
-            public EMap<EOperation, Function<Payload, Payload>> getScriptFunctions() {
+            public Map<EOperation, Function<Payload, Payload>> getScriptFunctions() {
                 return scripts;
             }
         };

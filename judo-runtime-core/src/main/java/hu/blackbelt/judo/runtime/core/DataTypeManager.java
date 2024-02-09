@@ -26,12 +26,11 @@ import hu.blackbelt.mapper.api.Converter;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.api.Formatter;
 import lombok.*;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EDataType;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -43,7 +42,7 @@ import java.util.function.Function;
 @NoArgsConstructor
 public class DataTypeManager {
 
-    private final EMap<EDataType, String> customTypes = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EDataType, String> customTypes = new ConcurrentHashMap<>();
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static final Function<Formatter<Object>, Collection<Converter<Object, Object>>> CONVERTER_FACTORY = f -> ImmutableSet.of(
@@ -87,7 +86,7 @@ public class DataTypeManager {
     private ExtendableCoercer coercer;
 
     @SuppressWarnings({"rawtypes"})
-    private final EMap<EDataType, Collection<Converter>> converterMap = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EDataType, Collection<Converter>> converterMap = new ConcurrentHashMap<>();
 
     @SuppressWarnings({"rawtypes"})
     public void registerCustomType(final EDataType customDataType, final String customClassName, final Collection<Converter> converters) {
@@ -115,7 +114,7 @@ public class DataTypeManager {
         if (customTypes.containsKey(customDataType)) {
             converterMap.get(customDataType).forEach(c -> coercer.getConverterFactory().unregisterConverter(c));
         }
-        customTypes.removeKey(customDataType);
+        customTypes.remove(customDataType);
     }
 
     public Optional<String> getCustomTypeName(final EDataType customDataType) {

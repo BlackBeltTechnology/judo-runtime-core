@@ -33,13 +33,9 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Builder
@@ -60,14 +56,14 @@ public class AncestorJoinsProcessor {
     }
 
     private void addAncestorJoins(final Collection<RdbmsJoin> joins, final Node node, RdbmsBuilderContext builderContext) {
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
         if (log.isTraceEnabled()) {
             log.trace("Node:       " + node);
             log.trace("Joins:      " + joins);
             log.trace("Ancestors:  " + ancestors);
         }
 
-        final EList<EClass> list;
+        final List<EClass> list;
         if (ancestors.containsKey(node)) {
             list = ancestors.get(node);
         } else if (node.eContainer() instanceof SubSelect &&
@@ -77,7 +73,7 @@ public class AncestorJoinsProcessor {
                 ancestors.containsKey(node.eContainer())) {
             list = ancestors.get(node.eContainer());
         } else {
-            list = ECollections.emptyEList();
+            list = Collections.emptyList();
         }
 
         List<RdbmsJoin> newJoins = list.stream()
@@ -98,14 +94,14 @@ public class AncestorJoinsProcessor {
     }
 
     private void addDescendantJoins(final Collection<RdbmsJoin> joins, final Node node, RdbmsBuilderContext builderContext) {
-        final EMap<Node, EList<EClass>> descendants = builderContext.getDescendants();
+        final Map<Node, List<EClass>> descendants = builderContext.getDescendants();
         if (log.isTraceEnabled()) {
             log.trace("Node:        " + node);
             log.trace("Joins:       " + joins);
             log.trace("Descendants: " + descendants);
         }
 
-        final EList<EClass> list;
+        final List<EClass> list;
         if (descendants.containsKey(node)) {
             list = descendants.get(node);
         } else if (node.eContainer() instanceof SubSelect &&

@@ -36,14 +36,11 @@ import hu.blackbelt.judo.runtime.core.query.Constants;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.FeatureFactory;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 
@@ -104,15 +101,15 @@ public abstract class ExpressionToFeatureConverter<E extends Expression> {
         }
     }
 
-    protected EList<FunctionConstraint> getConstraints(final EAttribute attribute) {
+    protected List<FunctionConstraint> getConstraints(final EAttribute attribute) {
         if (attribute == null) {
-            return ECollections.emptyEList();
+            return Collections.emptyList();
         } else {
             final Optional<String> precision = AsmUtils.getExtensionAnnotationCustomValue(attribute, "constraints", "precision", false);
             final Optional<String> scale = AsmUtils.getExtensionAnnotationCustomValue(attribute, "constraints", "scale", false);
             final Optional<String> maxLength = AsmUtils.getExtensionAnnotationCustomValue(attribute, "constraints", "maxLength", false);
 
-            final EList<FunctionConstraint> constraints = ECollections.newBasicEList();
+            final List<FunctionConstraint> constraints = new ArrayList<>();
             if (precision.isPresent()) {
                 constraints.add(newFunctionConstraintBuilder().withResultConstraint(ResultConstraint.PRECISION).withValue(precision.get()).build());
             }

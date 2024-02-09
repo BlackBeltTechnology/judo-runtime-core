@@ -33,12 +33,11 @@ import hu.blackbelt.judo.meta.expression.variable.ObjectVariable;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import lombok.Builder;
 import lombok.NonNull;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -97,18 +96,18 @@ public class AttributeSelectorTranslator implements Function<AttributeSelector, 
         }
     }
 
-    private EList<ObjectVariableReference> collectSelfReferences(final Expression expression) {
+    private List<ObjectVariableReference> collectSelfReferences(final Expression expression) {
         if (expression instanceof ObjectVariableReference) {
             final ObjectVariableReference variableReference = (ObjectVariableReference) expression;
             if (JqlExpressionBuilder.SELF_NAME.equals(variableReference.getVariableName()) && variableReference.getVariable() instanceof Instance) {
-                return ECollections.singletonEList(variableReference);
+                return Collections.singletonList(variableReference);
             } else {
-                return ECollections.emptyEList();
+                return Collections.emptyList();
             }
         } else {
-            return ECollections.asEList(expression.getOperands().stream().flatMap(o ->
+            return expression.getOperands().stream().flatMap(o ->
                     collectSelfReferences(o).stream())
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList());
         }
     }
 }

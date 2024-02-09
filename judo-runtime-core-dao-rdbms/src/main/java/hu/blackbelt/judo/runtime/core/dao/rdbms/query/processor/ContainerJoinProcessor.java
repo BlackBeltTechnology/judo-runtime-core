@@ -33,8 +33,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
@@ -54,7 +52,7 @@ public class ContainerJoinProcessor {
 
         final EClass targetType = join.getType();
         final Node node = join.getPartner();
-        final EList<EReference> references = join.getReferences();
+        final List<EReference> references = join.getReferences();
         final EClass sourceType = node != null ? node.getType() : references.get(0).getEReferenceType();
 
         if (log.isTraceEnabled()) {
