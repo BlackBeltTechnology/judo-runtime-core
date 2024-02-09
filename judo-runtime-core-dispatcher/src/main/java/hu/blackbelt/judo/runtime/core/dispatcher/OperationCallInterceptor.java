@@ -2,10 +2,10 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * Interface to register decorator functions over operation calls. It supports
@@ -31,7 +31,7 @@ public interface OperationCallInterceptor {
      * @return
      */
     default Collection<EOperation> getOperations(AsmModel asmModel) {
-        return ECollections.emptyEList();
+        return Collections.emptyList();
     }
 
     /**

@@ -25,9 +25,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsField;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import lombok.extern.java.Log;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EMap;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -86,7 +84,7 @@ public abstract class RdbmsJoin {
         }
     }
 
-    protected String getPartnerTableName(final String prefix, final EMap<Node, String> prefixes) {
+    protected String getPartnerTableName(final String prefix, final Map<Node, String> prefixes) {
         final String partnerTableName;
         if (partnerTable != null) {
             if (prefixes.containsKey(partnerTable)) {

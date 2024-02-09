@@ -197,7 +197,7 @@ public class RdbmsBuilder<ID> {
         final RdbmsBuilderContext builderContext = params.getBuilderContext();
 
         final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
         final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
         final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 

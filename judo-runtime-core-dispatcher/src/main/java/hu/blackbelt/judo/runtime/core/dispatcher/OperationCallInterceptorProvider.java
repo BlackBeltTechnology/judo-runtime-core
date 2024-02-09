@@ -21,16 +21,16 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
  */
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 public interface OperationCallInterceptorProvider {
 
     default Collection<OperationCallInterceptor> getCallOperationInterceptors()  {
-        return ECollections.emptyEList();
+        return Collections.emptyList();
     };
 
     default Collection<OperationCallInterceptor> getInterceptorsForOperation(AsmModel asmModel, EOperation operation) {

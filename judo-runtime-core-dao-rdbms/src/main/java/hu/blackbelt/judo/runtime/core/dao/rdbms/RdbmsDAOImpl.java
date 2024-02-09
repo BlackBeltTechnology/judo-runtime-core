@@ -91,7 +91,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private final SelectStatementExecutor<ID> selectStatementExecutor;
     @Getter private final AsmUtils asmUtils;
     private final ModifyStatementExecutor modifyStatementExecutor;
-    private final EMap<EClass, Boolean> hasDefaultsMap = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EClass, Boolean> hasDefaultsMap = new ConcurrentHashMap<>();
 
     @Builder
     private RdbmsDAOImpl(
@@ -402,11 +402,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         } else {
             // reference is not containment
             final EReference mappedBackReference = mappedReference.getEOpposite();
-            final EList<EReference> backReferences = ECollections.asEList(typeOfNewInstance.getEAllReferences().stream()
+            final List<EReference> backReferences = typeOfNewInstance.getEAllReferences().stream()
                     .filter(br -> getAsmUtils().getMappedReference(br)
                             .filter(mbr -> AsmUtils.equals(mbr, mappedBackReference))
                             .isPresent())
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList());
 
             backReferences.stream()
                     .filter(br -> payload.containsKey(br.getName()))

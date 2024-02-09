@@ -20,12 +20,10 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.math.BigDecimal;

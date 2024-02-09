@@ -32,7 +32,6 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EEnum;
@@ -101,7 +100,7 @@ public class QueryCustomizerParameterProcessor<ID> {
 
     @SuppressWarnings("unchecked")
     private String extractFilteringParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
-        final EList<EAttribute> attributes = clazz.getEAllAttributes();
+        final List<EAttribute> attributes = clazz.getEAllAttributes();
 
         if (queryCustomizerParameter != null) {
             final List<String> filterConditions = new ArrayList<>();

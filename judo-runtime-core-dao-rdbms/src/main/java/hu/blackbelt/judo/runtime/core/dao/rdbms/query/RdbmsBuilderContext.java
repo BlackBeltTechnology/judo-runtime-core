@@ -26,12 +26,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Builder(toBuilder = true)
@@ -42,9 +40,9 @@ public class RdbmsBuilderContext {
     private RdbmsBuilder<?> rdbmsBuilder;
 
     @Builder.Default
-    private EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());;
+    private Map<Node, List<EClass>> ancestors = new HashMap<>();
     @Builder.Default
-    private EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());;
+    private Map<Node, List<EClass>> descendants = new HashMap<>();
     private SubSelect parentIdFilterQuery;
     private Map<String, Object> queryParameters;
 

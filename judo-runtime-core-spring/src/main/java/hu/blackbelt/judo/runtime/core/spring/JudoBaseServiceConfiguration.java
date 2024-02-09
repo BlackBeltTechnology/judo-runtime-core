@@ -32,13 +32,13 @@ import hu.blackbelt.judo.runtime.core.security.*;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
-import org.eclipse.emf.common.util.BasicEMap;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EOperation;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -83,15 +83,15 @@ public class JudoBaseServiceConfiguration {
 
     @Bean
     public DispatcherFunctionProvider getDispatcherFunctionProvider() {
-        final EMap<EOperation, Function<Payload, Payload>> scripts = new BasicEMap<>();
+        final Map<EOperation, Function<Payload, Payload>> scripts = new HashMap<>();
         DispatcherFunctionProvider dispatcherFunctionProvider = new DispatcherFunctionProvider() {
             @Override
-            public EMap<EOperation, Function<Payload, Payload>> getSdkFunctions() {
-                return ECollections.emptyEMap();
+            public Map<EOperation, Function<Payload, Payload>> getSdkFunctions() {
+                return Collections.emptyMap();
             }
 
             @Override
-            public EMap<EOperation, Function<Payload, Payload>> getScriptFunctions() {
+            public Map<EOperation, Function<Payload, Payload>> getScriptFunctions() {
                 return scripts;
             }
         };

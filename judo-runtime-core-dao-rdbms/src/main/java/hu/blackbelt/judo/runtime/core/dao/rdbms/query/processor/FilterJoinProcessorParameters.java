@@ -43,7 +43,7 @@ public class FilterJoinProcessorParameters {
     @NonNull
     private SubSelect query;
     @NonNull
-    private EList<Join> processedNodesForJoins;
+    private List<Join> processedNodesForJoins;
     @NonNull
     private List<RdbmsField> conditions;
     @Builder.Default

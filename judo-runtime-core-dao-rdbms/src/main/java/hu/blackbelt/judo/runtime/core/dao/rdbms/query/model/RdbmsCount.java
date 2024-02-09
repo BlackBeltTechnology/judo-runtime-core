@@ -44,15 +44,15 @@ public class RdbmsCount<ID> {
     private SubSelect query;
 
     // map of ancestors (the are holder of an attribute) of a given source
-    private final EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> ancestors = new HashMap<>();
 
-    private final EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> descendants = new HashMap<>();
 
     private final String from;
     private final List<RdbmsJoin> joins = new ArrayList<>();
     private final List<RdbmsField> conditions = new ArrayList<>();
 
-    private final EList<Join> processedNodesForJoins = ECollections.newBasicEList();
+    private final List<Join> processedNodesForJoins = new ArrayList<>();
 
     private final RdbmsBuilder<ID> rdbmsBuilder;
 
@@ -133,9 +133,9 @@ public class RdbmsCount<ID> {
 
     public String toSql(SqlConverterContext converterContext) {
         final String prefix = converterContext.getPrefix();
-        final EMap<Node, String> prefixes = converterContext.getPrefixes();
+        final Map<Node, String> prefixes = converterContext.getPrefixes();
 
-        final EMap<Node, String> newPrefixes = new BasicEMap<>();
+        final Map<Node, String> newPrefixes = new HashMap<>();
         newPrefixes.putAll(prefixes);
         newPrefixes.put(query.getSelect(), prefix);
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
