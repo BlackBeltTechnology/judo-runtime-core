@@ -78,6 +78,7 @@ import java.util.stream.Collectors;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.meta.expression.constant.util.builder.ConstantBuilders.newInstanceBuilder;
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
+import static hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutorQueryMetaCache.getCache;
 
 @Slf4j
 public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
@@ -390,7 +391,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final Collection<Payload> results = queryFactory.isOrdered(reference) || queryCustomizer != null && (queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null) ? new ArrayList<>() : new HashSet<>();
 
             final String subParentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
-            subQueryResults.get(subQueryTarget).values().forEach(subQueryRecord -> {
+            for (Payload subQueryRecord : subQueryResults.get(subQueryTarget).values()) {
                 if (subParentKey != null) {
                     if (log.isTraceEnabled() && !subQueryRecord.containsKey(subParentKey)) { // container record of subquery record found
                         log.trace("Unknown parent ID ({})", subParentKey);
@@ -398,7 +399,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     subQueryRecord.remove(subParentKey); // remove parent key from subquery record because it will be added as nested list
                 }
                 results.add(subQueryRecord);
-            });
+            };
 
             if (queryCustomizer != null && queryCustomizer.getSeek() != null && queryCustomizer.getSeek().isReverse()) {
                 if (results instanceof List) {
@@ -591,33 +592,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final Map<String, Object> mask,
             final Map<String, Object> queryParameters,
             final boolean skipParents) {
-        // map of sources, key is ID column alias, value is the source object (including SELECT and all JOINs)
-        final Map<String, Node> sources = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getIdColumnAlias, j -> j)));
-        sources.put(RdbmsAliasUtil.getIdColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> types = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getTypeColumnAlias, j -> j)));
-        types.put(RdbmsAliasUtil.getTypeColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> versions = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getVersionColumnAlias, j -> j)));
-        versions.put(RdbmsAliasUtil.getVersionColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> createUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateUsernameColumnAlias, j -> j)));
-        createUsernames.put(RdbmsAliasUtil.getCreateUsernameColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> createUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateUserIdColumnAlias, j -> j)));
-        createUserIds.put(RdbmsAliasUtil.getCreateUserIdColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> createTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateTimestampColumnAlias, j -> j)));
-        createTimestamps.put(RdbmsAliasUtil.getCreateTimestampColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> updateUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateUsernameColumnAlias, j -> j)));
-        updateUsernames.put(RdbmsAliasUtil.getUpdateUsernameColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> updateUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateUserIdColumnAlias, j -> j)));
-        updateUserIds.put(RdbmsAliasUtil.getUpdateUserIdColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> updateTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateTimestampColumnAlias, j -> j)));
-        updateTimestamps.put(RdbmsAliasUtil.getUpdateTimestampColumnAlias(query.getSelect()), query.getSelect());
 
         // the map that will store results
         final Map<Target, Map<ID, Payload>> results = query.getSelect().getTargets().stream()
@@ -652,23 +626,21 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         final List<Chunk<ID>> chunks = new ArrayList<>();
         if (parentIds != null) {
             final List<List<ID>> _parentIds = parentIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(parentIds), chunkSize);
-            _parentIds.forEach(p -> {
+            for (List<ID> p : _parentIds) {
                 if (instanceIds != null) {
                     final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
-                    _instanceIds.forEach(i ->
-                            chunks.add(Chunk.<ID>builder().parentIds(p).instanceIds(i).build()));
+                    chunks.addAll(_instanceIds.stream().map(i -> Chunk.<ID>builder().parentIds(p).instanceIds(i).build()).toList());
                 } else {
                     chunks.add(Chunk.<ID>builder().parentIds(p).build());
                 }
-            });
+            }
         } else if (instanceIds != null) {
             final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
-            _instanceIds.forEach(i ->
-                    chunks.add(Chunk.<ID>builder().instanceIds(i).build()));
+            chunks.addAll(_instanceIds.stream().map(i -> Chunk.<ID>builder().instanceIds(i).build()).toList());
         } else {
             chunks.add(Chunk.<ID>builder().build());
         }
-        chunks.forEach(chunk -> {
+        for (SelectStatementExecutor.Chunk<ID> chunk : chunks) {
             if (log.isDebugEnabled()) {
                 log.debug("Running chunk: {}", chunk);
             }
@@ -701,7 +673,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
 
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
-                resultSet.forEach(record -> {
+                for (Map<String, Object> record : resultSet) {
+
                     if (log.isDebugEnabled()) {
                         log.debug("Processing record:\n{}", record);
                     }
@@ -713,51 +686,34 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     // Unset (NULL) target references in database
                     final List<Target> nullTargets = new ArrayList<>();
 
-                    query.getSelect().getTargets()
-                            .forEach(target -> recordsByTarget.put(target, Payload.asPayload(new ConcurrentHashMap<>())));
+                    for (Target target : query.getSelect().getTargets()) {
+                        recordsByTarget.put(target, Payload.asPayload(new ConcurrentHashMap<>()));
+                    }
                     if (chunk.parentIds != null && parentKey != null) {
                         recordsByTarget.get(query.getSelect().getMainTarget()).put(parentKey, new HashSet<>());
                     }
 
-                    // process fields of record
-                    record.entrySet().forEach(field -> {
+
+                    for (Map.Entry<String, Object> field : record.entrySet()) {
                         if (log.isTraceEnabled()) {
                             log.trace("  - key: {}", field.getKey());
                             log.trace("  - value: {} ({})", field.getValue(), field.getValue() != null ? field.getValue().getClass().getName() : "-");
                         }
-
-                        final Optional<Map.Entry<String, Node>> idSource = sources.entrySet().stream().filter(s -> s.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> typeSource = types.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> versionSource = versions.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> createUsernameSource = createUsernames.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> createUserIdSource = createUserIds.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> createTimestampSource = createTimestamps.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> updateUsernameSource = updateUsernames.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> updateUserIdSource = updateUserIds.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> updateTimestampSource = updateTimestamps.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-
-                        final Map<String, Optional<Map.Entry<String, Node>>> metaSources = ImmutableMap.<String, Optional<Map.Entry<String, Node>>>builder()
-                                .put(ENTITY_TYPE_MAP_KEY, typeSource)
-                                .put(ENTITY_VERSION_MAP_KEY, versionSource)
-                                .put(ENTITY_CREATE_USERNAME_MAP_KEY, createUsernameSource)
-                                .put(ENTITY_CREATE_USER_ID_MAP_KEY, createUserIdSource)
-                                .put(ENTITY_CREATE_TIMESTAMP_MAP_KEY, createTimestampSource)
-                                .put(ENTITY_UPDATE_USERNAME_MAP_KEY, updateUsernameSource)
-                                .put(ENTITY_UPDATE_USER_ID_MAP_KEY, updateUserIdSource)
-                                .put(ENTITY_UPDATE_TIMESTAMP_MAP_KEY, updateTimestampSource)
-                                .build();
+                        final Optional<Node> idSource = getCache(query).getSources(field.getKey());
+                        final Optional<Node> metaField = getCache(query).getMetaField(field.getKey());
+                        final Optional<String> metaFieldName = getCache(query).getMetaFieldName(field.getKey());
 
                         if (idSource.isPresent()) {
                             if (log.isTraceEnabled()) {
-                                log.trace("    - id source: {}", idSource.get().getValue().getAlias());
+                                log.trace("    - id source: {}", idSource.get().getAlias());
                             }
 
                             final List<Target> foundTargets = query.getSelect().getTargets().stream()
-                                    .filter(t -> Objects.equals(t.getNode(), idSource.get().getValue()))
+                                    .filter(t -> Objects.equals(t.getNode(), idSource.get()))
                                     .collect(Collectors.toList());
 
                             if (!foundTargets.isEmpty()) {
-                                foundTargets.forEach(target -> {
+                                for (Target target : foundTargets) {
                                     if (log.isTraceEnabled()) {
                                         log.trace("    - id target: {}", target);
                                     }
@@ -768,47 +724,43 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     if (id == null) {
                                         nullTargets.add(target);
                                     }
-                                });
+                                }
                             } else {
                                 if (log.isTraceEnabled()) {
-                                    log.trace("    - no target of ID, source alias: {}, column: {}", idSource.get().getValue().getAlias(), idSource.get().getKey());
+                                    log.trace("    - no target of ID, source alias: {}, column: {}", idSource.get().getAlias(), field.getKey());
                                 }
                             }
-                        } else if (metaSources.entrySet().stream().anyMatch(e -> e.getValue().isPresent())) {
-                            metaSources.entrySet().stream()
-                                    .filter(e -> e.getValue().isPresent())
-                                    .forEach(e -> {
-                                        if (log.isTraceEnabled()) {
-                                            log.trace("    - meta source: {}", e.getValue().get().getValue().getAlias());
-                                        }
+                        } else if (metaField.isPresent()) {
+                            if (log.isTraceEnabled()) {
+                                log.trace("    - meta source: {}", metaField.get().getAlias());
+                            }
 
-                                        final List<Target> foundTargets = query.getSelect().getTargets().stream()
-                                                .filter(t -> Objects.equals(t.getNode(), e.getValue().get().getValue()))
-                                                .collect(Collectors.toList());
+                            final List<Target> foundTargets = query.getSelect().getTargets().stream()
+                                    .filter(t -> Objects.equals(t.getNode(), metaField.get()))
+                                    .collect(Collectors.toList());
 
-                                        if (!foundTargets.isEmpty()) {
-                                            foundTargets.forEach(target -> {
-                                                if (log.isTraceEnabled()) {
-                                                    log.trace("    - meta target: {}", target);
-                                                }
+                            if (!foundTargets.isEmpty()) {
+                                for (Target target : foundTargets) {
+                                    if (log.isTraceEnabled()) {
+                                        log.trace("    - meta target: {}", target);
+                                    }
 
-                                                final Object value;
-                                                if (ENTITY_CREATE_TIMESTAMP_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_TIMESTAMP_MAP_KEY.equals(e.getKey())) {
-                                                    value = getCoercer().coerce(field.getValue(), LocalDateTime.class);
-                                                } else if (ENTITY_CREATE_USER_ID_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_USER_ID_MAP_KEY.equals(e.getKey())) {
-                                                    value = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
-                                                } else {
-                                                    value = field.getValue();
-                                                }
+                                    final Object value;
+                                    if (ENTITY_CREATE_TIMESTAMP_MAP_KEY.equals(metaFieldName.get()) || ENTITY_UPDATE_TIMESTAMP_MAP_KEY.equals(metaFieldName.get())) {
+                                        value = getCoercer().coerce(field.getValue(), LocalDateTime.class);
+                                    } else if (ENTITY_CREATE_USER_ID_MAP_KEY.equals(metaFieldName.get()) || ENTITY_UPDATE_USER_ID_MAP_KEY.equals(metaFieldName.get())) {
+                                        value = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
+                                    } else {
+                                        value = field.getValue();
+                                    }
 
-                                                recordsByTarget.get(target).put(e.getKey(), value);
-                                            });
-                                        } else {
-                                            if (log.isTraceEnabled()) {
-                                                log.trace("    - no target of type, source alias: {}, column: {}", e.getValue().get().getValue().getAlias(), e.getValue().get().getKey());
-                                            }
-                                        }
-                                    });
+                                    recordsByTarget.get(target).put(metaFieldName.get(), value);
+                                };
+                            } else {
+                                if (log.isTraceEnabled()) {
+                                    log.trace("    - no target of type, source alias: {}, column: {}", metaField.get().getAlias(),metaFieldName.get());
+                                }
+                            }
                         } else if (chunk.parentIds != null && parentKey != null && parentKey.equalsIgnoreCase(field.getKey())) {
                             final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                             if (log.isTraceEnabled()) {
@@ -817,7 +769,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             recordsByTarget.get(query.getSelect().getMainTarget()).getAs(Collection.class, parentKey).add(id);
                         } else {
                             final Set<Target> foundTargets = new HashSet<>();
-                            query.getSelect().getTargets().forEach(target -> {
+                            for (Target target : query.getSelect().getTargets()) {
                                 if (log.isTraceEnabled()) {
                                     log.trace("   - target: {}", target);
                                 }
@@ -887,77 +839,78 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     recordsByTarget.get(featureTargetMapping.get().getTarget()).put(featureTargetMapping.get().getTargetAttribute().getName(), convertedValue);
                                     foundTargets.add(featureTargetMapping.get().getTarget());
                                 }
-                            });
+                            };
                             if (log.isDebugEnabled() && foundTargets.isEmpty()) {
                                 log.debug("No target found for {}, value: {}", field.getKey(), field.getValue());
                             }
                         }
-                    });
+                    };
 
                     // replace payload with null if ID of target is NULL
-                    nullTargets.forEach(target -> recordsByTarget.put(target, null));
+                    for (Target target : nullTargets) {
+                        recordsByTarget.put(target, null);
+                    }
 
-                    query.getSelect().getTargets().stream()
-                            .filter(target -> recordsByTarget.get(target) != null)
-                            .forEach(target -> {
-                                if (log.isTraceEnabled()) {
-                                    log.trace("  - setting containments of {}", target);
-                                }
+                    for (Target target : query.getSelect().getTargets().stream()
+                            .filter(target -> recordsByTarget.get(target) != null).toList()) {
+                        if (log.isTraceEnabled()) {
+                            log.trace("  - setting containments of {}", target);
+                        }
 
-                                // set containments that are selected in single (joined) query
-                                target.getReferencedTargets().stream()
-                                        .filter(rt -> isEmbedded(rt.getReference()))
-                                        .filter(c -> !c.getReference().isMany())
-                                        .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
-                                        .forEach(c -> {
-                                            if (log.isTraceEnabled()) {
-                                                log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
-                                            }
-                                            if(!AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget())){
-                                                final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
-                                                recordsByTarget.get(target).put(c.getReference().getName(), containment);
-                                            } else {
-                                                recordsByTarget.get(target).put(c.getReference().getName(), null);
-                                            }
-                                        });
-
-                                // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
-                                target.getReferencedTargets().stream()
-                                        .filter(r -> isEmbedded(r.getReference()))
-                                        .filter(c -> c.getReference().isMany())
-                                        .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
-                                        .forEach(c -> recordsByTarget.get(target).put(c.getReference().getName(), queryFactory.isOrdered(c.getReference()) ? new ArrayList<>() : new HashSet<>()));
-
-                                // set all results of targets in result
-                                if (idsByTarget.containsKey(target) && idsByTarget.get(target) != null) {
-                                    final ID targetID = idsByTarget.get(target);
-
-                                    if (parentKey != null && results.get(target).containsKey(targetID) && results.get(target).get(targetID).get(parentKey) != null) {
-                                        if (log.isDebugEnabled()) {
-                                            log.debug("Record already added, add new parentId only");
-                                        }
-                                        final Collection<ID> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
-                                        if (log.isTraceEnabled()) {
-                                            log.trace("Current  parent IDs: {}", currentParentIds);
-                                        }
-                                        final Collection<ID> newParentIds = recordsByTarget.get(target).getAs(Collection.class, parentKey);
-                                        if (log.isTraceEnabled()) {
-                                            log.trace("New parent IDs: {}", newParentIds);
-                                        }
-                                        currentParentIds.addAll(newParentIds);
-                                    } else {
-                                        results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
+                        // set containments that are selected in single (joined) query
+                        target.getReferencedTargets().stream()
+                                .filter(rt -> isEmbedded(rt.getReference()))
+                                .filter(c -> !c.getReference().isMany())
+                                .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
+                                .forEach(c -> {
+                                    if (log.isTraceEnabled()) {
+                                        log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
                                     }
-                                } else if (idsByTarget.isEmpty() && AsmUtils.equals(query.getSelect().getMainTarget(), target)) {
-                                    final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
-                                    results.get(target).put(tmpId, recordsByTarget.get(target));
+                                    if(!AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget())){
+                                        final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
+                                        recordsByTarget.get(target).put(c.getReference().getName(), containment);
+                                    } else {
+                                        recordsByTarget.get(target).put(c.getReference().getName(), null);
+                                    }
+                                });
+
+                        // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
+                        target.getReferencedTargets().stream()
+                                .filter(r -> isEmbedded(r.getReference()))
+                                .filter(c -> c.getReference().isMany())
+                                .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
+                                .forEach(c -> recordsByTarget.get(target).put(c.getReference().getName(), queryFactory.isOrdered(c.getReference()) ? new ArrayList<>() : new HashSet<>()));
+
+                        // set all results of targets in result
+                        if (idsByTarget.containsKey(target) && idsByTarget.get(target) != null) {
+                            final ID targetID = idsByTarget.get(target);
+
+                            if (parentKey != null && results.get(target).containsKey(targetID) && results.get(target).get(targetID).get(parentKey) != null) {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Record already added, add new parentId only");
                                 }
-                            });
+                                final Collection<ID> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
+                                if (log.isTraceEnabled()) {
+                                    log.trace("Current  parent IDs: {}", currentParentIds);
+                                }
+                                final Collection<ID> newParentIds = recordsByTarget.get(target).getAs(Collection.class, parentKey);
+                                if (log.isTraceEnabled()) {
+                                    log.trace("New parent IDs: {}", newParentIds);
+                                }
+                                currentParentIds.addAll(newParentIds);
+                            } else {
+                                results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
+                            }
+                        } else if (idsByTarget.isEmpty() && AsmUtils.equals(query.getSelect().getMainTarget(), target)) {
+                            final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
+                            results.get(target).put(tmpId, recordsByTarget.get(target));
+                        }
+                    };
 
                     if (log.isTraceEnabled()) {
                         log.trace("Records by target:\n{}", recordsByTarget);
                     }
-                });
+                };
 
                 if (!withoutFeatures) {
                     final Map<List<EReference>, Target> allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
@@ -974,7 +927,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     log.trace("Query results:\n{}", results);
                 }
             }
-        });
+        };
 
         return results;
     }
