@@ -47,37 +47,7 @@ public class KeycloakRealmSynchronizer {
     public enum AccessType {
         PUBLIC, CONFIDENTIAL, BEARER_ONLY
     }
-
-    /*
-    @ObjectClassDefinition
-    public @interface Config {
-
-        @AttributeDefinition(name = "Support login by email", type = AttributeType.BOOLEAN)
-        boolean realm_loginByEmail() default true;
-
-        @AttributeDefinition(name = "Default access type for humans")
-        String client_accessType_human() default "CONFIDENTIAL";
-
-        @AttributeDefinition(name = "Default access type for systems")
-        String client_accessType_system() default "BEARER_ONLY";
-
-        @AttributeDefinition(name = "CORS allow origin", description = "Comma-separated list of Access-Control-Allow-Origin")
-        String cors_allowOrigin();
-
-        @AttributeDefinition(name = "Asynchronous call of server with fault tolerance ")
-        boolean asyncServiceCall() default true;
-
-        @AttributeDefinition(name = "Maximum number of attempts.")
-        int retryMaxAttempts() default 1000;
-
-        @AttributeDefinition(name = "Use exponential backoff")
-        boolean retryExponentialBackoff() default true;
-
-        @AttributeDefinition(name = "Duration wait milliseconds between retry attempts. With the exponential backoff the inital wait duration")
-        long retryWaitDuration() default 1000L;
-    }
-    */
-
+    
     private KeycloakAdminClient keycloakAdminClient;
     private KeycloakModel keycloakModel;
     private TransformationTraceService transformationTraceService;
