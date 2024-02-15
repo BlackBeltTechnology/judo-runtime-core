@@ -46,7 +46,7 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     private DAO<ID> delegatee;
 
     @Setter
-    private UserManager<String> userManager;
+    private volatile UserManager<String> userManager;
 
     private IdentifierProvider<ID> identifierProvider;
 
