@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.accessmanager.behaviours;
  * #L%
  */
 
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import lombok.Builder;
@@ -35,7 +36,7 @@ import java.util.Collection;
 public class DeleteInstanceAuthorizer extends BehaviourAuthorizer {
 
     @NonNull
-    private AsmUtils asmUtils;
+    private AsmModel asmModel;
 
     @Override
     public boolean isSuitableForOperation(final EOperation operation) {
@@ -48,6 +49,6 @@ public class DeleteInstanceAuthorizer extends BehaviourAuthorizer {
         if (producer == null) {
             throw new SecurityException("Unable to check permissions");
         }
-        checkCRUDFlag(asmUtils, producer, CRUDFlag.DELETE);
+        checkCRUDFlag(asmModel, producer, CRUDFlag.DELETE);
     }
 }

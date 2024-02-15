@@ -187,7 +187,7 @@ public class JudoDefaultSpringConfiguration {
                 .descendantNameFactory(new DescendantNameFactory(asm.all(EClass.class)))
                 .rdbmsResolver(rdbmsResolver)
                 .parameterMapper(rdbmsParameterMapper)
-                .asmUtils(asm)
+                .asmModel(asmModel)
                 .identifierProvider(identifierProvider)
                 .coercer(coercer)
                 .variableResolver(variableResolver)
@@ -321,7 +321,7 @@ public class JudoDefaultSpringConfiguration {
         AsmUtils asm = new AsmUtils(asmModel.getResourceSet());
 
         return DefaultPayloadValidator.builder()
-                .asmUtils(asm)
+                .asmModel(asmModel)
                 .identifierProvider(identifierProvider)
                 .coercer(coercer)
                 .validatorProvider(validatorProvider)

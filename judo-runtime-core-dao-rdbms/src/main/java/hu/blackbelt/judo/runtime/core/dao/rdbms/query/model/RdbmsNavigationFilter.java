@@ -30,6 +30,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import lombok.Builder;
+import lombok.NonNull;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 
@@ -49,7 +50,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     private final List<RdbmsField> conditions = new ArrayList<>();
 
     @Builder
-    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilderContext builderContext) {
+    private RdbmsNavigationFilter(final @NonNull Filter filter, final @NonNull RdbmsBuilderContext builderContext) {
         final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         this.filter = filter;

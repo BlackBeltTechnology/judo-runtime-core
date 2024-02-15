@@ -79,7 +79,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private static final String ROLLBACK = "ROLLBACK";
     public static final String CREATED = "__$created";
 
-    private final AsmModel asmModel;
+    @Getter private final AsmModel asmModel;
     private final DataSource dataSource;
     @Getter private final IdentifierProvider<ID> identifierProvider;
     private final InstanceCollector<ID> instanceCollector;
@@ -89,7 +89,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private final Context context;
     private final MetricsCollector metricsCollector;
     private final SelectStatementExecutor<ID> selectStatementExecutor;
-    @Getter private final AsmUtils asmUtils;
     private final ModifyStatementExecutor modifyStatementExecutor;
     private final Map<EClass, Boolean> hasDefaultsMap = new ConcurrentHashMap<>();
 
@@ -120,7 +119,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
         this.selectStatementExecutor = selectStatementExecutor;
         this.modifyStatementExecutor = modifyStatementExecutor;
-        this.asmUtils = new AsmUtils(this.asmModel.getResourceSet());
     }
 
     private Function<EClass, Payload> getDefaultValuesProvider() {
@@ -138,6 +136,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     private boolean haveDefaultsAnyOf(final Collection<EClass> classes, final Collection<EClass> checked) {
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         if (classes.isEmpty()) {
             return false;
         } else if (classes.stream()
@@ -146,10 +145,10 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             return true;
         } else if (
              classes.stream()
-                    .map(eClass -> getAsmUtils().getMappedEntityType(eClass))
+                    .map(eClass -> asmUtils.getMappedEntityType(eClass))
                     .map(eClass ->
                             eClass.flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
-                                    .flatMap(dr -> getAsmUtils().resolve(dr)))
+                                    .flatMap(dr -> asmUtils.resolve(dr)))
                             .filter(t -> t instanceof EClass).map(t -> (EClass) t))
                     .filter(eClass -> eClass.isPresent())
                     .flatMap(eClass -> eClass.get().getEAllStructuralFeatures().stream())
@@ -207,8 +206,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     @Override
     public Payload readStaticFeatures(EClass clazz) {
         final Payload result = Payload.empty();
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-        checkArgument(!getAsmUtils().isMappedTransferObjectType(clazz) && AsmUtils.annotatedAsTrue(clazz, "transferObjectType"), "Clazz must be an unmapped transfer object type");
+        checkArgument(!asmUtils.isMappedTransferObjectType(clazz) && AsmUtils.annotatedAsTrue(clazz, "transferObjectType"), "Clazz must be an unmapped transfer object type");
 
         clazz.getEAllAttributes().stream().filter(EStructuralFeature::isDerived).forEach(attribute -> {
             if (log.isDebugEnabled()) {
@@ -342,7 +342,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 PayloadTraverser.builder()
                         .transferObjectType(clazz)
                         .payload(payload)
-                        .asmUtils(getAsmUtils())
+                        .asmModel(asmModel)
                         .build());
 
         collectInsertStatementsClientReferenceId(clientReferenceMap, statements);
@@ -359,7 +359,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 PayloadTraverser.builder()
                         .transferObjectType(clazz)
                         .payload(ret)
-                        .asmUtils(getAsmUtils())
+                        .asmModel(asmModel)
                         .build());
         return ret;
     }
@@ -367,9 +367,10 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     @Override
     protected Payload insertPayloadAndAttach(EReference reference, ID identifier, Payload payload, QueryCustomizer<ID> queryCustomizer) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "INSERT is not supported in stateless operation");
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         EClass typeOfNewInstance = reference.getEReferenceType();
-        EReference mappedReference = getAsmUtils().getMappedReference(reference)
+        EReference mappedReference = asmUtils.getMappedReference(reference)
                 .orElseThrow(() -> new IllegalArgumentException("Mapping of transfer object relation not found: " + AsmUtils.getReferenceFQName(reference)));
         Payload result;
 
@@ -403,7 +404,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             // reference is not containment
             final EReference mappedBackReference = mappedReference.getEOpposite();
             final List<EReference> backReferences = typeOfNewInstance.getEAllReferences().stream()
-                    .filter(br -> getAsmUtils().getMappedReference(br)
+                    .filter(br -> asmUtils.getMappedReference(br)
                             .filter(mbr -> AsmUtils.equals(mbr, mappedBackReference))
                             .isPresent())
                     .collect(Collectors.toList());
@@ -488,7 +489,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 PayloadTraverser.builder()
                         .transferObjectType(clazz)
                         .payload(updated)
-                        .asmUtils(getAsmUtils())
+                        .asmModel(asmModel)
                         .build());
 
         collectInsertStatementsClientReferenceId(clientReferenceMap, statements);
@@ -505,7 +506,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 PayloadTraverser.builder()
                         .transferObjectType(clazz)
                         .payload(ret)
-                        .asmUtils(getAsmUtils())
+                        .asmModel(asmModel)
                         .build());
 
         return ret;
@@ -514,6 +515,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private Collection<Statement<ID>> createAddAndRemoveReferenceForPayload(Collection<ID> identifiersExists, EReference mappedReference,
                                                                             ID id, Collection<ID> identifiersToAdd,
                                                                             Collection<ID> identifiersToRemove) {
+
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         // Collect which already added and it contained in the given collection.
         Collection<ID> identifiersAlreadyExistsInAdded = identifiersExists
@@ -532,7 +535,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         identifiersExists.removeAll(identifiersNotExistsInRemoved);
 
         // Check for containment entity could not add reference
-        EReference entityReference = getAsmUtils()
+        EReference entityReference = asmUtils
                 .getMappedReference(mappedReference)
                 .orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(mappedReference)));
 
@@ -647,6 +650,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     @Override
     protected Payload readDefaultsOf(EClass clazz) {
         final Payload template = Payload.empty();
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         clazz.getEAllAttributes().stream()
                 .filter(EStructuralFeature::isChangeable)
@@ -685,30 +689,30 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     }
                 }));
 
-        final Optional<EClass> mappedEntityType = getAsmUtils().getMappedEntityType(clazz);
+        final Optional<EClass> mappedEntityType = asmUtils.getMappedEntityType(clazz);
 
         final Optional<EClass> defaultTransferObjectType = mappedEntityType
                 .flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
-                        .flatMap(dr -> getAsmUtils().resolve(dr)))
+                        .flatMap(dr -> asmUtils.resolve(dr)))
                 .filter(t -> t instanceof EClass).map(t -> (EClass) t);
 
         if (defaultTransferObjectType.isPresent() && !AsmUtils.equals(defaultTransferObjectType.get(), clazz)) {
             final Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
-                    .filter(a -> !template.containsKey(a.getName()) && getAsmUtils().getMappedAttribute(a).isPresent())
+                    .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
                     .collect(Collectors.toMap(
                             identity(),
-                            a -> getAsmUtils().getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped attribute not found: " + AsmUtils.getAttributeFQName(a)))))
+                            a -> asmUtils.getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped attribute not found: " + AsmUtils.getAttributeFQName(a)))))
                     .entrySet().stream()
                     .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                     .collect(Collectors.toMap(
                             e -> e.getKey().getName(),
                             e -> entityTypeDefaults.get(e.getValue().getName()))));
             template.putAll(clazz.getEAllReferences().stream()
-                    .filter(r -> template.get(r.getName()) == null && getAsmUtils().getMappedReference(r).isPresent())
+                    .filter(r -> template.get(r.getName()) == null && asmUtils.getMappedReference(r).isPresent())
                     .collect(Collectors.toMap(
                             identity(),
-                            r -> getAsmUtils().getMappedReference(r).orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(r)))))
+                            r -> asmUtils.getMappedReference(r).orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(r)))))
                     .entrySet().stream()
                     .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                     .collect(Collectors.toMap(
@@ -826,18 +830,22 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     private Collection<Statement<ID>> createAddReferencesForPayload(EReference mappedReference, ID id, Collection<ID> collection) {
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
+
         // Check the reference is mapped
-        checkArgument(getAsmUtils().getMappedReference(mappedReference).isPresent(),
+        checkArgument(asmUtils.getMappedReference(mappedReference).isPresent(),
                 "Reference have to be mapped: " + getReferenceFQName(mappedReference) + " ID: " + id);
-        EReference entityReference = getAsmUtils().getMappedReference(mappedReference).get();
+        EReference entityReference = asmUtils.getMappedReference(mappedReference).get();
         return getAddReferencePayloadProcessor().addReference(entityReference, collection, id, true);
     }
 
     private Collection<Statement<ID>> createRemoveReferencesForPayload(EReference mappedReference, ID id, Collection<ID> collection) {
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
+
         // Check the reference is mapped
-        checkArgument(getAsmUtils().getMappedReference(mappedReference).isPresent(),
+        checkArgument(asmUtils.getMappedReference(mappedReference).isPresent(),
                 "Reference have to be mapped: " + getReferenceFQName(mappedReference) + " ID: " + id);
-        EReference entityReference = getAsmUtils().getMappedReference(mappedReference).get();
+        EReference entityReference = asmUtils.getMappedReference(mappedReference).get();
         return getRemoveReferencePayloadProcessor().removeReference(entityReference, collection, id, true);
     }
 

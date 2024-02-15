@@ -25,7 +25,6 @@ import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
@@ -57,7 +56,7 @@ public class DefaultPayloadValidatorProvider implements Provider<PayloadValidato
 
     public PayloadValidator get() {
         return DefaultPayloadValidator.builder()
-                .asmUtils(new AsmUtils(models.getAsmModel().getResourceSet()))
+                .asmModel(models.getAsmModel())
                 .coercer(dataTypeManager.getCoercer())
                 .identifierProvider(identifierProvider)
                 .validatorProvider(validatorProvider)

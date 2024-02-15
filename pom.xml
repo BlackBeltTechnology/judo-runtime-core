@@ -40,8 +40,9 @@
         </osgi-transaction-import>
 
         <jose4j-version>0.7.2</jose4j-version>
-        <jackson-version>2.15.2</jackson-version>
+        <jackson-version>2.16.1</jackson-version>
         <spring-version>4.3.12.RELEASE</spring-version>
+        <cxf-version>3.6.2</cxf-version>
 
         <epsilon-runtime-version>1.5.1.20230914_115155_8ab2f00c_develop</epsilon-runtime-version>
         <judo-tatami-core-version>1.1.4.20231107_041032_332be90a_develop</judo-tatami-core-version>
@@ -54,6 +55,8 @@
         <judo-meta-measure-version>1.0.2.20231107_041238_36e3764d_develop</judo-meta-measure-version>
         <judo-meta-liquibase-version>1.0.2.20231107_041254_36f06e98_develop</judo-meta-liquibase-version>
         <judo-meta-query-version>1.0.3.20231107_041232_1d98b546_develop</judo-meta-query-version>
+        <judo-meta-keycloak-version>1.0.1.20231107_041549_6c01dfae_develop</judo-meta-keycloak-version>
+
         <judo-dao-api-version>1.0.4.20240129_105710_5ca64071_develop</judo-dao-api-version>
         <judo-sdk-common-version>1.0.4.20240209_041252_f75c5bf1_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
@@ -521,6 +524,11 @@
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
+                <module>judo-runtime-core-security-keycloak</module>
+                <module>judo-runtime-core-security-keycloak-cxf</module>
+                <module>judo-runtime-core-jackson</module>
+                <module>judo-runtime-core-jaxrs</module>
+                <module>judo-runtime-core-jaxrs-cxf</module>
                 <module>judo-runtime-core-export-jxls</module>
                 <module>judo-runtime-core-guice</module>
                 <module>judo-runtime-core-guice-hsqldb</module>

@@ -28,7 +28,9 @@ import org.eclipse.emf.ecore.EClass;
 public class InstanceExistsValidationStatement<ID> extends ValidationStatement<ID> {
 
     @Builder(builderMethodName = "buildInstanceExistsValidationStatement")
-    public InstanceExistsValidationStatement(EClass type, ID identifier) {
+    public InstanceExistsValidationStatement(
+            EClass type,
+            ID identifier) {
         super(type, identifier);
     }
 

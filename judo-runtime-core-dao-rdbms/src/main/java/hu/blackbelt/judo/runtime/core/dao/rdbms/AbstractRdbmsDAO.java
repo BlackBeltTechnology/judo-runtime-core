@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
@@ -534,9 +535,9 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
             // no static feature to load
             return false;
         }
-
+        AsmUtils asmUtils = new AsmUtils(getAsmModel().getResourceSet());
         clazz.getEAllSuperTypes().stream()
-                .filter(s -> AsmUtils.annotatedAsTrue(s, "transferObjectType") && !getAsmUtils().isMappedTransferObjectType(s))
+                .filter(s -> AsmUtils.annotatedAsTrue(s, "transferObjectType") && !asmUtils.isMappedTransferObjectType(s))
                 .forEach(unmappedType -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Adding static features of {}", AsmUtils.getClassifierFQName(unmappedType));
@@ -554,7 +555,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
                     payload.putAll(Payload.asPayload(staticFeatures));
                 });
         clazz.getEAllReferences().stream()
-                .filter(r -> AsmUtils.isEmbedded(r) && !r.isTransient() && getAsmUtils().isMappedTransferObjectType(r.getEReferenceType()) && payload.get(r.getName()) != null)
+                .filter(r -> AsmUtils.isEmbedded(r) && !r.isTransient() && asmUtils.isMappedTransferObjectType(r.getEReferenceType()) && payload.get(r.getName()) != null)
                 .forEach(reference -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Adding static features: {}", AsmUtils.getReferenceFQName(reference));
@@ -579,7 +580,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         return hasStaticFeaturesMap.get(clazz);
     }
 
-    protected abstract AsmUtils getAsmUtils();
+    protected abstract AsmModel getAsmModel();
 
     protected abstract IdentifierProvider<ID> getIdentifierProvider();
 
