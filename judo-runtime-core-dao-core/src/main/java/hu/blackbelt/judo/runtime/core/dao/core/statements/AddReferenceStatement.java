@@ -34,7 +34,11 @@ public class AddReferenceStatement<ID> extends ReferenceStatement<ID> {
     Collection<ID> alreadyReferencingInstances;
 
     @Builder(builderMethodName = "buildAddReferenceStatement")
-    public AddReferenceStatement(EClass type, EReference reference, ID identifier, ID referenceIdentifier, Collection<ID> alreadyReferencingInstances) {
+    public AddReferenceStatement(EClass type,
+                                 EReference reference,
+                                 ID identifier,
+                                 ID referenceIdentifier,
+                                 Collection<ID> alreadyReferencingInstances) {
         super(type, reference, identifier, referenceIdentifier);
         this.alreadyReferencingInstances = alreadyReferencingInstances;
     }

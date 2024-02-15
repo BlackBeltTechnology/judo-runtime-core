@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.accessmanager.behaviours;
  * #L%
  */
 
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import lombok.Builder;
@@ -34,7 +35,7 @@ import java.util.Collection;
 public class GetTemplateAuthorizer extends BehaviourAuthorizer {
 
     @NonNull
-    private AsmUtils asmUtils;
+    private AsmModel asmModel;
 
     @Override
     public boolean isSuitableForOperation(final EOperation operation) {
@@ -43,7 +44,7 @@ public class GetTemplateAuthorizer extends BehaviourAuthorizer {
 
     @Override
     public void authorize(String actorFqName, Collection<String> publicActors, final SignedIdentifier signedIdentifier, final EOperation operation) {
-        asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        new AsmUtils(asmModel.getResourceSet()).getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalStateException("No owner of operation found"));
 
         // TODO: JNG-2180

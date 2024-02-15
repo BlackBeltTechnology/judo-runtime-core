@@ -29,7 +29,11 @@ import org.eclipse.emf.ecore.EReference;
 public class RemoveReferenceStatement<ID> extends ReferenceStatement<ID> {
 
     @Builder(builderMethodName = "buildRemoveReferenceStatement")
-    public RemoveReferenceStatement(EClass type, EReference reference, ID identifier, ID referenceIdentifier) {
+    public RemoveReferenceStatement(
+            EClass type,
+            EReference reference,
+            ID identifier,
+            ID referenceIdentifier) {
         super(type, reference, identifier, referenceIdentifier);
     }
 

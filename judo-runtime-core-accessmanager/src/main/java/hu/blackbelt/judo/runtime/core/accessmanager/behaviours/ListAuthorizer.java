@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.accessmanager.behaviours;
  * #L%
  */
 
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import lombok.Builder;
@@ -36,7 +37,7 @@ import java.util.Objects;
 public class ListAuthorizer extends BehaviourAuthorizer {
 
     @NonNull
-    private AsmUtils asmUtils;
+    private AsmModel asmModel;
 
     @Override
     public boolean isSuitableForOperation(final EOperation operation) {
@@ -45,7 +46,7 @@ public class ListAuthorizer extends BehaviourAuthorizer {
 
     @Override
     public void authorize(String actorFqName, Collection<String> publicActors, final SignedIdentifier signedIdentifier, final EOperation operation) {
-        final ENamedElement owner = asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final ENamedElement owner = new AsmUtils(asmModel.getResourceSet()).getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalStateException("No owner of operation found"));
 
         if (AsmUtils.getExtensionAnnotationListByName(owner, "exposedBy").stream()

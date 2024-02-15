@@ -25,6 +25,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
 import hu.blackbelt.judo.dao.api.ValidationResult;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.PayloadTraverser;
 import hu.blackbelt.judo.runtime.core.exception.ValidationException;
@@ -39,25 +40,19 @@ import java.util.function.*;
 
 import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 
-@Builder
 @Slf4j
 public class DefaultPayloadValidator implements PayloadValidator {
     public enum RequiredStringValidatorOption {
         ACCEPT_EMPTY, ACCEPT_NON_EMPTY
     }
 
-    @NonNull
-    private final AsmUtils asmUtils;
-
-    @NonNull
-    private final Coercer coercer;
-
-    private final RequiredStringValidatorOption requiredStringValidatorOption;
-
+    private AsmModel asmModel;
+    private Coercer coercer;
+    private RequiredStringValidatorOption requiredStringValidatorOption;
     @SuppressWarnings("rawtypes")
-    private final IdentifierProvider identifierProvider;
-
-    private final ValidatorProvider validatorProvider;
+    private IdentifierProvider identifierProvider;
+    private ValidatorProvider validatorProvider;
+    private AsmUtils asmUtils;
 
     public static final String GLOBAL_VALIDATION_CONTEXT = "globalValidationContext";
 
@@ -80,6 +75,21 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("[^a-zA-Z0-9_]", "_");
     public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("[^a-zA-Z0-9_]", "_");
+
+    @Builder
+    public DefaultPayloadValidator(
+        @NonNull AsmModel asmModel,
+        @NonNull Coercer coercer,
+        RequiredStringValidatorOption requiredStringValidatorOption,
+        IdentifierProvider identifierProvider,
+        ValidatorProvider validatorProvider) {
+        this.asmModel = asmModel;
+        this.coercer = coercer;
+        this.requiredStringValidatorOption = Optional.ofNullable(requiredStringValidatorOption).orElse(this.requiredStringValidatorOption);
+        this.identifierProvider = Optional.ofNullable(identifierProvider).orElse(this.identifierProvider);
+        this.validatorProvider = Optional.ofNullable(validatorProvider).orElse(this.validatorProvider);
+        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+    }
 
     public List<ValidationResult> validatePayload(final EClass transferObjectType, final Payload input, final Map<String, Object> validationContext, boolean throwValidationException) throws ValidationException {
         final List<ValidationResult> validationResults = new ArrayList<>();

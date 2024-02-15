@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor;
  * #L%
  */
 
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.CustomJoin;
 import hu.blackbelt.judo.meta.query.Node;
@@ -50,7 +51,7 @@ public class CustomJoinProcessor {
     private final RdbmsResolver rdbmsResolver;
 
     @NonNull
-    private final AsmUtils asmUtils;
+    private final AsmModel asmModel;
 
     public List<RdbmsJoin> process(CustomJoin join, RdbmsBuilderContext builderContext) {
         final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
@@ -88,6 +89,7 @@ public class CustomJoinProcessor {
     private String resolveRdbmsNames(final String sql) {
         final StringBuilder result = new StringBuilder();
         final StringCharacterIterator it = new StringCharacterIterator(sql);
+        final AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         boolean resolving = false;
         StringBuilder fqNameBuilder = null;

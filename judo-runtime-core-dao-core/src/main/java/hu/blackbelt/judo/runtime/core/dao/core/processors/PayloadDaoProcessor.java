@@ -89,7 +89,10 @@ public class PayloadDaoProcessor<ID> {
     public static Predicate<EStructuralFeature> notChangeable = (r) -> !r.isChangeable();
 
     @Builder
-    public PayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider, QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
+    public PayloadDaoProcessor(@NonNull ResourceSet resourceSet,
+                               @NonNull IdentifierProvider<ID> identifierProvider,
+                               @NonNull QueryFactory queryFactory,
+                               @NonNull InstanceCollector<ID> instanceCollector) {
         this.resourceSet = resourceSet;
         this.identifierProvider = identifierProvider;
         this.queryFactory = queryFactory;

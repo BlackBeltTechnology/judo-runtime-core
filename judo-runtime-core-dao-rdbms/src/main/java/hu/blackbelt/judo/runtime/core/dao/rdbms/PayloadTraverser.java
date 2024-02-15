@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms;
  */
 
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dao.core.processors.PayloadDaoProcessor;
 import lombok.Builder;
@@ -39,17 +40,18 @@ class PayloadTraverser<E> {
     EClass transferObjectType;
     Payload payload;
     EReference container;
-    AsmUtils asmUtils;
+    AsmModel asmModel;
 
     public static void traversePayload(@SuppressWarnings("rawtypes") Consumer<PayloadTraverser> processor,
             @SuppressWarnings("rawtypes") PayloadTraverser context) {
         List<EReference> references;
 
+        AsmUtils asmUtils = new AsmUtils(context.getAsmModel().getResourceSet());
         processor.accept(context);
         references = context.getTransferObjectType().getEAllReferences().stream()
                 .filter(
                         PayloadDaoProcessor.notParent(context.getContainer())
-                                .and(r -> context.getAsmUtils().getMappedReference(r).isPresent()))
+                                .and(r -> asmUtils.getMappedReference(r).isPresent()))
                 .collect(toList());
         references.stream()
                 .filter(r -> context.getPayload().containsKey(r.getName()) && context.getPayload().get(r.getName()) != null)
@@ -62,7 +64,7 @@ class PayloadTraverser<E> {
                                         .transferObjectType(e.getKey().getEReferenceType())
                                         .payload(p)
                                         .container(e.getKey())
-                                        .asmUtils(context.getAsmUtils())
+                                        .asmModel(context.getAsmModel())
                                         .build());
 
                     });
