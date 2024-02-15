@@ -71,15 +71,14 @@ public class RdbmsBuilderProvider implements Provider<RdbmsBuilder> {
     @SuppressWarnings({ "unchecked" })
     @Override
     public RdbmsBuilder get() {
-        AsmUtils asm = new AsmUtils(asmModel.getResourceSet());
-
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         return RdbmsBuilder.builder()
                 .rdbmsModel(rdbmsModel)
-                .ancestorNameFactory(new AncestorNameFactory(asm.all(EClass.class)))
-                .descendantNameFactory(new DescendantNameFactory(asm.all(EClass.class)))
+                .ancestorNameFactory(new AncestorNameFactory(asmUtils.all(EClass.class)))
+                .descendantNameFactory(new DescendantNameFactory(asmUtils.all(EClass.class)))
                 .rdbmsResolver(rdbmsResolver)
                 .parameterMapper(rdbmsParameterMapper)
-                .asmUtils(asm)
+                .asmModel(asmModel)
                 .identifierProvider(identifierProvider)
                 .coercer(coercer)
                 .variableResolver(variableResolver)

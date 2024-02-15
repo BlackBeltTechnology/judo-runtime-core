@@ -49,20 +49,20 @@ public class DefaultAccessManager implements AccessManager {
 
     private Collection<BehaviourAuthorizer> authorizers;
 
-    private void setupAuthorizers(final AsmUtils asmUtils) {
+    private void setupAuthorizers(final AsmModel asmModel) {
         authorizers = Arrays.asList(
-                new ListAuthorizer(asmUtils),
-                new CreateInstanceAuthorizer(asmUtils),
-                new UpdateInstanceAuthorizer(asmUtils),
-                new DeleteInstanceAuthorizer(asmUtils),
-                new RefreshAuthorizer(asmUtils),
-                new SetReferenceAuthorizer(asmUtils),
-                new UnsetReferenceAuthorizer(asmUtils),
-                new AddReferenceAuthorizer(asmUtils),
-                new RemoveReferenceAuthorizer(asmUtils),
-                new GetReferenceRangeAuthorizer(asmUtils),
-                new GetInputRangeAuthorizer(asmUtils),
-                new GetTemplateAuthorizer(asmUtils)
+                new ListAuthorizer(asmModel),
+                new CreateInstanceAuthorizer(asmModel),
+                new UpdateInstanceAuthorizer(asmModel),
+                new DeleteInstanceAuthorizer(asmModel),
+                new RefreshAuthorizer(asmModel),
+                new SetReferenceAuthorizer(asmModel),
+                new UnsetReferenceAuthorizer(asmModel),
+                new AddReferenceAuthorizer(asmModel),
+                new RemoveReferenceAuthorizer(asmModel),
+                new GetReferenceRangeAuthorizer(asmModel),
+                new GetInputRangeAuthorizer(asmModel),
+                new GetTemplateAuthorizer(asmModel)
         );
     }
 
@@ -70,7 +70,7 @@ public class DefaultAccessManager implements AccessManager {
     public DefaultAccessManager(@NonNull AsmModel asmModel) {
         this.asmModel = asmModel;
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
-        setupAuthorizers(asmUtils);
+        setupAuthorizers(asmModel);
 
         publicActors.addAll(asmUtils.all(EClass.class)
                 .filter(c -> AsmUtils.isActorType(c) &&

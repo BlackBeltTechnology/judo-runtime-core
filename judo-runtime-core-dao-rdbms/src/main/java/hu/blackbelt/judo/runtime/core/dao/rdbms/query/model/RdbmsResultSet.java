@@ -503,6 +503,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             final EClass type,
             final DAO.Seek seek,
             final OrderBy orderBy) {
+        AsmUtils asmUtils = new AsmUtils(rdbmsBuilder.getAsmModel().getResourceSet());
         if (!orderBy.getFeature().getTargetMappings().isEmpty()) {
             return seek.getLastItem()
                     .get(orderBy.getFeature().getTargetMappings().get(0).getTargetAttribute().getName());
@@ -511,7 +512,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             final EAttribute entityAttribute = ((Attribute) orderBy.getFeature()).getSourceAttribute();
             final EAttribute transferAttribute = type.getEAllAttributes().stream()
                     .filter(a -> AsmUtils.equals(entityAttribute,
-                            rdbmsBuilder.getAsmUtils().getMappedAttribute(a).orElse(null)))
+                            asmUtils.getMappedAttribute(a).orElse(null)))
                     .findAny()
                     .orElseThrow(() -> new IllegalArgumentException("Unable to find order by attribute of last item"));
             return seek.getLastItem().get(transferAttribute.getName());
