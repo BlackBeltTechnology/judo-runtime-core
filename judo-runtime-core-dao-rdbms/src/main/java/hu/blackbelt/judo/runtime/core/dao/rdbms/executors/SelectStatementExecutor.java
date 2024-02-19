@@ -537,7 +537,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .build();
         context.pushVariable(_this);
 
-        JqlExpression filterExpressionJql = new JqlParser().parseString(filterExpressionString);
+        JqlExpression filterExpressionJql;
+        synchronized (this) {
+            filterExpressionJql = new JqlParser().parseString(filterExpressionString);
+        }
         final LogicalExpression filterExpression = (LogicalExpression)
                 jqlExpressionBuilder.createExpression(CreateExpressionArguments.<EClass, EClass, EClassifier>builder()
                                                                                .withJqlExpression(filterExpressionJql)
