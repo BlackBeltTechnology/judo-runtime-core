@@ -675,6 +675,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 resultSet = jdbcTemplate.queryForList(sql, sqlParameters);
             }
 
+            final Map<List<EReference>, Target> allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
+            final Map<Target, List<List<EReference>>> pathByTarget = allTargetPaths.entrySet().stream()
+                    .collect(Collectors.groupingBy(Map.Entry::getValue,
+                            Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
                 for (Map<String, Object> record : resultSet) {
 
@@ -860,29 +865,31 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             log.trace("  - setting containments of {}", target);
                         }
 
-                        // set containments that are selected in single (joined) query
-                        target.getReferencedTargets().stream()
-                                .filter(rt -> isEmbedded(rt.getReference()))
-                                .filter(c -> !c.getReference().isMany())
-                                .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
-                                .forEach(c -> {
-                                    if (log.isTraceEnabled()) {
-                                        log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
-                                    }
-                                    if(!AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget())){
-                                        final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
-                                        recordsByTarget.get(target).put(c.getReference().getName(), containment);
-                                    } else {
-                                        recordsByTarget.get(target).put(c.getReference().getName(), null);
-                                    }
-                                });
+                        if (!withoutFeatures) {
+                            // set containments that are selected in single (joined) query
+                            target.getReferencedTargets().stream()
+                                    .filter(rt -> isEmbedded(rt.getReference()))
+                                    .filter(c -> !c.getReference().isMany())
+                                    .filter(c -> mask == null || getMaskForTarget(c.getTarget(), mask, pathByTarget) != null)
+                                    .forEach(c -> {
+                                        if (log.isTraceEnabled()) {
+                                            log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
+                                        }
+                                        if(!AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget())){
+                                            final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
+                                            recordsByTarget.get(target).put(c.getReference().getName(), containment);
+                                        } else {
+                                            recordsByTarget.get(target).put(c.getReference().getName(), null);
+                                        }
+                                    });
 
-                        // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
-                        target.getReferencedTargets().stream()
-                                .filter(r -> isEmbedded(r.getReference()))
-                                .filter(c -> c.getReference().isMany())
-                                .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
-                                .forEach(c -> recordsByTarget.get(target).put(c.getReference().getName(), queryFactory.isOrdered(c.getReference()) ? new ArrayList<>() : new HashSet<>()));
+                            // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
+                            target.getReferencedTargets().stream()
+                                    .filter(r -> isEmbedded(r.getReference()))
+                                    .filter(c -> c.getReference().isMany())
+                                    .filter(c -> mask == null || mask.containsKey(c.getReference().getName()))
+                                    .forEach(c -> recordsByTarget.get(target).put(c.getReference().getName(), queryFactory.isOrdered(c.getReference()) ? new ArrayList<>() : new HashSet<>()));
+                        }
 
                         // set all results of targets in result
                         if (idsByTarget.containsKey(target) && idsByTarget.get(target) != null) {
@@ -916,7 +923,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 };
 
                 if (!withoutFeatures) {
-                    final Map<List<EReference>, Target> allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
                     allTargetPaths.entrySet().stream()
                             .filter(tp -> tp.getKey().stream().allMatch(r -> isEmbedded(r) && !r.isMany()))
                             .forEach(tp ->
@@ -933,6 +939,26 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         };
 
         return results;
+    }
+
+    private Map<String, Object> getMaskForTarget(Target target, Map<String, Object> mask, Map<Target, List<List<EReference>>> pathByTarget) {
+        Map<String, Object> subMask = mask;
+        if (mask != null) {
+            for (List<EReference> references : pathByTarget.get(target)) {
+                Map<String, Object> maskRes = null;
+                for (EReference reference : references) {
+                    if (maskRes == null) {
+                        if (subMask != null && subMask.containsKey(reference.getName())) {
+                            maskRes = (Map<String, Object>) subMask.get(reference.getName());
+                        } else {
+                            maskRes = null;
+                        }
+                    }
+                }
+                subMask = maskRes;
+            }
+        }
+        return subMask;
     }
 
     /**
