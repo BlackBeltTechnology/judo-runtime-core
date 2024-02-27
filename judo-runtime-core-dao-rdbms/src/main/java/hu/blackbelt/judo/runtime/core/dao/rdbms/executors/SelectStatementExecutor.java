@@ -675,6 +675,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 resultSet = jdbcTemplate.queryForList(sql, sqlParameters);
             }
 
+            final Map<List<EReference>, Target> allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
+            final Map<Target, List<EReference>> pathByTarget = allTargetPaths.entrySet().stream().collect(Collectors.toMap(e -> e.getValue(), k -> k.getKey()));
+
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
                 for (Map<String, Object> record : resultSet) {
 
@@ -864,7 +867,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                         target.getReferencedTargets().stream()
                                 .filter(rt -> isEmbedded(rt.getReference()))
                                 .filter(c -> !c.getReference().isMany())
-                                .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
+                                //.filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
+                                //.filter(c -> !withoutFeatures)
+                                .filter(c -> !withoutFeatures && (mask == null || getMaskForTarget(c.getTarget(), mask, pathByTarget) != null))
                                 .forEach(c -> {
                                     if (log.isTraceEnabled()) {
                                         log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
@@ -916,7 +921,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 };
 
                 if (!withoutFeatures) {
-                    final Map<List<EReference>, Target> allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
+//                    final Map<List<EReference>, Target> allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
                     allTargetPaths.entrySet().stream()
                             .filter(tp -> tp.getKey().stream().allMatch(r -> isEmbedded(r) && !r.isMany()))
                             .forEach(tp ->
@@ -933,6 +938,20 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         };
 
         return results;
+    }
+
+    private Map<String, Object> getMaskForTarget(Target target, Map<String, Object> mask, Map<Target, List<EReference>> pathByTarget) {
+        Map<String, Object> subMask = mask;
+        if (mask != null) {
+            for (EReference reference : pathByTarget.get(target)) {
+                if (subMask != null && subMask.containsKey(reference.getName())) {
+                    subMask = (Map<String, Object>) subMask.get(reference.getName());
+                } else {
+                    subMask = null;
+                }
+            }
+        }
+        return subMask;
     }
 
     /**
