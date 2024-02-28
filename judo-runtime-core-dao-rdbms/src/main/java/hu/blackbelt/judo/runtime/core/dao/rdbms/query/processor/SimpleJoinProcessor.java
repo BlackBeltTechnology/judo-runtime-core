@@ -45,6 +45,7 @@ import org.eclipse.emf.ecore.EReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Builder
@@ -126,7 +127,7 @@ public class SimpleJoinProcessor<ID> {
             oppositeRule = null;
         }
 
-        if (!AsmUtils.equals(sourceType, sourceContainer)) { // reference is inherited from another class, resolve ancestor too
+        if (!Objects.equals(sourceType, sourceContainer)) { // reference is inherited from another class, resolve ancestor too
             if (log.isTraceEnabled()) {
                 log.trace("  - reference '{}' is inherited", reference.getName());
             }
