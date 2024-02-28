@@ -68,7 +68,7 @@ public class TransactionalOperationCall implements Function<Payload, Payload> {
             if (ret != null && ret.get(DefaultDispatcher.FAULT) != null) {
                 error = true;
             }
-            return functionToCall.apply(payload);
+            return ret;
         } catch (Exception e) {
             if (transactionStatus != null) {
                 try {
