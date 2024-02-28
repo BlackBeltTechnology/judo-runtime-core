@@ -171,7 +171,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .filter(s ->
                             query.getSelect().getFeatures().stream().anyMatch(f ->
                                     f.getNodes().stream().anyMatch(n ->
-                                            AsmUtils.equals(n, s.getSelect()) || s.getSelect().getJoins().contains(n))))
+                                            Objects.equals(n, s.getSelect()) || s.getSelect().getJoins().contains(n))))
                     .map(s -> RdbmsQueryJoin.<ID>builder()
                             .resultSet(
                                     RdbmsResultSet.<ID>builder()
@@ -238,8 +238,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
                 List<Join> orderByJoins = orderBy.getFeature().getNodes().stream()
                         .filter(n -> n instanceof Join).map(n -> (Join) n)
-                        .filter(n -> !AsmUtils.equals(n, query) &&
-                                !AsmUtils.equals(n, query.getSelect()) &&
+                        .filter(n -> !Objects.equals(n, query) &&
+                                !Objects.equals(n, query.getSelect()) &&
                                 !query.getSelect().getAllJoins().contains(n))
                         .collect(Collectors.toList());
 
@@ -511,7 +511,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 orderBy.getFeature() instanceof Attribute) {
             final EAttribute entityAttribute = ((Attribute) orderBy.getFeature()).getSourceAttribute();
             final EAttribute transferAttribute = type.getEAllAttributes().stream()
-                    .filter(a -> AsmUtils.equals(entityAttribute,
+                    .filter(a -> Objects.equals(entityAttribute,
                             asmUtils.getMappedAttribute(a).orElse(null)))
                     .findAny()
                     .orElseThrow(() -> new IllegalArgumentException("Unable to find order by attribute of last item"));
@@ -617,7 +617,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         List<RdbmsJoin> staticJoins =
                 joins.stream()
                         .filter(j -> query.getSelect() != null && j.getPartnerTable() != null &&
-                                !AsmUtils.equals(query.getSelect(), j.getPartnerTable()) &&
+                                !Objects.equals(query.getSelect(), j.getPartnerTable()) &&
                                 // current join is not a partner table to any other join in this scope
                                 joins.stream().noneMatch(jj -> j.getPartnerTable() != null &&
                                         jj.getAlias().equals(j.getPartnerTable().getAlias())))
@@ -649,8 +649,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 f.getTargetMappings().stream()
                         .anyMatch(tm -> tm.getTarget() == null ||
                         query.getSelect().getOrderBys().stream()
-                                .anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
-                                query.getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
+                                .anyMatch(o -> Objects.equals(o.getFeature(), f)) ||
+                                query.getOrderBys().stream().anyMatch(o -> Objects.equals(o.getFeature(), f)) ||
                                 targetMask.containsKey(tm.getTarget()) &&
                                         (tm.getTargetAttribute() == null ||
                                                 targetMask.get(tm.getTarget()).contains(tm.getTargetAttribute().getName()))

@@ -169,7 +169,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                         .collect(Collectors.toList());
                 // FIXME - add order by features once only
                 orderBys.addAll(newOrderBys);
-                if (AsmUtils.equals(lastJoin, navigationJoin)) {
+                if (Objects.equals(lastJoin, navigationJoin)) {
                     // only orderBys of last navigation are available for container
                     exposedOrderBys.addAll(newOrderBys);
                 }
@@ -187,10 +187,10 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))
                         .partnerTable(!subSelect.getNavigationJoins().isEmpty() &&
-                                AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(),
+                                Objects.equals(subSelect.getNavigationJoins().get(0).getPartner(),
                                         subSelect.getContainer()) ? subSelect.getBase() : null)
                         .partnerColumnName(!subSelect.getNavigationJoins().isEmpty() &&
-                                AsmUtils.equals(subSelect.getNavigationJoins().get(0).getPartner(),
+                                Objects.equals(subSelect.getNavigationJoins().get(0).getPartner(),
                                         subSelect.getContainer()) ? StatementExecutor.ID_COLUMN_NAME : null)
                         .alias(subSelect.getAlias())
                         .build())
@@ -226,7 +226,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                 .collect(Collectors.toList()));
 
         if (parentIdFilterQuery != null &&
-                AsmUtils.equals(parentIdFilterQuery.getContainer(), query.getBase())) {
+                Objects.equals(parentIdFilterQuery.getContainer(), query.getBase())) {
             subConditions.add(RdbmsFunction.builder()
                     .pattern("{0} IN (:" + RdbmsAliasUtil.getParentIdsKey(parentIdFilterQuery.getSelect()) + ")")
                     .parameter(RdbmsColumn.builder()
@@ -235,7 +235,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                             .build())
                     .build());
         } else if (parentIdFilterQuery != null &&
-                AsmUtils.equals(parentIdFilterQuery.getSelect(), query.getBase()) &&
+                Objects.equals(parentIdFilterQuery.getSelect(), query.getBase()) &&
                 !query.getSelect().isAggregated()) {
             subConditions.add(RdbmsFunction.builder()
                     .pattern("{0} = {1}")

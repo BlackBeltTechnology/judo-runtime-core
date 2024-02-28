@@ -405,7 +405,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             final EReference mappedBackReference = mappedReference.getEOpposite();
             final List<EReference> backReferences = typeOfNewInstance.getEAllReferences().stream()
                     .filter(br -> asmUtils.getMappedReference(br)
-                            .filter(mbr -> AsmUtils.equals(mbr, mappedBackReference))
+                            .filter(mbr -> Objects.equals(mbr, mappedBackReference))
                             .isPresent())
                     .collect(Collectors.toList());
 
@@ -696,7 +696,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                         .flatMap(dr -> asmUtils.resolve(dr)))
                 .filter(t -> t instanceof EClass).map(t -> (EClass) t);
 
-        if (defaultTransferObjectType.isPresent() && !AsmUtils.equals(defaultTransferObjectType.get(), clazz)) {
+        if (defaultTransferObjectType.isPresent() && !Objects.equals(defaultTransferObjectType.get(), clazz)) {
             final Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
                     .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
