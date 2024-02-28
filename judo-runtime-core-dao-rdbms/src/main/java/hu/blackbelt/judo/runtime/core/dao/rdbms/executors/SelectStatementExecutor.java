@@ -342,7 +342,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
 
                 final Optional<SubSelect> subSelect = base.getSubSelects().stream()
-                        .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
+                        .filter(s -> s.getTransferRelation() != null && Objects.equals(s.getTransferRelation(), reference))
                         .findAny();
 
                 checkArgument(subSelect.isPresent(), "Subselect must be prepared by query factory");
@@ -433,7 +433,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
 
                 final Optional<SubSelect> subSelect = base.getSubSelects().stream()
-                        .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
+                        .filter(s -> s.getTransferRelation() != null && Objects.equals(s.getTransferRelation(), reference))
                         .findAny();
 
                 checkArgument(subSelect.isPresent(), "Subselect must be prepared by query factory");
@@ -490,8 +490,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final boolean reverse = queryCustomizer != null && queryCustomizer.getSeek() != null ? queryCustomizer.getSeek().isReverse() : false;
             if (queryCustomizer != null && queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty()) {
                 final Map<EAttribute, Feature> mainFeatures = query.getSelect().getFeatures().stream()
-                        .filter(f -> (f instanceof Attribute || f instanceof Function || f instanceof SubSelectFeature) && f.getTargetMappings().stream().anyMatch(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())))
-                        .collect(Collectors.toMap(f -> f.getTargetMappings().stream().filter(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())).findAny().get().getTargetAttribute(), f -> f));
+                        .filter(f -> (f instanceof Attribute || f instanceof Function || f instanceof SubSelectFeature) && f.getTargetMappings().stream().anyMatch(tm -> Objects.equals(tm.getTarget(), query.getSelect().getMainTarget())))
+                        .collect(Collectors.toMap(f -> f.getTargetMappings().stream().filter(tm -> Objects.equals(tm.getTarget(), query.getSelect().getMainTarget())).findAny().get().getTargetAttribute(), f -> f));
 
                 query.getNavigationJoins().forEach(j -> j.getOrderBys().clear());
                 query.getSelect().getOrderBys().clear();
@@ -784,7 +784,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 // get attribute the field is matching to
                                 final Optional<FeatureTargetMapping> featureTargetMapping = query.getSelect().getFeatures().stream()
                                         .flatMap(f -> f.getTargetMappings().stream()
-                                                .filter(tm -> AsmUtils.equals(tm.getTarget(), target) && tm.getTargetAttribute() != null && RdbmsAliasUtil.getTargetColumnAlias(target, RdbmsMapper.getAttributeOrFeatureName(tm.getTargetAttribute(), null)).equalsIgnoreCase(field.getKey())))
+                                                .filter(tm -> Objects.equals(tm.getTarget(), target) && tm.getTargetAttribute() != null && RdbmsAliasUtil.getTargetColumnAlias(target, RdbmsMapper.getAttributeOrFeatureName(tm.getTargetAttribute(), null)).equalsIgnoreCase(field.getKey())))
                                         .findAny();
                                 if (featureTargetMapping.isPresent()) { // attribute found in the current target
                                     final Feature feature = (Feature) featureTargetMapping.get().eContainer();
@@ -875,7 +875,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                         if (log.isTraceEnabled()) {
                                             log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
                                         }
-                                        if(!AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget())){
+                                        if(!Objects.equals(query.getSelect().getMainTarget(), c.getTarget())){
                                             final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
                                             recordsByTarget.get(target).put(c.getReference().getName(), containment);
                                         } else {
@@ -911,7 +911,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             } else {
                                 results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
                             }
-                        } else if (idsByTarget.isEmpty() && AsmUtils.equals(query.getSelect().getMainTarget(), target)) {
+                        } else if (idsByTarget.isEmpty() && Objects.equals(query.getSelect().getMainTarget(), target)) {
                             final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
                             results.get(target).put(tmpId, recordsByTarget.get(target));
                         }
@@ -1066,12 +1066,12 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     ? ((ReferencedJoin) j).getReference().getName()
                                     : "?").collect(Collectors.joining(", ")));
         }
-        Optional<Target> subTarget = query.getSelect().getTargets().stream().filter(t -> AsmUtils.equals(t.getNode(), subSelect.getContainer())).findAny();
+        Optional<Target> subTarget = query.getSelect().getTargets().stream().filter(t -> Objects.equals(t.getNode(), subSelect.getContainer())).findAny();
         if (subTarget.isPresent()) {
             final Set<ID> ids = results.get(subTarget.get()).keySet();
             if (!ids.isEmpty()) {
                 if (ids.size() == 1 ||
-                        (AsmUtils.equals(subSelect.getBase(), query.getSelect()) || query.getSelect().getAllJoins().contains(subSelect.getBase())) && subSelect.getLimit() == null) {
+                        (Objects.equals(subSelect.getBase(), query.getSelect()) || query.getSelect().getAllJoins().contains(subSelect.getBase())) && subSelect.getLimit() == null) {
                     executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, ids, mask, queryParameters);
                 } else {
                     ids.forEach(id -> executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, Collections.singleton(id), mask, queryParameters));

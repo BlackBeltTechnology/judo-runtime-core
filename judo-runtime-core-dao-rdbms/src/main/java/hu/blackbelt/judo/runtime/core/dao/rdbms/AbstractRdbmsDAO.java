@@ -297,7 +297,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public List<Payload> getAllReferencedInstancesOf(EReference eReference, EClass eClass) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             List<Payload> result = readAllReferences(eReference, null);
             final Map<EClass, Payload> cache = new HashMap<>();
@@ -311,7 +311,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public long countAllReferencedInstancesOf(EReference eReference, EClass eClass) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             long result = countAllReferences(eReference, null);
             logResult(result);
@@ -323,7 +323,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public List<Payload> searchReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             List<Payload> result = searchReferences(eReference, null, queryCustomizer);
             final Map<EClass, Payload> cache = new HashMap<>();
@@ -337,7 +337,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public long countReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             long result = countReferences(eReference, null, queryCustomizer);
             logResult(result);

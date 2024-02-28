@@ -35,6 +35,7 @@ import org.eclipse.emf.ecore.EClass;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -59,7 +60,7 @@ public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
 
         // add column to list
         final String postfix;
-        if (!AsmUtils.equals(sourceType, attributeContainer)) {  // inherited attribute
+        if (!Objects.equals(sourceType, attributeContainer)) {  // inherited attribute
             if (log.isTraceEnabled()) {
                 log.trace("   - found inherited attribute: {}", sourceAttribute.getName());
             }

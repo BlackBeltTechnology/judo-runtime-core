@@ -36,10 +36,7 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -76,7 +73,7 @@ public class SubSelectJoinProcessor<ID> {
                         .mask(_mask)
                         .build();
 
-        if (!AsmUtils.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
+        if (!Objects.equals(((SubSelectJoin) join).getPartner(), subSelect.getBase())) {
             joins.add(RdbmsTableJoin.builder()
                     .tableName(rdbmsBuilder.getTableName(subSelect.getBase().getType()))
                     .columnName(StatementExecutor.ID_COLUMN_NAME)

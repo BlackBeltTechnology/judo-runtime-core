@@ -314,7 +314,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             log.debug("  - parent IDs: {}", graphs.keySet());
         }
 
-        final boolean loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, subSelect.getReference())).count() > 1;
+        final boolean loopDetected = referenceChain.stream().filter(r -> Objects.equals(r, subSelect.getReference())).count() > 1;
         if (loopDetected && log.isTraceEnabled()) {
             log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r != null ? r.getName() : "null").collect(Collectors.toList()));
         }
@@ -389,7 +389,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 log.trace(pad(level) + "  - containment: {}", containment.getName());
             }
 
-            if (!AsmUtils.equals(entityType, containment.getEContainingClass())) {
+            if (!Objects.equals(entityType, containment.getEContainingClass())) {
                 if (!sources.containsKey(containment.getEContainingClass())) {
                     final RdbmsJoin join = RdbmsJoin.builder()
                             .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
@@ -428,7 +428,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 log.trace(pad(level) + "  - reference to entity type: {}", reference.getName());
             }
 
-            if (!AsmUtils.equals(entityType, reference.getEContainingClass())) {
+            if (!Objects.equals(entityType, reference.getEContainingClass())) {
                 if (!sources.containsKey(reference.getEContainingClass())) {
                     final RdbmsJoin join = RdbmsJoin.builder()
                             .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
@@ -462,7 +462,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         (!reference.isContainment() ||
                                 source instanceof RdbmsSelect) &&
                         // NOTE - if reference is a containment but source is RdbmsSelect a back reference should be checked before operations
-                        (AsmUtils.equals(reference.getEReferenceType(), entityType) ||
+                        (Objects.equals(reference.getEReferenceType(), entityType) ||
                                 entityType.getEAllSuperTypes().contains(reference.getEReferenceType())))
                 .collect(Collectors.toList());
 
@@ -474,7 +474,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             }
 
             final Source oppositeSource;
-            if (!AsmUtils.equals(opposite.getEReferenceType(), entityType)) {
+            if (!Objects.equals(opposite.getEReferenceType(), entityType)) {
                 if (!sources.containsKey(opposite.getEReferenceType())) {
                     final RdbmsJoin join = RdbmsJoin.builder()
                             .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
@@ -551,7 +551,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         final boolean circularDependencyFound = getReferenceList(source).contains(reference);
 
         // TODO - add to configuration parameter how times a single containment is translated to JOIN (instead of subqueries)
-        //final boolean circularDependencyFound = getReferenceList(source).stream().filter(r -> AsmUtils.equals(r, reference)).count() > 3;
+        //final boolean circularDependencyFound = getReferenceList(source).stream().filter(r -> Objects.equals(r, reference)).count() > 3;
 
         if (rule.isForeignKey() && !inverse || rule.isInverseForeignKey() && inverse) { // reference is owned by source class, target class has reference to the ID with different name
             final boolean join = !circularDependencyFound && (!inverse && !reference.isMany() || inverse && opposite != null && !opposite.isMany());

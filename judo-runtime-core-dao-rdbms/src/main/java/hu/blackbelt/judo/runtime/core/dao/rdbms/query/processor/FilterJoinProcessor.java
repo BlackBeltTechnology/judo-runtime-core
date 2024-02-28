@@ -107,7 +107,7 @@ public class FilterJoinProcessor {
                 };
 
                 List<Join> filterFeaturesNoProcessed = filter.getFeature().getNodes().stream()
-                        .filter(n -> !processedNodesForJoins.contains(n) && !AsmUtils.equals(n, filter) && n instanceof Join)
+                        .filter(n -> !processedNodesForJoins.contains(n) && !Objects.equals(n, filter) && n instanceof Join)
                         .flatMap(n -> ((Join) n).getAllJoins().stream())
                         .collect(Collectors.toList());
 
