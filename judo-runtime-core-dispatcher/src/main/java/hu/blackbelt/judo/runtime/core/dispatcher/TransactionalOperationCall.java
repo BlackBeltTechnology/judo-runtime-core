@@ -61,8 +61,14 @@ public class TransactionalOperationCall implements Function<Payload, Payload> {
             transactionStatus = transactionManager.getTransaction(transactionDefinition);
         }
 
+        boolean error = false;
         try {
-            return functionToCall.apply(payload);
+            Payload ret = functionToCall.apply(payload);
+
+            if (ret != null && ret.get(DefaultDispatcher.FAULT) != null) {
+                error = true;
+            }
+            return ret;
         } catch (Exception e) {
             if (transactionStatus != null) {
                 try {
@@ -75,7 +81,7 @@ public class TransactionalOperationCall implements Function<Payload, Payload> {
             throw e;
         } finally {
             if (transactionStatus != null) {
-                if (isStateful(operation)) {
+                if (isStateful(operation) && !error) {
                     transactionManager.commit(transactionStatus);
                 } else {
                     transactionManager.rollback(transactionStatus);
