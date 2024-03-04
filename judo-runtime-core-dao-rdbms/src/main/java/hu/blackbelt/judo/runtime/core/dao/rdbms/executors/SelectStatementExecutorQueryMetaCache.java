@@ -23,16 +23,17 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableMap;
+import hu.blackbelt.judo.meta.query.FeatureTargetMapping;
 import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.meta.query.Target;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.extern.slf4j.Slf4j;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor.*;
@@ -56,6 +57,12 @@ public class SelectStatementExecutorQueryMetaCache {
 
     final Map<String, String> metaFieldNames = new ConcurrentHashMap<>();
 
+    final Map<String, List<Target>> idFieldTargets = new ConcurrentHashMap<>();
+
+    final Map<String, List<Target>> metaFieldTargets = new ConcurrentHashMap<>();
+
+    final Map<String, FeatureTargetMapping> featureTargetMappingMap = new ConcurrentHashMap<>();
+
     private final static CacheLoader<SubSelect, SelectStatementExecutorQueryMetaCache> cacheLoader = new CacheLoader<>() {
         @Override
         public SelectStatementExecutorQueryMetaCache load(SubSelect subSelect) {
@@ -67,7 +74,8 @@ public class SelectStatementExecutorQueryMetaCache {
 
     private final static LoadingCache<SubSelect, SelectStatementExecutorQueryMetaCache> cacheProvider = CacheBuilder
             .newBuilder()
-            .expireAfterAccess(Long.parseLong(System.getProperty("SelectStatementExecutorQueryMetaCache", "30")), TimeUnit.SECONDS)
+            .initialCapacity(Integer.parseInt(System.getProperty("SelectStatementExecutorQueryMetaCacheSize", "200")))
+            .maximumSize(Long.parseLong(System.getProperty("SelectStatementExecutorQueryMetaCacheSize", "200")))
             .build(cacheLoader);
 
     public static SelectStatementExecutorQueryMetaCache getCache(SubSelect s) {
@@ -126,6 +134,29 @@ public class SelectStatementExecutorQueryMetaCache {
         metaFields.putAll(updateUsernames);
         metaFields.putAll(updateUserIds);
         metaFields.putAll(updateTimestamps);
+
+        sources.forEach((s, n) -> {
+            idFieldTargets.put(s.toLowerCase(), query.getSelect().getTargets().stream()
+                    .filter(t -> Objects.equals(t.getNode(), n))
+                    .collect(Collectors.toList()));
+        });
+
+        metaFields.forEach((s, n) -> {
+            metaFieldTargets.put(s.toLowerCase(), query.getSelect().getTargets().stream()
+                    .filter(t -> Objects.equals(t.getNode(), n))
+                    .collect(Collectors.toList()));
+        });
+
+        for (Target target : query.getSelect().getTargets()) {
+            featureTargetMappingMap.putAll(query.getSelect().getFeatures().stream()
+                    .flatMap(f -> f.getTargetMappings().stream().filter(
+                                    tm -> Objects.equals(tm.getTarget(), target) &&
+                                            tm.getTargetAttribute() != null))
+                    .collect(Collectors.toMap(tm ->
+                                    RdbmsAliasUtil.getTargetColumnAlias(target, RdbmsMapper.getAttributeOrFeatureName(tm.getTargetAttribute(), null)).toLowerCase(),
+                            Function.identity())));
+        }
+
 
     }
 
@@ -207,6 +238,21 @@ public class SelectStatementExecutorQueryMetaCache {
 
     public Optional<Node> getMetaField(String field) {
         return Optional.ofNullable(metaFields.get(field.toLowerCase()));
+    }
+
+
+    public Optional<List<Target>> getIdFieldTargets(String field) {
+        return Optional.ofNullable(idFieldTargets.get(field.toLowerCase()));
+    }
+
+
+    public Optional<List<Target>> getMetaFieldTargets(String field) {
+        return Optional.ofNullable(metaFieldTargets.get(field.toLowerCase()));
+    }
+
+
+    public Optional<FeatureTargetMapping> getFeatureTargetMapping(String field) {
+        return Optional.ofNullable(featureTargetMappingMap.get(field.toLowerCase()));
     }
 
 }
