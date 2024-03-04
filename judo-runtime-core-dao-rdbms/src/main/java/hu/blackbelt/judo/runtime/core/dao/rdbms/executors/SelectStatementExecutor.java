@@ -21,7 +21,6 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
  */
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
@@ -50,7 +49,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsCount;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
@@ -716,9 +714,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 log.trace("    - id source: {}", idSource.get().getAlias());
                             }
 
-                            final List<Target> foundTargets = query.getSelect().getTargets().stream()
-                                    .filter(t -> Objects.equals(t.getNode(), idSource.get()))
-                                    .collect(Collectors.toList());
+                            final List<Target> foundTargets = getCache(query).getIdFieldTargets(field.getKey()).orElseThrow();
 
                             if (!foundTargets.isEmpty()) {
                                 for (Target target : foundTargets) {
@@ -743,9 +739,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 log.trace("    - meta source: {}", metaField.get().getAlias());
                             }
 
-                            final List<Target> foundTargets = query.getSelect().getTargets().stream()
-                                    .filter(t -> Objects.equals(t.getNode(), metaField.get()))
-                                    .collect(Collectors.toList());
+                            final List<Target> foundTargets = getCache(query).getMetaFieldTargets(field.getKey()).orElseThrow();
 
                             if (!foundTargets.isEmpty()) {
                                 for (Target target : foundTargets) {
@@ -781,11 +775,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 if (log.isTraceEnabled()) {
                                     log.trace("   - target: {}", target);
                                 }
-                                // get attribute the field is matching to
-                                final Optional<FeatureTargetMapping> featureTargetMapping = query.getSelect().getFeatures().stream()
-                                        .flatMap(f -> f.getTargetMappings().stream()
-                                                .filter(tm -> Objects.equals(tm.getTarget(), target) && tm.getTargetAttribute() != null && RdbmsAliasUtil.getTargetColumnAlias(target, RdbmsMapper.getAttributeOrFeatureName(tm.getTargetAttribute(), null)).equalsIgnoreCase(field.getKey())))
-                                        .findAny();
+                                Optional<FeatureTargetMapping> featureTargetMapping = getCache(query).getFeatureTargetMapping(field.getKey());
                                 if (featureTargetMapping.isPresent()) { // attribute found in the current target
                                     final Feature feature = (Feature) featureTargetMapping.get().eContainer();
 
