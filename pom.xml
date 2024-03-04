@@ -47,7 +47,6 @@
         <epsilon-runtime-version>1.5.1.20230914_115155_8ab2f00c_develop</epsilon-runtime-version>
         <judo-tatami-core-version>1.1.4.20231107_041032_332be90a_develop</judo-tatami-core-version>
 
-
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2.20231107_041230_4167c814_develop</judo-meta-rdbms-version>
         <judo-meta-asm-version>1.1.4.20240208_181822_6e9e78d2_develop</judo-meta-asm-version>
