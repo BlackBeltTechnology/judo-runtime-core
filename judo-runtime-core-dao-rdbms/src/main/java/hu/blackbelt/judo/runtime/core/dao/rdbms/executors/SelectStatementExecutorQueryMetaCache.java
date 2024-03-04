@@ -20,19 +20,16 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
  * #L%
  */
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import hu.blackbelt.judo.meta.query.FeatureTargetMapping;
-import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.SubSelect;
-import hu.blackbelt.judo.meta.query.Target;
+import com.google.common.collect.ImmutableList;
+import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
+import org.eclipse.emf.ecore.EReference;
+
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -43,52 +40,37 @@ public class SelectStatementExecutorQueryMetaCache {
 
     final SubSelect query;
 
-    final Map<String, Node> sources = new ConcurrentHashMap<>();
-    final Map<String, Node> types = new ConcurrentHashMap<>();
-    final Map<String, Node> versions = new ConcurrentHashMap<>();
-    final Map<String, Node> createUserIds = new ConcurrentHashMap<>();
-    final Map<String, Node> createUsernames = new ConcurrentHashMap<>();
-    final Map<String, Node> createTimestamps = new ConcurrentHashMap<>();
-    final Map<String, Node> updateUsernames = new ConcurrentHashMap<>();
-    final Map<String, Node> updateUserIds = new ConcurrentHashMap<>();
-    final Map<String, Node> updateTimestamps = new ConcurrentHashMap<>();
+    final Map<String, Node> sources = new HashMap<>();
+    final Map<String, Node> types = new HashMap<>();
+    final Map<String, Node> versions = new HashMap<>();
+    final Map<String, Node> createUserIds = new HashMap<>();
+    final Map<String, Node> createUsernames = new HashMap<>();
+    final Map<String, Node> createTimestamps = new HashMap<>();
+    final Map<String, Node> updateUsernames = new HashMap<>();
+    final Map<String, Node> updateUserIds = new HashMap<>();
+    final Map<String, Node> updateTimestamps = new HashMap<>();
 
-    final Map<String, Node> metaFields = new ConcurrentHashMap<>();
+    final Map<String, Node> metaFields = new HashMap<>();
 
-    final Map<String, String> metaFieldNames = new ConcurrentHashMap<>();
+    final Map<String, String> metaFieldNames = new HashMap<>();
 
-    final Map<String, List<Target>> idFieldTargets = new ConcurrentHashMap<>();
+    final Map<String, List<Target>> idFieldTargets = new HashMap<>();
 
-    final Map<String, List<Target>> metaFieldTargets = new ConcurrentHashMap<>();
+    final Map<String, List<Target>> metaFieldTargets = new HashMap<>();
 
-    final Map<String, FeatureTargetMapping> featureTargetMappingMap = new ConcurrentHashMap<>();
+    final Map<String, FeatureTargetMapping> featureTargetMappingMap = new HashMap<>();
 
-    private final static CacheLoader<SubSelect, SelectStatementExecutorQueryMetaCache> cacheLoader = new CacheLoader<>() {
-        @Override
-        public SelectStatementExecutorQueryMetaCache load(SubSelect subSelect) {
+    final Map<List<EReference>, Target> allTargetPaths;
 
-            SelectStatementExecutorQueryMetaCache cache = new SelectStatementExecutorQueryMetaCache(subSelect);
-            return cache;
-        }
-    };
+    final Map<Target, List<List<EReference>>> pathByTarget;
 
-    private final static LoadingCache<SubSelect, SelectStatementExecutorQueryMetaCache> cacheProvider = CacheBuilder
-            .newBuilder()
-            .initialCapacity(Integer.parseInt(System.getProperty("SelectStatementExecutorQueryMetaCacheSize", "200")))
-            .maximumSize(Long.parseLong(System.getProperty("SelectStatementExecutorQueryMetaCacheSize", "200")))
-            .build(cacheLoader);
+    final List<Pair<List<EReference>, List<SubSelect>>> singleEmbeddedReferences;
 
-    public static SelectStatementExecutorQueryMetaCache getCache(SubSelect s) {
-        SelectStatementExecutorQueryMetaCache cache = null;
-        try {
-            cache = cacheProvider.get(s);
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        }
-        return cache;
-    }
+    final Map<Target, List<ReferencedTarget>> singleContainmentReferenceTargets = new HashMap<>();
 
-    private SelectStatementExecutorQueryMetaCache(final SubSelect query) {
+    final Map<Target, List<ReferencedTarget>> multipleContainmentReferenceTargets = new HashMap<>();
+
+    public SelectStatementExecutorQueryMetaCache(final SubSelect query, Map<String, Object> mask, List<EReference> referenceChain) {
         this.query = query;
 
         sources.putAll(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(k -> RdbmsAliasUtil.getIdColumnAlias(k).toLowerCase(), j -> j)));
@@ -158,7 +140,77 @@ public class SelectStatementExecutorQueryMetaCache {
         }
 
 
+        allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
+        pathByTarget = allTargetPaths.entrySet().stream()
+                .collect(Collectors.groupingBy(Map.Entry::getValue,
+                        Collectors.mapping(Map.Entry::getKey, Collectors.toList())));
+
+        singleEmbeddedReferences = allTargetPaths.entrySet().stream()
+                .filter(tp -> tp.getKey().stream().allMatch(r -> isEmbedded(r) && !r.isMany()))
+                .map(tp -> Pair.<List<EReference>, List<SubSelect>>of(
+                        ImmutableList.<EReference>builder().addAll(referenceChain).addAll(tp.getKey()).build(),
+                        ImmutableList.copyOf(tp.getValue().getNode().getSubSelects().stream()
+                                .filter(subSelect -> subSelect.getTransferRelation() != null && isEmbedded(subSelect.getTransferRelation()) && !subSelect.isExcluding())
+                                .filter(subSelect -> mask == null || mask.containsKey(subSelect.getTransferRelation().getName())).collect(Collectors.toList()))))
+                .collect(Collectors.toList());
+
+        for (Target target : query.getSelect().getTargets()) {
+            singleContainmentReferenceTargets.put(target, target.getReferencedTargets().stream()
+                    .filter(rt -> isEmbedded(rt.getReference()))
+                    .filter(c -> !c.getReference().isMany())
+                    .filter(c -> mask == null || getMaskForTarget(c.getTarget(), mask, pathByTarget) != null).toList());
+
+            multipleContainmentReferenceTargets.put(target, target.getReferencedTargets().stream()
+                    .filter(r -> isEmbedded(r.getReference()))
+                    .filter(c -> c.getReference().isMany())
+                    .filter(c -> mask == null || mask.containsKey(c.getReference().getName())).toList());
+         }
     }
+
+    private Map<List<EReference>, Target> getAllTargetPaths(final Target target) {
+        final Map<List<EReference>, Target> result = new HashMap<>();
+        result.put(new ArrayList<>(), target);
+        return addReferencesToAllTargetPaths(result, Collections.emptyList(), target.getReferencedTargets());
+    }
+
+    private Map<List<EReference>, Target> addReferencesToAllTargetPaths(final Map<List<EReference>, Target> found, final List<EReference> path, final List<ReferencedTarget> processing) {
+        if (processing.isEmpty()) {
+            return found;
+        }
+
+        final Map<List<EReference>, Target> newTargets = processing.stream()
+                .filter(r -> !found.containsValue(r.getTarget()))
+                .collect(Collectors.toMap(r -> ImmutableList.<EReference>builder().addAll(path).add(r.getReference()).build(), ReferencedTarget::getTarget));
+        found.putAll(newTargets);
+
+        newTargets.forEach((key, value) -> addReferencesToAllTargetPaths(found, key, value.getReferencedTargets()));
+        return found;
+    }
+
+    private boolean isEmbedded(final EReference reference) {
+        return AsmUtils.annotatedAsTrue(reference, "embedded");
+    }
+
+    private Map<String, Object> getMaskForTarget(Target target, Map<String, Object> mask, Map<Target, List<List<EReference>>> pathByTarget) {
+        Map<String, Object> subMask = mask;
+        if (mask != null) {
+            for (List<EReference> references : pathByTarget.get(target)) {
+                Map<String, Object> maskRes = null;
+                for (EReference reference : references) {
+                    if (maskRes == null) {
+                        if (subMask != null && subMask.containsKey(reference.getName())) {
+                            maskRes = (Map<String, Object>) subMask.get(reference.getName());
+                        } else {
+                            maskRes = null;
+                        }
+                    }
+                }
+                subMask = maskRes;
+            }
+        }
+        return subMask;
+    }
+
 
     public Optional<String> getMetaFieldName(String fieldName) {
         return Optional.ofNullable(metaFieldNames.get(fieldName.toLowerCase()));
@@ -253,6 +305,18 @@ public class SelectStatementExecutorQueryMetaCache {
 
     public Optional<FeatureTargetMapping> getFeatureTargetMapping(String field) {
         return Optional.ofNullable(featureTargetMappingMap.get(field.toLowerCase()));
+    }
+
+    public List<Pair<List<EReference>, List<SubSelect>>> getSingleEmbeddedReferences() {
+        return singleEmbeddedReferences;
+    }
+
+    public List<ReferencedTarget> getSingleContainmentReferenceTargets(Target target) {
+        return singleContainmentReferenceTargets.get(target);
+    }
+
+    public List<ReferencedTarget> getMultipleContainmentReferenceTargets(Target target) {
+        return multipleContainmentReferenceTargets.get(target);
     }
 
 }
