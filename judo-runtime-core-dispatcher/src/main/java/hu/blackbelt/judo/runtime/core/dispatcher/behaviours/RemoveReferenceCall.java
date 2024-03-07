@@ -43,16 +43,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class RemoveReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final AsmUtils asmUtils;
-    final IdentifierProvider<ID> identifierProvider;
+    final ServiceContext serviceContext;
 
-    public RemoveReferenceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                               PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+    public RemoveReferenceCall(Context context, ServiceContext<ID> serviceContext) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
     }
 
     @Override
@@ -65,7 +60,7 @@ public class RemoveReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
         CallInterceptorUtil<RemoveReferenceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
                 RemoveReferenceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
 
-        final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EReference owner = (EReference) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
@@ -87,12 +82,12 @@ public class RemoveReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
         if (callInterceptorUtil.shouldCallOriginal()) {
             @SuppressWarnings({"unchecked"})
             final Collection<ID> referencedIds = inputParameter.getReferences().stream()
-                    .map(p -> (ID) p.get(identifierProvider.getName()))
+                    .map(p -> (ID) p.get(serviceContext.getIdentifierProvider().getName()))
                     .collect(Collectors.toList());
 
             @SuppressWarnings({"unchecked"})
-            ID instanceId = (ID) inputParameter.getInstance().get(identifierProvider.getName());
-            dao.removeReferences(inputParameter.getOwner(),
+            ID instanceId = (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName());
+            serviceContext.getDao().removeReferences(inputParameter.getOwner(),
                     instanceId,
                     referencedIds);
         }

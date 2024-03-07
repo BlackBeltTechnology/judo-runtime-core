@@ -43,19 +43,13 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
     private static final String TOKEN_KEY = "token";
     public static final String ATTRIBUTE_KEY = "attribute";
 
-    private final AsmModel asmModel;
-
-    private final AsmUtils asmUtils;
+    final ServiceContext<ID> serviceContext;
 
     private final TokenIssuer tokenIssuer;
 
-    private final OperationCallInterceptorProvider interceptorProvider;
-
-    public GetUploadTokenCall(final AsmModel asmModel, final TokenIssuer tokenIssuer, OperationCallInterceptorProvider interceptorProvider) {
-        this.asmModel = asmModel;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+    public GetUploadTokenCall(ServiceContext<ID> serviceContext, final TokenIssuer tokenIssuer) {
+        this.serviceContext = serviceContext;
         this.tokenIssuer = tokenIssuer;
-        this.interceptorProvider = interceptorProvider;
     }
 
     @Override
@@ -67,13 +61,15 @@ public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
     public Object call(Map<String, Object> exchange, EOperation operation) {
 
         CallInterceptorUtil<GetUploadTokenCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
-                GetUploadTokenCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+                GetUploadTokenCallPayload.class,
+                Payload.class, serviceContext.getAsmModel(),
+                operation, serviceContext.getInterceptorProvider()
         );
 
         GetUploadTokenCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
                 GetUploadTokenCallPayload.builder()
                         .instance(Payload.asPayload(exchange))
-                        .owner((EAttribute) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
+                        .owner((EAttribute) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
                                 () -> new IllegalArgumentException("Invalid model")))
                         .build());
 

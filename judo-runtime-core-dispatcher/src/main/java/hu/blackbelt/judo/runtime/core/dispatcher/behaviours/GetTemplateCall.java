@@ -36,18 +36,10 @@ import java.util.Map;
 
 public class GetTemplateCall<ID> implements BehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final AsmUtils asmUtils;
+    final ServiceContext<ID> serviceContext;
 
-    final OperationCallInterceptorProvider interceptorProvider;
-
-    final AsmModel asmModel;
-
-    public GetTemplateCall(DAO<ID> dao, AsmModel asmModel, OperationCallInterceptorProvider interceptorProvider) {
-        this.dao = dao;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        this.interceptorProvider = interceptorProvider;
-        this.asmModel = asmModel;
+    public GetTemplateCall(ServiceContext<ID> serviceContext) {
+        this.serviceContext = serviceContext;
     }
 
     @Override
@@ -58,17 +50,17 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
         CallInterceptorUtil<GetTemplateCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
-                GetTemplateCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+                GetTemplateCallPayload.class, Payload.class, serviceContext.getAsmModel(), operation, serviceContext.getInterceptorProvider()
         );
 
         GetTemplateCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(GetTemplateCallPayload.builder()
                         .instance(Payload.asPayload(exchange))
-                        .owner((EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
+                        .owner((EClass) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
                                 () -> new IllegalArgumentException("Invalid model")))
                 .build());
         Payload result = null;
         if (callInterceptorUtil.shouldCallOriginal()) {
-            result = dao.getDefaultsOf(inputParameter.getOwner());
+            result = serviceContext.getDao().getDefaultsOf(inputParameter.getOwner());
         }
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }

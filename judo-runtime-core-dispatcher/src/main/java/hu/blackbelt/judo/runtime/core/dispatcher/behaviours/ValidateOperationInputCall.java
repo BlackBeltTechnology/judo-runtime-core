@@ -46,22 +46,13 @@ import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
 public class ValidateOperationInputCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final IdentifierProvider<ID> identifierProvider;
-    final AsmUtils asmUtils;
-    final Coercer coercer;
-
+    final ServiceContext<ID> serviceContext;
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateOperationInputCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                                      PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider,
-                                      Coercer coercer) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
-        this.coercer = coercer;
+    public ValidateOperationInputCall(Context context, ServiceContext<ID> serviceContext) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
+        markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
     }
 
     @Override
@@ -71,7 +62,7 @@ public class ValidateOperationInputCall<ID> extends AlwaysRollbackTransactionalB
 
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
-        final EOperation owner = (EOperation) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EOperation owner = (EOperation) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         CallInterceptorUtil<ValidateOperationInputCall.ValidateOperationCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
@@ -88,7 +79,7 @@ public class ValidateOperationInputCall<ID> extends AlwaysRollbackTransactionalB
 
         Payload result = null;
         if (callInterceptorUtil.shouldCallOriginal()) {
-            result = dao.getDefaultsOf(owner.getEContainingClass());
+            result = serviceContext.getDao().getDefaultsOf(owner.getEContainingClass());
         }
 
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);
