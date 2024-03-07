@@ -38,22 +38,17 @@ import java.util.function.Supplier;
 
 public class GetMetadataCall<ID> implements BehaviourCall<ID> {
 
-    final AsmModel asmModel;
-    final AsmUtils asmUtils;
+    final ServiceContext<ID> serviceContext;
     final Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider;
-    final OperationCallInterceptorProvider interceptorProvider;
     private static final String SECURITY_KEY = "security";
-
     private static final String ISSUER = "issuer";
     private static final String AUTH_ENDPOINT = "auth_endpoint";
     private static final String TOKEN_ENDPOINT = "token_endpoint";
     private static final String LOGOUT_ENDPOINT = "end_session_endpoint";
 
-    public GetMetadataCall(AsmModel asmModel, Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider, OperationCallInterceptorProvider interceptorProvider) {
-        this.asmModel = asmModel;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+    public GetMetadataCall(ServiceContext<ID> serviceContext, Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider) {
+        this.serviceContext = serviceContext;
         this.openIdConfigurationProvider = openIdConfigurationProvider;
-        this.interceptorProvider = interceptorProvider;
     }
 
     @Override
@@ -64,11 +59,15 @@ public class GetMetadataCall<ID> implements BehaviourCall<ID> {
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
         CallInterceptorUtil<GetMetadataCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
-                GetMetadataCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+                GetMetadataCallPayload.class,
+                Payload.class,
+                serviceContext.getAsmModel(),
+                operation,
+                serviceContext.getInterceptorProvider()
         );
 
         final List<Payload> securityList = new ArrayList<>();
-        asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .filter(owner -> owner instanceof EClass)
                 .map(owner -> (EClass) owner)
                 .filter(AsmUtils::isActorType)

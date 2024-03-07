@@ -78,6 +78,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public static final String VERSION_KEY = "__version";
     public static final String RECORD_COUNT_KEY = "__recordCount";
     public static final String COUNT_QUERY_RECORD_KEY = "__countRecords";
+    public static final String MASK = "__mask";
     public static final String SDK = "sdk";
     public static final String SCRIPT = "script";
     public static final String BEHAVIOUR = "behaviour";
@@ -149,27 +150,39 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     @SuppressWarnings("unchecked")
     private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel) {
+        ServiceContext serviceContext = ServiceContext.<ID>builder()
+                .dao(dao)
+                .identifierProvider(identifierProvider)
+                .asmModel(asmModel)
+                .asmUtils(new AsmUtils(asmModel.getResourceSet()))
+                .transactionManager(transactionManager)
+                .interceptorProvider(operationCallInterceptorProvider)
+                .coercer(dataTypeManager.getCoercer())
+                .actorResolver(actorResolver)
+                .caseInsensitiveLike(caseInsensitiveLike)
+                .build();
+
         behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
                 .add(
-                        new ExportCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike, exporter),
-                        new ListCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), actorResolver, caseInsensitiveLike),
-                        new CreateInstanceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
-                        new ValidateCreateCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
-                        new RefreshCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new UpdateInstanceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider,  dataTypeManager.getCoercer()),
-                        new ValidateUpdateCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer()),
-                        new DeleteInstanceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
-                        new SetReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
-                        new UnsetReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
-                        new AddReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
-                        new RemoveReferenceCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider),
-                        new GetReferenceRangeCall<>(context, dao, identifierProvider, asmModel, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new GetInputRangeCall<>(context, dao, identifierProvider, asmModel, expressionModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer(), caseInsensitiveLike),
-                        new ValidateOperationInputCall<>(context, dao, identifierProvider, asmModel, transactionManager, operationCallInterceptorProvider, dataTypeManager.getCoercer()),
-                        new GetPrincipalCall<>(dao, identifierProvider, asmModel, actorResolver, operationCallInterceptorProvider),
-                        new GetTemplateCall<>(dao, asmModel, operationCallInterceptorProvider),
-                        new GetMetadataCall<>(asmModel, () -> openIdConfigurationProvider, operationCallInterceptorProvider),
-                        new GetUploadTokenCall<>(asmModel, filestoreTokenIssuer, operationCallInterceptorProvider)
+                        new ExportCall<>(context, serviceContext, exporter),
+                        new ListCall<>(context, serviceContext),
+                        new CreateInstanceCall<>(context, serviceContext),
+                        new ValidateCreateCall<>(context, serviceContext),
+                        new RefreshCall<>(context, serviceContext),
+                        new UpdateInstanceCall<>(context, serviceContext),
+                        new ValidateUpdateCall<>(context, serviceContext),
+                        new DeleteInstanceCall<>(context, serviceContext),
+                        new SetReferenceCall<>(context, serviceContext),
+                        new UnsetReferenceCall<>(context, serviceContext),
+                        new AddReferenceCall<>(context, serviceContext),
+                        new RemoveReferenceCall<>(context, serviceContext),
+                        new GetReferenceRangeCall<>(context, serviceContext, expressionModel),
+                        new GetInputRangeCall<>(context, serviceContext, expressionModel),
+                        new ValidateOperationInputCall<>(context, serviceContext),
+                        new GetPrincipalCall<>(serviceContext),
+                        new GetTemplateCall<>(serviceContext),
+                        new GetMetadataCall<>(serviceContext, () -> openIdConfigurationProvider),
+                        new GetUploadTokenCall<>(serviceContext, filestoreTokenIssuer)
                 )
                 .build();
     }

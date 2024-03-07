@@ -45,22 +45,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
 
-    final AsmModel asmModel;
+    final ServiceContext<ID> serviceContext;
 
-    final AsmUtils asmUtils;
-    final DAO<ID> dao;
-    final ActorResolver actorResolver;
-    final IdentifierProvider<ID> identifierProvider;
-
-    final OperationCallInterceptorProvider interceptorProvider;
-    public GetPrincipalCall(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                            ActorResolver actorResolver, OperationCallInterceptorProvider interceptorProvider) {
-        this.dao = dao;
-        this.asmModel = asmModel;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        this.actorResolver = actorResolver;
-        this.interceptorProvider = interceptorProvider;
+    public GetPrincipalCall(ServiceContext serviceContext) {
+        this.serviceContext = serviceContext;
     }
 
     @Override
@@ -71,7 +59,9 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
     @Override
     public Object call(final Map<String, Object> exchange, final EOperation operation) {
         CallInterceptorUtil<GetPrincipalCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
-                GetPrincipalCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
+                GetPrincipalCallPayload.class,
+                Payload.class, serviceContext.getAsmModel(),
+                operation, serviceContext.getInterceptorProvider()
         );
 
         Payload ret = null;
@@ -85,7 +75,7 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
             if (inputParameter.getInstance().containsKey(Dispatcher.ACTOR_KEY)) {
                 actor = Optional.ofNullable((Payload) inputParameter.getInstance().get(Dispatcher.ACTOR_KEY));
             } else if (inputParameter.getInstance().containsKey(Dispatcher.PRINCIPAL_KEY)) {
-                final EClass actorType = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+                final EClass actorType = (EClass) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                         .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
                 checkArgument(AsmUtils.isActorType(actorType), "Owner class must be an access point");
 
@@ -94,7 +84,7 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
                     throw new UnsupportedOperationException("Unsupported or unknown actor");
                 }
 
-                actor = actorResolver.authenticateByPrincipal((JudoPrincipal) _principal);
+                actor = serviceContext.getActorResolver().authenticateByPrincipal((JudoPrincipal) _principal);
             } else {
                 actor = Optional.empty();
             }
@@ -104,10 +94,10 @@ public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
                         .filter(t -> t instanceof EClass).map(t -> (EClass) t)
                         .orElseThrow(() -> new IllegalArgumentException("Access point not found"));
 
-                final Optional<Payload> result = dao.getByIdentifier(
+                final Optional<Payload> result = serviceContext.getDao().getByIdentifier(
                         principal,
-                        actor.get().getAs(identifierProvider.getType(),
-                                identifierProvider.getName()));
+                        actor.get().getAs(serviceContext.getIdentifierProvider().getType(),
+                                serviceContext.getIdentifierProvider().getName()));
 
                 // copy transient attributes (from claims)
                 result.ifPresent(payload -> payload.putAll(principal.getEAllAttributes().stream()

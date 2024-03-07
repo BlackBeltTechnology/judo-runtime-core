@@ -21,23 +21,17 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.*;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
-
-import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.*;
 
@@ -45,36 +39,34 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final AsmUtils asmUtils;
-    final ExpressionModelResourceSupport expressionModelResourceSupport;
-    final IdentifierProvider<ID> identifierProvider;
-
-    private final MarkedIdRemover<ID> markedIdRemover;
-    private final CollectedIdRemover<ID> collectedIdRemover;
+    final ServiceContext serviceContext;
 
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+
+    final ExpressionModelResourceSupport expressionModelResourceSupport;
+    private final MarkedIdRemover<ID> markedIdRemover;
+    private final CollectedIdRemover<ID> collectedIdRemover;
 
     private static final String OWNER_KEY = "owner";
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
 
     @SneakyThrows
-    public GetInputRangeCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                             ExpressionModel expressionModel, PlatformTransactionManager transactionManager,
-                             OperationCallInterceptorProvider interceptorProvider,
-                             Coercer coercer, boolean caseInsensitiveLike) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        this.markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
-        this.collectedIdRemover = new CollectedIdRemover<>(identifierProvider.getName());
+    public GetInputRangeCall(Context context, ServiceContext serviceContext,
+                             ExpressionModel expressionModel) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+                serviceContext.getAsmUtils(),
+                serviceContext.isCaseInsensitiveLike(),
+                serviceContext.getIdentifierProvider(),
+                serviceContext.getCoercer());
+
+        this.markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
+        this.collectedIdRemover = new CollectedIdRemover<>(serviceContext.getIdentifierProvider().getName());
 
         this.expressionModelResourceSupport = ExpressionModelResourceSupport.expressionModelResourceSupportBuilder()
                 .resourceSet(expressionModel.getResourceSet())
                 .uri(expressionModel.getUri()).build();
-
-        this.queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
     }
 
     @Override
@@ -87,11 +79,11 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
         CallInterceptorUtil<GetInputRangeCallPayload<ID>, Collection<Payload>> callInterceptorUtil = new CallInterceptorUtil<>(
                 GetInputRangeCallPayload.class, Collection.class, asmModel, operation, interceptorProvider);
 
-        final EOperation owner = (EOperation) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EOperation owner = (EOperation) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
         String inputRangeReferenceFQName = AsmUtils.getExtensionAnnotationValue(owner, "inputRange", false)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
-        final EReference inputRangeReference = asmUtils.resolveReference(inputRangeReferenceFQName)
+        final EReference inputRangeReference = serviceContext.getAsmUtils().resolveReference(inputRangeReferenceFQName)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final Optional<String> inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst();
@@ -109,7 +101,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
 
 
         final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor.build(
-                queryCustomizerData, inputRangeReference.getEReferenceType());
+                queryCustomizerData, inputRangeReference.getEReferenceType(), exchange);
 
         GetInputRangeCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(
                         GetInputRangeCallPayload.<ID>builder()
@@ -125,14 +117,14 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
             checkArgument(!bound, "Operation must be unbound");
 
             final Collection<ID> idsToRemove = new HashSet<>();
-            result = dao.getRangeOf(
+            result = serviceContext.getDao().getRangeOf(
                     inputParameter.getReference(),
                     inputParameter.getOwnerPayload(),
                     inputParameter.getQueryCustomizer(),
                     true);
 
             if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
-                inputParameter.setRecordCount(dao.countRangeOf(
+                inputParameter.setRecordCount(serviceContext.getDao().countRangeOf(
                         inputParameter.getReference(),
                         inputParameter.getOwnerPayload(),
                         inputParameter.getQueryCustomizer(),

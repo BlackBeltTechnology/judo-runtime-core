@@ -42,16 +42,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final AsmUtils asmUtils;
-    final IdentifierProvider<ID> identifierProvider;
+    final ServiceContext serviceContext;
 
-    public UnsetReferenceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+    public UnsetReferenceCall(Context context, ServiceContext<ID> serviceContext) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
     }
 
     @Override
@@ -64,7 +59,7 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
         CallInterceptorUtil<UnsetReferenceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
                 UnsetReferenceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
 
-        final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EReference owner = (EReference) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final boolean bound = AsmUtils.isBound(operation);
@@ -78,8 +73,8 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
         if (callInterceptorUtil.shouldCallOriginal()) {
             @SuppressWarnings("unchecked")
-            final ID instanceId = (ID) inputParameter.getInstance().get(identifierProvider.getName());
-            dao.unsetReference(owner, instanceId);
+            final ID instanceId = (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName());
+            serviceContext.getDao().unsetReference(owner, instanceId);
         }
 
         return callInterceptorUtil.postCallInterceptors(inputParameter, null);

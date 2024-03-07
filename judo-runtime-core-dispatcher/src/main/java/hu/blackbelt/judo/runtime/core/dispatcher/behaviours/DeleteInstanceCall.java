@@ -43,16 +43,10 @@ import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isBound;
 
 public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final IdentifierProvider<ID> identifierProvider;
-    final AsmUtils asmUtils;
-
-    public DeleteInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+    final ServiceContext<ID> serviceContext;
+    public DeleteInstanceCall(Context context, ServiceContext<ID> serviceContext) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
     }
 
     @Override
@@ -66,7 +60,7 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
         CallInterceptorUtil<DeleteInstanceCallPayload, Void> callInterceptorUtil = new CallInterceptorUtil<>(
                 DeleteInstanceCallPayload.class, Void.class, asmModel, operation, interceptorProvider);
 
-        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EClass owner = (EClass) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final boolean bound = isBound(operation);
@@ -79,8 +73,8 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
                         .build());
 
         if (callInterceptorUtil.shouldCallOriginal()) {
-            dao.delete(deleteInstanceCallPayload.getOwner(),
-                    (ID) deleteInstanceCallPayload.getInstance().get(identifierProvider.getName()));
+            serviceContext.getDao().delete(deleteInstanceCallPayload.getOwner(),
+                    (ID) deleteInstanceCallPayload.getInstance().get(serviceContext.getIdentifierProvider().getName()));
         }
 
         return callInterceptorUtil.postCallInterceptors(deleteInstanceCallPayload, null);
