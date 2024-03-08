@@ -21,20 +21,17 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
-import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
-import org.springframework.transaction.PlatformTransactionManager;
+
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -42,19 +39,20 @@ import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
 public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final AsmUtils asmUtils;
-    final IdentifierProvider<ID> identifierProvider;
+    final ServiceContext<ID> serviceContext;
+    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateCreateCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        markedIdRemover = new MarkedIdRemover<>(identifierProvider.getName());
+    public ValidateCreateCall(Context context, ServiceContext<ID> serviceContext) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+                serviceContext.getAsmUtils(),
+                serviceContext.isCaseInsensitiveLike(),
+                serviceContext.getIdentifierProvider(),
+                serviceContext.getCoercer());
+        markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
     }
 
     @Override
@@ -68,11 +66,14 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
         CallInterceptorUtil<ValidateCreateCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
                 ValidateCreateCallPayload.class, Payload.class, asmModel, operation, interceptorProvider);
 
-        final EReference owner = (EReference) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EReference owner = (EReference) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
+
+        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+                .build(null, owner.getEReferenceType(), exchange);
 
         ValidateCreateCallPayload inputParameter =
                 callInterceptorUtil.preCallInterceptors(
@@ -87,17 +88,17 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
             final boolean bound = AsmUtils.isBound(operation);
 
             if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access") ||
-                    !asmUtils.isMappedTransferObjectType(owner.getEContainingClass())) {
+                    !serviceContext.getAsmUtils().isMappedTransferObjectType(owner.getEContainingClass())) {
                 checkArgument(!bound, "Operation must be unbound");
-                result = dao.create(
+                result = serviceContext.getDao().create(
                         inputParameter.getOwner().getEReferenceType(),
-                        inputParameter.getInput(), null);
+                        inputParameter.getInput(), queryCustomizer);
             } else {
                 checkArgument(bound, "Operation must be bound");
-                result = dao.createNavigationInstanceAt(
-                        (ID) inputParameter.getInstance().get(identifierProvider.getName()),
+                result = serviceContext.getDao().createNavigationInstanceAt(
+                        (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
                         inputParameter.getOwner(),
-                        inputParameter.getInput(), null);
+                        inputParameter.getInput(), queryCustomizer);
             }
         }
 

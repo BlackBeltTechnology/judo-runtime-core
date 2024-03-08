@@ -21,21 +21,17 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
-import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
-import org.springframework.transaction.PlatformTransactionManager;
+
 import java.util.Map;
 import java.util.Optional;
 
@@ -43,19 +39,18 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final IdentifierProvider<ID> identifierProvider;
-    final AsmUtils asmUtils;
+    final ServiceContext serviceContext;
+
     private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public RefreshCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                       PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider,
-                       Coercer coercer, boolean caseInsensitiveLike) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(asmUtils, caseInsensitiveLike, identifierProvider, coercer);
+    public RefreshCall(Context context, ServiceContext<ID> serviceContext) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+                serviceContext.getAsmUtils(),
+                serviceContext.isCaseInsensitiveLike(),
+                serviceContext.getIdentifierProvider(),
+                serviceContext.getCoercer());
     }
 
     @Override
@@ -70,7 +65,7 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
                 RefreshCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
         );
 
-        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EClass owner = (EClass) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final boolean bound = AsmUtils.isBound(operation);
@@ -82,8 +77,7 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
                 .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
 
         final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
-                .build(queryCustomizerParameter.orElse(null), owner);
-
+                .build(queryCustomizerParameter.orElse(null), owner, exchange);
 
         RefreshCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(RefreshCallPayload.<ID>builder()
                 .owner(owner)
@@ -94,8 +88,8 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
         Optional<Payload> result = Optional.empty();
 
         if (callInterceptorUtil.shouldCallOriginal()) {
-            result = dao.searchByIdentifier(inputParameter.getOwner(),
-                    (ID) inputParameter.getInstance().get(identifierProvider.getName()),
+            result = serviceContext.getDao().searchByIdentifier(inputParameter.getOwner(),
+                    (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
                     inputParameter.getQueryCustomizer());
         }
         return callInterceptorUtil.postCallInterceptors(inputParameter, result.orElse(null));
