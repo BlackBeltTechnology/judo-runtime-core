@@ -143,9 +143,7 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     public Payload create(EClass clazz, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
         final Payload result = delegatee.create(clazz, payload, queryCustomizer);
-        if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            userManager.getManagedActorOfPrincipal(clazz).ifPresent(actorType -> userManager.createUser(actorType, convertPrincipalToActor(clazz, result)));
-        }
+        createUserForActortType(clazz, Arrays.asList(result));
         return result;
     }
 
@@ -153,95 +151,40 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     public List<Payload> createAll(EClass clazz, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
         final List<Payload> results = delegatee.createAll(clazz, payloads, queryCustomizer);
-        if (userManager != null
-                && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))
-                && userManager.getManagedActorOfPrincipal(clazz).isPresent()
-                && results.size() > 0) {
-                    userManager.getManagedActorOfPrincipal(clazz).ifPresent(actorType -> userManager.createUser(actorType, convertPrincipalToActor(clazz, results.get(0))));
-        }
+        createUserForActortType(clazz, results);
         return results;
     }
 
     public Payload update(EClass clazz, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        if (!Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
-            final Optional<String> username;
-            if (managedActorType.isPresent()) {
-                Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, payload.getAs(identifierProvider.getType(), identifierProvider.getName()));
-                checkArgument(loadedUser.isPresent(), "No user found to update");
-                username = managedActorType.map(actorType -> userManager.getUsername(clazz, loadedUser.get()).orElse(null));
-                checkState(username.isPresent(), "Unknown username of user to update");
-            } else {
-                username = null;
-            }
-            final Payload result = delegatee.update(clazz, payload, queryCustomizer);
-            managedActorType.ifPresent(actorType -> {
-                checkArgument(Objects.equals(userManager.getUsername(clazz, result).get(), username.get()), "Username is not changeable");
-                userManager.updateUser(actorType, username.get(), convertPrincipalToActor(clazz, result));
-            });
-            return result;
-        } else {
-            return delegatee.update(clazz, payload, queryCustomizer);
-        }
+        Map<ID, String> users = getUsers(clazz, Arrays.asList(payload), false);
+        final Payload result = delegatee.update(clazz, payload, queryCustomizer);
+        updateUsers(clazz, users);
+        return result;
     }
 
     @Override
     public List<Payload> updateAll(EClass clazz, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        if (!Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
-            final Optional<String> username;
-            if (managedActorType.isPresent()) {
-                Collection<ID> identifiers = new ArrayList<>();
-                payloads.forEach(payload -> identifiers.add(payload.getAs(identifierProvider.getType(), identifierProvider.getName())));
-                List<Payload> loadedUsers = delegatee.getByIdentifiers(clazz, identifiers);
-                checkArgument(loadedUsers.size() > 0, "No user found to update");
-                username = managedActorType.map(actorType -> userManager.getUsername(clazz, loadedUsers.get(0)).orElse(null));
-                checkState(username.isPresent(), "Unknown username of user to update");
-            } else {
-                username = null;
-            }
-            final List<Payload> results = delegatee.updateAll(clazz, payloads, queryCustomizer);
-            managedActorType.ifPresent(actorType -> {
-                if (results.size() > 0) {
-                    checkArgument(Objects.equals(userManager.getUsername(clazz, results.get(0)).get(), username.get()), "Username is not changeable");
-                    userManager.updateUser(actorType, username.get(), convertPrincipalToActor(clazz, results.get(0)));
-                }
-            });
-            return results;
-        } else {
-            return delegatee.updateAll(clazz, payloads, queryCustomizer);
-        }
+        Map<ID, String> users = getUsers(clazz, payloads, false);
+        final List<Payload> results = delegatee.updateAll(clazz, payloads, queryCustomizer);
+        updateUsers(clazz, users);
+        return results;
     }
 
     public void delete(EClass clazz, ID id) {
         checkArgument(userManager != null || !userManagerEnabled, "User manager is not started yet");
-        final Optional<EClass> actorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
-        if (actorType.isPresent() && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, id);
-            delegatee.delete(clazz, id);
-            loadedUser.ifPresent(payload -> userManager.deleteUser(actorType.get(), userManager.getUsername(clazz, payload).get()));
-        } else {
-            delegatee.delete(clazz, id);
-        }
+        Map<ID, String> users = getUsers(clazz, Arrays.asList(id), true);
+        delegatee.delete(clazz, id);
+        deleteUsers(clazz, users);
     }
 
     public void deleteAll(EClass clazz, Iterable<ID> ids) {
         checkArgument(userManager != null || !userManagerEnabled, "User manager is not started yet");
-        final Optional<EClass> actorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
-        List<ID> idList = new ArrayList<>();
-        ids.forEach(idList::add);
-        if (actorType.isPresent() && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final List<Payload> loadedUsers = delegatee.getByIdentifiers(clazz, idList);
-            delegatee.deleteAll(clazz, ids);
-            if (loadedUsers.size() > 0) {
-                Payload loadedUser = loadedUsers.get(0);
-                userManager.deleteUser(actorType.get(), userManager.getUsername(clazz, loadedUser).get());
-            }
-        } else {
-            delegatee.deleteAll(clazz, ids);
-        }
+        Map<ID, String> users = getUsers(clazz, ids, true);
+        delegatee.deleteAll(clazz, ids);
+        deleteUsers(clazz, users);
+
     }
 
     public void setReference(EReference reference, ID id, Collection<ID> referencedIds) {
@@ -280,39 +223,19 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
 
     public Payload updateReferencedInstancesOf(EClass clazz, EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        if (!Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
-            final Optional<String> username;
-            if (managedActorType.isPresent()) {
-                Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, payload.getAs(identifierProvider.getType(), identifierProvider.getName()));
-                checkArgument(loadedUser.isPresent(), "No user found to update");
-                username = managedActorType.map(actorType -> userManager.getUsername(clazz, loadedUser.get()).orElse(null));
-                checkState(username.isPresent(), "Unknown username of user to update");
-            } else {
-                username = null;
-            }
-            final Payload result = delegatee.updateReferencedInstancesOf(clazz, reference, payload, queryCustomizer);
-            managedActorType.ifPresent(actorType -> {
-                checkArgument(Objects.equals(userManager.getUsername(clazz, result).get(), username.get()), "Username is not changeable");
-                userManager.updateUser(actorType, username.get(), convertPrincipalToActor(clazz, result));
-            });
-            return result;
-        } else {
-            return delegatee.updateReferencedInstancesOf(clazz, reference, payload, queryCustomizer);
-        }
+        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        final Payload result = delegatee.updateReferencedInstancesOf(clazz, reference, payload, queryCustomizer);
+        updateUsers(reference.getEReferenceType(), users);
+        return result;
+
     }
 
     public void deleteReferencedInstancesOf(EClass clazz, EReference reference, Payload payload) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        final Optional<EClass> actorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
-        if (actorType.isPresent() && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final ID idToDelete = payload.getAs(identifierProvider.getType(), identifierProvider.getName());
-            final Optional<Payload> loadedUser = delegatee.getByIdentifier(reference.getEReferenceType(), idToDelete);
-            delegatee.deleteReferencedInstancesOf(clazz, reference, payload);
-            loadedUser.ifPresent(p -> userManager.deleteUser(actorType.get(), userManager.getUsername(reference.getEReferenceType(), p).get()));
-        } else {
-            delegatee.deleteReferencedInstancesOf(clazz, reference, payload);
-        }
+        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        delegatee.deleteReferencedInstancesOf(clazz, reference, payload);
+        deleteUsers(reference.getEReferenceType(), users);
+
     }
 
     public void setReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
@@ -352,47 +275,23 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     public Payload createNavigationInstanceAt(ID id, EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
         final Payload result = delegatee.createNavigationInstanceAt(id, reference, payload, queryCustomizer);
-        if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            userManager.getManagedActorOfPrincipal(reference.getEReferenceType()).ifPresent(actorType -> userManager.createUser(actorType, convertPrincipalToActor(reference.getEReferenceType(), result)));
-        }
+        createUserForActortType(reference.getEReferenceType(), Arrays.asList(result));
         return result;
     }
 
     public Payload updateNavigationInstanceAt(ID id, EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        if (!Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(reference.getEReferenceType()) : Optional.empty();
-            final Optional<String> username;
-            if (managedActorType.isPresent()) {
-                Optional<Payload> loadedUser = delegatee.getByIdentifier(reference.getEReferenceType(), payload.getAs(identifierProvider.getType(), identifierProvider.getName()));
-                checkArgument(loadedUser.isPresent(), "No user found to update");
-                username = managedActorType.map(actorType -> userManager.getUsername(reference.getEReferenceType(), loadedUser.get()).orElse(null));
-                checkState(username.isPresent(), "Unknown username of user to update");
-            } else {
-                username = null;
-            }
-            final Payload result = delegatee.updateNavigationInstanceAt(id, reference, payload, queryCustomizer);
-            managedActorType.ifPresent(actorType -> {
-                checkArgument(Objects.equals(userManager.getUsername(reference.getEReferenceType(), result).get(), username.get()), "Username is not changeable");
-                userManager.updateUser(actorType, username.get(), convertPrincipalToActor(reference.getEReferenceType(), result));
-            });
-            return result;
-        } else {
-            return delegatee.updateNavigationInstanceAt(id, reference, payload, queryCustomizer);
-        }
+        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        final Payload result = delegatee.updateNavigationInstanceAt(id, reference, payload, queryCustomizer);
+        updateUsers(reference.getEReferenceType(), users);
+        return result;
     }
 
     public void deleteNavigationInstanceAt(ID id, EReference reference, Payload payload) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        final Optional<EClass> actorType = userManager != null ? userManager.getManagedActorOfPrincipal(reference.getEReferenceType()) : Optional.empty();
-        if (actorType.isPresent() && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
-            final ID idToDelete = payload.getAs(identifierProvider.getType(), identifierProvider.getName());
-            final Optional<Payload> loadedUser = delegatee.getByIdentifier(reference.getEReferenceType(), idToDelete);
-            delegatee.deleteNavigationInstanceAt(id, reference, payload);
-            loadedUser.ifPresent(p -> userManager.deleteUser(actorType.get(), userManager.getUsername(reference.getEReferenceType(), p).get()));
-        } else {
-            delegatee.deleteNavigationInstanceAt(id, reference, payload);
-        }
+        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        delegatee.deleteNavigationInstanceAt(id, reference, payload);
+        deleteUsers(reference.getEReferenceType(), users);
     }
 
     public void setReferencesOfNavigationInstanceAt(ID id, EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
@@ -416,4 +315,75 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
                 .filter(e -> e.getValue() != null && principal.get(e.getValue()) != null)
                 .collect(Collectors.toMap(e -> e.getKey(), e -> principal.get(e.getValue()))));
     }
+
+    private void createUserForActortType(EClass clazz, Collection<Payload> payloads) {
+        if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
+            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
+            if (managedActorType.isPresent()) {
+                for (Payload payload : payloads) {
+                    ID identifier = payload.getAs(identifierProvider.getType(), identifierProvider.getName());
+                    Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, identifier);
+                    checkArgument(loadedUser.isPresent(), "No user found to update");
+                    final Optional<String> username = managedActorType.map(actorType -> userManager.getUsername(clazz, loadedUser.get()).orElse(null));
+                    checkState(username.isPresent(), "Unknown username of user to create");
+                    userManager.createUser(managedActorType.get(), convertPrincipalToActor(clazz, loadedUser.get()));
+                }
+            }
+        }
+    }
+
+    private Map<ID, String> getUsers(EClass clazz, Iterable<?> payloads, boolean isIdentifier) {
+        Map<ID, String> userNameById = new HashMap<>();
+        if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
+            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
+            if (managedActorType.isPresent()) {
+                for (Object payload : payloads) {
+                    ID identifier;
+                    if (isIdentifier) {
+                        identifier = (ID) payload;
+                    } else {
+                        identifier = ((Payload) payload).getAs(identifierProvider.getType(), identifierProvider.getName());
+                    }
+                    Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, identifier);
+                    if (loadedUser.isPresent()) {
+                        Optional<String> username = managedActorType.map(actorType -> userManager.getUsername(clazz, loadedUser.get()).orElse(null));
+                        if (username.isPresent()) {
+                            userNameById.put(identifier, username.get());
+                        }
+                    }
+                }
+            }
+        }
+        return userNameById;
+    }
+
+    private void updateUsers(EClass clazz, Map<ID, String> usersToUpdate) {
+        if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
+            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
+            if (managedActorType.isPresent()) {
+                usersToUpdate.entrySet().forEach(entry -> {
+                    ID identifier = entry.getKey();
+                    String username = entry.getValue();
+                    Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, identifier);
+                    checkArgument(loadedUser.isPresent(), "No user found to update");
+                    checkArgument(Objects.equals(userManager.getUsername(clazz, loadedUser.get()).get(), username), "Username is not changeable");
+                    userManager.updateUser(managedActorType.get(), username, convertPrincipalToActor(clazz, loadedUser.get()));
+                });
+            }
+        }
+    }
+
+    private void deleteUsers(EClass clazz, Map<ID, String> usersToUpdate) {
+        if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
+            final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
+            if (managedActorType.isPresent()) {
+                usersToUpdate.entrySet().forEach(entry -> {
+                    String username = entry.getValue();
+                    userManager.deleteUser(managedActorType.get(), username);
+                });
+            }
+        }
+    }
+
 }
+
