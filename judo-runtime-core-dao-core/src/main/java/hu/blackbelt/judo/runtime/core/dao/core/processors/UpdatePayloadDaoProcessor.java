@@ -130,7 +130,10 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                             boolean checkMandatoryFeatures) {
         EClass entityType;
         if (originalPayload.containsKey(ENTITY_TYPE_KEY)) {
-            entityType = (EClass) getAsmUtils().resolve(originalPayload.getAs(String.class, ENTITY_TYPE_KEY)).get();
+            final String entityTypeName = originalPayload.getAs(String.class, ENTITY_TYPE_KEY);
+            checkArgument(entityTypeName != null, "Entity type is unknown");
+            String entityTypeFQName = getAsmUtils().getModel().get().getName() + "." + entityTypeName;
+            entityType = (EClass) getAsmUtils().resolve(entityTypeFQName).get();
         } else {
             log.warn("Entity type is not found in payload");
             entityType = getAsmUtils().getMappedEntityType(transferObjectType).get();
