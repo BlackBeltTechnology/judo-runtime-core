@@ -17,13 +17,8 @@ import org.jxls.common.Context;
 import org.jxls.transform.poi.SelectSheetsForStreamingPoiTransformer;
 
 import java.io.*;
-import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -32,58 +27,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class JxlExportUtil {
     private static String METHOD_PREFIX = "get";
-
-    private static boolean isAttributeType(Class<?> attributeType) {
-        return attributeType.equals(LocalDate.class) ||
-                attributeType.equals(LocalTime.class) ||
-                attributeType.equals(LocalDateTime.class) ||
-                attributeType.equals(String.class) ||
-                attributeType.equals(Boolean.class) ||
-                attributeType.equals(Character.class) ||
-                attributeType.equals(Byte.class) ||
-                attributeType.equals(Short.class) ||
-                attributeType.equals(Integer.class) ||
-                attributeType.equals(Long.class) ||
-                attributeType.equals(Float.class) ||
-                attributeType.equals(Double.class) ||
-                attributeType.equals(Void.class);
-    }
-
-    public static Map<String, Class<?>> getAttributesFromClass(Class clazz) {
-        Map<String, Class<?>> attributeNames = new HashMap<>();
-        for (Method method : clazz.getDeclaredMethods()) {
-            String attributeName = "";
-            String methodName = method.getName();
-
-            if (methodName.startsWith(METHOD_PREFIX) && !methodName.equals(METHOD_PREFIX)) {
-                char attributeNameFirstLetter = methodName.charAt(METHOD_PREFIX.length());
-                if (attributeNameFirstLetter != '_') {
-                    attributeName = Character.toLowerCase(attributeNameFirstLetter) + methodName.substring(METHOD_PREFIX.length() + 1);
-                }
-            }
-            if (!attributeName.isBlank()) {
-                Class<?> attributeType = getMethodReturnType(method);
-                if (isAttributeType(attributeType)) {
-                    attributeNames.put(attributeName, attributeType);
-                }
-            }
-        }
-        return attributeNames;
-    }
-
-    private static Class<?> getMethodReturnType(Method method) {
-        Class<?> attributeType = method.getReturnType();
-        if (attributeType.equals(Optional.class)) {
-            Type genericType = method.getGenericReturnType();
-            if (genericType instanceof ParameterizedType) {
-                Type[] actualTypeArguments = ((ParameterizedType) genericType).getActualTypeArguments();
-                if (actualTypeArguments.length > 0 && actualTypeArguments[0] instanceof Class) {
-                    attributeType = (Class<?>) actualTypeArguments[0];
-                }
-            }
-        }
-        return attributeType;
-    }
 
     public static Map<String, EClassifier> getAttributesFromModel(AsmModel asmModel, String fqName) {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
