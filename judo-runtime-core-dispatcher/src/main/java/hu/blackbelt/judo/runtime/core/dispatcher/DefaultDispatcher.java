@@ -554,7 +554,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                             .code(ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND)
                             .level(ValidationResult.Level.ERROR)
                             .build()));
-            checkState(Objects.equals(getClassifierFQName(entityType.get()), metadata.get(Dispatcher.ENTITY_TYPE_MAP_KEY)), "Invalid entity type in signed identifier");
+            checkState(Objects.equals(asmUtils.getRelativeFQName(entityType.get()), metadata.get(Dispatcher.ENTITY_TYPE_MAP_KEY)), "Invalid entity type in signed identifier");
         } else {
             final Payload metadata = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier);
             final String entityTypeName = metadata.getAs(String.class, ENTITY_TYPE_MAP_KEY);
