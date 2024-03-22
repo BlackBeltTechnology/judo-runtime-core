@@ -217,7 +217,7 @@ public class JxlExportUtil {
                 createHelper.createDataFormat().getFormat("#,##0.00"));
         CellStyle integerCellStyle = workbook.createCellStyle();
         integerCellStyle.setDataFormat(
-                createHelper.createDataFormat().getFormat("#,###"));
+                createHelper.createDataFormat().getFormat("0"));
 
         for (String attributeName : attributes) {
             EClassifier returnType = targetTypes.get(attributeName);
