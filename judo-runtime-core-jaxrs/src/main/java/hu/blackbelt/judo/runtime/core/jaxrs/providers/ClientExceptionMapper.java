@@ -21,16 +21,25 @@ package hu.blackbelt.judo.runtime.core.jaxrs.providers;
  */
 
 import hu.blackbelt.judo.runtime.core.exception.ClientException;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
 
 @Provider
+@Slf4j
 public class ClientExceptionMapper implements ExceptionMapper<ClientException> {
+
+    @Setter
+    boolean logException = false;
 
     @Override
     public Response toResponse(ClientException exception) {
+        if (logException) {
+            log.error("ClientError", exception);
+        }
         return Response.status(exception.getStatusCode() != null ? exception.getStatusCode() : Response.Status.BAD_REQUEST.getStatusCode())
                 .entity(exception.getDetails())
                 .type("application/json")

@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.jaxrs.cxf.interceptors;
  */
 
 import hu.blackbelt.judo.runtime.core.exception.ClientException;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.interceptor.Fault;
 import org.apache.cxf.message.FaultMode;
@@ -35,6 +36,8 @@ import javax.ws.rs.InternalServerErrorException;
 @Slf4j
 public class FaultInterceptor extends AbstractPhaseInterceptor<Message> {
 
+    @Setter
+    boolean logException = false;
     public FaultInterceptor() {
         super(Phase.PRE_STREAM);
     }
@@ -61,7 +64,11 @@ public class FaultInterceptor extends AbstractPhaseInterceptor<Message> {
         final int statusCode;
         if (exception instanceof InternalServerErrorException) {
             if (exception.getCause() != null && exception.getCause().getClass().getName().startsWith("com.fasterxml.jackson")) {
-                log.debug("JSON processing failed", exception);
+                if (logException) {
+                    log.info("JSON processing failed", exception);
+                } else {
+                    log.debug("JSON processing failed", exception);
+                }
                 statusCode = HttpServletResponse.SC_BAD_REQUEST;
                 message.put(FaultMode.class, FaultMode.CHECKED_APPLICATION_FAULT);
             } else if (exception.getCause() == null || exception.getCause() instanceof RuntimeException) {
@@ -74,7 +81,11 @@ public class FaultInterceptor extends AbstractPhaseInterceptor<Message> {
                 message.put(FaultMode.class, FaultMode.UNCHECKED_APPLICATION_FAULT);
             }
         } else if (exception instanceof ClientException) {
-            log.debug("Client exception thrown by operation", exception);
+            if (logException) {
+                log.info("Client exception thrown by operation", exception);
+            } else {
+                log.debug("Client exception thrown by operation", exception);
+            }
             statusCode = ((ClientException) exception).getStatusCode();
             message.put(FaultMode.class, FaultMode.CHECKED_APPLICATION_FAULT);
         } else if (exception instanceof RuntimeException) {
@@ -82,7 +93,11 @@ public class FaultInterceptor extends AbstractPhaseInterceptor<Message> {
             statusCode = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
             message.put(FaultMode.class, FaultMode.RUNTIME_FAULT);
         } else {
-            log.debug("Checked exception thrown by operation", exception);
+            if (logException) {
+                log.info("Checked exception thrown by operation", exception);
+            } else {
+                log.debug("Checked exception thrown by operation", exception);
+            }
             statusCode = HttpServletResponse.SC_BAD_REQUEST;
             message.put(FaultMode.class, FaultMode.CHECKED_APPLICATION_FAULT);
         }
