@@ -61,10 +61,10 @@ public class JxlExportUtil {
             Map<String, Object> entry = new HashMap<>();
 
             Set<String> keySet = payload.keySet();
-            keySet.forEach(key -> {
+            for (String key : keySet) {
                 Object value = payload.get(key);
                 if (value != null && targetTypes.containsKey(key) && targetTypes.get(key) instanceof EEnum) {
-                    value = convertEnumerationValue(asmUtils, (EDataType)targetTypes.get(key), (Integer)value);
+                    value = convertEnumerationValue(asmUtils, (EDataType) targetTypes.get(key), (Integer) value);
                 }
 
                 if (value != null && targetTypes.containsKey(key) && asmUtils.isByteArray((EDataType) targetTypes.get(key))) {
@@ -99,7 +99,7 @@ public class JxlExportUtil {
                 } else {
                     entry.put(key, value);
                 }
-            });
+            }
             transformed.add(entry);
         }
         return transformed;
