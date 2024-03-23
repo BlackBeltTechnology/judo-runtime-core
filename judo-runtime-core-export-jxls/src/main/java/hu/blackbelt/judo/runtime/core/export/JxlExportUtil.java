@@ -60,8 +60,7 @@ public class JxlExportUtil {
         for (Payload payload : payloadList) {
             Map<String, Object> entry = new HashMap<>();
 
-            Set<String> keySet = payload.keySet();
-            for (String key : keySet) {
+            for (String key : payload.keySet()) {
                 Object value = payload.get(key);
                 if (value != null && targetTypes.containsKey(key) && targetTypes.get(key) instanceof EEnum) {
                     value = convertEnumerationValue(asmUtils, (EDataType) targetTypes.get(key), (Integer) value);
