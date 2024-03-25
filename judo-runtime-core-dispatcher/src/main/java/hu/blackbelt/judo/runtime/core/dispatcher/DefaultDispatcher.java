@@ -546,19 +546,20 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private Optional<EClass> getEntityType(EClass mappedTransferObjectType, SignedIdentifier signedIdentifier) {
         Optional<EClass> entityType;
         if (signedIdentifier.getEntityType() != null) {
-            entityType = Optional.of(asmUtils.resolve(signedIdentifier.getEntityType()).filter(t -> t instanceof EClass).map(t -> (EClass) t)
+            String entityTypeFQName = asmModel.getName() + "." + signedIdentifier.getEntityType();
+            entityType = Optional.of(asmUtils.resolve(entityTypeFQName).filter(t -> t instanceof EClass).map(t -> (EClass) t)
                     .orElseThrow(() -> new IllegalArgumentException("Unable to resolve entity type")));
             final Payload metadata = dao.getMetadata(mappedTransferObjectType, dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType()))
                     .orElseThrow(() -> new NotFoundException(ValidationResult.builder()
                             .code(ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND)
                             .level(ValidationResult.Level.ERROR)
                             .build()));
-            checkState(Objects.equals(getClassifierFQName(entityType.get()), metadata.get(Dispatcher.ENTITY_TYPE_MAP_KEY)), "Invalid entity type in signed identifier");
+            checkState(Objects.equals(asmUtils.getRelativeFQName(entityType.get()), metadata.get(Dispatcher.ENTITY_TYPE_MAP_KEY)), "Invalid entity type in signed identifier");
         } else {
             final Payload metadata = getTransferObjectAsBoundType(mappedTransferObjectType, signedIdentifier);
-            final String entityTypeFQName = metadata.getAs(String.class, ENTITY_TYPE_MAP_KEY);
-            checkArgument(entityTypeFQName != null, "Entity type is unknown");
-
+            final String entityTypeName = metadata.getAs(String.class, ENTITY_TYPE_MAP_KEY);
+            checkArgument(entityTypeName != null, "Entity type is unknown");
+            String entityTypeFQName = asmModel.getName() + "." + entityTypeName;
             entityType = Optional.of(asmUtils.resolve(entityTypeFQName).filter(t -> t instanceof EClass).map(t -> (EClass) t)
                     .orElseThrow(() -> new IllegalArgumentException("Unable to resolve entity type")));
         }
