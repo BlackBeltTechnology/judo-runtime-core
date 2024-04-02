@@ -24,12 +24,12 @@ import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.keycloak.Client;
+import hu.blackbelt.judo.meta.keycloak.KeycloakFactory;
 import hu.blackbelt.judo.meta.keycloak.Realm;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakUtils;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
-import hu.blackbelt.structured.map.proxy.MapProxy;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import lombok.Builder;
@@ -137,7 +137,7 @@ public class KeycloakRealmSynchronizer {
             log.debug("Synchronizing realm: {}", realm.getRealm());
         }
         final Optional<Realm> existingRealm = existingRealms.stream().filter(r -> Objects.equals(r.getRealm(), realm.getRealm())).findAny();
-        final Realm realmData = MapProxy.builder(Realm.class).newInstance();
+        final Realm realmData = KeycloakFactory.eINSTANCE.createRealm();
         if (!existingRealm.isPresent()) {
             realmData.setId(realm.getId());
             realmData.setRealm(realm.getRealm());
@@ -174,10 +174,7 @@ public class KeycloakRealmSynchronizer {
         final Optional<Client> existingClient = existingClients.stream().filter(c -> Objects.equals(c.getName(), client.getName())).findAny();
         final Client clientData;
         if (!existingClient.isPresent()) {
-            clientData = MapProxy.builder(Client.class).withMap(ImmutableMap.of(
-                    "redirectUris", new BasicEList(),
-                    "webOrigins", new BasicEList()
-            )).newInstance();
+            clientData = KeycloakFactory.eINSTANCE.createClient();
 
             clientData.setClientId(client.getName());
             clientData.setName(client.getName());
@@ -208,10 +205,7 @@ public class KeycloakRealmSynchronizer {
             }
             keycloakAdminClient.createOrUpdateClient(realm.getRealm(), clientData, false);
         } else {
-            clientData = MapProxy.builder(Client.class).withMap(ImmutableMap.of(
-                    "redirectUris", new BasicEList(),
-                    "webOrigins", new BasicEList()
-            )).newInstance();
+            clientData = KeycloakFactory.eINSTANCE.createClient();
 
             boolean dirty = false;
             clientData.setId(existingClient.get().getId());
