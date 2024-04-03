@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.security.keycloak;
 
 import hu.blackbelt.judo.meta.keycloak.Client;
 import hu.blackbelt.judo.meta.keycloak.Realm;
+import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakObjectMapper;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
