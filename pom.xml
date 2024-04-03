@@ -62,8 +62,6 @@
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
         <judo-operation-utils-version>1.1.3.20240322_040550_1b7e874e_develop</judo-operation-utils-version>
 
-        <structured-map-proxy-version>2.0.0.20240402_195916_ec5d0a48_feature_JNG_5627_Replace_the_structured_map_proxy</structured-map-proxy-version>
-
         <judo-tatami-base-version>1.1.6.20240402_201238_1baea660_feature_JNG_5627_Replace_the_structured_map_proxy</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20230826_230852_5723dcb6_develop</mapper-version>
