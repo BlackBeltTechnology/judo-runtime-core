@@ -28,8 +28,6 @@ import hu.blackbelt.judo.runtime.core.security.PasswordPolicy;
 import hu.blackbelt.judo.runtime.core.security.UserManager;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
-import hu.blackbelt.structured.map.proxy.MapHolder;
-import hu.blackbelt.structured.map.proxy.MapProxy;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import lombok.Builder;
@@ -265,20 +263,17 @@ public class KeycloakUserManager implements UserManager<String> {
         }
         final Optional<String> defaultPassword = defaultPasswordPolicy.apply(user);
 
-        final User userToCreate =  MapProxy.builder(User.class).withMap(user).newInstance();
-        userToCreate.setEnabled(true);
-        userToCreate.setUsername(username);
-
-        // FIXME - EList is not supported yet by MapProxy
-        final Map<String, Object> payload = ((MapHolder) userToCreate).toMap();
+        HashMap<String, Object> payload = new HashMap<>(user);
+        payload.put("enabled", true);
+        payload.put("username", username);
 
         if (defaultPassword.isPresent()) {
-            final UserCredential userCredential = MapProxy.builder(UserCredential.class).newInstance();
-            userCredential.setType(KEYCLOAK_PASSWORD_TYPE);
-            userCredential.setTemporary(false);
-            userCredential.setValue(defaultPassword.get());
+            HashMap<String, Object> userCredential = new HashMap<>();
+            userCredential.put("type", KEYCLOAK_PASSWORD_TYPE);
+            userCredential.put("temporary", false);
+            userCredential.put("value", defaultPassword.get());
 
-            payload.put(KEYCLOAK_CREDENTIALS_CLAIM, Collections.singletonList(((MapHolder) userCredential).toMap()));
+            payload.put(KEYCLOAK_CREDENTIALS_CLAIM, Collections.singletonList(userCredential));
         }
 
         if (!requiredActionsOnUserCreate.isEmpty()) {
