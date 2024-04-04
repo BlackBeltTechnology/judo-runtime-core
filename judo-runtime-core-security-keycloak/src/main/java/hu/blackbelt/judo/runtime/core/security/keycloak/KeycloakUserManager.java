@@ -263,12 +263,12 @@ public class KeycloakUserManager implements UserManager<String> {
         }
         final Optional<String> defaultPassword = defaultPasswordPolicy.apply(user);
 
-        HashMap<String, Object> payload = new HashMap<>(user);
+        Map<String, Object> payload = new ConcurrentHashMap<>(user);
         payload.put("enabled", true);
         payload.put("username", username);
 
         if (defaultPassword.isPresent()) {
-            HashMap<String, Object> userCredential = new HashMap<>();
+            Map<String, Object> userCredential = new ConcurrentHashMap<>();
             userCredential.put("type", KEYCLOAK_PASSWORD_TYPE);
             userCredential.put("temporary", false);
             userCredential.put("value", defaultPassword.get());

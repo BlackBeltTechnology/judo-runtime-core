@@ -20,10 +20,12 @@ package hu.blackbelt.judo.runtime.core.security.keycloak;
  * #L%
  */
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.meta.keycloak.Client;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import lombok.Builder;
 import lombok.Getter;
@@ -48,6 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
+import static hu.blackbelt.judo.meta.keycloak.runtime.KeycloakObjectMapper.*;
 
 @Slf4j
 public class KeycloakConnector implements OpenIdConfigurationProvider {
@@ -90,6 +93,9 @@ public class KeycloakConnector implements OpenIdConfigurationProvider {
         this.adminUser = adminUser;
         this.adminPassword = adminPassword;
         this.clientSecret = clientSecret;
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        objectMapper.addMixIn(Client.class, ClientSkipAttributeBindingsMixIn.class);
+
         providers.add(new JacksonJaxbJsonProvider(objectMapper, JacksonJaxbJsonProvider.DEFAULT_ANNOTATIONS));
 
         final AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
