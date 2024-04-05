@@ -70,12 +70,6 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>hu.blackbelt</groupId>
-            <artifactId>structured-map-proxy</artifactId>
-            <version>${structured-map-proxy-version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>jakarta.ws.rs</groupId>
             <artifactId>jakarta.ws.rs-api</artifactId>
             <version>2.1.6</version>

@@ -23,14 +23,11 @@ package hu.blackbelt.judo.runtime.core.security.keycloak;
 
 import hu.blackbelt.judo.meta.keycloak.Client;
 import hu.blackbelt.judo.meta.keycloak.Realm;
-import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
-import hu.blackbelt.structured.map.proxy.MapProxy;
+import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakObjectMapper;
 import lombok.Builder;
 import lombok.NonNull;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.jaxrs.client.WebClient;
-import org.eclipse.emf.common.util.ECollections;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -78,11 +75,7 @@ public class KeycloakAdminClient {
                 .type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
                 .path("/realms/{realm}/clients", realm)
                 .get(List.class);
-
-        return response.stream()
-                .map(c -> MapProxy.builder(Client.class).withMap(c.entrySet().stream()
-                        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue() instanceof List ? ECollections.asEList((List) e.getValue()) : e.getValue()))).newInstance())
-                .collect(Collectors.toList());
+        return response.stream().map(c -> KeycloakObjectMapper.objectMapper().convertValue(c, Client.class)).collect(Collectors.toList());
     }
 
     public List<Realm> getListOfRealms() {
@@ -91,11 +84,7 @@ public class KeycloakAdminClient {
                 .type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
                 .path("/realms")
                 .get(List.class);
-
-        return response.stream()
-                .map(r -> MapProxy.builder(Realm.class).withMap(r.entrySet().stream()
-                        .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue() instanceof List ? ECollections.asEList((List) e.getValue()) : e.getValue()))).newInstance())
-                .collect(Collectors.toList());
+        return response.stream().map(r -> KeycloakObjectMapper.objectMapper().convertValue(r, Realm.class)).collect(Collectors.toList());
     }
 
     public void createOrUpdateClient(final String realm, final Client client, final boolean update) {
