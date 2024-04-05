@@ -24,7 +24,9 @@ import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.keycloak.Client;
+import hu.blackbelt.judo.meta.keycloak.KeycloakFactory;
 import hu.blackbelt.judo.meta.keycloak.Realm;
+import hu.blackbelt.judo.meta.keycloak.impl.ClientImpl;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakUtils;
 import hu.blackbelt.judo.tatami.core.TransformationTrace;
@@ -174,10 +176,13 @@ public class KeycloakRealmSynchronizer {
         final Optional<Client> existingClient = existingClients.stream().filter(c -> Objects.equals(c.getName(), client.getName())).findAny();
         final Client clientData;
         if (!existingClient.isPresent()) {
+            clientData = KeycloakFactory.eINSTANCE.createClient();
+
+            /*
             clientData = MapProxy.builder(Client.class).withMap(ImmutableMap.of(
                     "redirectUris", new BasicEList(),
                     "webOrigins", new BasicEList()
-            )).newInstance();
+            )).newInstance(); */
 
             clientData.setClientId(client.getName());
             clientData.setName(client.getName());
