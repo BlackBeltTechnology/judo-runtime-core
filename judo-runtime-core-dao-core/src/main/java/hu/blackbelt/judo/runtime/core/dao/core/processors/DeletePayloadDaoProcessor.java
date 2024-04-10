@@ -38,10 +38,7 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -160,28 +157,32 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             }
         }
 
+        Set<ID> collectRemoveReferenceStatementIds = statements.stream().filter(s -> s instanceof RemoveReferenceStatement<ID>).map(s -> s.getInstance().getIdentifier()).collect(toSet());
+
         // All reference have to remove before delete. It will contain the containment references too.
         instanceGraph.getReferences().stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
                 .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite()))
                 .forEach(r -> {
-                    statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                            .type(r.getReference().getEContainingClass())
-                            .identifier(instanceGraph.getId())
-                            .build());
+                    if(r.getReference().getEOpposite() == null || !collectRemoveReferenceStatementIds.contains(r.getReferencedElement().getId())) {
+                        collectRemoveReferenceStatementIds.add(r.getReferencedElement().getId());
+                        statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                                .type(r.getReference().getEContainingClass())
+                                .identifier(instanceGraph.getId())
+                                .build());
 
-                    statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                            .type(r.getReference().getEReferenceType())
-                            .identifier(r.getReferencedElement().getId())
-                            .build());
+                        statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                                .type(r.getReference().getEReferenceType())
+                                .identifier(r.getReferencedElement().getId())
+                                .build());
 
-                    statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
-                            .type(r.getReference().getEContainingClass())
-                            .reference(r.getReference())
-                            .referenceIdentifier(r.getReferencedElement().getId())
-                            .identifier(instanceGraph.getId())
-                            .build());
-
+                        statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+                                .type(r.getReference().getEContainingClass())
+                                .reference(r.getReference())
+                                .referenceIdentifier(r.getReferencedElement().getId())
+                                .identifier(instanceGraph.getId())
+                                .build());
+                    }
                     if (r.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(r.getReference().getEOpposite(), "reverseCascadeDelete")) {
                         collectStaments(r.getReference().getEReferenceType(),
                                 getInstanceCollector().collectGraph(r.getReference().getEReferenceType(), r.getReferencedElement().getId()),
