@@ -97,7 +97,7 @@ public class DefaultAccessManager implements AccessManager {
 
         if (principal == null && principalOperation) {
             log.info("Principal token is invalid or not defined");
-            throw new AccessDeniedException(ValidationResult.builder()
+            throw new AuthenticationRequiredException(ValidationResult.builder()
                     .code("INVALID_TOKEN")
                     .level(ValidationResult.Level.ERROR)
                     .build());
