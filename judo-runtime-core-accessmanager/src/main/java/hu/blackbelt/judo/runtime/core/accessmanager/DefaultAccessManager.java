@@ -93,7 +93,15 @@ public class DefaultAccessManager implements AccessManager {
         final boolean exposedForPublicOrTokenActor = AsmUtils.getExtensionAnnotationListByName(operation, "exposedBy").stream()
                 .anyMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")));
         final boolean metadataOperation = AsmUtils.OperationBehaviour.GET_METADATA.equals(AsmUtils.getBehaviour(operation).orElse(null));
+        final boolean principalOperation = AsmUtils.OperationBehaviour.GET_PRINCIPAL.equals(AsmUtils.getBehaviour(operation).orElse(null));
 
+        if (principal == null && principalOperation) {
+            log.info("Principal token is invalid or not defined");
+            throw new AccessDeniedException(ValidationResult.builder()
+                    .code("INVALID_TOKEN")
+                    .level(ValidationResult.Level.ERROR)
+                    .build());
+        }
         if (!exposedForPublicOrTokenActor && !metadataOperation && actorFqName != null) {
             log.info("Operation failed, operation is not exposed to the given actor");
             throw new AccessDeniedException(ValidationResult.builder()
