@@ -89,7 +89,7 @@ public class RangeValidator<ID> implements Validator {
         Optional<EReference> entityReference = asmUtils.getMappedReference((EReference) feature);
 
         final ID id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
-        if (id == null && entityReference.isPresent() && entityReference.get().isContainment() || id != null && !validIds.contains(id)) {
+        if (id == null && entityReference.isEmpty() || id == null && entityReference.isPresent() && entityReference.get().isContainment() || id != null && !validIds.contains(id)) {
             Validator.addValidationError(ImmutableMap.of(
                             identifierProvider.getName(), id,
                             SIGNED_IDENTIFIER_KEY, Optional.ofNullable(((Payload) value).get(SIGNED_IDENTIFIER_KEY)),
