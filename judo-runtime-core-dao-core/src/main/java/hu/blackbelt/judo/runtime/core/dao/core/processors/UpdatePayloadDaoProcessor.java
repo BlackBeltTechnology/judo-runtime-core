@@ -356,6 +356,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         EReference entityReference = getAsmUtils().getMappedReference(mappedReference).get();
 
         boolean isContainment = entityReference.isContainment();
+        boolean isEmbedded = getAsmUtils().isEmbedded(mappedReference);
         InstanceGraph<ID> instanceGraph = null;
 
         final ID originalIdentifier;
@@ -387,7 +388,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         if (updatePayload != null) {
             if (updateIdentifier == null && originalIdentifier == null) {
-                checkState(isContainment, "Identifier is mandatory on reference association: " +
+                checkState(isEmbedded, "Identifier is mandatory on reference association: " +
                         getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
 
                 // INSERT NEW INSTANCE and mandatory reference add (filter out check existence)
@@ -411,7 +412,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                 parentInstanceGraph.getId(), false
                         ));
             } else if (updateIdentifier != null && originalIdentifier == null) {
-                checkState(!isContainment, "Identifier cannot be set on new association reference element: " +
+                checkState(!isContainment, "Identifier cannot be set on new composition reference element: " +
                         getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
                 // ADD NEW REFERENCE
                 statements.addAll(
