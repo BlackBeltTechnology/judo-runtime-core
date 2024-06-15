@@ -58,7 +58,7 @@ public class DefaultValidatorProvider<ID> implements ValidatorProvider {
         this.asmModel = asmModel;
         validators = new CopyOnWriteArrayList<>(Arrays.asList(new MaxLengthValidator(), new MinLengthValidator(), new PrecisionValidator(), new PatternValidator()));
         if (dao != null && identifierProvider != null && context != null) {
-            validators.add(new RangeValidator<ID>(dao, identifierProvider, context));
+            validators.add(new RangeValidator<ID>(dao, identifierProvider, context, asmModel));
             if (asmModel != null) {
                 validators.add(new UniqueAttributeValidator<>(dao, asmModel, identifierProvider, context));
             }
