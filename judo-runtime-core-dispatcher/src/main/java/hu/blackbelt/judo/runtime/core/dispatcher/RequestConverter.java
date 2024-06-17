@@ -140,8 +140,8 @@ public class RequestConverter {
         try {
             PayloadTraverser.builder()
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                            ? asmUtils.getMappedReference(reference).filter(EReference::isContainment).isPresent()
-                            : isEmbedded(reference) && !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
+                            ? asmUtils.getMappedReference(reference).isPresent()
+                            : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
                     .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext, rootContext))
                     .build()
                     .traverse(payload, transferObjectType);
