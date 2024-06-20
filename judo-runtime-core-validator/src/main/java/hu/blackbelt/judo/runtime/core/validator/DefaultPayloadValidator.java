@@ -276,7 +276,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
         final Object value = instance.get(attribute.getName());
         boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
 
-        if (validateMissingFeatures) {
+        if (validateMissingFeatures ) {
             boolean isAttributeMissingAndChangeableAndDefaultValueAvailable = !instance.containsKey(attribute.getName()) && attribute.isChangeable() && AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent();
             validateMissingFeatures = getIdentifier(instance) == null && !isAttributeMissingAndChangeableAndDefaultValueAvailable;
         }

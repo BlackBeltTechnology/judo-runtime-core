@@ -523,10 +523,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
             validationContext.put(CREATE_REFERENCE_KEY, asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation).orElse(null));
         } else if (AsmUtils.OperationBehaviour.UPDATE_INSTANCE.equals(operationBehaviour)
-                || AsmUtils.OperationBehaviour.VALIDATE_UPDATE.equals(operationBehaviour)) {
-            validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
-            validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false);
-        } else if (OperationBehaviour.VALIDATE_OPERATION_INPUT.equals(operationBehaviour)) {
+                || AsmUtils.OperationBehaviour.VALIDATE_UPDATE.equals(operationBehaviour)
+                || AsmUtils.OperationBehaviour.VALIDATE_OPERATION_INPUT.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
         } else if (AsmUtils.OperationBehaviour.SET_REFERENCE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.UNSET_REFERENCE.equals(operationBehaviour)
