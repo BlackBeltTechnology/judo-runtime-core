@@ -131,6 +131,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
         currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
         validationResultContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
         validationResultContext.put(IS_ROOT_KEY, ctx.getPathAsString().isEmpty());
+        currentContext.put(IS_ROOT_KEY, ctx.getPathAsString().isEmpty());
 
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
         if (!validatorProvider.getValidators().isEmpty()) {
