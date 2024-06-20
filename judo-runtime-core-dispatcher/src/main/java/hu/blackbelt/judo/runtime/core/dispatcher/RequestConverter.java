@@ -88,10 +88,16 @@ public class RequestConverter {
     public static final String VALIDATE_MISSING_FEATURES_KEY = "validateMissingFeatures";
     public static final String IGNORE_INVALID_VALUES_KEY = "ignoreInvalidValues";
 
+    public static final String VALIDATE_ROOT_MISSING_FEATURES_KEY = "validateRootMissingFeatures";
+
+    public static final String IS_ROOT_KEY = "isRootKey";
+
     private static final boolean VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT = false;
     private static final boolean NO_TRAVERSE_DEFAULT = false;
     private static final boolean VALIDATE_MISSING_FEATURES_DEFAULT = true;
     private static final boolean IGNORE_INVALID_VALUES_DEFAULT = false;
+
+    private static final boolean VALIDATE_ROOT_MISSING_FEATURES_DEFAULT = true;
 
     public static final String GLOBAL_VALIDATION_CONTEXT = "globalValidationContext";
 
@@ -163,7 +169,9 @@ public class RequestConverter {
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
         final Map<String, Object> currentContext = new TreeMap<>(validationContext);
         currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
+        currentContext.put(IS_ROOT_KEY, ctx.getPathAsString().isEmpty());
         feedbackContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
+        feedbackContext.put(IS_ROOT_KEY, currentContext.get(IS_ROOT_KEY));
 
         // Validate only elements which is contained only from root payload
         final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
