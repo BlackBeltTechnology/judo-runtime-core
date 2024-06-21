@@ -287,7 +287,6 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     public Collection<ValidationResult> validateAttribute(final EAttribute attribute, final Payload instance, final Map<String, Object> validationContext) {
         final Object value = instance.get(attribute.getName());
-        final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
         boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
         boolean validateRootMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_ROOT_MISSING_FEATURES_KEY, VALIDATE_ROOT_MISSING_FEATURES_DEFAULT);
         boolean isRootElement = (Boolean) validationContext.get(IS_ROOT_KEY);
