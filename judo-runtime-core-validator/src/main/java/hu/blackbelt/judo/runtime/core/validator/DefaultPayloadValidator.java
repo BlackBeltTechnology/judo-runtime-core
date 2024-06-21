@@ -70,7 +70,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     public static final String VALIDATE_ROOT_MISSING_FEATURES_KEY = "validateRootMissingFeatures";
 
-    public static final String IS_ROOT_KEY = "isRootKey";
+    public static final String IS_ROOT_KEY = "isRoot";
 
     private static final boolean VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT = false;
     private static final boolean NO_TRAVERSE_DEFAULT = false;
