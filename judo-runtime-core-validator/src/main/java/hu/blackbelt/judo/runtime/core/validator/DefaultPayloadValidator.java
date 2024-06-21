@@ -68,10 +68,16 @@ public class DefaultPayloadValidator implements PayloadValidator {
     public static final String VALIDATE_MISSING_FEATURES_KEY = "validateMissingFeatures";
     public static final String IGNORE_INVALID_VALUES_KEY = "ignoreInvalidValues";
 
+    public static final String VALIDATE_ROOT_MISSING_FEATURES_KEY = "validateRootMissingFeatures";
+
+    public static final String IS_ROOT_KEY = "isRootKey";
+
     private static final boolean VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT = false;
     private static final boolean NO_TRAVERSE_DEFAULT = false;
     private static final boolean VALIDATE_MISSING_FEATURES_DEFAULT = true;
     private static final boolean IGNORE_INVALID_VALUES_DEFAULT = false;
+
+    private static final boolean VALIDATE_ROOT_MISSING_FEATURES_DEFAULT = true;
 
     public static final Function<EAttribute, String> ATTRIBUTE_TO_MODEL_TYPE = attribute -> AsmUtils.getAttributeFQName(attribute).replaceAll("[^a-zA-Z0-9_]", "_");
     public static final Function<EReference, String> REFERENCE_TO_MODEL_TYPE = reference -> AsmUtils.getReferenceFQName(reference).replaceAll("[^a-zA-Z0-9_]", "_");
@@ -124,6 +130,8 @@ public class DefaultPayloadValidator implements PayloadValidator {
         final Map<String, Object> currentContext = new TreeMap<>(validationContext);
         currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
         validationResultContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
+        validationResultContext.put(IS_ROOT_KEY, ctx.getPathAsString().isEmpty());
+        currentContext.put(IS_ROOT_KEY, ctx.getPathAsString().isEmpty());
 
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
         if (!validatorProvider.getValidators().isEmpty()) {
@@ -160,10 +168,15 @@ public class DefaultPayloadValidator implements PayloadValidator {
         currentContext.put(LOCATION_KEY, containerLocation + (containerLocation.isEmpty() || containerLocation.endsWith("/") ? "" : ".") + reference.getName());
         final EReference createReference = (EReference) validationContext.get(CREATE_REFERENCE_KEY);
         boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
+        boolean validateRootMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_ROOT_MISSING_FEATURES_KEY, VALIDATE_ROOT_MISSING_FEATURES_DEFAULT);
+        boolean isRootElement = (Boolean) validationContext.get(IS_ROOT_KEY);
 
         if (validateMissingFeatures) {
             boolean isReferenceMissingAndChangeableAndDefaultValueAvailable = !instance.containsKey(reference.getName()) && reference.isChangeable() && AsmUtils.getExtensionAnnotationValue(reference, "default", false).isPresent();
             validateMissingFeatures = getIdentifier(instance) == null && !isReferenceMissingAndChangeableAndDefaultValueAvailable;
+            if(!validateRootMissingFeatures && isRootElement) {
+                validateMissingFeatures = false;
+            }
         }
 
         if (reference.isMany()) {
@@ -275,10 +288,15 @@ public class DefaultPayloadValidator implements PayloadValidator {
     public Collection<ValidationResult> validateAttribute(final EAttribute attribute, final Payload instance, final Map<String, Object> validationContext) {
         final Object value = instance.get(attribute.getName());
         boolean validateMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_MISSING_FEATURES_KEY, VALIDATE_MISSING_FEATURES_DEFAULT);
+        boolean validateRootMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_ROOT_MISSING_FEATURES_KEY, VALIDATE_ROOT_MISSING_FEATURES_DEFAULT);
+        boolean isRootElement = (Boolean) validationContext.get(IS_ROOT_KEY);
 
-        if (validateMissingFeatures) {
+        if (validateMissingFeatures ) {
             boolean isAttributeMissingAndChangeableAndDefaultValueAvailable = !instance.containsKey(attribute.getName()) && attribute.isChangeable() && AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent();
             validateMissingFeatures = getIdentifier(instance) == null && !isAttributeMissingAndChangeableAndDefaultValueAvailable;
+            if(!validateRootMissingFeatures && isRootElement) {
+                validateMissingFeatures = false;
+            }
         }
 
         final List<ValidationResult> validationResults = new ArrayList<>();

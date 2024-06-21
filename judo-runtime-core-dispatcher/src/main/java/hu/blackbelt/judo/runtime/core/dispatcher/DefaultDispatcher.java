@@ -525,7 +525,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         } else if (AsmUtils.OperationBehaviour.UPDATE_INSTANCE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.VALIDATE_UPDATE.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
-            validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false);
+            validationContext.put(RequestConverter.VALIDATE_ROOT_MISSING_FEATURES_KEY, false);
         } else if (OperationBehaviour.VALIDATE_OPERATION_INPUT.equals(operationBehaviour)) {
             validationContext.put(RequestConverter.VALIDATE_FOR_CREATE_OR_UPDATE_KEY, true);
         } else if (AsmUtils.OperationBehaviour.SET_REFERENCE.equals(operationBehaviour)
