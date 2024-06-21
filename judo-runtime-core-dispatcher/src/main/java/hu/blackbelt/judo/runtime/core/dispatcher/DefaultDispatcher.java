@@ -681,7 +681,10 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             checkArgument(outputParameterName.isPresent() || operationType == null);
 
             // 1. Check for SDK defined operation implementation
-            Function<Payload, Payload> operationCall = dispatcherFunctionProvider.getSdkFunctions().get(implementation);
+            Function<Payload, Payload> operationCall = dispatcherFunctionProvider.getSdkFunctions().get(operation);
+            if (operationCall == null) {
+                operationCall = dispatcherFunctionProvider.getSdkFunctions().get(implementation);
+            }
 
             // 2. Check for script operation function
             if (operationCall == null) {
