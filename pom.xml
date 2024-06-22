@@ -62,7 +62,7 @@
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
         <judo-operation-utils-version>1.1.3.20240414_042846_45b9c1dd_develop</judo-operation-utils-version>
 
-        <judo-tatami-base-version>1.1.6.20240619_192830_d6daf1cb_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20240622_041947_54bdff1e_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20240410_085208_9d5e8f5c_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20240410_091340_0b9c53b4_develop</osgi-filestore-version>
