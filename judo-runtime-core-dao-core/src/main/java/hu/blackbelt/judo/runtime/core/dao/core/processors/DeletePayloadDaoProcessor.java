@@ -97,11 +97,22 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             // Collect contained elements
             collectStaments(entityType, e, statements, null, null);
         });
-
         return ImmutableSet.copyOf(statements);
     }
 
     void collectStaments(EClass entityType,
+                         InstanceGraph<ID> instanceGraph,
+                         Collection<Statement<ID>> statements,
+                         InstanceGraph<ID> containerInstanceGraph,
+                         EReference container) {
+
+        statmentCollector(entityType, instanceGraph, statements, containerInstanceGraph, container);
+        Collection<InstanceValue<ID>> visited = Sets.newHashSet();
+        checkMandatoryBackReferences(entityType, instanceGraph, statements.stream().filter(s -> s instanceof DeleteStatement<ID>).collect(toSet()), container, visited);
+    }
+
+
+    private void statmentCollector(EClass entityType,
                          InstanceGraph<ID> instanceGraph,
                          Collection<Statement<ID>> statements,
                          InstanceGraph<ID> containerInstanceGraph,
@@ -135,19 +146,6 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                     .referenceIdentifier(instanceGraph.getId())
                     .build());
         }
-
-        // Check if there is any Remove Reference related to mandatory relation
-        Collection<InstanceReference<ID>> mandatoryReferencesToRemove = instanceGraph.getBackReferences().stream()
-                .filter(r -> r.getReference().getLowerBound() > 0 && !AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")).collect(Collectors.toSet());
-        checkState(mandatoryReferencesToRemove.stream()
-                        .noneMatch(r -> statements.stream().noneMatch(s -> s instanceof DeleteStatement && Objects.equals(s.getInstance().getIdentifier(), r.getReferencedElement().getId()))),
-                "There are mandatory references that cannot be removed: " +
-                        " Type: " + entityType + " ID: " + instanceGraph.getId() + " Mandatory back references: " +
-                        mandatoryReferencesToRemove.stream().map(
-                                r -> r.getReference().getEContainingClass() + "#"
-                                        + r.getReference().getName() + " ID: "
-                                        + r.getReferencedElement().getId()).collect(toSet()));
-
 
         Collection<EReference> processedReferences = Sets.newHashSet();
         if (container != null) {
@@ -184,7 +182,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                 .build());
                     }
                     if (r.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(r.getReference().getEOpposite(), "reverseCascadeDelete")) {
-                        collectStaments(r.getReference().getEReferenceType(),
+                        statmentCollector(r.getReference().getEReferenceType(),
                                 getInstanceCollector().collectGraph(r.getReference().getEReferenceType(), r.getReferencedElement().getId()),
                                 statements,
                                 null,
@@ -209,7 +207,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                             .build());
 
                     if (AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")) {
-                        collectStaments(r.getReference().getEContainingClass(),
+                        statmentCollector(r.getReference().getEContainingClass(),
                                 getInstanceCollector().collectGraph(r.getReference().getEContainingClass(), r.getReferencedElement().getId()),
                                 statements,
                                 null,
@@ -224,12 +222,82 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                     }
                 });
 
-
         // Make delete for all containment
         instanceGraph.getContainments().stream()
                 .forEach(i -> {
                     InstanceGraph<ID> containedGraph = i.getReferencedElement();
-                    collectStaments(i.getReference().getEReferenceType(), containedGraph, statements, instanceGraph, i.getReference());
+                    statmentCollector(i.getReference().getEReferenceType(), containedGraph, statements, instanceGraph, i.getReference());
+                });
+    }
+
+    private void checkMandatoryBackReferences(EClass entityType,
+                         InstanceGraph<ID> instanceGraph,
+                         Collection<Statement<ID>> statements,
+                         EReference container,
+                         Collection<InstanceValue<ID>> visited) {
+
+        InstanceValue<ID> instanceValue = InstanceValue.<ID>buildInstanceValue()
+                .type(entityType)
+                .identifier(instanceGraph.getId())
+                .build();
+
+        if (visited.stream().anyMatch(s -> Objects.equals(instanceValue, s))) {
+            log.debug("Circular delete found, stop collecting statements");
+            return;
+        }
+        visited.add(instanceValue);
+
+        // Check if there is any Remove Reference related to mandatory relation
+        Collection<InstanceReference<ID>> mandatoryReferencesToRemove = instanceGraph.getBackReferences().stream()
+                .filter(r -> r.getReference().getLowerBound() > 0 && !AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")).collect(Collectors.toSet());
+        checkState(mandatoryReferencesToRemove.stream()
+                        .noneMatch(r -> statements.stream().noneMatch(s -> s instanceof DeleteStatement && Objects.equals(s.getInstance().getIdentifier(), r.getReferencedElement().getId()))),
+                "There are mandatory references that cannot be removed: " +
+                        " Type: " + entityType + " ID: " + instanceGraph.getId() + " Mandatory back references: " +
+                        mandatoryReferencesToRemove.stream().map(
+                                r -> r.getReference().getEContainingClass() + "#"
+                                        + r.getReference().getName() + " ID: "
+                                        + r.getReferencedElement().getId()).collect(toSet()));
+
+        Collection<EReference> processedReferences = Sets.newHashSet();
+        if (container != null) {
+            processedReferences.add(container);
+            if (container.getEOpposite() != null) {
+                processedReferences.add(container.getEOpposite());
+            }
+        }
+
+        instanceGraph.getReferences().stream()
+                .filter(r -> !processedReferences.contains(r.getReference()))
+                .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite()))
+                .forEach(r -> {
+                    if (r.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(r.getReference().getEOpposite(), "reverseCascadeDelete")) {
+                        checkMandatoryBackReferences(r.getReference().getEReferenceType(),
+                                getInstanceCollector().collectGraph(r.getReference().getEReferenceType(), r.getReferencedElement().getId()),
+                                statements,
+                                null,
+                                visited);
+                    }
+                });
+
+        instanceGraph.getBackReferences().stream()
+                .filter(r -> !processedReferences.contains(r.getReference()))
+                .filter(r -> r.getReference().getEOpposite() == null)
+                .forEach(r -> {
+                    if (AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")) {
+                        checkMandatoryBackReferences(r.getReference().getEContainingClass(),
+                                getInstanceCollector().collectGraph(r.getReference().getEContainingClass(), r.getReferencedElement().getId()),
+                                statements,
+                                null,
+                                visited);
+                    }
+                });
+
+        // Check containments
+        instanceGraph.getContainments().stream()
+                .forEach(i -> {
+                    InstanceGraph<ID> containedGraph = i.getReferencedElement();
+                    checkMandatoryBackReferences(i.getReference().getEReferenceType(), containedGraph, statements, i.getReference(),visited);
                 });
     }
 }
