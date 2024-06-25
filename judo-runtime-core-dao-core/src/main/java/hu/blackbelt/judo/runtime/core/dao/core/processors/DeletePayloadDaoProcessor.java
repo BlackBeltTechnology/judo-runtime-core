@@ -108,7 +108,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         statmentCollector(entityType, instanceGraph, statements, containerInstanceGraph, container);
         Collection<InstanceValue<ID>> visited = Sets.newHashSet();
-        checkMandatoryBackReferences(entityType, instanceGraph, statements, container, visited);
+        checkMandatoryBackReferences(entityType, instanceGraph, statements.stream().filter(s -> s instanceof DeleteStatement<ID>).collect(toSet()), container, visited);
     }
 
 
