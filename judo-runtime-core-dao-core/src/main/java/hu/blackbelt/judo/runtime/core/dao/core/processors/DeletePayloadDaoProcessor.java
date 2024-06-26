@@ -93,26 +93,27 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 .collect(toSet()));
 
         // All of returned instancegraph elements have to be processed
-        instanceGraphMap.values().stream().forEach(e -> {
+        for (InstanceGraph<ID> e:  instanceGraphMap.values()) {
             // Collect contained elements
-            collectStaments(entityType, e, statements, null, null);
-        });
+            collectStatements(entityType, e, statements, null, null);
+        }
+
         return ImmutableSet.copyOf(statements);
     }
 
-    void collectStaments(EClass entityType,
+    void collectStatements(EClass entityType,
                          InstanceGraph<ID> instanceGraph,
                          Collection<Statement<ID>> statements,
                          InstanceGraph<ID> containerInstanceGraph,
                          EReference container) {
 
-        statmentCollector(entityType, instanceGraph, statements, containerInstanceGraph, container);
+        statementCollector(entityType, instanceGraph, statements, containerInstanceGraph, container);
         Collection<InstanceValue<ID>> visited = Sets.newHashSet();
         checkMandatoryBackReferences(entityType, instanceGraph, statements.stream().filter(s -> s instanceof DeleteStatement<ID>).collect(toSet()), container, visited);
     }
 
 
-    private void statmentCollector(EClass entityType,
+    private void statementCollector(EClass entityType,
                          InstanceGraph<ID> instanceGraph,
                          Collection<Statement<ID>> statements,
                          InstanceGraph<ID> containerInstanceGraph,
@@ -157,77 +158,75 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         Set<ID> collectRemoveReferenceStatementIds = statements.stream().filter(s -> s instanceof RemoveReferenceStatement<ID>).map(s -> s.getInstance().getIdentifier()).collect(toSet());
 
-        // All reference have to remove before delete. It will contain the containment references too.
-        instanceGraph.getReferences().stream()
+        // All references have to remove before deleting. It will contain the containment references too.
+        for (InstanceReference<ID> ref :  instanceGraph.getReferences().stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
-                .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite()))
-                .forEach(r -> {
-                    if(r.getReference().getEOpposite() == null || !collectRemoveReferenceStatementIds.contains(r.getReferencedElement().getId())) {
-                        collectRemoveReferenceStatementIds.add(r.getReferencedElement().getId());
-                        statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                                .type(r.getReference().getEContainingClass())
-                                .identifier(instanceGraph.getId())
-                                .build());
+                .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite())).toList()) {
 
-                        statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                                .type(r.getReference().getEReferenceType())
-                                .identifier(r.getReferencedElement().getId())
-                                .build());
+            if(ref.getReference().getEOpposite() == null || !collectRemoveReferenceStatementIds.contains(ref.getReferencedElement().getId())) {
+                collectRemoveReferenceStatementIds.add(ref.getReferencedElement().getId());
+                statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                        .type(ref.getReference().getEContainingClass())
+                        .identifier(instanceGraph.getId())
+                        .build());
 
-                        statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
-                                .type(r.getReference().getEContainingClass())
-                                .reference(r.getReference())
-                                .referenceIdentifier(r.getReferencedElement().getId())
-                                .identifier(instanceGraph.getId())
-                                .build());
-                    }
-                    if (r.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(r.getReference().getEOpposite(), "reverseCascadeDelete")) {
-                        statmentCollector(r.getReference().getEReferenceType(),
-                                getInstanceCollector().collectGraph(r.getReference().getEReferenceType(), r.getReferencedElement().getId()),
-                                statements,
-                                null,
-                                null);
-                    }
-                });
+                statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                        .type(ref.getReference().getEReferenceType())
+                        .identifier(ref.getReferencedElement().getId())
+                        .build());
 
+                statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+                        .type(ref.getReference().getEContainingClass())
+                        .reference(ref.getReference())
+                        .referenceIdentifier(ref.getReferencedElement().getId())
+                        .identifier(instanceGraph.getId())
+                        .build());
+            }
+            if (ref.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(ref.getReference().getEOpposite(), "reverseCascadeDelete")) {
+                statementCollector(ref.getReference().getEReferenceType(),
+                        getInstanceCollector().collectGraph(ref.getReference().getEReferenceType(), ref.getReferencedElement().getId()),
+                        statements,
+                        null,
+                        null);
+            }
+        }
 
-        // All back reference to remove before delete. It will contain the containment references too.
-        instanceGraph.getBackReferences().stream()
+        // All back references to remove before deleting. It will contain the containment references too.
+        for (InstanceReference<ID> ref : instanceGraph.getBackReferences().stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
-                .filter(r -> r.getReference().getEOpposite() == null)
-                .forEach(r -> {
-                    statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                            .type(r.getReference().getEContainingClass())
-                            .identifier(r.getReferencedElement().getId())
-                            .build());
+                .filter(r -> r.getReference().getEOpposite() == null).toList()) {
 
-                    statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                            .type(r.getReference().getEReferenceType())
-                            .identifier(instanceGraph.getId())
-                            .build());
+            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                    .type(ref.getReference().getEContainingClass())
+                    .identifier(ref.getReferencedElement().getId())
+                    .build());
 
-                    if (AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")) {
-                        statmentCollector(r.getReference().getEContainingClass(),
-                                getInstanceCollector().collectGraph(r.getReference().getEContainingClass(), r.getReferencedElement().getId()),
-                                statements,
-                                null,
-                                null);
-                    } else {
-                        statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
-                                .type(r.getReference().getEContainingClass())
-                                .reference(r.getReference())
-                                .referenceIdentifier(instanceGraph.getId())
-                                .identifier(r.getReferencedElement().getId())
-                                .build());
-                    }
-                });
+            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                    .type(ref.getReference().getEReferenceType())
+                    .identifier(instanceGraph.getId())
+                    .build());
+
+            if (AsmUtils.annotatedAsTrue(ref.getReference(), "reverseCascadeDelete")) {
+                statementCollector(ref.getReference().getEContainingClass(),
+                        getInstanceCollector().collectGraph(ref.getReference().getEContainingClass(), ref.getReferencedElement().getId()),
+                        statements,
+                        null,
+                        null);
+            } else {
+                statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+                        .type(ref.getReference().getEContainingClass())
+                        .reference(ref.getReference())
+                        .referenceIdentifier(instanceGraph.getId())
+                        .identifier(ref.getReferencedElement().getId())
+                        .build());
+            }
+        }
 
         // Make delete for all containment
-        instanceGraph.getContainments().stream()
-                .forEach(i -> {
-                    InstanceGraph<ID> containedGraph = i.getReferencedElement();
-                    statmentCollector(i.getReference().getEReferenceType(), containedGraph, statements, instanceGraph, i.getReference());
-                });
+        for (InstanceReference<ID> containment : instanceGraph.getContainments()) {
+            InstanceGraph<ID> containedGraph = containment.getReferencedElement();
+            statementCollector(containment.getReference().getEReferenceType(), containedGraph, statements, instanceGraph, containment.getReference());
+        }
     }
 
     private void checkMandatoryBackReferences(EClass entityType,
@@ -267,37 +266,35 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             }
         }
 
-        instanceGraph.getReferences().stream()
+        for (InstanceReference<ID> ref : instanceGraph.getReferences()
+                .stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
                 .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite()))
-                .forEach(r -> {
-                    if (r.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(r.getReference().getEOpposite(), "reverseCascadeDelete")) {
-                        checkMandatoryBackReferences(r.getReference().getEReferenceType(),
-                                getInstanceCollector().collectGraph(r.getReference().getEReferenceType(), r.getReferencedElement().getId()),
-                                statements,
-                                null,
-                                visited);
-                    }
-                });
+                .toList()) {
+            if (ref.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(ref.getReference().getEOpposite(), "reverseCascadeDelete")) {
+                checkMandatoryBackReferences(ref.getReference().getEReferenceType(),
+                        getInstanceCollector().collectGraph(ref.getReference().getEReferenceType(), ref.getReferencedElement().getId()),
+                        statements,
+                        null,
+                        visited);
+            }
+        }
 
-        instanceGraph.getBackReferences().stream()
-                .filter(r -> !processedReferences.contains(r.getReference()))
-                .filter(r -> r.getReference().getEOpposite() == null)
-                .forEach(r -> {
-                    if (AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")) {
-                        checkMandatoryBackReferences(r.getReference().getEContainingClass(),
-                                getInstanceCollector().collectGraph(r.getReference().getEContainingClass(), r.getReferencedElement().getId()),
-                                statements,
-                                null,
-                                visited);
-                    }
-                });
+        for (InstanceReference<ID> ref : instanceGraph.getBackReferences().stream().filter(r -> !processedReferences.contains(r.getReference())).filter(r -> r.getReference().getEOpposite() == null).toList()) {
+            if (AsmUtils.annotatedAsTrue(ref.getReference(), "reverseCascadeDelete")) {
+                checkMandatoryBackReferences(ref.getReference().getEContainingClass(),
+                        getInstanceCollector().collectGraph(ref.getReference().getEContainingClass(), ref.getReferencedElement().getId()),
+                        statements,
+                        null,
+                        visited);
+            }
+        }
 
         // Check containments
-        instanceGraph.getContainments().stream()
-                .forEach(i -> {
-                    InstanceGraph<ID> containedGraph = i.getReferencedElement();
-                    checkMandatoryBackReferences(i.getReference().getEReferenceType(), containedGraph, statements, i.getReference(),visited);
-                });
+        for (InstanceReference<ID> containment : instanceGraph.getContainments()) {
+            InstanceGraph<ID> containedGraph = containment.getReferencedElement();
+            checkMandatoryBackReferences(containment.getReference().getEReferenceType(), containedGraph, statements, containment.getReference(),visited);
+        }
+
     }
 }

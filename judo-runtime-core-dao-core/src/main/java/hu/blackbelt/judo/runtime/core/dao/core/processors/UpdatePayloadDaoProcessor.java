@@ -117,10 +117,10 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         InstanceGraph<ID> instanceGraph = getInstanceCollector().collectGraph(entityType, updatedIdentifier);
 
         // The elements have to be processed
-        collectStaments(transferObjectType, instanceGraph, originalPayload, updatePayload, statements, null, null, checkMandatoryFeatures);
+        collectStatements(transferObjectType, instanceGraph, originalPayload, updatePayload, statements, null, null, checkMandatoryFeatures);
     }
 
-    void collectStaments(EClass transferObjectType,
+    void collectStatements(EClass transferObjectType,
                                             InstanceGraph<ID> instanceGraph,
                                             Payload originalPayload,
                                             Payload updatePayload,
@@ -424,7 +424,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             } else if (updateIdentifier == null && originalIdentifier != null) {
                 if (isContainment) {
                     // DELETE ORIGINAL INSTANCE
-                    deletePayloadDaoProcessor.collectStaments(entityReference.getEReferenceType(),
+                    deletePayloadDaoProcessor.collectStatements(entityReference.getEReferenceType(),
                             instanceGraph, statements, parentInstanceGraph, entityReference);
 
                     // INSERT When there is any attributes in payload
@@ -469,7 +469,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 if (originalIdentifier.equals(updateIdentifier)) {
                     if (isContainment) {
                         // UPDATE embedded instances INSTANCE
-                        collectStaments(mappedReference.getEReferenceType(), instanceGraph, originalPayload,
+                        collectStatements(mappedReference.getEReferenceType(), instanceGraph, originalPayload,
                                 updatePayload, statements, parentInstanceGraph, mappedReference, checkMandatoryFeatures);
                     }
                 } else {
@@ -497,7 +497,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         } else if (originalIdentifier != null) {
             if (isContainment) {
                 // DELETE ORIGINAL INSTANCE
-                deletePayloadDaoProcessor.collectStaments(entityReference.getEReferenceType(),
+                deletePayloadDaoProcessor.collectStatements(entityReference.getEReferenceType(),
                         instanceGraph, statements, parentInstanceGraph, entityReference);
             } else {
                 // DELETE ORIGINAL REFERENCE
