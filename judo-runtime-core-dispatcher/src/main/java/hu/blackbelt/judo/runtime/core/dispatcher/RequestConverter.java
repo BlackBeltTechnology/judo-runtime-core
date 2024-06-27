@@ -146,7 +146,7 @@ public class RequestConverter {
         try {
             PayloadTraverser.builder()
                     .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                            ? asmUtils.getMappedReference(reference).isPresent()
+                            ? asmUtils.getMappedReference(reference).map(e -> !e.isDerived()).orElse(false)
                             : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
                     .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext, rootContext))
                     .build()
