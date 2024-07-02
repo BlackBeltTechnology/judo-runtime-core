@@ -152,7 +152,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                             operation.getEGenericType().getEClassifier().getName());
 
                     result.put("stream", resultStream);
-                    result.put("name", UUID.randomUUID());
+                    result.put("name", UUID.randomUUID().toString());
                     result.put("extension", "xlsx");
                 } catch (IOException e) {
                     throw new RuntimeException(e);
