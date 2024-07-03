@@ -36,9 +36,7 @@ import lombok.Setter;
 import org.eclipse.emf.ecore.*;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -95,8 +93,8 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                         .queryCustomizer(queryCustomizer)
                         .build());
 
-        Object result = null;
-        List<Payload> resultPayload = null;
+        List<Payload> operationResultPayload = null;
+        Map<String, Object> result = new HashMap<>();
 
         if (callInterceptorUtil.shouldCallOriginal()) {
             if (AsmUtils.annotatedAsTrue(inputParameter.getOwner(), "access")
@@ -116,15 +114,15 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
 
                 final ID id = (ID) actor.get(serviceContext.getIdentifierProvider().getName());
 
-                resultPayload = serviceContext.getDao().searchNavigationResultAt(id, owner, queryCustomizer);
+                operationResultPayload = serviceContext.getDao().searchNavigationResultAt(id, owner, queryCustomizer);
 
             } else if (AsmUtils.annotatedAsTrue(owner, "access") || !serviceContext.getAsmUtils().isMappedTransferObjectType(owner.getEContainingClass())) {
                 checkArgument(!bound, "Operation must be unbound");
                 final List<Payload> resultList;
                 if (AsmUtils.annotatedAsTrue(owner, "access") && !owner.isDerived()) {
-                    resultPayload = serviceContext.getDao().search(owner.getEReferenceType(), queryCustomizer);
+                    operationResultPayload = serviceContext.getDao().search(owner.getEReferenceType(), queryCustomizer);
                 } else {
-                    resultPayload = serviceContext.getDao().searchReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
+                    operationResultPayload = serviceContext.getDao().searchReferencedInstancesOf(owner, owner.getEReferenceType(), queryCustomizer);
                 }
             } else {
                 checkArgument(bound, "Operation must be bound");
@@ -134,24 +132,28 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                         .map(_this -> Optional.ofNullable(((Payload) _this).get(owner.getName())));
 
                 if (resultInThis.isPresent()) {
-                    result = resultInThis.get().orElse(null);
+                    Object res = resultInThis.get().orElse(null);
 
-                    if(result != null && result instanceof Payload) {
-                        resultPayload = List.of((Payload) result);
+                    if(res != null && res instanceof Payload) {
+                        operationResultPayload = List.of((Payload) res);
                     }
                 } else {
-                    resultPayload = serviceContext.getDao().searchNavigationResultAt((ID) exchange.get(serviceContext.getIdentifierProvider().getName()), owner, queryCustomizer);
+                    operationResultPayload = serviceContext.getDao().searchNavigationResultAt((ID) exchange.get(serviceContext.getIdentifierProvider().getName()), owner, queryCustomizer);
                 }
             }
-
-            if (resultPayload != null) {
+            if (operationResultPayload != null) {
                 try {
-                    result = exporter.exportToInputStream(null,
-                            resultPayload,
+
+                    Object resultStream = exporter.exportToInputStream(null,
+                            operationResultPayload,
                             queryCustomizer.getMask().keySet().stream().toList(),
                             null,
                             asmModel,
                             operation.getEGenericType().getEClassifier().getName());
+
+                    result.put("stream", resultStream);
+                    result.put("name", UUID.randomUUID().toString());
+                    result.put("extension", "xlsx");
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
