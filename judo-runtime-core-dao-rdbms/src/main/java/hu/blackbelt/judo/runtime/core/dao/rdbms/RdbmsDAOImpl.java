@@ -390,7 +390,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     throw new IllegalArgumentException("Upper cardinality violated");
                 }
             } else {
-                if (container.get(reference.getName()) != null) {
+                if((container.get(reference.getName()) != null) ||  (!reference.isContainment() && !getNavigationResultAt(identifier, reference).isEmpty())) {
                     throw new IllegalArgumentException("Containment already set");
                 }
                 Payload referenced = create(typeOfNewInstance, payload, QueryCustomizer.<ID>builder()
@@ -442,7 +442,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             final ID referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
             // do not add reference if relation is derived
             if (!mappedReference.isDerived()) {
-                addReferencesOfInstance(reference, identifier, Collections.singleton(referencedId));
+                if (reference.isMany()) {
+                    addReferencesOfInstance(reference, identifier, Collections.singleton(referencedId));
+                } else {
+                    setReferenceOfInstance(reference, identifier, Collections.singleton(referencedId));
+                }
             }
 
             result = searchNavigationResultAt(identifier, reference, queryCustomizer).stream()
