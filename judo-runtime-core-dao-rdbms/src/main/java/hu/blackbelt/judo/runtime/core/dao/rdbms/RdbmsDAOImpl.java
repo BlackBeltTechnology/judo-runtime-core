@@ -390,7 +390,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     throw new IllegalArgumentException("Upper cardinality violated");
                 }
             } else {
-                if((container.get(reference.getName()) != null) ||  (!reference.isContainment() && !getNavigationResultAt(identifier, reference).isEmpty())) {
+                if ((container.get(reference.getName()) != null) ||  (!reference.isContainment() && !getNavigationResultAt(identifier, reference).isEmpty())) {
                     throw new IllegalArgumentException("Containment already set");
                 }
                 Payload referenced = create(typeOfNewInstance, payload, QueryCustomizer.<ID>builder()
