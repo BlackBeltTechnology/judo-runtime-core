@@ -33,6 +33,8 @@ import hu.blackbelt.judo.meta.expression.TypeName;
 import hu.blackbelt.judo.meta.expression.builder.jql.*;
 import hu.blackbelt.judo.meta.expression.constant.*;
 import hu.blackbelt.judo.meta.expression.logical.*;
+import hu.blackbelt.judo.meta.expression.numeric.DecimalOppositeExpression;
+import hu.blackbelt.judo.meta.expression.numeric.IntegerOppositeExpression;
 import hu.blackbelt.judo.meta.expression.object.ObjectVariableReference;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.meta.jql.jqldsl.JqlExpression;
@@ -140,6 +142,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         translator.getTranslators().put(TimeComparison.class, TimeComparisonTranslator.builder().translator(translator).build());
         translator.getTranslators().put(TimeConstant.class, TimeConstantTranslator.builder().build());
         translator.getTranslators().put(UndefinedComparison.class, UndefinedComparisonTranslator.builder().translator(translator).build());
+        translator.getTranslators().put(IntegerOppositeExpression.class, IntegerOppositeTranslator.builder().translator(translator).build());
+        translator.getTranslators().put(DecimalOppositeExpression.class, DecimalOppositeTranslator.builder().translator(translator).build());
     }
 
     public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
