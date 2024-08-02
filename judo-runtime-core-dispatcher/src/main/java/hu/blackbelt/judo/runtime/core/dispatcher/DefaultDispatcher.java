@@ -538,7 +538,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 || AsmUtils.OperationBehaviour.GET_INPUT_RANGE.equals(operationBehaviour)
                 || AsmUtils.OperationBehaviour.LIST.equals(operationBehaviour)
                 || getExtensionAnnotationValue(operation, ASM_EXTENSION_ANNOTATION_INPUT_RANGE, false).isPresent()) {
-            validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false); // not necessary because optional type is used for owner instance
+            validationContext.put(RequestConverter.VALIDATE_MISSING_FEATURES_KEY, false);
             validationContext.put(RequestConverter.IGNORE_INVALID_VALUES_KEY, true);
         }
     }
