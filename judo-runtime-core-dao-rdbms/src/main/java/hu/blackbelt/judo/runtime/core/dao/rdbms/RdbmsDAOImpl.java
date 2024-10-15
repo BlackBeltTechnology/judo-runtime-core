@@ -744,7 +744,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         };
 
         final Set<ID> currentReferences;
-        if (markSelectedRangeItems && instanceId != null) {
+        if (!queryFactory.isStaticReference(rangeTransferRelation) && markSelectedRangeItems && instanceId != null) {
             currentReferences = searchNavigationResultAt(instanceId, reference, QueryCustomizer.<ID>builder().withoutFeatures(true).build()).stream()
                     .map(p -> p.getAs(identifierProvider.getType(), identifierProvider.getName()))
                     .collect(Collectors.toSet());
