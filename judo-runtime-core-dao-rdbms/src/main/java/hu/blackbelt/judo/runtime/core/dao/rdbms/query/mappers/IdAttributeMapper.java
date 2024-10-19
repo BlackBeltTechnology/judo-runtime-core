@@ -27,8 +27,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsColumn;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EClass;
 
@@ -41,7 +39,7 @@ public class IdAttributeMapper extends RdbmsMapper<IdAttribute> {
 
     @Override
     public Stream<RdbmsColumn> map(final IdAttribute idAttribute, RdbmsBuilderContext builderContext) {
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
 
         final EClass sourceType = idAttribute.getNode().getType();
         for (EClass superType : sourceType.getEAllSuperTypes()) {

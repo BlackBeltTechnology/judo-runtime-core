@@ -21,13 +21,11 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  */
 
 import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Getter;
 import lombok.experimental.SuperBuilder;
-import org.eclipse.emf.common.util.EMap;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.text.MessageFormat;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -52,7 +50,7 @@ public class RdbmsColumn extends RdbmsField {
     @Override
     public String toSql(SqlConverterContext converterContext) {
         final String prefix = converterContext.getPrefix();
-        final EMap<Node, String> prefixes = converterContext.getPrefixes();
+        final Map<Node, String> prefixes = converterContext.getPrefixes();
         final boolean includeAlias = converterContext.isIncludeAlias();
 
         final String partnerTableName;

@@ -31,10 +31,6 @@ import hu.blackbelt.judo.meta.expression.runtime.ExpressionEvaluator;
 import hu.blackbelt.judo.meta.expression.variable.Variable;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.notify.Notifier;
-import org.eclipse.emf.common.util.BasicEMap;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.*;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
@@ -64,9 +60,9 @@ public class TransferObjectTypeBindingsCollector {
 
     private ExpressionEvaluator expressionEvaluator;
 
-    private final EMap<EClass, EntityTypeExpressions> entityTypeExpressionsMap = ECollections.asEMap(new ConcurrentHashMap<>());
-    private final EMap<EAttribute, EList<Variable>> staticFlagOfAttributes = ECollections.asEMap(new ConcurrentHashMap<>());
-    private final EMap<EReference, EList<Variable>> staticFlagOfReferences = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EClass, EntityTypeExpressions> entityTypeExpressionsMap = new ConcurrentHashMap<>();
+    private final Map<EAttribute, List<Variable>> staticFlagOfAttributes = new ConcurrentHashMap<>();
+    private final Map<EReference, List<Variable>> staticFlagOfReferences = new ConcurrentHashMap<>();
 
     public TransferObjectTypeBindingsCollector(final ResourceSet asmResourceSet, final ResourceSet expressionResourceSet) {
         this.expressionResourceSet = expressionResourceSet;
@@ -84,8 +80,8 @@ public class TransferObjectTypeBindingsCollector {
                 .collect(Collectors.toMap(identity(), c -> EntityTypeExpressions.builder().entityType(c).build())));
     }
 
-    public EMap<EClass, EntityTypeExpressions> getEntityTypeExpressionsMap() {
-        return ECollections.unmodifiableEMap(entityTypeExpressionsMap);
+    public Map<EClass, EntityTypeExpressions> getEntityTypeExpressionsMap() {
+        return Collections.unmodifiableMap(entityTypeExpressionsMap);
     }
 
     public Optional<UnmappedTransferObjectTypeBindings> getTransferObjectBindings(final EClass unmappedTransferObjectType) {
@@ -155,10 +151,10 @@ public class TransferObjectTypeBindingsCollector {
      * @return root node of expression tree
      */
     public Optional<MappedTransferObjectTypeBindings> getTransferObjectGraph(final EClass mappedTransferObjectType) {
-        return getTransferObjectGraph(mappedTransferObjectType, new BasicEMap<>());
+        return getTransferObjectGraph(mappedTransferObjectType, new ConcurrentHashMap<>());
     }
 
-    public Optional<MappedTransferObjectTypeBindings> getTransferObjectGraph(final EClass mappedTransferObjectType, final EMap<EClass, MappedTransferObjectTypeBindings> processedMappedTransferObjectTypeBindings) {
+    public Optional<MappedTransferObjectTypeBindings> getTransferObjectGraph(final EClass mappedTransferObjectType, final Map<EClass, MappedTransferObjectTypeBindings> processedMappedTransferObjectTypeBindings) {
         final Optional<EClass> mappedEntityType = asmUtils.getMappedEntityType(mappedTransferObjectType);
 
         if (!mappedEntityType.isPresent()) {
@@ -168,6 +164,10 @@ public class TransferObjectTypeBindingsCollector {
 
             return Optional.empty();
         } else {
+            if (processedMappedTransferObjectTypeBindings.containsKey(mappedEntityType.get())) {
+                return Optional.of(processedMappedTransferObjectTypeBindings.get(mappedEntityType.get()));
+            }
+
             final MappedTransferObjectTypeBindings mappedTransferObjectTypeBindings = MappedTransferObjectTypeBindings.builder()
                     .entityType(mappedEntityType.get())
                     .transferObjectType(mappedTransferObjectType)
@@ -212,7 +212,7 @@ public class TransferObjectTypeBindingsCollector {
                                                     if (attributeBinding.getExpression() instanceof DataExpression) {
                                                         if (!staticFlagOfAttributes.containsKey(attribute.get())) {
                                                             final List<Variable> variables = new ArrayList<>(expressionEvaluator.getVariablesOfScope(attributeBinding.getExpression()));
-                                                            staticFlagOfAttributes.put(attribute.get(), ECollections.asEList(variables));
+                                                            staticFlagOfAttributes.put(attribute.get(), variables);
                                                         }
 
                                                         mappedTransferObjectTypeBindings.getGetterAttributeExpressions().put(transferAttribute, (DataExpression) attributeBinding.getExpression());
@@ -266,7 +266,7 @@ public class TransferObjectTypeBindingsCollector {
                                             if (referenceBinding.getExpression() instanceof ReferenceExpression) {
                                                 if (!staticFlagOfReferences.containsKey(reference.get())) {
                                                     final List<Variable> variables = new ArrayList<>(expressionEvaluator.getVariablesOfScope(referenceBinding.getExpression()));
-                                                    staticFlagOfReferences.put(reference.get(), ECollections.asEList(variables));
+                                                    staticFlagOfReferences.put(reference.get(), variables);
                                                 }
 
                                                 mappedTransferObjectTypeBindings.getGetterReferenceExpressions().put(transferRelation, (ReferenceExpression) referenceBinding.getExpression());

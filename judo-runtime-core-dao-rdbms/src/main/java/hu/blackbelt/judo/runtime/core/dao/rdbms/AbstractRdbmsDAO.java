@@ -25,14 +25,12 @@ import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.BasicEMap;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -50,7 +48,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     private static final String METRICS_DAO_COUNT = "dao-count";
 
-    private final EMap<EClass, Boolean> hasStaticFeaturesMap = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EClass, Boolean> hasStaticFeaturesMap = new ConcurrentHashMap<>();
 
     @Override
     public Payload getStaticFeatures(EClass clazz) {
@@ -106,7 +104,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public List<Payload> getAllOf(EClass eClass) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             List<Payload> result = readAll(eClass);
-            final EMap<EClass, Payload> cache = new BasicEMap<>();
+            final Map<EClass, Payload> cache = new HashMap<>();
             result.forEach(record -> addStaticFeaturesToPayload(record, eClass, cache));
             logResult(result);
             return result;
@@ -126,7 +124,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public List<Payload> search(EClass eClass, QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             List<Payload> result = searchByFilter(eClass, queryCustomizer);
-            final EMap<EClass, Payload> cache = new BasicEMap<>();
+            final Map<EClass, Payload> cache = new HashMap<>();
             result.forEach(record -> addStaticFeaturesToPayload(record, eClass, cache));
             logResult(result);
             return result;
@@ -175,7 +173,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public List<Payload> searchByIdentifiers(EClass clazz, Collection<ID> identifiers, QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             List<Payload> result = ImmutableList.copyOf(readByIdentifiers(clazz, identifiers, queryCustomizer));
-            final EMap<EClass, Payload> cache = new BasicEMap<>();
+            final Map<EClass, Payload> cache = new HashMap<>();
             result.forEach(record -> addStaticFeaturesToPayload(record, clazz, cache));
             logResult(result);
             return result;
@@ -191,10 +189,21 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     protected Payload create(EClass eClass, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean checkMandatoryFeatures) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             Payload result = insertPayload(eClass, payload, queryCustomizer, checkMandatoryFeatures);
-            addStaticFeaturesToPayload(payload, eClass, new BasicEMap<>());
+            addStaticFeaturesToPayload(payload, eClass, new HashMap<>());
             logResult(result);
             return result;
         }
+    }
+
+    @Override
+    public List<Payload> createAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+        List resultPayloads = new ArrayList<>();
+
+        for (Payload payload : payloads) {
+            resultPayloads.add(create(eClass, payload, queryCustomizer));
+        }
+
+        return ImmutableList.copyOf(resultPayloads);
     }
 
     @Override
@@ -212,10 +221,21 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
                     payload.get(getIdentifierProvider().getName()));
 
             Payload result = updatePayload(eClass, original.get(), payload, queryCustomizer, checkMandatoryFeatures);
-            addStaticFeaturesToPayload(payload, eClass, new BasicEMap<>());
+            addStaticFeaturesToPayload(payload, eClass, new HashMap<>());
             logResult(result);
             return result;
         }
+    }
+
+    @Override
+    public List<Payload> updateAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+        List resultPayloads = new ArrayList<>();
+
+        for (Payload payload : payloads) {
+            resultPayloads.add(update(eClass, payload, queryCustomizer));
+        }
+
+        return ImmutableList.copyOf(resultPayloads);
     }
 
     @Override
@@ -223,6 +243,16 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public void delete(EClass eClass, ID id) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             deletePayload(eClass, ImmutableSet.of(id));
+        }
+    }
+
+    @Override
+    @SneakyThrows(SQLException.class)
+    public void deleteAll(EClass eClass, Iterable<ID> ids) {
+        try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
+            List<ID> idList = new ArrayList<>();
+            ids.forEach(idList::add);
+            deletePayload(eClass, idList);
         }
     }
 
@@ -267,10 +297,10 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public List<Payload> getAllReferencedInstancesOf(EReference eReference, EClass eClass) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             List<Payload> result = readAllReferences(eReference, null);
-            final EMap<EClass, Payload> cache = new BasicEMap<>();
+            final Map<EClass, Payload> cache = new HashMap<>();
             result.forEach(record -> addStaticFeaturesToPayload(record, eClass, cache));
             logResult(result);
             return result;
@@ -281,7 +311,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public long countAllReferencedInstancesOf(EReference eReference, EClass eClass) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             long result = countAllReferences(eReference, null);
             logResult(result);
@@ -293,10 +323,10 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public List<Payload> searchReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             List<Payload> result = searchReferences(eReference, null, queryCustomizer);
-            final EMap<EClass, Payload> cache = new BasicEMap<>();
+            final Map<EClass, Payload> cache = new HashMap<>();
             result.forEach(record -> addStaticFeaturesToPayload(record, eClass, cache));
             logResult(result);
             return result;
@@ -307,7 +337,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public long countReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             checkNotNull(eReference.getEReferenceType());
-            checkArgument(AsmUtils.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
+            checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
 
             long result = countReferences(eReference, null, queryCustomizer);
             logResult(result);
@@ -382,7 +412,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType(), "Invalid reference");
             List<Payload> result = readAllReferences(eReference, Collections.singleton(id));
-            final EMap<EClass, Payload> cache = new BasicEMap<>();
+            final Map<EClass, Payload> cache = new HashMap<>();
             result.forEach(record -> addStaticFeaturesToPayload(record, eReference.getEReferenceType(), cache));
             logResult(result);
             return result;
@@ -404,7 +434,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType(), "Invalid reference");
             List<Payload> result = searchReferences(eReference, Collections.singleton(id), queryCustomizer);
-            final EMap<EClass, Payload> cache = new BasicEMap<>();
+            final Map<EClass, Payload> cache = new HashMap<>();
             result.forEach(record -> addStaticFeaturesToPayload(record, eReference.getEReferenceType(), cache));
             logResult(result);
             return result;
@@ -426,7 +456,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     public Payload createNavigationInstanceAt(ID id, EReference eReference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             Payload result = insertPayloadAndAttach(eReference, id, payload, queryCustomizer);
-            addStaticFeaturesToPayload(payload, eReference.getEReferenceType(), new BasicEMap<>());
+            addStaticFeaturesToPayload(payload, eReference.getEReferenceType(), new HashMap<>());
             logResult(result);
             return result;
         }
@@ -500,14 +530,14 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
     }
 
-    private boolean addStaticFeaturesToPayload(final Payload payload, final EClass clazz, final EMap<EClass, Payload> loadedPayloads) {
+    private boolean addStaticFeaturesToPayload(final Payload payload, final EClass clazz, final Map<EClass, Payload> loadedPayloads) {
         if (Boolean.FALSE.equals(hasStaticFeaturesMap.get(clazz))) {
             // no static feature to load
             return false;
         }
-
+        AsmUtils asmUtils = new AsmUtils(getAsmModel().getResourceSet());
         clazz.getEAllSuperTypes().stream()
-                .filter(s -> AsmUtils.annotatedAsTrue(s, "transferObjectType") && !getAsmUtils().isMappedTransferObjectType(s))
+                .filter(s -> AsmUtils.annotatedAsTrue(s, "transferObjectType") && !asmUtils.isMappedTransferObjectType(s))
                 .forEach(unmappedType -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Adding static features of {}", AsmUtils.getClassifierFQName(unmappedType));
@@ -525,7 +555,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
                     payload.putAll(Payload.asPayload(staticFeatures));
                 });
         clazz.getEAllReferences().stream()
-                .filter(r -> AsmUtils.isEmbedded(r) && !r.isTransient() && getAsmUtils().isMappedTransferObjectType(r.getEReferenceType()) && payload.get(r.getName()) != null)
+                .filter(r -> AsmUtils.isEmbedded(r) && !r.isTransient() && asmUtils.isMappedTransferObjectType(r.getEReferenceType()) && payload.get(r.getName()) != null)
                 .forEach(reference -> {
                     if (log.isDebugEnabled()) {
                         log.debug("Adding static features: {}", AsmUtils.getReferenceFQName(reference));
@@ -550,7 +580,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         return hasStaticFeaturesMap.get(clazz);
     }
 
-    protected abstract AsmUtils getAsmUtils();
+    protected abstract AsmModel getAsmModel();
 
     protected abstract IdentifierProvider<ID> getIdentifierProvider();
 

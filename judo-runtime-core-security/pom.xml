@@ -44,5 +44,13 @@
             <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo</groupId>
+            <artifactId>judo-dao-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo</groupId>
+            <artifactId>judo-dispatcher-api</artifactId>
+        </dependency>
     </dependencies>
 </project>

@@ -200,9 +200,13 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
                     deleteable = false;
                 }
 
-                payload.put(DefaultDispatcher.UPDATEABLE_KEY, updateable);
-                payload.put(DefaultDispatcher.DELETEABLE_KEY, deleteable);
-                if (immutable) {
+                if (!payload.containsKey(DefaultDispatcher.UPDATEABLE_KEY)) {
+                    payload.put(DefaultDispatcher.UPDATEABLE_KEY, updateable);
+                }
+                if (!payload.containsKey(DefaultDispatcher.DELETEABLE_KEY)) {
+                    payload.put(DefaultDispatcher.DELETEABLE_KEY, deleteable);
+                }
+                if (immutable && !payload.containsKey(DefaultDispatcher.IMMUTABLE_KEY)) {
                     payload.put(DefaultDispatcher.IMMUTABLE_KEY, true);
                 }
             }

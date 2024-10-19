@@ -51,9 +51,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private SubSelect query;
 
     // map of ancestors (the are holder of an attribute) of a given source
-    private final EMap<Node, EList<EClass>> ancestors = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> ancestors = new HashMap<>();
 
-    private final EMap<Node, EList<EClass>> descendants = ECollections.asEMap(new HashMap<>());
+    private final Map<Node, List<EClass>> descendants = new HashMap<>();
 
     private final String from;
     private final Collection<RdbmsField> columns = new ArrayList<>();
@@ -61,7 +61,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final List<RdbmsField> conditions = new ArrayList<>();
     private final List<RdbmsOrderBy> orderBys = new ArrayList<>();
 
-    private final EMap<OrderBy, RdbmsField> orderByFeatures = ECollections.asEMap(new LinkedHashMap<>());
+    private final Map<OrderBy, RdbmsField> orderByFeatures = new LinkedHashMap<>();
 
     private Integer limit = null;
     private Integer offset = null;
@@ -69,7 +69,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private final boolean group;
     private final boolean skipParents;
 
-    private final EList<Join> processedNodesForJoins = ECollections.newBasicEList();
+    private final List<Join> processedNodesForJoins = new ArrayList<>();
 
     private final RdbmsBuilder<ID> rdbmsBuilder;
 
@@ -105,9 +105,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         final EClass type = query.getSelect().getType();
         from = type != null ? rdbmsBuilder.getTableName(type) : null;
 
-        final EMap<Target, Collection<String>> targetMask = mask != null
-                ? getTargetMask(query.getSelect().getMainTarget(), mask, new BasicEMap<>())
-                : ECollections.emptyEMap();
+        final Map<Target, Collection<String>> targetMask = mask != null
+                ? getTargetMask(query.getSelect().getMainTarget(), mask, new HashMap<>())
+                : Collections.emptyMap();
 
         final List<Feature> features = query.getSelect().getFeatures().stream()
                 .filter(
@@ -171,7 +171,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .filter(s ->
                             query.getSelect().getFeatures().stream().anyMatch(f ->
                                     f.getNodes().stream().anyMatch(n ->
-                                            AsmUtils.equals(n, s.getSelect()) || s.getSelect().getJoins().contains(n))))
+                                            Objects.equals(n, s.getSelect()) || s.getSelect().getJoins().contains(n))))
                     .map(s -> RdbmsQueryJoin.<ID>builder()
                             .resultSet(
                                     RdbmsResultSet.<ID>builder()
@@ -238,8 +238,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
                 List<Join> orderByJoins = orderBy.getFeature().getNodes().stream()
                         .filter(n -> n instanceof Join).map(n -> (Join) n)
-                        .filter(n -> !AsmUtils.equals(n, query) &&
-                                !AsmUtils.equals(n, query.getSelect()) &&
+                        .filter(n -> !Objects.equals(n, query) &&
+                                !Objects.equals(n, query.getSelect()) &&
                                 !query.getSelect().getAllJoins().contains(n))
                         .collect(Collectors.toList());
 
@@ -334,7 +334,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
 
         if (limit != null && seek != null && seek.getLastItem() != null && from != null) {
-            orderByFeatures.stream()
+            orderByFeatures.entrySet().stream()
                     .findFirst().ifPresent(orderBy -> {
                         final Object value = getLastItemValue(rdbmsBuilder,
                                 query.getSelect().getMainTarget().getType(),
@@ -470,10 +470,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         }
     }
 
-    private EMap<Target, Collection<String>> getTargetMask(
+    private Map<Target, Collection<String>> getTargetMask(
             final Target target,
             final Map<String, Object> mask,
-            final EMap<Target, Collection<String>> result) {
+            final Map<Target, Collection<String>> result) {
         result.put(target, mask.entrySet().stream()
                 .filter(e -> target.getType().getEAllAttributes().stream()
                         .anyMatch(a -> Objects.equals(a.getName(), e.getKey())))
@@ -503,6 +503,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
             final EClass type,
             final DAO.Seek seek,
             final OrderBy orderBy) {
+        AsmUtils asmUtils = new AsmUtils(rdbmsBuilder.getAsmModel().getResourceSet());
         if (!orderBy.getFeature().getTargetMappings().isEmpty()) {
             return seek.getLastItem()
                     .get(orderBy.getFeature().getTargetMappings().get(0).getTargetAttribute().getName());
@@ -510,8 +511,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 orderBy.getFeature() instanceof Attribute) {
             final EAttribute entityAttribute = ((Attribute) orderBy.getFeature()).getSourceAttribute();
             final EAttribute transferAttribute = type.getEAllAttributes().stream()
-                    .filter(a -> AsmUtils.equals(entityAttribute,
-                            rdbmsBuilder.getAsmUtils().getMappedAttribute(a).orElse(null)))
+                    .filter(a -> Objects.equals(entityAttribute,
+                            asmUtils.getMappedAttribute(a).orElse(null)))
                     .findAny()
                     .orElseThrow(() -> new IllegalArgumentException("Unable to find order by attribute of last item"));
             return seek.getLastItem().get(transferAttribute.getName());
@@ -524,9 +525,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     @Override
     public String toSql(SqlConverterContext converterContext) {
         final String prefix = converterContext.getPrefix();
-        final EMap<Node, String> prefixes = converterContext.getPrefixes();
+        final Map<Node, String> prefixes = converterContext.getPrefixes();
 
-        final EMap<Node, String> newPrefixes = new BasicEMap<>();
+        final Map<Node, String> newPrefixes = new HashMap<>();
         newPrefixes.putAll(prefixes);
         newPrefixes.put(query.getSelect(), prefix);
         newPrefixes.putAll(query.getSelect().getAllJoins().stream()
@@ -616,7 +617,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         List<RdbmsJoin> staticJoins =
                 joins.stream()
                         .filter(j -> query.getSelect() != null && j.getPartnerTable() != null &&
-                                !AsmUtils.equals(query.getSelect(), j.getPartnerTable()) &&
+                                !Objects.equals(query.getSelect(), j.getPartnerTable()) &&
                                 // current join is not a partner table to any other join in this scope
                                 joins.stream().noneMatch(jj -> j.getPartnerTable() != null &&
                                         jj.getAlias().equals(j.getPartnerTable().getAlias())))
@@ -640,7 +641,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     private boolean isFeatureIncludedByMask(
             Feature f,
             Map<String, Object> mask,
-            EMap<Target, Collection<String>> targetMask) {
+            Map<Target, Collection<String>> targetMask) {
         return (mask == null &&
                 f.getTargetMappings().stream()
                         .noneMatch(tm -> tm.getTargetAttribute() != null &&
@@ -648,8 +649,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 f.getTargetMappings().stream()
                         .anyMatch(tm -> tm.getTarget() == null ||
                         query.getSelect().getOrderBys().stream()
-                                .anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
-                                query.getOrderBys().stream().anyMatch(o -> AsmUtils.equals(o.getFeature(), f)) ||
+                                .anyMatch(o -> Objects.equals(o.getFeature(), f)) ||
+                                query.getOrderBys().stream().anyMatch(o -> Objects.equals(o.getFeature(), f)) ||
                                 targetMask.containsKey(tm.getTarget()) &&
                                         (tm.getTargetAttribute() == null ||
                                                 targetMask.get(tm.getTarget()).contains(tm.getTargetAttribute().getName()))

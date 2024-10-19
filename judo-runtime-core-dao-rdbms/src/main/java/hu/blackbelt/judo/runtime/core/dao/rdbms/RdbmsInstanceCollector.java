@@ -24,8 +24,6 @@ import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.query.Join;
-import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.Rule;
@@ -39,7 +37,6 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.util.EcoreUtil;
@@ -78,7 +75,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     private final AtomicInteger nextAliasIndex = new AtomicInteger(0);
 
     private final AtomicBoolean selectsCreated = new AtomicBoolean(false);
-    private final EMap<EClass, RdbmsSelect> selectsByEntityType = ECollections.asEMap(new ConcurrentHashMap<>());
+    private final Map<EClass, RdbmsSelect> selectsByEntityType = new ConcurrentHashMap<>();
 
     @Builder
     private RdbmsInstanceCollector(
@@ -141,8 +138,13 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     }
 
 
-    private EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> processResults(final RdbmsSelect select, final List<Map<String, Object>> result, final Map<ID, InstanceGraph<ID>> baseGraphs, final Optional<String> parentIdName, final EList<EReference> referenceChain, final ReferenceType referenceType) {
-        final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> containmentIds = new BasicEMap<>();
+    private Map<List<EReference>, Map<ID, InstanceGraph<ID>>> processResults(final RdbmsSelect select,
+                                                                             final List<Map<String, Object>> result,
+                                                                             final Map<ID, InstanceGraph<ID>> baseGraphs,
+                                                                             final Optional<String> parentIdName,
+                                                                             final List<EReference> referenceChain,
+                                                                             final ReferenceType referenceType) {
+        final Map<List<EReference>, Map<ID, InstanceGraph<ID>>> containmentIds = new HashMap<>();
         containmentIds.put(referenceChain, new HashMap<>());
 
         if (!result.isEmpty() && log.isTraceEnabled()) {
@@ -202,7 +204,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                     continue;
                 }
 
-                final EList<EReference> path = new BasicEList<>();
+                final List<EReference> path = new ArrayList<>();
                 path.addAll(referenceChain);
                 path.addAll(join.getAllReferences());
 
@@ -265,18 +267,18 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             log.debug("SQL:\n{}", sql);
         }
 
-        final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> selectContainments;
+        final Map<List<EReference>, Map<ID, InstanceGraph<ID>>> selectContainments;
         if (ids != null && !ids.isEmpty()) {
             final List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, Collections.singletonMap(IDS, ids.stream().map(id -> coercer.coerce(id, parameterMapper.getIdClassName())).collect(Collectors.toList())));
 
-            selectContainments = processResults(select, result, graphs, Optional.empty(), ECollections.emptyEList(), ReferenceType.CONTAINMENT);
+            selectContainments = processResults(select, result, graphs, Optional.empty(), Collections.emptyList(), ReferenceType.CONTAINMENT);
         } else {
-            selectContainments = ECollections.emptyEMap();
+            selectContainments = Collections.emptyMap();
         }
 
         for (RdbmsSubSelect subSelect : select.getSubSelects()) {
             if (ids != null && !ids.isEmpty()) {
-                collectSubSelectInstances(subSelect, graphs, ECollections.emptyEList(), parameterMapper);
+                collectSubSelectInstances(subSelect, graphs, Collections.emptyList(), parameterMapper);
             }
         };
 
@@ -294,8 +296,8 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         return graphs;
     }
 
-    private void collectSubSelectInstances(final RdbmsSubSelect subSelect, final Map<ID, InstanceGraph<ID>> graphs, final EList<EReference> prevReferenceChain, final RdbmsParameterMapper<ID> parameterMapper) {
-        final EList<EReference> referenceChain = new BasicEList<>();
+    private void collectSubSelectInstances(final RdbmsSubSelect subSelect, final Map<ID, InstanceGraph<ID>> graphs, final List<EReference> prevReferenceChain, final RdbmsParameterMapper<ID> parameterMapper) {
+        final List<EReference> referenceChain = new ArrayList<>();
         referenceChain.addAll(prevReferenceChain);
         referenceChain.add(subSelect.getReference());
 
@@ -312,19 +314,19 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             log.debug("  - parent IDs: {}", graphs.keySet());
         }
 
-        final boolean loopDetected = referenceChain.stream().filter(r -> AsmUtils.equals(r, subSelect.getReference())).count() > 1;
+        final boolean loopDetected = referenceChain.stream().filter(r -> Objects.equals(r, subSelect.getReference())).count() > 1;
         if (loopDetected && log.isTraceEnabled()) {
             log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r != null ? r.getName() : "null").collect(Collectors.toList()));
         }
 
-        final EMap<EList<EReference>, Map<ID, InstanceGraph<ID>>> subSelectContainments;
+        final Map<List<EReference>, Map<ID, InstanceGraph<ID>>> subSelectContainments;
         if (!graphs.keySet().isEmpty()) {
             final List<Map<String, Object>> subQueryResults = jdbcTemplate.queryForList(subSelectSql, Collections.singletonMap(IDS, graphs.keySet().stream().map(id -> coercer.coerce(id, parameterMapper.getIdClassName())).collect(Collectors.toList())));
 
             final String baseAlias = subSelect.getBase().getAlias();
             subSelectContainments = processResults(subSelect.getBase().getSelect(), subQueryResults, graphs, Optional.of("_P" + baseAlias + "_ID"), referenceChain, subSelect.getReferenceType());
         } else {
-            subSelectContainments = ECollections.emptyEMap();
+            subSelectContainments = Collections.emptyMap();
         }
 
         if (subSelect.getReferenceType() == ReferenceType.CONTAINMENT) {
@@ -349,7 +351,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
             for (RdbmsJoin join : containments) {
                 for (RdbmsSubSelect subSubSelect : join.getSubSelects()) {
-                    final EList<EReference> nextReferenceChain = new BasicEList<>();
+                    final List<EReference> nextReferenceChain = new ArrayList<>();
                     nextReferenceChain.addAll(referenceChain);
                     nextReferenceChain.addAll(join.getAllReferences());
                     final Map<ID, InstanceGraph<ID>> joinedGraphs = subSelectContainments.entrySet().stream()
@@ -361,8 +363,8 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         collectSubSelectInstances(
                                 subSubSelect,
                                 joinedGraphs != null ? joinedGraphs : Collections.emptyMap(),
-                                ECollections.asEList(Stream.concat(referenceChain.stream(),
-                                        join.getAllReferences().stream()).collect(Collectors.toList())),
+                                Stream.concat(referenceChain.stream(),
+                                        join.getAllReferences().stream()).collect(Collectors.toList()),
                                 parameterMapper);
                     }
                 }
@@ -371,7 +373,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     }
 
     private void getContainmentsWithReferences(final int level, final EClass entityType, final Source source, final EReference containmentOfEntityType) {
-        final EMap<EClass, Source> sources = new BasicEMap<>();
+        final Map<EClass, Source> sources = new HashMap<>();
 
         if (log.isTraceEnabled()) {
             log.trace(pad(level) + "- entity type: {}", getClassifierFQName(entityType));
@@ -387,7 +389,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 log.trace(pad(level) + "  - containment: {}", containment.getName());
             }
 
-            if (!AsmUtils.equals(entityType, containment.getEContainingClass())) {
+            if (!Objects.equals(entityType, containment.getEContainingClass())) {
                 if (!sources.containsKey(containment.getEContainingClass())) {
                     final RdbmsJoin join = RdbmsJoin.builder()
                             .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
@@ -426,7 +428,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 log.trace(pad(level) + "  - reference to entity type: {}", reference.getName());
             }
 
-            if (!AsmUtils.equals(entityType, reference.getEContainingClass())) {
+            if (!Objects.equals(entityType, reference.getEContainingClass())) {
                 if (!sources.containsKey(reference.getEContainingClass())) {
                     final RdbmsJoin join = RdbmsJoin.builder()
                             .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
@@ -460,7 +462,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                         (!reference.isContainment() ||
                                 source instanceof RdbmsSelect) &&
                         // NOTE - if reference is a containment but source is RdbmsSelect a back reference should be checked before operations
-                        (AsmUtils.equals(reference.getEReferenceType(), entityType) ||
+                        (Objects.equals(reference.getEReferenceType(), entityType) ||
                                 entityType.getEAllSuperTypes().contains(reference.getEReferenceType())))
                 .collect(Collectors.toList());
 
@@ -472,7 +474,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             }
 
             final Source oppositeSource;
-            if (!AsmUtils.equals(opposite.getEReferenceType(), entityType)) {
+            if (!Objects.equals(opposite.getEReferenceType(), entityType)) {
                 if (!sources.containsKey(opposite.getEReferenceType())) {
                     final RdbmsJoin join = RdbmsJoin.builder()
                             .alias(MessageFormat.format(TABLE_ALIAS_FORMAT, nextAliasIndex.getAndIncrement()))
@@ -500,11 +502,11 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         };
     }
 
-    private EList<EReference> getReferenceList(final Source source) {
+    private List<EReference> getReferenceList(final Source source) {
         if (source instanceof RdbmsSelect) {
-            return new BasicEList<>();
+            return new ArrayList<>();
         } else if (source instanceof RdbmsJoin) {
-            final EList<EReference> list = getReferenceList(((RdbmsJoin) source).getPartner());
+            final List<EReference> list = getReferenceList(((RdbmsJoin) source).getPartner());
             list.add(((RdbmsJoin) source).getReference());
             return list;
         } else {
@@ -549,7 +551,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         final boolean circularDependencyFound = getReferenceList(source).contains(reference);
 
         // TODO - add to configuration parameter how times a single containment is translated to JOIN (instead of subqueries)
-        //final boolean circularDependencyFound = getReferenceList(source).stream().filter(r -> AsmUtils.equals(r, reference)).count() > 3;
+        //final boolean circularDependencyFound = getReferenceList(source).stream().filter(r -> Objects.equals(r, reference)).count() > 3;
 
         if (rule.isForeignKey() && !inverse || rule.isInverseForeignKey() && inverse) { // reference is owned by source class, target class has reference to the ID with different name
             final boolean join = !circularDependencyFound && (!inverse && !reference.isMany() || inverse && opposite != null && !opposite.isMany());
@@ -757,8 +759,8 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             return "\nLEFT OUTER JOIN " + tableName + " AS " + alias + " ON (" + partner.getAlias() + "." + partnerColumnName + " = " + alias + "." + columnName + ") ";
         }
 
-        public EList<EReference> getAllReferences() {
-            final EList<EReference> allReferences = new BasicEList<>();
+        public List<EReference> getAllReferences() {
+            final List<EReference> allReferences = new ArrayList<>();
             if (partner instanceof RdbmsJoin) {
                 allReferences.addAll(((RdbmsJoin) partner).getAllReferences());
             }

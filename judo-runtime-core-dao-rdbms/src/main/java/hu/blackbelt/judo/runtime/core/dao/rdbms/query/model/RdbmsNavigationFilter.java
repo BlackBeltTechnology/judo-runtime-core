@@ -30,6 +30,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import lombok.Builder;
+import lombok.NonNull;
 import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.EClass;
 
@@ -49,7 +50,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     private final List<RdbmsField> conditions = new ArrayList<>();
 
     @Builder
-    private RdbmsNavigationFilter(final Filter filter, final RdbmsBuilderContext builderContext) {
+    private RdbmsNavigationFilter(final @NonNull Filter filter, final @NonNull RdbmsBuilderContext builderContext) {
         final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         this.filter = filter;
@@ -78,7 +79,7 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                     final boolean group;
                     if (!subSelect.getNavigationJoins().isEmpty()) {
                         Node n = subSelect.getContainer();
-                        final EList<Node> nodes = new BasicEList<>();
+                        final List<Node> nodes = new ArrayList<>();
                         while (n != null) {
                             nodes.add(n);
                             if (n instanceof SubSelectJoin) {
@@ -114,11 +115,11 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
     @Override
     public String toSql(SqlConverterContext converterContext) {
         final String prefix = converterContext.getPrefix();
-        final EMap<Node, String> prefixes = converterContext.getPrefixes();
+        final Map<Node, String> prefixes = converterContext.getPrefixes();
 
         final String filterPrefix = RdbmsAliasUtil.getFilterPrefix(prefix);
 
-        final EMap<Node, String> newPrefixes = new BasicEMap<>();
+        final Map<Node, String> newPrefixes = new HashMap<>();
         newPrefixes.putAll(prefixes);
         newPrefixes.put(filter, filterPrefix);
 

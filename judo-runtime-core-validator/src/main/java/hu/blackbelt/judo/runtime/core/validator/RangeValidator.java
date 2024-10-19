@@ -26,6 +26,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.Context;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +54,9 @@ public class RangeValidator<ID> implements Validator {
     @NonNull
     Context context;
 
+    @NonNull
+    private AsmModel asmModel;
+
     @Override
     public boolean isApplicable(final EStructuralFeature feature) {
         return feature instanceof EReference && AsmUtils.isEmbedded((EReference) feature) &&
@@ -61,6 +65,7 @@ public class RangeValidator<ID> implements Validator {
 
     @Override
     public Collection<ValidationResult> validateValue(Payload instance, final EStructuralFeature feature, final Object value, final Map<String, Object> validationContext) {
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         final Collection<ValidationResult> validationResults = new ArrayList<>();
 
         if (!AsmUtils.getExtensionAnnotationValue(feature, "range", false).isPresent()) {
@@ -81,8 +86,10 @@ public class RangeValidator<ID> implements Validator {
             log.warn("Range of {} contains no items", AsmUtils.getReferenceFQName((EReference) feature));
         }
 
+        Optional<EReference> entityReference = asmUtils.getMappedReference((EReference) feature);
+
         final ID id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
-        if (id == null || !validIds.contains(id)) {
+        if ((id == null && entityReference.isEmpty()) || (id == null && entityReference.isPresent() && entityReference.get().isContainment()) || (id != null && !validIds.contains(id))) {
             Validator.addValidationError(ImmutableMap.of(
                             identifierProvider.getName(), id,
                             SIGNED_IDENTIFIER_KEY, Optional.ofNullable(((Payload) value).get(SIGNED_IDENTIFIER_KEY)),

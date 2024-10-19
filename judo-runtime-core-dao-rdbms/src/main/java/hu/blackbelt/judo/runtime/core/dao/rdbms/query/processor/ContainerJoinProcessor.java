@@ -35,8 +35,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
@@ -54,7 +52,7 @@ public class ContainerJoinProcessor {
 
         final EClass targetType = join.getType();
         final Node node = join.getPartner();
-        final EList<EReference> references = join.getReferences();
+        final List<EReference> references = join.getReferences();
         final EClass sourceType = node != null ? node.getType() : references.get(0).getEReferenceType();
 
         if (log.isTraceEnabled()) {
@@ -90,7 +88,7 @@ public class ContainerJoinProcessor {
 
         result.add(containerJoin);
 
-        /*
+        /* TODO: JNG-5103 - Somehow add cast to ancestor join list
         // Cast to container type
         EClass castTargetType = join.getType();
         Set<EClass> typeSet = new HashSet<>(castTargetType.getEAllSuperTypes());
@@ -113,12 +111,13 @@ public class ContainerJoinProcessor {
         List<RdbmsJoin> rdbmsTableJoins = new ArrayList<>();
         for (EClass type : types) {
             String alias = join.getAlias();
-            Node partnerTable = null; // ((ContainerJoin) join).getPartner();
+            Node partnerTable = ((ContainerJoin) join).getPartner();
             List<RdbmsFunction> onConditions = new ArrayList<>();
-            RdbmsTableJoin rdbmsPartnerTable = containerJoin; // null;
+            //RdbmsJoin rdbmsPartnerTable = containerJoin; // null;
+            RdbmsTableJoin rdbmsPartnerTable = null;
 
             if (rdbmsTableJoins.isEmpty()) {
-                rdbmsTableJoins.add(containerJoin);
+                //rdbmsTableJoins.add(containerJoin);
 
                 // original, first join
                 List<Filter> joinFilters = join.getFilters();
@@ -159,7 +158,6 @@ public class ContainerJoinProcessor {
         }
         result.addAll(rdbmsTableJoins);
         */
-        
         return result;
     }
 }

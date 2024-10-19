@@ -45,19 +45,17 @@ import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
 public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
-    final DAO<ID> dao;
-    final IdentifierProvider<ID> identifierProvider;
-    final AsmUtils asmUtils;
-    final Coercer coercer;
+    final ServiceContext<ID> serviceContext;
+    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
 
-    public UpdateInstanceCall(Context context, DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel,
-                              PlatformTransactionManager transactionManager, OperationCallInterceptorProvider interceptorProvider,
-                              Coercer coercer) {
-        super(context, transactionManager, interceptorProvider, asmModel);
-        this.dao = dao;
-        this.identifierProvider = identifierProvider;
-        this.asmUtils = new AsmUtils(asmModel.getResourceSet());
-        this.coercer = coercer;
+    public UpdateInstanceCall(Context context, ServiceContext<ID> serviceContext) {
+        super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
+        this.serviceContext = serviceContext;
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+                serviceContext.getAsmUtils(),
+                serviceContext.isCaseInsensitiveLike(),
+                serviceContext.getIdentifierProvider(),
+                serviceContext.getCoercer());
     }
 
     @Override
@@ -70,27 +68,31 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
         CallInterceptorUtil<UpdateInstanceCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
                 UpdateInstanceCallPayload.class, Payload.class, asmModel, operation, interceptorProvider);
 
-        final EClass owner = (EClass) asmUtils.getOwnerOfOperationWithDefaultBehaviour(operation)
+        final EClass owner = (EClass) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
 
         final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
+
+        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+                .build(null, owner, exchange);
 
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
         @SuppressWarnings("unchecked")
         final Payload payload = asPayload((Map<String, Object>) exchange.get(inputParameterName));
-        if (payload.get(identifierProvider.getName()) == null) {
-            payload.put(identifierProvider.getName(), exchange.get(identifierProvider.getName()));
+        if (payload.get(serviceContext.getIdentifierProvider().getName()) == null) {
+            payload.put(serviceContext.getIdentifierProvider().getName(), exchange.get(serviceContext.getIdentifierProvider().getName()));
         } else {
-            payload.put(identifierProvider.getName(),
-                    coercer.coerce(exchange.get(identifierProvider.getName()), identifierProvider.getType()));
+            payload.put(serviceContext.getIdentifierProvider().getName(),
+                    serviceContext.getCoercer().coerce(exchange.get(serviceContext.getIdentifierProvider().getName()),
+                            serviceContext.getIdentifierProvider().getType()));
 
             @SuppressWarnings("unchecked")
-            final ID idInPayload = (ID) payload.get(identifierProvider.getName());
+            final ID idInPayload = (ID) payload.get(serviceContext.getIdentifierProvider().getName());
             @SuppressWarnings("unchecked")
-            final ID idOfSubject = (ID) exchange.get(identifierProvider.getName());
+            final ID idOfSubject = (ID) exchange.get(serviceContext.getIdentifierProvider().getName());
 
             if (!Objects.equals(idInPayload, idOfSubject)) {
                 throw new IllegalArgumentException("Identifier in payload must match operation subject");
@@ -107,9 +109,9 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
         Payload result = null;
         if (callInterceptorUtil.shouldCallOriginal()) {
-            result =  dao.update(
+            result =  serviceContext.getDao().update(
                     inputParameter.getOwner(),
-                    inputParameter.getInput(), null);
+                    inputParameter.getInput(), queryCustomizer);
         }
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }

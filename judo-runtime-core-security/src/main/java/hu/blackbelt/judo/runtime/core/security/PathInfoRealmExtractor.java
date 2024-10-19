@@ -24,15 +24,15 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import lombok.Builder;
 import lombok.NonNull;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EClass;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 import java.util.Optional;
 
 public class PathInfoRealmExtractor implements RealmExtractor {
 
-    private EList<EClass> actors;
+    private List<EClass> actors;
 
 
     @Builder

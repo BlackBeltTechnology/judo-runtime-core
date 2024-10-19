@@ -40,31 +40,32 @@
         </osgi-transaction-import>
 
         <jose4j-version>0.7.2</jose4j-version>
-        <jackson-version>2.15.2</jackson-version>
+        <jackson-version>2.16.1</jackson-version>
         <spring-version>4.3.12.RELEASE</spring-version>
+        <cxf-version>3.6.2</cxf-version>
 
-        <epsilon-runtime-version>1.5.1.20230914_115155_8ab2f00c_develop</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.4.20231107_041032_332be90a_develop</judo-tatami-core-version>
+        <epsilon-runtime-version>1.5.1.20240414_020123_4ed0f7e3_develop</epsilon-runtime-version>
+        <judo-tatami-core-version>1.1.4.20240414_042056_ec303c5b_develop</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.2.20231107_041230_4167c814_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.4.20231107_041242_3043885c_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20231107_042129_0d5eab73_develop</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.5.20231107_042449_3447ad51_develop</judo-meta-expression-asm-version>
-        <judo-meta-measure-version>1.0.2.20231107_041238_36e3764d_develop</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20231107_041254_36f06e98_develop</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.3.20231107_041232_1d98b546_develop</judo-meta-query-version>
-        <judo-dao-api-version>1.0.4.20231116_201621_0bd3620b_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20231123_040623_bd1b65d6_develop</judo-sdk-common-version>
+        <judo-meta-rdbms-version>1.0.2.20240612_080018_05e004e9_develop</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.4.20240414_042403_a93471de_develop</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5.20240414_043040_426cab39_develop</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.5.20240414_043457_72da5d77_develop</judo-meta-expression-asm-version>
+        <judo-meta-measure-version>1.0.2.20240414_042420_a2e6a9e7_develop</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2.20240414_042408_3af8577f_develop</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.3.20240414_042413_fa767e31_develop</judo-meta-query-version>
+        <judo-meta-keycloak-version>1.0.1.20240414_042613_6c6b8c44_develop</judo-meta-keycloak-version>
+
+        <judo-dao-api-version>1.0.4.20240411_140837_58d4ecbd_develop</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4.20240611_125218_e11f47d1_develop</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.3.20230826_230134_1ce94d88_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.3.20231117_040612_4e414fae_develop</judo-operation-utils-version>
+        <judo-operation-utils-version>1.1.3.20240414_042846_45b9c1dd_develop</judo-operation-utils-version>
 
-        <structured-map-proxy-version>2.0.0.20231122_182717_c1fe065e_develop</structured-map-proxy-version>
+        <judo-tatami-base-version>1.1.6.20240924_142212_cb36a80c_develop</judo-tatami-base-version>
 
-        <judo-tatami-base-version>1.1.6.20231123_040715_e2372ad2_develop</judo-tatami-base-version>
-
-        <mapper-version>1.0.4.20230826_230852_5723dcb6_develop</mapper-version>
-        <osgi-filestore-version>1.3.1.20230914_123910_22c72dd5_develop</osgi-filestore-version>
+        <mapper-version>1.0.4.20240410_085208_9d5e8f5c_develop</mapper-version>
+        <osgi-filestore-version>1.3.1.20240410_091340_0b9c53b4_develop</osgi-filestore-version>
 
         <!-- Code Quality-->
         <sonar-maven-plugin-version>3.9.1.2184</sonar-maven-plugin-version>
@@ -108,14 +109,6 @@
             <url>https://www.eclipse.org/org/documents/epl-2.0/EPL-2.0.txt</url>
         </license>
     </licenses>
-	<!--
-    <repositories>
-        <repository>
-            <id>ecentral</id>
-            <url>https://raw.githubusercontent.com/jmini/ecentral/HEAD/repo</url>
-        </repository>
-    </repositories>
-	-->
     <build>
         <pluginManagement>
             <plugins>
@@ -529,14 +522,19 @@
                 <module>judo-runtime-core-accessmanager-api</module>
                 <module>judo-runtime-core-accessmanager</module>
                 <module>judo-runtime-core-security</module>
-                <module>judo-runtime-core-bootstrap</module>
-                <module>judo-runtime-core-bootstrap-hsqldb</module>
-                <module>judo-runtime-core-bootstrap-postgresql</module>
+                <module>judo-runtime-core-security-keycloak</module>
+                <module>judo-runtime-core-security-keycloak-cxf</module>
+                <module>judo-runtime-core-jackson</module>
+                <module>judo-runtime-core-jaxrs</module>
+                <module>judo-runtime-core-jaxrs-cxf</module>
+                <module>judo-runtime-core-export-jxls</module>
+                <module>judo-runtime-core-guice</module>
+                <module>judo-runtime-core-guice-hsqldb</module>
+                <module>judo-runtime-core-guice-postgresql</module>
                 <module>judo-runtime-core-dependencies</module>
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>
                 <module>judo-runtime-core-spring-postgresql</module>
-
             </modules>
         </profile>
 
@@ -755,9 +753,9 @@
                                 <phase>process-sources</phase>
                                 <configuration>
                                     <licenseName>epl_v2</licenseName>
-									<excludes>
-										<exclude>**/*.json</exclude>
-									</excludes>
+                                    <excludes>
+                                        <exclude>**/*.json</exclude>
+                                    </excludes>
                                 </configuration>
                             </execution>
                             <execution>

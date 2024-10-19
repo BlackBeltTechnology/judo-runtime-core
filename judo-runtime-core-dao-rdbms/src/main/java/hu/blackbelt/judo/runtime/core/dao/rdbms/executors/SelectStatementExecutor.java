@@ -20,8 +20,6 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
  * #L%
  */
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
@@ -35,6 +33,8 @@ import hu.blackbelt.judo.meta.expression.TypeName;
 import hu.blackbelt.judo.meta.expression.builder.jql.*;
 import hu.blackbelt.judo.meta.expression.constant.*;
 import hu.blackbelt.judo.meta.expression.logical.*;
+import hu.blackbelt.judo.meta.expression.numeric.DecimalOppositeExpression;
+import hu.blackbelt.judo.meta.expression.numeric.IntegerOppositeExpression;
 import hu.blackbelt.judo.meta.expression.object.ObjectVariableReference;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.meta.jql.jqldsl.JqlExpression;
@@ -50,7 +50,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsCount;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
@@ -61,7 +60,7 @@ import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.*;
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.*;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -142,6 +141,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         translator.getTranslators().put(TimestampConstant.class, TimestampConstantTranslator.builder().build());
         translator.getTranslators().put(TimeComparison.class, TimeComparisonTranslator.builder().translator(translator).build());
         translator.getTranslators().put(TimeConstant.class, TimeConstantTranslator.builder().build());
+        translator.getTranslators().put(UndefinedComparison.class, UndefinedComparisonTranslator.builder().translator(translator).build());
+        translator.getTranslators().put(IntegerOppositeExpression.class, IntegerOppositeTranslator.builder().translator(translator).build());
+        translator.getTranslators().put(DecimalOppositeExpression.class, DecimalOppositeTranslator.builder().translator(translator).build());
     }
 
     public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
@@ -224,13 +226,22 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer          query customizer
      * @return result set (list of records) that can has embedded result sets
      */
-    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate,
+                                             final EClass mappedTransferObjectType,
+                                             Collection<ID> ids,
+                                             final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
-            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + AsmUtils.getClassifierFQName(mappedTransferObjectType)));
+            final Select _select = queryFactory.getQuery(mappedTransferObjectType)
+                    .orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " +
+                            AsmUtils.getClassifierFQName(mappedTransferObjectType)));
 
             final Select select;
-            if (queryCustomizer != null && (queryCustomizer.getFilter() != null || queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null)) {
+            if (queryCustomizer != null &&
+                    (queryCustomizer.getFilter() != null ||
+                        queryCustomizer.getOrderByList() != null &&
+                        !queryCustomizer.getOrderByList().isEmpty() ||
+                        queryCustomizer.getSeek() != null)) {
                 select = clone(_select);
             } else {
                 select = _select;
@@ -241,16 +252,28 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     .build();
 
             applyQueryCustomizer(query, queryCustomizer, false);
-            if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids != null) {
+            if (queryCustomizer != null &&
+                    queryCustomizer.getInstanceIds() != null &&
+                    ids != null) {
                 ids.addAll(queryCustomizer.getInstanceIds());
-            } else if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids == null) {
+            } else if (queryCustomizer != null &&
+                    queryCustomizer.getInstanceIds() != null &&
+                    ids == null) {
                 ids = queryCustomizer.getInstanceIds();
             }
 
-            final EMap<Target, Map<ID, Payload>> result = runQuery(jdbcTemplate, query, ids, null, ECollections.emptyEList(), queryCustomizer != null ? queryCustomizer.getSeek() : null, queryCustomizer != null && queryCustomizer.isWithoutFeatures(), queryCustomizer != null ? queryCustomizer.getMask() : null, queryCustomizer != null ? queryCustomizer.getParameters() : null, true);
+            final Map<Target, Map<ID, Payload>> result =
+                    runQuery(jdbcTemplate, query, ids, null, Collections.emptyList(),
+                            queryCustomizer != null ? queryCustomizer.getSeek() : null,
+                            queryCustomizer != null && queryCustomizer.isWithoutFeatures(),
+                            queryCustomizer != null ? queryCustomizer.getMask() : null,
+                            queryCustomizer != null ? queryCustomizer.getParameters() : null, true);
 
             final Collection<Payload> ret = result.get(select.getMainTarget()).values();
-            if (queryCustomizer != null && (queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null)) {
+            if (queryCustomizer != null &&
+                    (queryCustomizer.getOrderByList() != null &&
+                            !queryCustomizer.getOrderByList().isEmpty() ||
+                            queryCustomizer.getSeek() != null)) {
                 final List<Payload> list = new ArrayList<>(ret);
                 if (queryCustomizer.getSeek() != null && queryCustomizer.getSeek().isReverse()) {
                     Collections.reverse(list);
@@ -273,10 +296,15 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer          query customizer
      * @return number of records that can has embedded result sets
      */
-    public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+    public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate,
+                            final EClass mappedTransferObjectType,
+                            Collection<ID> ids,
+                            final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_COUNT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
-            final Select _select = queryFactory.getQuery(mappedTransferObjectType).orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " + AsmUtils.getClassifierFQName(mappedTransferObjectType)));
+            final Select _select = queryFactory.getQuery(mappedTransferObjectType)
+                    .orElseThrow(() -> new IllegalArgumentException("Could not determinate query for mapped transfer object type: " +
+                            AsmUtils.getClassifierFQName(mappedTransferObjectType)));
 
             final Select select;
             if (queryCustomizer != null && queryCustomizer.getFilter() != null) {
@@ -290,24 +318,32 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     .build();
 
             applyQueryCustomizer(query, queryCustomizer, true);
-            if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids != null) {
+            if (queryCustomizer != null &&
+                    queryCustomizer.getInstanceIds() != null &&
+                    ids != null) {
                 ids.addAll(queryCustomizer.getInstanceIds());
             } else if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && ids == null) {
                 ids = queryCustomizer.getInstanceIds();
             }
-            return countQuery(jdbcTemplate, query, ids, ECollections.emptyEList(), queryCustomizer != null ? queryCustomizer.getParameters() : null);
+            return countQuery(jdbcTemplate, query, ids, Collections.emptyList(),
+                    queryCustomizer != null ? queryCustomizer.getParameters() : null);
 
         } finally {
             rdbmsBuilder.getConstantFields().remove();
         }
     }
 
-    public Payload executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EAttribute attribute, final Map<String, Object> parameters) {
+    public Payload executeSelect(final NamedParameterJdbcTemplate jdbcTemplate,
+                                 final EAttribute attribute,
+                                 final Map<String, Object> parameters) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
-            final SubSelect subSelect = queryFactory.getDataQuery(attribute).orElseThrow(() -> new IllegalStateException("Query for static data not prepared yet"));
+            final SubSelect subSelect = queryFactory.getDataQuery(attribute)
+                    .orElseThrow(() -> new IllegalStateException("Query for static data not prepared yet"));
 
-            final EMap<Target, Map<ID, Payload>> results = runQuery(jdbcTemplate, subSelect, null, null, ECollections.emptyEList(), null, false, Collections.singletonMap(attribute.getName(), true), parameters, true);
+            final Map<Target, Map<ID, Payload>> results =
+                    runQuery(jdbcTemplate, subSelect, null, null, Collections.emptyList(), null,
+                            false, Collections.singletonMap(attribute.getName(), true), parameters, true);
 
             final Collection<Payload> resultSet = results.get(subSelect.getSelect().getMainTarget()).values();
             checkArgument(resultSet != null && resultSet.size() == 1, "Invalid result set");
@@ -328,19 +364,26 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer query customizer
      * @return result set (list of records) that can has embedded result sets
      */
-    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+    public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate,
+                                             final EReference reference,
+                                             final Collection<ID> ids,
+                                             final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final EClass referenceHolder = reference.getEContainingClass();
 
             final SubSelect _query;
             if (!AsmUtils.isEntityType(referenceHolder) && !asmUtils.isMappedTransferObjectType(referenceHolder)) {
-                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + AsmUtils.getReferenceFQName(reference)));
+                _query = queryFactory.getNavigation(reference).orElseThrow(
+                        () -> new IllegalArgumentException("Navigation not found for reference: " +
+                                AsmUtils.getReferenceFQName(reference)));
             } else {
-                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
+                final Select base = queryFactory.getQuery(reference.getEContainingClass())
+                        .orElseThrow(() -> new IllegalArgumentException("Could not get query for: " +
+                                AsmUtils.getReferenceFQName(reference)));
 
                 final Optional<SubSelect> subSelect = base.getSubSelects().stream()
-                        .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
+                        .filter(s -> s.getTransferRelation() != null && Objects.equals(s.getTransferRelation(), reference))
                         .findAny();
 
                 checkArgument(subSelect.isPresent(), "Subselect must be prepared by query factory");
@@ -348,7 +391,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
 
             final SubSelect query;
-            if (queryCustomizer != null && (queryCustomizer.getFilter() != null || queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null)) {
+            if (queryCustomizer != null &&
+                    (queryCustomizer.getFilter() != null ||
+                        queryCustomizer.getOrderByList() != null &&
+                        !queryCustomizer.getOrderByList().isEmpty() ||
+                        queryCustomizer.getSeek() != null)) {
                 if (_query.eContainer() != null) {
                     Node _container = (Node) clone(_query.eContainer());
                     query = _container.getSubSelects().stream()
@@ -368,7 +415,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             Collection<ID> instanceIds;
             final Collection<ID> parentIds;
-            final boolean useIdsAsParents = reference != null && !(query.getNavigationJoins().isEmpty() && !queryFactory.isStaticReference(reference));
+            final boolean useIdsAsParents = reference != null &&
+                    !(query.getNavigationJoins().isEmpty() &&
+                    !queryFactory.isStaticReference(reference));
+
             if (useIdsAsParents) {
                 instanceIds = null;
                 parentIds = ids;
@@ -382,14 +432,24 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 instanceIds = queryCustomizer.getInstanceIds();
             }
 
-            final EMap<Target, Map<ID, Payload>> subQueryResults = runQuery(jdbcTemplate, query, instanceIds, parentIds, reference != null ? ECollections.singletonEList(reference) : ECollections.emptyEList(), queryCustomizer != null ? queryCustomizer.getSeek() : null, queryCustomizer != null ? queryCustomizer.isWithoutFeatures() : false, queryCustomizer != null ? queryCustomizer.getMask() : null, queryCustomizer != null ? queryCustomizer.getParameters() : null, true);
+            final Map<Target, Map<ID, Payload>> subQueryResults =
+                    runQuery(jdbcTemplate, query, instanceIds, parentIds,
+                            reference != null ? Collections.singletonList(reference) : Collections.emptyList(),
+                            queryCustomizer != null ? queryCustomizer.getSeek() : null,
+                            queryCustomizer != null ? queryCustomizer.isWithoutFeatures() : false,
+                            queryCustomizer != null ? queryCustomizer.getMask() : null,
+                            queryCustomizer != null ? queryCustomizer.getParameters() : null, true);
 
             final Target subQueryTarget = query.getSelect().getMainTarget();
 
-            final Collection<Payload> results = queryFactory.isOrdered(reference) || queryCustomizer != null && (queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty() || queryCustomizer.getSeek() != null) ? new ArrayList<>() : new HashSet<>();
+            final Collection<Payload> results = queryFactory.isOrdered(reference) ||
+                    queryCustomizer != null &&
+                            (queryCustomizer.getOrderByList() != null &&
+                                    !queryCustomizer.getOrderByList().isEmpty() ||
+                                    queryCustomizer.getSeek() != null) ? new ArrayList<>() : new HashSet<>();
 
             final String subParentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
-            subQueryResults.get(subQueryTarget).values().forEach(subQueryRecord -> {
+            for (Payload subQueryRecord : subQueryResults.get(subQueryTarget).values()) {
                 if (subParentKey != null) {
                     if (log.isTraceEnabled() && !subQueryRecord.containsKey(subParentKey)) { // container record of subquery record found
                         log.trace("Unknown parent ID ({})", subParentKey);
@@ -397,9 +457,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     subQueryRecord.remove(subParentKey); // remove parent key from subquery record because it will be added as nested list
                 }
                 results.add(subQueryRecord);
-            });
+            };
 
-            if (queryCustomizer != null && queryCustomizer.getSeek() != null && queryCustomizer.getSeek().isReverse()) {
+            if (queryCustomizer != null &&
+                    queryCustomizer.getSeek() != null &&
+                    queryCustomizer.getSeek().isReverse()) {
                 if (results instanceof List) {
                     Collections.reverse((List) results);
                 }
@@ -419,19 +481,27 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param queryCustomizer query customizer
      * @return number of records that can has embedded result sets
      */
-    public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate, final EReference reference, final Collection<ID> ids, final DAO.QueryCustomizer<ID> queryCustomizer) {
+    public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate,
+                            final EReference reference,
+                            final Collection<ID> ids,
+                            final DAO.QueryCustomizer<ID> queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_COUNT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final EClass referenceHolder = reference.getEContainingClass();
 
             final SubSelect _query;
             if (!AsmUtils.isEntityType(referenceHolder) && !asmUtils.isMappedTransferObjectType(referenceHolder)) {
-                _query = queryFactory.getNavigation(reference).orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " + AsmUtils.getReferenceFQName(reference)));
+                _query = queryFactory.getNavigation(reference)
+                        .orElseThrow(() -> new IllegalArgumentException("Navigation not found for reference: " +
+                                AsmUtils.getReferenceFQName(reference)));
             } else {
-                final Select base = queryFactory.getQuery(reference.getEContainingClass()).orElseThrow(() -> new IllegalArgumentException("Could not get query for: " + AsmUtils.getReferenceFQName(reference)));
+                final Select base = queryFactory.getQuery(reference.getEContainingClass())
+                        .orElseThrow(() -> new IllegalArgumentException("Could not get query for: " +
+                                AsmUtils.getReferenceFQName(reference)));
 
                 final Optional<SubSelect> subSelect = base.getSubSelects().stream()
-                        .filter(s -> s.getTransferRelation() != null && AsmUtils.equals(s.getTransferRelation(), reference))
+                        .filter(s -> s.getTransferRelation() != null &&
+                                Objects.equals(s.getTransferRelation(), reference))
                         .findAny();
 
                 checkArgument(subSelect.isPresent(), "Subselect must be prepared by query factory");
@@ -459,7 +529,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             Collection<ID> instanceIds;
             final Collection<ID> parentIds;
-            final boolean useIdsAsParents = reference != null && !(query.getNavigationJoins().isEmpty() && !queryFactory.isStaticReference(reference));
+            final boolean useIdsAsParents = reference != null &&
+                    !(query.getNavigationJoins().isEmpty() &&
+                        !queryFactory.isStaticReference(reference));
             if (useIdsAsParents) {
                 instanceIds = null;
                 parentIds = ids;
@@ -467,17 +539,24 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 instanceIds = ids;
                 parentIds = Collections.emptySet();
             }
-            if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && instanceIds != null) {
+            if (queryCustomizer != null &&
+                    queryCustomizer.getInstanceIds() != null &&
+                    instanceIds != null) {
                 instanceIds.addAll(queryCustomizer.getInstanceIds());
-            } else if (queryCustomizer != null && queryCustomizer.getInstanceIds() != null && instanceIds == null) {
+            } else if (queryCustomizer != null &&
+                    queryCustomizer.getInstanceIds() != null &&
+                    instanceIds == null) {
                 instanceIds = queryCustomizer.getInstanceIds();
             }
-            return countQuery(jdbcTemplate, query, instanceIds, parentIds, queryCustomizer != null ? queryCustomizer.getParameters() : null);
+            return countQuery(jdbcTemplate, query, instanceIds, parentIds,
+                    queryCustomizer != null ? queryCustomizer.getParameters() : null);
         } finally {
             rdbmsBuilder.getConstantFields().remove();
         }
     }
-    private void applyQueryCustomizer(final SubSelect query, final DAO.QueryCustomizer<ID> queryCustomizer, boolean applyFilterOnly) {
+    private void applyQueryCustomizer(final SubSelect query,
+                                      final DAO.QueryCustomizer<ID> queryCustomizer,
+                                      boolean applyFilterOnly) {
         final EClass mainTarget = query.getSelect().getMainTarget().getType();
 
         if (queryCustomizer != null && queryCustomizer.getFilter() != null) {
@@ -485,17 +564,30 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             query.getSelect().getFilters().add(filter);
         }
         if (!applyFilterOnly) {
-            final boolean reverse = queryCustomizer != null && queryCustomizer.getSeek() != null ? queryCustomizer.getSeek().isReverse() : false;
-            if (queryCustomizer != null && queryCustomizer.getOrderByList() != null && !queryCustomizer.getOrderByList().isEmpty()) {
-                final EMap<EAttribute, Feature> mainFeatures = ECollections.asEMap(query.getSelect().getFeatures().stream()
-                        .filter(f -> (f instanceof Attribute || f instanceof Function || f instanceof SubSelectFeature) && f.getTargetMappings().stream().anyMatch(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())))
-                        .collect(Collectors.toMap(f -> f.getTargetMappings().stream().filter(tm -> AsmUtils.equals(tm.getTarget(), query.getSelect().getMainTarget())).findAny().get().getTargetAttribute(), f -> f)));
+            final boolean reverse = queryCustomizer != null &&
+                    queryCustomizer.getSeek() != null ? queryCustomizer.getSeek().isReverse() : false;
+            if (queryCustomizer != null &&
+                    queryCustomizer.getOrderByList() != null &&
+                    !queryCustomizer.getOrderByList().isEmpty()) {
+
+                final Map<EAttribute, Feature> mainFeatures = query.getSelect().getFeatures().stream()
+                        .filter(f -> (f instanceof Attribute ||
+                                f instanceof Function ||
+                                f instanceof SubSelectFeature) &&
+                                f.getTargetMappings().stream()
+                                        .anyMatch(tm -> Objects.equals(tm.getTarget(), query.getSelect().getMainTarget())))
+                        .collect(Collectors.toMap(f -> f.getTargetMappings().stream()
+                                .filter(tm -> Objects.equals(tm.getTarget(), query.getSelect().getMainTarget()))
+                                .findAny().get().getTargetAttribute(), f -> f));
 
                 query.getNavigationJoins().forEach(j -> j.getOrderBys().clear());
                 query.getSelect().getOrderBys().clear();
                 query.getOrderBys().clear();
                 query.getSelect().getOrderBys().addAll(queryCustomizer.getOrderByList().stream()
-                        .map(o -> newOrderByBuilder().withFeature(mainFeatures.get(o.getAttribute())).withDescending(reverse ? !o.isDescending() : o.isDescending()).build())
+                        .map(o -> newOrderByBuilder()
+                                .withFeature(mainFeatures.get(o.getAttribute()))
+                                .withDescending(reverse ? !o.isDescending() : o.isDescending())
+                                .build())
                         .collect(Collectors.toList()));
             }
             if (queryCustomizer != null && queryCustomizer.getSeek() != null) {
@@ -507,13 +599,14 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
     }
 
-    private synchronized <T extends EObject> T clone(final T original) {
+    private <T extends EObject> T clone(final T original) {
         final EcoreUtil.Copier copier = new EcoreUtil.Copier(true, true);
-        @SuppressWarnings("unchecked")
-        final T result = (T) copier.copy(original);
-        copier.copyReferences();
 
-        return result;
+        synchronized (original.eResource()) {
+            final T result = (T) copier.copy(original);
+            copier.copyReferences();
+            return result;
+        }
     }
 
     private Filter createFilter(final EClass type, final Node node, final String filterExpressionString) {
@@ -521,7 +614,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         final ExpressionModelResourceSupport expressionModelResourceSupport = ExpressionModelResourceSupport.expressionModelResourceSupportBuilder()
                 .uri(URI.createURI("expression:filter-" + UUID.randomUUID()))
                 .build();
-        final JqlExpressionBuilder<EClassifier, EDataType, EEnum, EClass, EAttribute, EReference, EClass, EAttribute, EReference, EClassifier, Measure, Unit> jqlExpressionBuilder = new JqlExpressionBuilder<>(queryFactory.getModelAdapter(), expressionModelResourceSupport.getResource());
+        final JqlExpressionBuilder<EClassifier, EDataType, EEnum, EClass, EAttribute, EReference, EClass, EAttribute, EReference, EClassifier, Measure, Unit> jqlExpressionBuilder =
+                new JqlExpressionBuilder<>(queryFactory.getModelAdapter(), expressionModelResourceSupport.getResource());
         final TypeName typeName = jqlExpressionBuilder
                 .buildTypeName(type)
                 .orElseThrow(() -> new IllegalStateException("Invalid type name"));
@@ -581,53 +675,27 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @return result set
      */
     @SuppressWarnings("unchecked")
-    private EMap<Target, Map<ID, Payload>> runQuery(
+    private Map<Target, Map<ID, Payload>> runQuery(
             final NamedParameterJdbcTemplate jdbcTemplate,
             final SubSelect query,
             final Collection<ID> instanceIds,
             final Collection<ID> parentIds,
-            final EList<EReference> referenceChain,
+            final List<EReference> referenceChain,
             final DAO.Seek seek,
             final boolean withoutFeatures,
             final Map<String, Object> mask,
             final Map<String, Object> queryParameters,
             final boolean skipParents) {
-        // map of sources, key is ID column alias, value is the source object (including SELECT and all JOINs)
-        final Map<String, Node> sources = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getIdColumnAlias, j -> j)));
-        sources.put(RdbmsAliasUtil.getIdColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> types = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getTypeColumnAlias, j -> j)));
-        types.put(RdbmsAliasUtil.getTypeColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> versions = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getVersionColumnAlias, j -> j)));
-        versions.put(RdbmsAliasUtil.getVersionColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> createUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateUsernameColumnAlias, j -> j)));
-        createUsernames.put(RdbmsAliasUtil.getCreateUsernameColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> createUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateUserIdColumnAlias, j -> j)));
-        createUserIds.put(RdbmsAliasUtil.getCreateUserIdColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> createTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getCreateTimestampColumnAlias, j -> j)));
-        createTimestamps.put(RdbmsAliasUtil.getCreateTimestampColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> updateUsernames = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateUsernameColumnAlias, j -> j)));
-        updateUsernames.put(RdbmsAliasUtil.getUpdateUsernameColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> updateUserIds = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateUserIdColumnAlias, j -> j)));
-        updateUserIds.put(RdbmsAliasUtil.getUpdateUserIdColumnAlias(query.getSelect()), query.getSelect());
-
-        final Map<String, Node> updateTimestamps = new ConcurrentHashMap<>(query.getSelect().getAllJoins().stream().collect(Collectors.toMap(RdbmsAliasUtil::getUpdateTimestampColumnAlias, j -> j)));
-        updateTimestamps.put(RdbmsAliasUtil.getUpdateTimestampColumnAlias(query.getSelect()), query.getSelect());
 
         // the map that will store results
-        final EMap<Target, Map<ID, Payload>> results = ECollections.asEMap(
-                query.getSelect().getTargets().stream()
-                        .collect(Collectors.toMap(target -> target, target -> new LinkedHashMap<>())));
+        final Map<Target, Map<ID, Payload>> results = query.getSelect().getTargets().stream()
+                        .collect(Collectors.toMap(target -> target, target -> new LinkedHashMap<>()));
 
         // get JDBC result set and process the records
         if (log.isDebugEnabled()) {
-            log.debug("Running query: {}", referenceChain.stream().map(r -> r.getName()).collect(Collectors.joining(".")));
+            log.debug("Running query: {}", referenceChain.stream()
+                    .map(r -> r.getName())
+                    .collect(Collectors.joining(".")));
         }
         if (log.isTraceEnabled()) {
             log.trace(" - logical query:\n{}", query.getSelect());
@@ -636,6 +704,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             log.debug("Instance IDs: {}", instanceIds);
             log.debug("Parent IDs: {}", parentIds);
         }
+
+        final SelectStatementExecutorQueryMetaCache metaCache = new SelectStatementExecutorQueryMetaCache(query, mask, referenceChain);
 
         final RdbmsResultSet<ID> resultSetHandler = RdbmsResultSet.<ID>builder()
                 .query(query)
@@ -653,33 +723,45 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
         final List<Chunk<ID>> chunks = new ArrayList<>();
         if (parentIds != null) {
-            final List<List<ID>> _parentIds = parentIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(parentIds), chunkSize);
-            _parentIds.forEach(p -> {
+            final List<List<ID>> _parentIds = parentIds.isEmpty() ?
+                    Collections.singletonList(Collections.emptyList()) :
+                    Lists.partition(new ArrayList<>(parentIds), chunkSize);
+            for (List<ID> p : _parentIds) {
                 if (instanceIds != null) {
-                    final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
-                    _instanceIds.forEach(i ->
-                            chunks.add(Chunk.<ID>builder().parentIds(p).instanceIds(i).build()));
+                    final List<List<ID>> _instanceIds = instanceIds.isEmpty() ?
+                            Collections.singletonList(Collections.emptyList()) :
+                            Lists.partition(new ArrayList<>(instanceIds), chunkSize);
+                    chunks.addAll(_instanceIds.stream()
+                            .map(i -> Chunk.<ID>builder().parentIds(p).instanceIds(i).build())
+                            .toList());
                 } else {
                     chunks.add(Chunk.<ID>builder().parentIds(p).build());
                 }
-            });
+            }
         } else if (instanceIds != null) {
-            final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
-            _instanceIds.forEach(i ->
-                    chunks.add(Chunk.<ID>builder().instanceIds(i).build()));
+            final List<List<ID>> _instanceIds = instanceIds.isEmpty() ?
+                    Collections.singletonList(Collections.emptyList()) :
+                    Lists.partition(new ArrayList<>(instanceIds), chunkSize);
+            chunks.addAll(_instanceIds.stream().map(i -> Chunk.<ID>builder().instanceIds(i).build()).toList());
         } else {
             chunks.add(Chunk.<ID>builder().build());
         }
-        chunks.forEach(chunk -> {
+        for (SelectStatementExecutor.Chunk<ID> chunk : chunks) {
             if (log.isDebugEnabled()) {
                 log.debug("Running chunk: {}", chunk);
             }
             final MapSqlParameterSource sqlParameters = new MapSqlParameterSource();
             if (chunk.parentIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()),
+                        chunk.parentIds.stream()
+                                .map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName()))
+                                .collect(Collectors.toList()));
             }
             if (chunk.instanceIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()), chunk.instanceIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()),
+                        chunk.instanceIds.stream()
+                                .map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName()))
+                                .collect(Collectors.toList()));
             }
 
             // key used to identify parent instance in subselects
@@ -689,7 +771,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     SqlConverterContext.builder()
                             .coercer(getCoercer())
                             .sqlParameters(sqlParameters)
-                            .prefixes(ECollections.emptyEMap())
+                            .prefixes(Collections.emptyMap())
                             .build()
             );
             if (log.isDebugEnabled()) {
@@ -703,63 +785,47 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
 
             try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
-                resultSet.forEach(record -> {
+                for (Map<String, Object> record : resultSet) {
+
                     if (log.isDebugEnabled()) {
                         log.debug("Processing record:\n{}", record);
                     }
 
                     // map containing records by target (extracted from current JDBC record)
-                    final EMap<Target, Payload> recordsByTarget = ECollections.asEMap(new HashMap<>());
+                    final Map<Target, Payload> recordsByTarget = new HashMap<>();
                     // IDs of current JDBC record by targets
-                    final EMap<Target, ID> idsByTarget = ECollections.asEMap(new HashMap<>());
+                    final Map<Target, ID> idsByTarget = new HashMap<>();
                     // Unset (NULL) target references in database
-                    final EList<Target> nullTargets = ECollections.newBasicEList();
+                    final List<Target> nullTargets = new ArrayList<>();
 
-                    query.getSelect().getTargets()
-                            .forEach(target -> recordsByTarget.put(target, Payload.asPayload(new ConcurrentHashMap<>())));
+                    for (Target target : query.getSelect().getTargets()) {
+                        recordsByTarget.put(target, Payload.asPayload(new ConcurrentHashMap<>()));
+                    }
                     if (chunk.parentIds != null && parentKey != null) {
                         recordsByTarget.get(query.getSelect().getMainTarget()).put(parentKey, new HashSet<>());
                     }
 
-                    // process fields of record
-                    record.entrySet().forEach(field -> {
+
+                    for (Map.Entry<String, Object> field : record.entrySet()) {
                         if (log.isTraceEnabled()) {
                             log.trace("  - key: {}", field.getKey());
-                            log.trace("  - value: {} ({})", field.getValue(), field.getValue() != null ? field.getValue().getClass().getName() : "-");
+                            log.trace("  - value: {} ({})", field.getValue(),
+                                    field.getValue() != null ? field.getValue().getClass().getName() : "-");
                         }
-
-                        final Optional<Map.Entry<String, Node>> idSource = sources.entrySet().stream().filter(s -> s.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> typeSource = types.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> versionSource = versions.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> createUsernameSource = createUsernames.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> createUserIdSource = createUserIds.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> createTimestampSource = createTimestamps.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> updateUsernameSource = updateUsernames.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> updateUserIdSource = updateUserIds.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-                        final Optional<Map.Entry<String, Node>> updateTimestampSource = updateTimestamps.entrySet().stream().filter(t -> t.getKey().equalsIgnoreCase(field.getKey())).findAny();
-
-                        final Map<String, Optional<Map.Entry<String, Node>>> metaSources = ImmutableMap.<String, Optional<Map.Entry<String, Node>>>builder()
-                                .put(ENTITY_TYPE_MAP_KEY, typeSource)
-                                .put(ENTITY_VERSION_MAP_KEY, versionSource)
-                                .put(ENTITY_CREATE_USERNAME_MAP_KEY, createUsernameSource)
-                                .put(ENTITY_CREATE_USER_ID_MAP_KEY, createUserIdSource)
-                                .put(ENTITY_CREATE_TIMESTAMP_MAP_KEY, createTimestampSource)
-                                .put(ENTITY_UPDATE_USERNAME_MAP_KEY, updateUsernameSource)
-                                .put(ENTITY_UPDATE_USER_ID_MAP_KEY, updateUserIdSource)
-                                .put(ENTITY_UPDATE_TIMESTAMP_MAP_KEY, updateTimestampSource)
-                                .build();
+                        final Optional<Node> idSource = metaCache.getSources(field.getKey());
+                        final Optional<Node> metaField = metaCache.getMetaField(field.getKey());
+                        final Optional<String> metaFieldName = metaCache.getMetaFieldName(field.getKey());
 
                         if (idSource.isPresent()) {
                             if (log.isTraceEnabled()) {
-                                log.trace("    - id source: {}", idSource.get().getValue().getAlias());
+                                log.trace("    - id source: {}", idSource.get().getAlias());
                             }
 
-                            final EList<Target> foundTargets = ECollections.asEList(query.getSelect().getTargets().stream()
-                                    .filter(t -> Objects.equals(t.getNode(), idSource.get().getValue()))
-                                    .collect(Collectors.toList()));
+                            final List<Target> foundTargets = metaCache.getIdFieldTargets(field.getKey())
+                                    .orElseThrow();
 
                             if (!foundTargets.isEmpty()) {
-                                foundTargets.forEach(target -> {
+                                for (Target target : foundTargets) {
                                     if (log.isTraceEnabled()) {
                                         log.trace("    - id target: {}", target);
                                     }
@@ -770,47 +836,46 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     if (id == null) {
                                         nullTargets.add(target);
                                     }
-                                });
+                                }
                             } else {
                                 if (log.isTraceEnabled()) {
-                                    log.trace("    - no target of ID, source alias: {}, column: {}", idSource.get().getValue().getAlias(), idSource.get().getKey());
+                                    log.trace("    - no target of ID, source alias: {}, column: {}",
+                                            idSource.get().getAlias(),
+                                            field.getKey());
                                 }
                             }
-                        } else if (metaSources.entrySet().stream().anyMatch(e -> e.getValue().isPresent())) {
-                            metaSources.entrySet().stream()
-                                    .filter(e -> e.getValue().isPresent())
-                                    .forEach(e -> {
-                                        if (log.isTraceEnabled()) {
-                                            log.trace("    - meta source: {}", e.getValue().get().getValue().getAlias());
-                                        }
+                        } else if (metaField.isPresent()) {
+                            if (log.isTraceEnabled()) {
+                                log.trace("    - meta source: {}", metaField.get().getAlias());
+                            }
 
-                                        final EList<Target> foundTargets = ECollections.asEList(query.getSelect().getTargets().stream()
-                                                .filter(t -> Objects.equals(t.getNode(), e.getValue().get().getValue()))
-                                                .collect(Collectors.toList()));
+                            final List<Target> foundTargets = metaCache.getMetaFieldTargets(field.getKey()).orElseThrow();
 
-                                        if (!foundTargets.isEmpty()) {
-                                            foundTargets.forEach(target -> {
-                                                if (log.isTraceEnabled()) {
-                                                    log.trace("    - meta target: {}", target);
-                                                }
+                            if (!foundTargets.isEmpty()) {
+                                for (Target target : foundTargets) {
+                                    if (log.isTraceEnabled()) {
+                                        log.trace("    - meta target: {}", target);
+                                    }
 
-                                                final Object value;
-                                                if (ENTITY_CREATE_TIMESTAMP_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_TIMESTAMP_MAP_KEY.equals(e.getKey())) {
-                                                    value = getCoercer().coerce(field.getValue(), LocalDateTime.class);
-                                                } else if (ENTITY_CREATE_USER_ID_MAP_KEY.equals(e.getKey()) || ENTITY_UPDATE_USER_ID_MAP_KEY.equals(e.getKey())) {
-                                                    value = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
-                                                } else {
-                                                    value = field.getValue();
-                                                }
+                                    final Object value;
+                                    if (ENTITY_CREATE_TIMESTAMP_MAP_KEY.equals(metaFieldName.get()) ||
+                                            ENTITY_UPDATE_TIMESTAMP_MAP_KEY.equals(metaFieldName.get())) {
+                                        value = getCoercer().coerce(field.getValue(), LocalDateTime.class);
+                                    } else if (ENTITY_CREATE_USER_ID_MAP_KEY.equals(metaFieldName.get()) ||
+                                            ENTITY_UPDATE_USER_ID_MAP_KEY.equals(metaFieldName.get())) {
+                                        value = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
+                                    } else {
+                                        value = field.getValue();
+                                    }
 
-                                                recordsByTarget.get(target).put(e.getKey(), value);
-                                            });
-                                        } else {
-                                            if (log.isTraceEnabled()) {
-                                                log.trace("    - no target of type, source alias: {}, column: {}", e.getValue().get().getValue().getAlias(), e.getValue().get().getKey());
-                                            }
-                                        }
-                                    });
+                                    recordsByTarget.get(target).put(metaFieldName.get(), value);
+                                };
+                            } else {
+                                if (log.isTraceEnabled()) {
+                                    log.trace("    - no target of type, source alias: {}, column: {}",
+                                            metaField.get().getAlias(),metaFieldName.get());
+                                }
+                            }
                         } else if (chunk.parentIds != null && parentKey != null && parentKey.equalsIgnoreCase(field.getKey())) {
                             final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                             if (log.isTraceEnabled()) {
@@ -819,166 +884,174 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             recordsByTarget.get(query.getSelect().getMainTarget()).getAs(Collection.class, parentKey).add(id);
                         } else {
                             final Set<Target> foundTargets = new HashSet<>();
-                            query.getSelect().getTargets().forEach(target -> {
+                            for (Target target : query.getSelect().getTargets()) {
                                 if (log.isTraceEnabled()) {
                                     log.trace("   - target: {}", target);
                                 }
-                                // get attribute the field is matching to
-                                final Optional<FeatureTargetMapping> featureTargetMapping = query.getSelect().getFeatures().stream()
-                                        .flatMap(f -> f.getTargetMappings().stream()
-                                                .filter(tm -> AsmUtils.equals(tm.getTarget(), target) && tm.getTargetAttribute() != null && RdbmsAliasUtil.getTargetColumnAlias(target, RdbmsMapper.getAttributeOrFeatureName(tm.getTargetAttribute(), null)).equalsIgnoreCase(field.getKey())))
-                                        .findAny();
+                                Optional<FeatureTargetMapping> featureTargetMapping = metaCache.getFeatureTargetMapping(field.getKey());
                                 if (featureTargetMapping.isPresent()) { // attribute found in the current target
-                                    final Feature feature = (Feature) featureTargetMapping.get().eContainer();
 
-                                    if (log.isTraceEnabled()) {
-                                        log.trace("    - attribute: {}", feature);
-                                    }
-                                    final EAttribute attribute = featureTargetMapping.get().getTargetAttribute();
-                                    final Optional<String> customTypeName = AsmUtils.getExtensionAnnotationCustomValue(attribute, "constraints", "customType", false);
-
-                                    final Object convertedValue;
-                                    if (field.getValue() != null) {
-                                        final String className;
-                                        Object value = field.getValue();
-                                        if (customTypeName.isPresent()) {
-                                            if (log.isDebugEnabled()) {
-                                                log.debug("Using custom type: {}", customTypeName.get());
-                                            }
-                                            final Optional<EDataType> dataType = asmUtils.resolve(customTypeName.get()).filter(type -> type instanceof EDataType).map(type -> (EDataType) type);
-                                            checkArgument(dataType.isPresent(), "Unknown data type: " + customTypeName.get());
-                                            className = dataTypeManager.getCustomTypeName(dataType.get()).orElse(null);
-                                            checkArgument(className != null, "Unregistered custom type: " + dataType.get().getInstanceClassName());
-                                        } else if (attribute.getEAttributeType() instanceof EEnum) {
-                                            className = Integer.class.getName();
-                                        } else if (AsmUtils.isByteArray(attribute.getEAttributeType())) {
-                                            className = FileType.class.getName();
-                                        } else {
-                                            className = attribute.getEAttributeType().getInstanceClassName();
-                                        }
-
-                                        // jdbc adds unnecessary offset from client
-                                        if (AsmUtils.isTimestamp(attribute.getEAttributeType()) && value instanceof Timestamp) {
-                                            LocalDateTime localDateTime = ((Timestamp) value).toLocalDateTime();
-                                            if (OffsetDateTime.class.getName().equals(className)) {
-                                                value = OffsetDateTime.of(localDateTime, ZoneOffset.UTC);
-                                            } else if (LocalDateTime.class.getName().equals(className)) {
-                                                value = localDateTime;
-                                            }
-                                        } else if (AsmUtils.isTime(attribute.getEAttributeType()) && value instanceof Time) {
-                                            long millis = ((Time) value).getTime() % 1000;
-                                            if (millis < 0) {
-                                                millis = 1000 - Math.abs(millis);
-                                            }
-                                            LocalTime localTime = ((Time) value).toLocalTime().withNano((int) (millis * 1_000_000));
-                                            if (OffsetTime.class.getName().equals(className)) {
-                                                value = OffsetTime.of(localTime, ZoneOffset.UTC);
-                                            } else if (LocalTime.class.getName().equals(className)) {
-                                                value = localTime;
-                                            }
-                                        }
-
-                                        convertedValue = getCoercer().coerce(value, className);
-                                    } else {
-                                        convertedValue = null;
-                                    }
-
+                                    Object convertedValue = getFieldValue(field, featureTargetMapping.get());
                                     if (log.isTraceEnabled()) {
                                         log.trace("    - converted value: {}", convertedValue);
                                     }
-                                    recordsByTarget.get(featureTargetMapping.get().getTarget()).put(featureTargetMapping.get().getTargetAttribute().getName(), convertedValue);
+                                    recordsByTarget.get(featureTargetMapping.get().getTarget())
+                                            .put(featureTargetMapping.get().getTargetAttribute().getName(), convertedValue);
                                     foundTargets.add(featureTargetMapping.get().getTarget());
                                 }
-                            });
+                            };
                             if (log.isDebugEnabled() && foundTargets.isEmpty()) {
                                 log.debug("No target found for {}, value: {}", field.getKey(), field.getValue());
                             }
                         }
-                    });
+                    };
 
                     // replace payload with null if ID of target is NULL
-                    nullTargets.forEach(target -> recordsByTarget.put(target, null));
+                    for (Target target : nullTargets) {
+                        recordsByTarget.put(target, null);
+                    }
 
-                    query.getSelect().getTargets().stream()
-                            .filter(target -> recordsByTarget.get(target) != null)
-                            .forEach(target -> {
+                    for (Target target : query.getSelect().getTargets().stream()
+                            .filter(target -> recordsByTarget.get(target) != null).toList()) {
+                        if (log.isTraceEnabled()) {
+                            log.trace("  - setting containments of {}", target);
+                        }
+
+                        if (!withoutFeatures) {
+                            // set containments that are selected in single (joined) query
+                            metaCache.getSingleContainmentReferenceTargets(target).forEach(c -> {
+                                        if (log.isTraceEnabled()) {
+                                            log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
+                                        }
+                                        if(!Objects.equals(query.getSelect().getMainTarget(), c.getTarget())){
+                                            final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
+                                            recordsByTarget.get(target).put(c.getReference().getName(), containment);
+                                        } else {
+                                            recordsByTarget.get(target).put(c.getReference().getName(), null);
+                                        }
+                                    });
+
+                            // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
+                            metaCache.getMultipleContainmentReferenceTargets(target).forEach(c ->
+                                    recordsByTarget.get(target).put(c.getReference().getName(),
+                                            queryFactory.isOrdered(c.getReference()) ? new ArrayList<>() : new HashSet<>()));
+                        }
+
+                        // set all results of targets in result
+                        if (idsByTarget.containsKey(target) && idsByTarget.get(target) != null) {
+                            final ID targetID = idsByTarget.get(target);
+
+                            if (parentKey != null &&
+                                    results.get(target).containsKey(targetID) &&
+                                    results.get(target).get(targetID).get(parentKey) != null) {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("Record already added, add new parentId only");
+                                }
+                                final Collection<ID> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
                                 if (log.isTraceEnabled()) {
-                                    log.trace("  - setting containments of {}", target);
+                                    log.trace("Current  parent IDs: {}", currentParentIds);
                                 }
-
-                                // set containments that are selected in single (joined) query
-                                target.getReferencedTargets().stream()
-                                        .filter(rt -> isEmbedded(rt.getReference()))
-                                        .filter(c -> !c.getReference().isMany())
-                                        .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
-                                        .forEach(c -> {
-                                            if (log.isTraceEnabled()) {
-                                                log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
-                                            }
-                                            if(!AsmUtils.equals(query.getSelect().getMainTarget(), c.getTarget())){
-                                                final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
-                                                recordsByTarget.get(target).put(c.getReference().getName(), containment);
-                                            } else {
-                                                recordsByTarget.get(target).put(c.getReference().getName(), null);
-                                            }
-                                        });
-
-                                // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
-                                target.getReferencedTargets().stream()
-                                        .filter(r -> isEmbedded(r.getReference()))
-                                        .filter(c -> c.getReference().isMany())
-                                        .filter(c -> !withoutFeatures && (mask == null || mask.containsKey(c.getReference().getName())))
-                                        .forEach(c -> recordsByTarget.get(target).put(c.getReference().getName(), queryFactory.isOrdered(c.getReference()) ? new ArrayList<>() : new HashSet<>()));
-
-                                // set all results of targets in result
-                                if (idsByTarget.containsKey(target) && idsByTarget.get(target) != null) {
-                                    final ID targetID = idsByTarget.get(target);
-
-                                    if (parentKey != null && results.get(target).containsKey(targetID) && results.get(target).get(targetID).get(parentKey) != null) {
-                                        if (log.isDebugEnabled()) {
-                                            log.debug("Record already added, add new parentId only");
-                                        }
-                                        final Collection<ID> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
-                                        if (log.isTraceEnabled()) {
-                                            log.trace("Current  parent IDs: {}", currentParentIds);
-                                        }
-                                        final Collection<ID> newParentIds = recordsByTarget.get(target).getAs(Collection.class, parentKey);
-                                        if (log.isTraceEnabled()) {
-                                            log.trace("New parent IDs: {}", newParentIds);
-                                        }
-                                        currentParentIds.addAll(newParentIds);
-                                    } else {
-                                        results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
-                                    }
-                                } else if (idsByTarget.isEmpty() && AsmUtils.equals(query.getSelect().getMainTarget(), target)) {
-                                    final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
-                                    results.get(target).put(tmpId, recordsByTarget.get(target));
+                                final Collection<ID> newParentIds = recordsByTarget.get(target).getAs(Collection.class, parentKey);
+                                if (log.isTraceEnabled()) {
+                                    log.trace("New parent IDs: {}", newParentIds);
                                 }
-                            });
+                                currentParentIds.addAll(newParentIds);
+                            } else {
+                                results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
+                            }
+                        } else if (idsByTarget.isEmpty() && Objects.equals(query.getSelect().getMainTarget(), target)) {
+                            final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
+                            results.get(target).put(tmpId, recordsByTarget.get(target));
+                        }
+                    };
 
                     if (log.isTraceEnabled()) {
                         log.trace("Records by target:\n{}", recordsByTarget);
                     }
-                });
+                };
 
                 if (!withoutFeatures) {
-                    final EMap<EList<EReference>, Target> allTargetPaths = getAllTargetPaths(query.getSelect().getMainTarget());
-                    allTargetPaths.entrySet().stream()
-                            .filter(tp -> tp.getKey().stream().allMatch(r -> isEmbedded(r) && !r.isMany()))
-                            .forEach(tp ->
-                                    tp.getValue().getNode().getSubSelects().stream()
-                                            .filter(subSelect -> subSelect.getTransferRelation() != null && isEmbedded(subSelect.getTransferRelation()) && !subSelect.isExcluding())
-                                            .filter(subSelect -> mask == null || mask.containsKey(subSelect.getTransferRelation().getName()))
-                                            .forEach(subSelect -> runSubQuery(jdbcTemplate, query, subSelect, ECollections.asEList(ImmutableList.<EReference>builder().addAll(referenceChain).addAll(tp.getKey()).build()), results, mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null, queryParameters)));
+                    metaCache.getSingleEmbeddedReferences().stream()
+                            .forEach(e -> e.getValue().stream()
+                                    .forEach(subSelect ->
+                                            runSubQuery(jdbcTemplate, query,  subSelect, e.getKey(), results,
+                                                    mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
+                                                    queryParameters)));
                 }
 
                 if (log.isTraceEnabled()) {
                     log.trace("Query results:\n{}", results);
                 }
             }
-        });
+        };
 
         return results;
+    }
+
+    private Object getFieldValue(Map.Entry<String, Object> field, FeatureTargetMapping featureTargetMapping) {
+        final Feature feature = (Feature) featureTargetMapping.eContainer();
+
+        if (log.isTraceEnabled()) {
+            log.trace("    - attribute: {}", feature);
+        }
+        final EAttribute attribute = featureTargetMapping.getTargetAttribute();
+        final Optional<String> customTypeName =
+                AsmUtils.getExtensionAnnotationCustomValue(attribute,
+                        "constraints",
+                        "customType",
+                        false);
+
+        final Object convertedValue;
+        if (field.getValue() != null) {
+            final String className;
+            Object value = field.getValue();
+            if (customTypeName.isPresent()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Using custom type: {}", customTypeName.get());
+                }
+                final Optional<EDataType> dataType = asmUtils.resolve(customTypeName.get())
+                        .filter(type -> type instanceof EDataType)
+                        .map(type -> (EDataType) type);
+                checkArgument(dataType.isPresent(), "Unknown data type: " +
+                        customTypeName.get());
+                className = dataTypeManager.getCustomTypeName(dataType.get()).
+                        orElse(null);
+                checkArgument(className != null, "Unregistered custom type: " +
+                        dataType.get().getInstanceClassName());
+            } else if (attribute.getEAttributeType() instanceof EEnum) {
+                className = Integer.class.getName();
+            } else if (AsmUtils.isByteArray(attribute.getEAttributeType())) {
+                className = FileType.class.getName();
+            } else {
+                className = attribute.getEAttributeType().getInstanceClassName();
+            }
+
+            // jdbc adds unnecessary offset from client
+            if (AsmUtils.isTimestamp(attribute.getEAttributeType()) && value instanceof Timestamp) {
+                LocalDateTime localDateTime = ((Timestamp) value).toLocalDateTime();
+                if (OffsetDateTime.class.getName().equals(className)) {
+                    value = OffsetDateTime.of(localDateTime, ZoneOffset.UTC);
+                } else if (LocalDateTime.class.getName().equals(className)) {
+                    value = localDateTime;
+                }
+            } else if (AsmUtils.isTime(attribute.getEAttributeType()) && value instanceof Time) {
+                long millis = ((Time) value).getTime() % 1000;
+                if (millis < 0) {
+                    millis = 1000 - Math.abs(millis);
+                }
+                LocalTime localTime = ((Time) value).toLocalTime().withNano((int) (millis * 1_000_000));
+                if (OffsetTime.class.getName().equals(className)) {
+                    value = OffsetTime.of(localTime, ZoneOffset.UTC);
+                } else if (LocalTime.class.getName().equals(className)) {
+                    value = localTime;
+                }
+            }
+
+            convertedValue = getCoercer().coerce(value, className);
+        } else {
+            convertedValue = null;
+        }
+        return convertedValue;
     }
 
     /**
@@ -1019,10 +1092,14 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
         final List<Chunk<ID>> chunks = new ArrayList<>();
         if (parentIds != null) {
-            final List<List<ID>> _parentIds = parentIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(parentIds), chunkSize);
+            final List<List<ID>> _parentIds = parentIds.isEmpty() ?
+                    Collections.singletonList(Collections.emptyList()) :
+                    Lists.partition(new ArrayList<>(parentIds), chunkSize);
             _parentIds.forEach(p -> {
                 if (instanceIds != null) {
-                    final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
+                    final List<List<ID>> _instanceIds = instanceIds.isEmpty() ?
+                            Collections.singletonList(Collections.emptyList()) :
+                            Lists.partition(new ArrayList<>(instanceIds), chunkSize);
                     _instanceIds.forEach(i ->
                             chunks.add(Chunk.<ID>builder().parentIds(p).instanceIds(i).build()));
                 } else {
@@ -1030,7 +1107,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 }
             });
         } else if (instanceIds != null) {
-            final List<List<ID>> _instanceIds = instanceIds.isEmpty() ? Collections.singletonList(Collections.emptyList()) : Lists.partition(new ArrayList<>(instanceIds), chunkSize);
+            final List<List<ID>> _instanceIds = instanceIds.isEmpty() ?
+                    Collections.singletonList(Collections.emptyList()) :
+                    Lists.partition(new ArrayList<>(instanceIds), chunkSize);
             _instanceIds.forEach(i ->
                     chunks.add(Chunk.<ID>builder().instanceIds(i).build()));
         } else {
@@ -1044,10 +1123,16 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
             final MapSqlParameterSource sqlParameters = new MapSqlParameterSource();
             if (chunk.parentIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()), chunk.parentIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getParentIdsKey(query.getSelect()),
+                        chunk.parentIds.stream()
+                                .map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName()))
+                                .collect(Collectors.toList()));
             }
             if (chunk.instanceIds != null) {
-                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()), chunk.instanceIds.stream().map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName())).collect(Collectors.toList()));
+                sqlParameters.addValue(RdbmsAliasUtil.getInstanceIdsKey(query.getSelect()),
+                        chunk.instanceIds.stream()
+                                .map(id -> getCoercer().coerce(id, getRdbmsParameterMapper().getIdClassName()))
+                                .collect(Collectors.toList()));
             }
 
             // key used to identify parent instance in subselects
@@ -1055,7 +1140,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     SqlConverterContext.builder()
                             .coercer(getCoercer())
                             .sqlParameters(sqlParameters)
-                            .prefixes(ECollections.emptyEMap())
+                            .prefixes(Collections.emptyMap())
                             .build()
             );
 
@@ -1072,10 +1157,17 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         return count.get();
     }
 
-    private void runSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> referenceChain, final EMap<Target, Map<ID, Payload>> results, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
-        checkArgument(subSelect.getTransferRelation() != null, "SubSelect must have transfer relation");
+    private void runSubQuery(final NamedParameterJdbcTemplate jdbcTemplate,
+                             final SubSelect query,
+                             final SubSelect subSelect,
+                             final List<EReference> referenceChain,
+                             final Map<Target, Map<ID, Payload>> results,
+                             final Map<String, Object> mask,
+                             final Map<String, Object> queryParameters) {
+        checkArgument(subSelect.getTransferRelation() != null,
+                "SubSelect must have transfer relation");
 
-        final EList<EReference> newReferenceChain = new BasicEList<>();
+        final List<EReference> newReferenceChain = new ArrayList<>();
         newReferenceChain.addAll(referenceChain);
         newReferenceChain.add(subSelect.getTransferRelation());
 
@@ -1086,15 +1178,20 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     ? ((ReferencedJoin) j).getReference().getName()
                                     : "?").collect(Collectors.joining(", ")));
         }
-        Optional<Target> subTarget = query.getSelect().getTargets().stream().filter(t -> AsmUtils.equals(t.getNode(), subSelect.getContainer())).findAny();
+        Optional<Target> subTarget = query.getSelect().getTargets().stream()
+                .filter(t -> Objects.equals(t.getNode(), subSelect.getContainer()))
+                .findAny();
         if (subTarget.isPresent()) {
             final Set<ID> ids = results.get(subTarget.get()).keySet();
             if (!ids.isEmpty()) {
                 if (ids.size() == 1 ||
-                        (AsmUtils.equals(subSelect.getBase(), query.getSelect()) || query.getSelect().getAllJoins().contains(subSelect.getBase())) && subSelect.getLimit() == null) {
+                        (Objects.equals(subSelect.getBase(), query.getSelect()) ||
+                                query.getSelect().getAllJoins().contains(subSelect.getBase())) &&
+                                subSelect.getLimit() == null) {
                     executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, ids, mask, queryParameters);
                 } else {
-                    ids.forEach(id -> executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, Collections.singleton(id), mask, queryParameters));
+                    ids.forEach(id -> executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results,
+                            Collections.singleton(id), mask, queryParameters));
                 }
             }
         } else {
@@ -1103,16 +1200,26 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void executeSubQuery(final NamedParameterJdbcTemplate jdbcTemplate, final SubSelect query, final SubSelect subSelect, final EList<EReference> newReferenceChain, final EMap<Target, Map<ID, Payload>> results, final Collection<ID> ids, final Map<String, Object> mask, final Map<String, Object> queryParameters) {
+    private void executeSubQuery(final NamedParameterJdbcTemplate jdbcTemplate,
+                                 final SubSelect query,
+                                 final SubSelect subSelect,
+                                 final List<EReference> newReferenceChain,
+                                 final Map<Target, Map<ID, Payload>> results,
+                                 final Collection<ID> ids,
+                                 final Map<String, Object> mask,
+                                 final Map<String, Object> queryParameters) {
         if (log.isTraceEnabled()) {
             log.trace("  IDs: {}", ids);
         }
 
         // map storing subquery results, it will be filled by recursive call
-        final EMap<Target, Map<ID, Payload>> subQueryResults = runQuery(jdbcTemplate, subSelect, null, ids, newReferenceChain, null, false, mask, queryParameters, false);
+        final Map<Target, Map<ID, Payload>> subQueryResults =
+                runQuery(jdbcTemplate, subSelect, null, ids, newReferenceChain, null, false, mask, queryParameters, false);
 
         if (log.isDebugEnabled()) {
-            log.debug("Processing subquery results: {}", newReferenceChain.stream().map(ENamedElement::getName).collect(Collectors.joining(".")));
+            log.debug("Processing subquery results: {}", newReferenceChain.stream()
+                    .map(ENamedElement::getName)
+                    .collect(Collectors.joining(".")));
         }
 
         final Target subQueryTarget = subSelect.getSelect().getMainTarget();
@@ -1210,30 +1317,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             subQueryRecord.remove(subParentKey); // remove parent key from subquery record because it will be added as nested list
         });
-    }
-
-    private static EMap<EList<EReference>, Target> getAllTargetPaths(final Target target) {
-        final EMap<EList<EReference>, Target> result = ECollections.asEMap(new HashMap<>());
-        result.put(ECollections.emptyEList(), target);
-        return addReferencesToAllTargetPaths(result, ECollections.emptyEList(), target.getReferencedTargets());
-    }
-
-    private static EMap<EList<EReference>, Target> addReferencesToAllTargetPaths(final EMap<EList<EReference>, Target> found, final EList<EReference> path, final EList<ReferencedTarget> processing) {
-        if (processing.isEmpty()) {
-            return found;
-        }
-
-        final Map<EList<EReference>, Target> newTargets = processing.stream()
-                .filter(r -> !found.containsValue(r.getTarget()))
-                .collect(Collectors.toMap(r -> ECollections.asEList(ImmutableList.<EReference>builder().addAll(path).add(r.getReference()).build()), ReferencedTarget::getTarget));
-        found.putAll(newTargets);
-
-        newTargets.forEach((key, value) -> addReferencesToAllTargetPaths(found, key, value.getReferencedTargets()));
-        return found;
-    }
-
-    private static boolean isEmbedded(final EReference reference) {
-        return AsmUtils.annotatedAsTrue(reference, "embedded");
     }
 
     @Builder

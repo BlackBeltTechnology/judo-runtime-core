@@ -117,10 +117,10 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         InstanceGraph<ID> instanceGraph = getInstanceCollector().collectGraph(entityType, updatedIdentifier);
 
         // The elements have to be processed
-        collectStaments(transferObjectType, instanceGraph, originalPayload, updatePayload, statements, null, null, checkMandatoryFeatures);
+        collectStatements(transferObjectType, instanceGraph, originalPayload, updatePayload, statements, null, null, checkMandatoryFeatures);
     }
 
-    void collectStaments(EClass transferObjectType,
+    void collectStatements(EClass transferObjectType,
                                             InstanceGraph<ID> instanceGraph,
                                             Payload originalPayload,
                                             Payload updatePayload,
@@ -130,7 +130,10 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                             boolean checkMandatoryFeatures) {
         EClass entityType;
         if (originalPayload.containsKey(ENTITY_TYPE_KEY)) {
-            entityType = (EClass) getAsmUtils().resolve(originalPayload.getAs(String.class, ENTITY_TYPE_KEY)).get();
+            final String entityTypeName = originalPayload.getAs(String.class, ENTITY_TYPE_KEY);
+            checkArgument(entityTypeName != null, "Entity type is unknown");
+            String entityTypeFQName = getAsmUtils().getModel().get().getName() + "." + entityTypeName;
+            entityType = (EClass) getAsmUtils().resolve(entityTypeFQName).get();
         } else {
             log.warn("Entity type is not found in payload");
             entityType = getAsmUtils().getMappedEntityType(transferObjectType).get();
@@ -353,6 +356,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         EReference entityReference = getAsmUtils().getMappedReference(mappedReference).get();
 
         boolean isContainment = entityReference.isContainment();
+        boolean isEmbedded = getAsmUtils().isEmbedded(mappedReference);
         InstanceGraph<ID> instanceGraph = null;
 
         final ID originalIdentifier;
@@ -384,7 +388,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         if (updatePayload != null) {
             if (updateIdentifier == null && originalIdentifier == null) {
-                checkState(isContainment, "Identifier is mandatory on reference association: " +
+                checkState(isEmbedded, "Identifier is mandatory on reference association: " +
                         getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
 
                 // INSERT NEW INSTANCE and mandatory reference add (filter out check existence)
@@ -408,7 +412,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                 parentInstanceGraph.getId(), false
                         ));
             } else if (updateIdentifier != null && originalIdentifier == null) {
-                checkState(!isContainment, "Identifier cannot be set on new association reference element: " +
+                checkState(!isContainment, "Identifier cannot be set on new composition reference element: " +
                         getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
                 // ADD NEW REFERENCE
                 statements.addAll(
@@ -420,7 +424,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             } else if (updateIdentifier == null && originalIdentifier != null) {
                 if (isContainment) {
                     // DELETE ORIGINAL INSTANCE
-                    deletePayloadDaoProcessor.collectStaments(entityReference.getEReferenceType(),
+                    deletePayloadDaoProcessor.collectStatements(entityReference.getEReferenceType(),
                             instanceGraph, statements, parentInstanceGraph, entityReference);
 
                     // INSERT When there is any attributes in payload
@@ -465,7 +469,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 if (originalIdentifier.equals(updateIdentifier)) {
                     if (isContainment) {
                         // UPDATE embedded instances INSTANCE
-                        collectStaments(mappedReference.getEReferenceType(), instanceGraph, originalPayload,
+                        collectStatements(mappedReference.getEReferenceType(), instanceGraph, originalPayload,
                                 updatePayload, statements, parentInstanceGraph, mappedReference, checkMandatoryFeatures);
                     }
                 } else {
@@ -493,7 +497,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         } else if (originalIdentifier != null) {
             if (isContainment) {
                 // DELETE ORIGINAL INSTANCE
-                deletePayloadDaoProcessor.collectStaments(entityReference.getEReferenceType(),
+                deletePayloadDaoProcessor.collectStatements(entityReference.getEReferenceType(),
                         instanceGraph, statements, parentInstanceGraph, entityReference);
             } else {
                 // DELETE ORIGINAL REFERENCE

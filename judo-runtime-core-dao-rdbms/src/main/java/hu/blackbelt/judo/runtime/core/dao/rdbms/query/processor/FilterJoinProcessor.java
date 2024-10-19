@@ -34,13 +34,11 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.common.util.UniqueEList;
-import org.eclipse.emf.ecore.EClass;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -55,7 +53,7 @@ public class FilterJoinProcessor {
         final List<RdbmsJoin> joins = params.getJoins();
         final Filter filter = params.getFilter();
         final SubSelect query = params.getQuery();
-        final EList<Join> processedNodesForJoins = params.getProcessedNodesForJoins();
+        final List<Join> processedNodesForJoins = params.getProcessedNodesForJoins();
         final List<RdbmsField> conditions = params.getConditions();
         final String partnerTablePrefix = params.getPartnerTablePrefix();
         final Node partnerTable = params.getPartnerTable();
@@ -76,8 +74,8 @@ public class FilterJoinProcessor {
                     .alias(filter.getAlias())
                     .build());
             if (addJoinsOfFilterFeature) {
-                final EList<Join> navigationJoins = new UniqueEList<>();
-                final EList<Join> targetJoins = new UniqueEList<>(filter.getFeature().getNodes().stream()
+                final List<Join> navigationJoins = new UniqueEList<>();
+                final List<Join> targetJoins = new UniqueEList<>(filter.getFeature().getNodes().stream()
                         .filter(n -> n instanceof Join)
                         .map(n -> (Join) n)
                         .collect(Collectors.toList()));
@@ -92,8 +90,10 @@ public class FilterJoinProcessor {
                     targetJoins.addAll(newNavigationJoins);
                 }
 
-                ECollections.reverse(navigationJoins);
-                List<Join> navigationJoinsNotProcessed =  navigationJoins.stream()
+                List<Join> reversedNavigationJoins = new ArrayList<>(navigationJoins);
+                Collections.reverse(reversedNavigationJoins);
+
+                List<Join> navigationJoinsNotProcessed =  reversedNavigationJoins.stream()
                         .filter(join -> !processedNodesForJoins.contains(join)).collect(Collectors.toList());
 
                 for (Join join : navigationJoinsNotProcessed) {
@@ -107,7 +107,7 @@ public class FilterJoinProcessor {
                 };
 
                 List<Join> filterFeaturesNoProcessed = filter.getFeature().getNodes().stream()
-                        .filter(n -> !processedNodesForJoins.contains(n) && !AsmUtils.equals(n, filter) && n instanceof Join)
+                        .filter(n -> !processedNodesForJoins.contains(n) && !Objects.equals(n, filter) && n instanceof Join)
                         .flatMap(n -> ((Join) n).getAllJoins().stream())
                         .collect(Collectors.toList());
 

@@ -32,7 +32,6 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EEnum;
@@ -49,6 +48,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class QueryCustomizerParameterProcessor<ID> {
 
     public static final String THIS_NAME = "this";
+    public static final String IS_UNDEFINED = "!isUndefined()";
+    public static final String IS_DEFINED = "!isDefined()";
+    public static final String LT = "<";
+    public static final String GT = ">";
+    public static final String LTE = "<=";
+    public static final String GTE = ">=";
+    public static final String EQ = "==";
+    public static final String NEQ = "!=";
+    public static final String MATCHES = "~";
+    public static final String LIKE = "like";
 
     @NonNull
     private final AsmUtils asmUtils;
@@ -63,51 +72,55 @@ public class QueryCustomizerParameterProcessor<ID> {
     private final Coercer coercer;
 
     public static final Map<Integer, String> JQL_STRING_OPERATORS = ImmutableMap.<Integer, String>builder()
-            .put(0, "<")
-            .put(1, ">")
-            .put(2, "<=")
-            .put(3, ">=")
-            .put(4, "==")
-            .put(5, "!=")
-            .put(6, "~")
-            .put(7, "like")
+            .put(0, LT)
+            .put(1, GT)
+            .put(2, LTE)
+            .put(3, GTE)
+            .put(4, EQ)
+            .put(5, NEQ)
+            .put(6, MATCHES)
+            .put(7, LIKE)
             .build();
     public static final Map<Integer, String> JQL_NUMERIC_OPERATORS = ImmutableMap.<Integer, String>builder()
-            .put(0, "<")
-            .put(1, ">")
-            .put(2, "<=")
-            .put(3, ">=")
-            .put(4, "==")
-            .put(5, "!=")
+            .put(0, LT)
+            .put(1, GT)
+            .put(2, LTE)
+            .put(3, GTE)
+            .put(4, EQ)
+            .put(5, NEQ)
             .build();
     public static final Map<Integer, String> JQL_BOOLEAN_OPERATORS = ImmutableMap.<Integer, String>builder()
-            .put(0, "==")
+            .put(0, EQ)
             .build();
     public static final Map<Integer, String> JQL_ENUMERATION_OPERATORS = ImmutableMap.<Integer, String>builder()
-            .put(0, "==")
-            .put(1, "!=")
+            .put(0, EQ)
+            .put(1, NEQ)
             .build();
 
     @SuppressWarnings("rawtypes")
     public DAO.QueryCustomizer build(final Map<String, Object> queryCustomizerParameter, final EClass clazz) {
+        return build(queryCustomizerParameter, clazz, null);
+    }
+
+    public DAO.QueryCustomizer build(final Map<String, Object> queryCustomizerParameter, final EClass clazz, final Map<String, Object> exchange) {
         return DAO.QueryCustomizer.<ID>builder()
                 .filter(extractFilteringParameter(clazz, queryCustomizerParameter))
                 .orderByList(extractOrderingParameter(clazz, queryCustomizerParameter))
                 .seek(extractSeekParameter(queryCustomizerParameter))
-                .mask(extractMaskParameter(clazz, queryCustomizerParameter))
+                .mask(extractMaskParameter(clazz, queryCustomizerParameter, exchange))
                 .instanceIds(getIdentifiers(queryCustomizerParameter))
                 .build();
     }
 
     @SuppressWarnings("unchecked")
     private String extractFilteringParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
-        final EList<EAttribute> attributes = clazz.getEAllAttributes();
+        final List<EAttribute> attributes = clazz.getEAllAttributes();
 
         if (queryCustomizerParameter != null) {
             final List<String> filterConditions = new ArrayList<>();
             filterConditions.addAll(attributes.stream()
                     .flatMap(attribute ->
-                            queryCustomizerParameter.get(attribute.getName()) != null
+                            queryCustomizerParameter.containsKey(attribute.getName())
                                     ? ((List<Map<String, Object>>) queryCustomizerParameter.get(attribute.getName())).stream()
                                     .map(filter -> convertFilterToJql(attribute, (Integer) filter.get("operator"), filter.get("value"), caseInsensitiveLike))
                                     .filter(condition -> condition != null)
@@ -124,6 +137,12 @@ public class QueryCustomizerParameterProcessor<ID> {
         if (AsmUtils.isNumeric(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid numeric operator: " + operator);
+            if (value == null && jqlOperator.equals(EQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_UNDEFINED;
+            }
+            if (value == null && jqlOperator.equals(NEQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_DEFINED;
+            }
             checkArgument(value instanceof Number, "Value must be a number");
 
             final Optional<String> measure = AsmUtils.getExtensionAnnotationCustomValue(attribute, "constraints", "measure", false);
@@ -133,30 +152,54 @@ public class QueryCustomizerParameterProcessor<ID> {
         } else if (AsmUtils.isBoolean(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_BOOLEAN_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid boolean operator: " + operator);
+            if (value == null && jqlOperator.equals(EQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_UNDEFINED;
+            }
+            if (value == null && jqlOperator.equals(NEQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_DEFINED;
+            }
             checkArgument(value instanceof Boolean, "Value must be a boolean");
             return (Boolean.TRUE.equals(value) ? "" : "not ") + THIS_NAME + "." + attribute.getName();
         } else if (AsmUtils.isString(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_STRING_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid string operator: " + operator);
+            if (value == null && jqlOperator.equals(EQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_UNDEFINED;
+            }
+            if (value == null && jqlOperator.equals(NEQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_DEFINED;
+            }
             checkArgument(value instanceof String, "Value must be a string");
             final String escaped = ((String) value).replace("\"", "\\\"");
             switch (jqlOperator) {
-                case "~":
+                case MATCHES:
                     return THIS_NAME + "." + attribute.getName() + "!matches(\"" + escaped + "\")";
-                case "like":
-                    return THIS_NAME + "." + attribute.getName() + "!" + (caseInsensitiveLike ? "ilike" : "like") + "(\"" + escaped + "\")";
+                case LIKE:
+                    return THIS_NAME + "." + attribute.getName() + "!" + (caseInsensitiveLike ? "ilike" : LIKE) + "(\"" + escaped + "\")";
                 default:
                     return THIS_NAME + "." + attribute.getName() + jqlOperator + "\"" + escaped + "\"";
             }
         } else if (AsmUtils.isDate(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid date operator: " + operator);
+            if (value == null && jqlOperator.equals(EQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_UNDEFINED;
+            }
+            if (value == null && jqlOperator.equals(NEQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_DEFINED;
+            }
             checkArgument(value instanceof LocalDate, "Value must be a local date");
             final String formattedDate = ((LocalDate) value).format(DateTimeFormatter.ISO_DATE);
             return THIS_NAME + "." + attribute.getName() + jqlOperator + "`" + formattedDate + "`";
         } else if (AsmUtils.isTimestamp(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid timestamp operator: " + operator);
+            if (value == null && jqlOperator.equals(EQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_UNDEFINED;
+            }
+            if (value == null && jqlOperator.equals(NEQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_DEFINED;
+            }
             final String formattedTimestamp;
             if (value instanceof LocalDateTime) {
                 formattedTimestamp = ((LocalDateTime) value).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
@@ -169,6 +212,12 @@ public class QueryCustomizerParameterProcessor<ID> {
         } else if (AsmUtils.isTime(attribute.getEAttributeType())) {
             final String jqlOperator = JQL_NUMERIC_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid time operator: " + operator);
+            if (value == null && jqlOperator.equals(EQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_UNDEFINED;
+            }
+            if (value == null && jqlOperator.equals(NEQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_DEFINED;
+            }
             checkArgument(value instanceof LocalTime, "Value must be a local time");
             final String formattedTime = ((LocalTime) value).format(DateTimeFormatter.ISO_LOCAL_TIME);
             return THIS_NAME + "." + attribute.getName() + jqlOperator + "`" + formattedTime + "`";
@@ -176,6 +225,12 @@ public class QueryCustomizerParameterProcessor<ID> {
             final EEnum enumeration = ((EEnum) attribute.getEAttributeType());
             final String jqlOperator = JQL_ENUMERATION_OPERATORS.get(operator);
             checkArgument(jqlOperator != null, "Invalid enumeration operator: " + operator);
+            if (value == null && jqlOperator.equals(EQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_UNDEFINED;
+            }
+            if (value == null && jqlOperator.equals(NEQ)) {
+                return THIS_NAME + "." + attribute.getName() + IS_DEFINED;
+            }
             final String enumerationMember = enumeration.getELiterals().stream()
                     .filter(l -> Objects.equals(l.getValue(), value))
                     .map(l -> l.getName())
@@ -220,10 +275,16 @@ public class QueryCustomizerParameterProcessor<ID> {
         return null;
     }
 
-    private Map<String, Object> extractMaskParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter) {
-        if (queryCustomizerParameter != null && queryCustomizerParameter.get("_mask") != null) {
+    private Map<String, Object> extractMaskParameter(final EClass clazz, final Map<String, Object> queryCustomizerParameter, final Map<String, Object> exchange) {
+        String _mask = null;
+        if (exchange != null && exchange.get("__mask") != null) {
+            _mask = (String) exchange.get("__mask");
+        } else if (queryCustomizerParameter != null && queryCustomizerParameter.get("_mask") != null) {
+            _mask = (String) queryCustomizerParameter.get("_mask");
+        }
+
+        if (_mask != null) {
             try {
-                final String _mask = (String) queryCustomizerParameter.get("_mask");
                 return QueryMaskStringParser.parseQueryMask(clazz, _mask);
             } catch (RuntimeException ex) {
                 final Map<String, Object> details = new LinkedHashMap<>();

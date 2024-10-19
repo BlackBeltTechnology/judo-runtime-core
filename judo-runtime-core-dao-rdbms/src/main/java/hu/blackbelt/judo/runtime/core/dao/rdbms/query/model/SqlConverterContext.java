@@ -5,8 +5,9 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
-import org.eclipse.emf.common.util.EMap;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import java.util.Map;
 
 @Builder(toBuilder = true)
 @Getter
@@ -18,5 +19,5 @@ public class SqlConverterContext {
     private boolean includeAlias = false;
     private Coercer coercer;
     private MapSqlParameterSource sqlParameters;
-    private EMap<Node, String> prefixes;
+    private Map<Node, String> prefixes;
 }

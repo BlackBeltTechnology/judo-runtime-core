@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.accessmanager.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.ValidationResult;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
@@ -41,7 +42,8 @@ public abstract class BehaviourAuthorizer {
 
     public abstract void authorize(String actorFqName, Collection<String> publicActors, SignedIdentifier signedIdentifier, EOperation operation);
 
-    void checkCRUDFlag(final AsmUtils asmUtils, final ENamedElement element, final CRUDFlag... flag) {
+    void checkCRUDFlag(final AsmModel asmModel, final ENamedElement element, final CRUDFlag... flag) {
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         final Optional<EAnnotation> permissions = AsmUtils.getExtensionAnnotationByName(element, "permissions", false);
 
         if (log.isTraceEnabled()) {

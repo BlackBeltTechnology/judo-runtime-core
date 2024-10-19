@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor;
  * #L%
  */
 
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.CustomJoin;
 import hu.blackbelt.judo.meta.query.Node;
@@ -32,8 +33,6 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsJoin;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.EList;
-import org.eclipse.emf.common.util.EMap;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
@@ -42,6 +41,7 @@ import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Builder
@@ -51,10 +51,10 @@ public class CustomJoinProcessor {
     private final RdbmsResolver rdbmsResolver;
 
     @NonNull
-    private final AsmUtils asmUtils;
+    private final AsmModel asmModel;
 
     public List<RdbmsJoin> process(CustomJoin join, RdbmsBuilderContext builderContext) {
-        final EMap<Node, EList<EClass>> ancestors = builderContext.getAncestors();
+        final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
         final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         if (log.isTraceEnabled()) {
@@ -89,6 +89,7 @@ public class CustomJoinProcessor {
     private String resolveRdbmsNames(final String sql) {
         final StringBuilder result = new StringBuilder();
         final StringCharacterIterator it = new StringCharacterIterator(sql);
+        final AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         boolean resolving = false;
         StringBuilder fqNameBuilder = null;

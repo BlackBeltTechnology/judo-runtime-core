@@ -106,7 +106,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                 .forEach(consumer(insertStatement -> {
 
                     EClass entity = insertStatement.getInstance().getType();
-                    String entityFQName = getClassifierFQName(entity);
+                    String entityFQName = new AsmUtils(getAsmModel().getResourceSet()).getRelativeFQName(entity);
                     checkState(AsmUtils.isEntityType(entity), "Non-entity types cannot be explicitly instantiated: " + entityFQName);
                     checkState(!entity.isAbstract(), "Abstract types cannot be explicitly instantiated: " + entityFQName);
 

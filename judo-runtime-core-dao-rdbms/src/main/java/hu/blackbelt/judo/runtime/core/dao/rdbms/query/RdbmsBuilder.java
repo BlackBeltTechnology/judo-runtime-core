@@ -22,7 +22,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query;
 
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
+import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbmsRules.Rules;
@@ -35,14 +35,11 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.*;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.*;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.*;
 import org.eclipse.emf.ecore.*;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 @Slf4j
 public class RdbmsBuilder<ID> {
@@ -69,13 +66,13 @@ public class RdbmsBuilder<ID> {
     private final DescendantNameFactory descendantNameFactory;
 
     @Getter
-    private final  VariableResolver variableResolver;
+    private final VariableResolver variableResolver;
 
     @Getter
-    private final  RdbmsModel rdbmsModel;
+    private final RdbmsModel rdbmsModel;
 
     @Getter
-    private final AsmUtils asmUtils;
+    private final AsmModel asmModel;
 
     private final Map<Class<?>, RdbmsMapper<?>> mappers;
 
@@ -105,7 +102,7 @@ public class RdbmsBuilder<ID> {
             @NonNull DescendantNameFactory descendantNameFactory,
             @NonNull VariableResolver variableResolver,
             @NonNull RdbmsModel rdbmsModel,
-            @NonNull AsmUtils asmUtils,
+            @NonNull AsmModel asmModel,
             @NonNull MapperFactory<ID> mapperFactory,
             @NonNull Dialect dialect) {
         this.rdbmsResolver = rdbmsResolver;
@@ -116,9 +113,9 @@ public class RdbmsBuilder<ID> {
         this.descendantNameFactory = descendantNameFactory;
         this.variableResolver = variableResolver;
         this.rdbmsModel = rdbmsModel;
-        this.asmUtils = asmUtils;
         this.dialect = dialect;
         this.mappers = mapperFactory.getMappers(this);
+        this.asmModel = asmModel;
         this.rules = rdbmsModel.getResource().getContents().stream()
                 .filter(Rules.class::isInstance)
                 .map(Rules.class::cast)
@@ -148,7 +145,7 @@ public class RdbmsBuilder<ID> {
 
         this.customJoinProcessor = CustomJoinProcessor.builder()
                 .rdbmsResolver(rdbmsResolver)
-                .asmUtils(asmUtils)
+                .asmModel(asmModel)
                 .build();
 
         this.filterJoinProcessor = FilterJoinProcessor.builder()
@@ -195,6 +192,12 @@ public class RdbmsBuilder<ID> {
         final boolean withoutFeatures = params.isWithoutFeatures();
         final Map<String, Object> mask = params.getMask();
         final RdbmsBuilderContext builderContext = params.getBuilderContext();
+
+        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
+        final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
+        final Map<String, Object> queryParameters = builderContext.getQueryParameters();
+
 
         if (join instanceof ReferencedJoin) {
             return simpleJoinProcessor.process(SimpleJoinProcessorParameters.builder()

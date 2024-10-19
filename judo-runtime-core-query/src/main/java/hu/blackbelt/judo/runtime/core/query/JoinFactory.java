@@ -31,8 +31,6 @@ import hu.blackbelt.judo.meta.query.runtime.QueryUtils;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.ECollections;
-import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.*;
 
 import java.util.*;
@@ -198,7 +196,7 @@ public abstract class JoinFactory {
                 final EClass containerType = navigation.getContainer();
 
                 final EClass lastPartnerType = lastPartner.getType();
-                final EList<EReference> references =
+                final List<EReference> references =
                         asEList(modelAdapter.getAsmUtils().all(EClass.class)
                                             .filter(c -> AsmUtils.equals(containerType, c) ||
                                                     c.getEAllSuperTypes().contains(containerType))
@@ -359,7 +357,7 @@ public abstract class JoinFactory {
                         .build();
                 ((Select) base).getTargets().add(((Select) base).getMainTarget());
                 context.setNode(base);
-                context.getQueryModelResourceSupport().addContent(base);
+                context.getCreatedQueryObjects().add(base);
             } else if (expr instanceof SortExpression) {
                 final SortExpression sortExpression = (SortExpression) expr;
                 if (!ignoreOrderBy) {

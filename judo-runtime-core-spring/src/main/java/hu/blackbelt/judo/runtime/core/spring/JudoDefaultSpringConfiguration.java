@@ -61,15 +61,11 @@ import hu.blackbelt.judo.tatami.core.TransformationTraceServiceImpl;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
 import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
-import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -114,6 +110,9 @@ public class JudoDefaultSpringConfiguration {
 
     @Autowired
     private MetricsCollector metricsCollector;
+
+    @Autowired
+    private Export exporter;
 
     @Autowired
     DispatcherFunctionProvider dispatcherFunctionProvider;
@@ -168,7 +167,7 @@ public class JudoDefaultSpringConfiguration {
                 measureModel.getResourceSet(),
                 asmJqlExtractor.extractExpressions(),
                 coercer,
-                ECollections.asEMap(new ConcurrentHashMap<>()));
+                new ConcurrentHashMap<>());
                 //requireNonNullElse(customJoinDefinitions, ECollections.asEMap(new ConcurrentHashMap<>())));
 
         return queryFactory;
@@ -188,7 +187,7 @@ public class JudoDefaultSpringConfiguration {
                 .descendantNameFactory(new DescendantNameFactory(asm.all(EClass.class)))
                 .rdbmsResolver(rdbmsResolver)
                 .parameterMapper(rdbmsParameterMapper)
-                .asmUtils(asm)
+                .asmModel(asmModel)
                 .identifierProvider(identifierProvider)
                 .coercer(coercer)
                 .variableResolver(variableResolver)
@@ -322,7 +321,7 @@ public class JudoDefaultSpringConfiguration {
         AsmUtils asm = new AsmUtils(asmModel.getResourceSet());
 
         return DefaultPayloadValidator.builder()
-                .asmUtils(asm)
+                .asmModel(asmModel)
                 .identifierProvider(identifierProvider)
                 .coercer(coercer)
                 .validatorProvider(validatorProvider)
@@ -369,6 +368,7 @@ public class JudoDefaultSpringConfiguration {
                 .enableValidation(enableValidation)
                 .trimString(trimString)
                 .caseInsensitiveLike(caseInsensitiveLike)
+                .exporter(exporter)
                 .build();
     }
 

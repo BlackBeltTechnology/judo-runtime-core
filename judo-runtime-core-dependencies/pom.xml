@@ -247,19 +247,25 @@
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-			    <artifactId>judo-runtime-core-bootstrap</artifactId>
+                <artifactId>judo-runtime-core-export-jxls</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-bootstrap-hsqldb</artifactId>
+			    <artifactId>judo-runtime-core-guice</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
-                <artifactId>judo-runtime-core-bootstrap-postgresql</artifactId>
+                <artifactId>judo-runtime-core-guice-hsqldb</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-guice-postgresql</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -281,6 +287,59 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-security-keycloak</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-security-keycloak-cxf</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-jackson</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-jaxrs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-jaxrs-cxf</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-parameter-names</artifactId>
+                <version>${jackson-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jdk8</artifactId>
+                <version>${jackson-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr353</artifactId>
+                <version>${jackson-version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>hu.blackbelt.mapper</groupId>
@@ -464,17 +523,17 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
-		    <artifactId>judo-runtime-core-bootstrap</artifactId>
+		    <artifactId>judo-runtime-core-guice</artifactId>
         </dependency>
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-bootstrap-hsqldb</artifactId>
+            <artifactId>judo-runtime-core-guice-hsqldb</artifactId>
         </dependency>
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-bootstrap-postgresql</artifactId>
+            <artifactId>judo-runtime-core-guice-postgresql</artifactId>
         </dependency>
 
         <dependency>

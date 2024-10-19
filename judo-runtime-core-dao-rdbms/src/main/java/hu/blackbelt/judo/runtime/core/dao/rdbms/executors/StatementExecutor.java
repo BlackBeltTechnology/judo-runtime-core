@@ -28,12 +28,10 @@ import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.ReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
-import hu.blackbelt.judo.tatami.core.EMapWrapper;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Getter;
 import lombok.NonNull;
-import org.eclipse.emf.common.util.ECollections;
 
 import java.util.Collection;
 import java.util.Map;
@@ -162,7 +160,7 @@ public abstract class StatementExecutor<ID> {
             boolean optional) {
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
-        Map<RdbmsReference<ID>, ID> referenceMap = new EMapWrapper(ECollections.asEMap(Maps.<RdbmsReference<ID>, ID>newHashMap()));
+        Map<RdbmsReference<ID>, ID> referenceMap = Maps.<RdbmsReference<ID>, ID>newHashMap();
 
         collectRdbmsReferencesReferenceStatements(referenceStatements)
                 .filter(rdbmsReference -> rdbmsReference.getRule().isForeignKey() || rdbmsReference.getRule().isInverseForeignKey())

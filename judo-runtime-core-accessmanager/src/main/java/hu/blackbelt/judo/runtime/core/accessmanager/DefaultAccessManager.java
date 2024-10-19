@@ -49,20 +49,20 @@ public class DefaultAccessManager implements AccessManager {
 
     private Collection<BehaviourAuthorizer> authorizers;
 
-    private void setupAuthorizers(final AsmUtils asmUtils) {
+    private void setupAuthorizers(final AsmModel asmModel) {
         authorizers = Arrays.asList(
-                new ListAuthorizer(asmUtils),
-                new CreateInstanceAuthorizer(asmUtils),
-                new UpdateInstanceAuthorizer(asmUtils),
-                new DeleteInstanceAuthorizer(asmUtils),
-                new RefreshAuthorizer(asmUtils),
-                new SetReferenceAuthorizer(asmUtils),
-                new UnsetReferenceAuthorizer(asmUtils),
-                new AddReferenceAuthorizer(asmUtils),
-                new RemoveReferenceAuthorizer(asmUtils),
-                new GetReferenceRangeAuthorizer(asmUtils),
-                new GetInputRangeAuthorizer(asmUtils),
-                new GetTemplateAuthorizer(asmUtils)
+                new ListAuthorizer(asmModel),
+                new CreateInstanceAuthorizer(asmModel),
+                new UpdateInstanceAuthorizer(asmModel),
+                new DeleteInstanceAuthorizer(asmModel),
+                new RefreshAuthorizer(asmModel),
+                new SetReferenceAuthorizer(asmModel),
+                new UnsetReferenceAuthorizer(asmModel),
+                new AddReferenceAuthorizer(asmModel),
+                new RemoveReferenceAuthorizer(asmModel),
+                new GetReferenceRangeAuthorizer(asmModel),
+                new GetInputRangeAuthorizer(asmModel),
+                new GetTemplateAuthorizer(asmModel)
         );
     }
 
@@ -70,7 +70,7 @@ public class DefaultAccessManager implements AccessManager {
     public DefaultAccessManager(@NonNull AsmModel asmModel) {
         this.asmModel = asmModel;
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
-        setupAuthorizers(asmUtils);
+        setupAuthorizers(asmModel);
 
         publicActors.addAll(asmUtils.all(EClass.class)
                 .filter(c -> AsmUtils.isActorType(c) &&
@@ -93,7 +93,15 @@ public class DefaultAccessManager implements AccessManager {
         final boolean exposedForPublicOrTokenActor = AsmUtils.getExtensionAnnotationListByName(operation, "exposedBy").stream()
                 .anyMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")));
         final boolean metadataOperation = AsmUtils.OperationBehaviour.GET_METADATA.equals(AsmUtils.getBehaviour(operation).orElse(null));
+        final boolean principalOperation = AsmUtils.OperationBehaviour.GET_PRINCIPAL.equals(AsmUtils.getBehaviour(operation).orElse(null));
 
+        if (principal == null && principalOperation) {
+            log.info("Principal token is invalid or not defined");
+            throw new AuthenticationRequiredException(ValidationResult.builder()
+                    .code("INVALID_TOKEN")
+                    .level(ValidationResult.Level.ERROR)
+                    .build());
+        }
         if (!exposedForPublicOrTokenActor && !metadataOperation && actorFqName != null) {
             log.info("Operation failed, operation is not exposed to the given actor");
             throw new AccessDeniedException(ValidationResult.builder()
