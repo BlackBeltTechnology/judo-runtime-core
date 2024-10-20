@@ -23,22 +23,22 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.FilterJoinProcessor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.FilterJoinProcessorParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.Builder;
 import lombok.NonNull;
-import org.eclipse.emf.common.util.*;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.AGGREGATE_PREFIX;
-
+@Slf4j
 public class RdbmsCount<ID> {
 
     private SubSelect query;
@@ -62,6 +62,12 @@ public class RdbmsCount<ID> {
             final boolean filterByInstances,
             final RdbmsBuilderContext builderContext) {
 
+        if (log.isTraceEnabled()) {
+            log.trace("Query:              " + query.toString());
+            log.trace("Filter by instance: " + filterByInstances);
+            log.trace("Builder context:    " + builderContext.toString());
+        }
+
         RdbmsBuilderContext countBuilderContext = builderContext.toBuilder()
                 .ancestors(ancestors)
                 .descendants(descendants)
@@ -73,9 +79,23 @@ public class RdbmsCount<ID> {
         this.rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.getRdbmsBuilder();
         this.from = type != null ? rdbmsBuilder.getTableName(type) : (String) null;
 
+        // Processing target mappings with id's to mutate context to add joins in
+        // feature's map operation.
+        // Shame.
+        final List<Feature> features = query.getSelect().getFeatures().stream()
+                .filter(
+                        f ->
+                                isFeatureId(f) ||
+                                isFeatureType(f)
 
+                ).collect(Collectors.toList());
+
+        for (Feature feature : features) {
+            rdbmsBuilder.mapFeatureToRdbms(feature,
+                            countBuilderContext.toBuilder().parentIdFilterQuery(query).build())
+                    .collect(Collectors.toList());
+        }
         rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), countBuilderContext);
-        // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
 
         if (filterByInstances) {
             conditions.add(RdbmsFunction.builder()
@@ -129,6 +149,9 @@ public class RdbmsCount<ID> {
                             .addJoinsOfFilterFeature(true)
                             .build(), countBuilderContext);
         }
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), countBuilderContext);
+        // joins.addAll(rdbmsBuilder.getDescendantJoins(query.getSelect(), descendants, joins));
+        // rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), countBuilderContext);
     }
 
     public String toSql(SqlConverterContext converterContext) {
@@ -150,7 +173,7 @@ public class RdbmsCount<ID> {
         final Collection<String> allConditions = Stream
                 .concat(
                         joins.stream().flatMap(j -> j.conditionToSql(countContext).stream()),
-                        conditions.stream().map(c -> c.toSql(countContext))
+                        conditions.stream().map(c -> c.toSql(countContext.toBuilder().includeAlias(false).build()))
                 )
                 .collect(Collectors.toList());
 
@@ -167,6 +190,7 @@ public class RdbmsCount<ID> {
     }
 
     private String getJoin(SqlConverterContext converterContext, RdbmsJoin firstJoin) {
+        fixStaticJoins();
         Map<RdbmsJoin, String> joinMap = joins.stream()
                 .collect(Collectors.toMap(j -> j,
                         j -> j.toSql(converterContext, from == null && Objects.equals(j, firstJoin))));
@@ -174,6 +198,39 @@ public class RdbmsCount<ID> {
                     .sorted(new RdbmsJoinComparator(joins))
                     .map(joinMap::get)
                     .collect(Collectors.joining());
+    }
+
+    private void fixStaticJoins() {
+        List<RdbmsJoin> staticJoins =
+                joins.stream()
+                        .filter(j -> query.getSelect() != null && j.getPartnerTable() != null &&
+                                !Objects.equals(query.getSelect(), j.getPartnerTable()) &&
+                                // current join is not a partner table to any other join in this scope
+                                joins.stream().noneMatch(jj -> j.getPartnerTable() != null &&
+                                        jj.getAlias().equals(j.getPartnerTable().getAlias())))
+                        .collect(Collectors.toList());
+
+        for (RdbmsJoin staticJoin : staticJoins) {
+            List<RdbmsJoin> dependantJoins = joins.stream().filter(j -> j.getPartnerTable() != null &&
+                            j.getPartnerTable().getAlias().equals(staticJoin.getAlias()))
+                    .collect(Collectors.toList());
+            if (!dependantJoins.isEmpty()) {
+                for (RdbmsJoin dependantJoin : dependantJoins) {
+                    dependantJoin.setPartnerTable(query.getSelect());
+                    dependantJoin.setPartnerColumnName(null);
+                    dependantJoin.setOuter(true);
+                }
+                joins.remove(staticJoin);
+            }
+        }
+    }
+
+    private boolean isFeatureId(Feature f) {
+        return f instanceof IdAttribute && EcoreUtil.equals(((IdAttribute) f).getNode(), query.getSelect());
+    }
+
+    private boolean isFeatureType(Feature f) {
+        return f instanceof TypeAttribute && EcoreUtil.equals(((TypeAttribute) f).getNode(), query.getSelect());
     }
 
 }

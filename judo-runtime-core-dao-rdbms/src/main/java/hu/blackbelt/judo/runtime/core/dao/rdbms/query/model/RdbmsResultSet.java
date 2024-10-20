@@ -468,6 +468,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .descending(seek.isReverse())
                     .build());
         }
+
+        rdbmsBuilder.addAncestorJoins(joins, query.getSelect(), resultSetBuilderContext);
     }
 
     private Map<Target, Collection<String>> getTargetMask(
