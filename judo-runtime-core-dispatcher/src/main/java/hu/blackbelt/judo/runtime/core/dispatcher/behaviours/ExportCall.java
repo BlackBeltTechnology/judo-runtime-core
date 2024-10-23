@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
+import ch.qos.logback.core.util.Loader;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
@@ -73,6 +74,8 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
         );
 
         final boolean bound = AsmUtils.isBound(operation);
+        Locale locale = Objects.requireNonNullElseGet(
+                context.getAs(Locale.class, DefaultDispatcher.LOCALE_KEY), () -> Locale.getDefault());
 
         final EReference owner = (EReference) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid model"));
@@ -149,8 +152,10 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                             queryCustomizer.getMask().keySet().stream().toList(),
                             null,
                             asmModel,
-                            operation.getEGenericType().getEClassifier().getName());
+                            operation.getEGenericType().getEClassifier().getName(),
+                            locale);
 
+                    result.put("locale", locale.toString());
                     result.put("stream", resultStream);
                     result.put("name", UUID.randomUUID().toString());
                     result.put("extension", "xlsx");

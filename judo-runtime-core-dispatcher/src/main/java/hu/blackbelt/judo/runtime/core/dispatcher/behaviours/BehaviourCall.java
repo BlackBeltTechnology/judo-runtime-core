@@ -28,5 +28,5 @@ public interface BehaviourCall<ID> {
     boolean isSuitableForOperation(EOperation operation);
 
     Object call(final Map<String, Object> exchange,
-                final EOperation operation);
+                final EOperation operation) throws InterceptorCallBusinessException;
 }

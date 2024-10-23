@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.InterceptorCallBusinessException;
 import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Collection;
@@ -65,8 +66,9 @@ public interface OperationCallInterceptor {
      *
      * @return The payload which will be used to perform the call. When ignoreDecoratedCall is true
      * it has to return the decorated call return type's payload.
+     * @throws InterceptorCallBusinessException serializable behaviour exception.
      */
-    default Object preCall(EOperation operation, Object parameterPayload) {
+    default Object preCall(EOperation operation, Object parameterPayload) throws InterceptorCallBusinessException {
         return parameterPayload;
     };
 
@@ -76,8 +78,9 @@ public interface OperationCallInterceptor {
      * @param parameterPayload - The operation call input parameter
      * @param returnPayload - The operation call output parameter. It can be list or payload.
      * @return The {@link Payload} or {@link Collection} of {@link Payload} which will be returned of the call.
+     * @throws InterceptorCallBusinessException serializable behaviour exception.
      */
-    default Object postCall(EOperation operation, Object parameterPayload, Object returnPayload) {
+    default Object postCall(EOperation operation, Object parameterPayload, Object returnPayload) throws InterceptorCallBusinessException {
         return returnPayload;
     }
 
