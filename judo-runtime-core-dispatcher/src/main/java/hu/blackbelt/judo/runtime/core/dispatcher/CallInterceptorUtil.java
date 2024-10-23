@@ -1,6 +1,7 @@
 package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.InterceptorCallBusinessException;
 import org.eclipse.emf.ecore.EOperation;
 
 import java.util.concurrent.CompletableFuture;
@@ -35,7 +36,7 @@ public class CallInterceptorUtil<P, R> {
     }
 
 
-    public P preCallInterceptors(P inputParameter) {
+    public P preCallInterceptors(P inputParameter) throws InterceptorCallBusinessException {
         P ret = inputParameter;
         boolean callDecorated = true;
         for (OperationCallInterceptor interceptor : interceptorProvider.getInterceptorsForOperation(asmModel, operation)) {
@@ -59,8 +60,9 @@ public class CallInterceptorUtil<P, R> {
     }
 
 
+
     public R postCallInterceptors(P inputParameter,
-                                               R returnPayload) {
+                                               R returnPayload) throws InterceptorCallBusinessException {
         R ret = returnPayload;
         boolean callDecorated = true;
         for (OperationCallInterceptor interceptor : interceptorProvider.getInterceptorsForOperation(asmModel, operation)) {
