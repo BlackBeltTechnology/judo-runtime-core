@@ -8,15 +8,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Locale;
 
 public interface Export {
 
-    void exportToOutputStream(OutputStream output, String type, List<Payload> list, List<String> attributes, Class clazz) throws IOException;
+    void exportToOutputStream(OutputStream output, String type, List<Payload> list, List<String> attributes, Class clazz, Locale locale) throws IOException;
 
-    void exportToOutputStream(OutputStream output, String type, List<Payload> list, List<String> attributes, AsmModel asmModel, String fqName) throws IOException;
+    void exportToOutputStream(OutputStream output, String type, List<Payload> list, List<String> attributes, AsmModel asmModel, String fqName, Locale locale) throws IOException;
 
-    InputStream exportToInputStream(String type, List<Payload> list, List<String> attributes, OutputStream output, Class clazz) throws IOException;
+    InputStream exportToInputStream(String type, List<Payload> list, List<String> attributes, OutputStream output, Class clazz, Locale locale) throws IOException;
 
-    InputStream exportToInputStream(String type, List<Payload> list, List<String> attributes, OutputStream output, AsmModel asmModel, String fqName) throws IOException;
+    InputStream exportToInputStream(String type, List<Payload> list, List<String> attributes, OutputStream output, AsmModel asmModel, String fqName, Locale locale) throws IOException;
 
 }

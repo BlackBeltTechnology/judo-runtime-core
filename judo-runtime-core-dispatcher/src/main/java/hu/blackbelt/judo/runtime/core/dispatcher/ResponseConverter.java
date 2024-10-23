@@ -51,17 +51,21 @@ public class ResponseConverter {
 
     private final Collection<String> keepProperties;
 
+    private final Locale locale;
+
     @Builder
     public ResponseConverter(@NonNull EClass transferObjectType,
                              @NonNull AsmModel asmModel,
                              @NonNull Coercer coercer,
                              TokenIssuer filestoreTokenIssuer,
-                             @NonNull @Singular Collection<String> keepProperties) {
+                             @NonNull @Singular Collection<String> keepProperties,
+                             Locale locale) {
         this.transferObjectType = transferObjectType;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.coercer = coercer;
         this.filestoreTokenIssuer = filestoreTokenIssuer;
         this.keepProperties = keepProperties;
+        this.locale = Objects.requireNonNullElseGet(locale, () -> Locale.getDefault());
     }
 
     public Optional<Payload> convert(final Map<String, Object> input) {

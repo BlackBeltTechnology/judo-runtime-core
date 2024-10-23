@@ -78,6 +78,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public static final String VERSION_KEY = "__version";
     public static final String RECORD_COUNT_KEY = "__recordCount";
     public static final String COUNT_QUERY_RECORD_KEY = "__countRecords";
+    public static final String LOCALE_KEY = "__locale";
+
     public static final String MASK = "__mask";
     public static final String SDK = "sdk";
     public static final String SCRIPT = "script";
@@ -87,6 +89,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public static final String FAULT_TYPE = "_type";
     public static final String FAULT_ERROR_CODE = "_errorCode";
     public static final String FAULT_CAUSE = "_cause";
+    public static final String FAULT_DETAILS = "_details";
 
     private static final String STATEFUL = "STATEFUL";
 
@@ -147,6 +150,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private final Validator rangeValidator;
 
     private final Export exporter;
+
+    private final Locale defaultLocale;
 
     @SuppressWarnings("unchecked")
     private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel) {
@@ -211,7 +216,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             Boolean metricsReturned,
             Boolean enableValidation,
             Boolean trimString,
-            Boolean caseInsensitiveLike) {
+            Boolean caseInsensitiveLike,
+            Locale defaultLocale) {
         this.asmModel = asmModel;
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -240,6 +246,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.metricsReturned = Objects.requireNonNullElse(metricsReturned, true);
 
         this.trimString = Objects.requireNonNullElse(trimString, false);
+
+        this.defaultLocale = Objects.requireNonNullElse(defaultLocale, Locale.getDefault());
 
         this.caseInsensitiveLike = Objects.requireNonNullElse(caseInsensitiveLike, false);
 
@@ -380,10 +388,27 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     @SuppressWarnings("unchecked")
-    private void processFault(final Payload result, String outputParameterName, EClassifier operationType, boolean exposed, ETypedElement producedBy, boolean immutable, boolean isMany, String implementationName) {
+    private void processResponse(final Payload result,
+                                 String outputParameterName,
+                                 EClassifier operationType,
+                                 boolean exposed,
+                                 ETypedElement producedBy,
+                                 boolean immutable,
+                                 boolean isMany,
+                                 String implementationName,
+                                 Locale locale) {
         if (result != null && result.get(FAULT) != null) {
             Map<String, Object> fault = (Map<String, Object>) result.get(FAULT);
-            throw new BusinessException((String) fault.get(FAULT_TYPE), (String) fault.get(FAULT_ERROR_CODE), fault, (Throwable) fault.get(FAULT_CAUSE));
+            Map<String, Object> details = fault;
+            if (fault.containsKey(FAULT_DETAILS)) {
+                details = (Map<String, Object>) fault.get(FAULT_DETAILS);
+            }
+            throw new BusinessException(
+                    (String) fault.get(FAULT_TYPE),
+                    (String) fault.get(FAULT_ERROR_CODE),
+                    details,
+                    (Throwable) fault.get(FAULT_CAUSE),
+                    locale);
         } else if (exposed && outputParameterName != null && result != null && result.get(outputParameterName) != null) {
             if (implementationName.equals("EXPORT")) {
                 return;
@@ -395,6 +420,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                     .asmModel(asmModel)
                     .keepProperties(Arrays.asList(identifierProvider.getName(), UPDATEABLE_KEY, DELETEABLE_KEY, SELECTED_ITEM_KEY, REFERENCE_ID_KEY, Dispatcher.ENTITY_TYPE_MAP_KEY, VERSION_KEY))
                     .filestoreTokenIssuer(filestoreTokenIssuer)
+                    .locale(locale)
                     .build();
 
             if (isMany) {
@@ -597,6 +623,12 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 context.putIfAbsent(ACTOR_KEY, exchange.get(ACTOR_KEY));
             }
 
+            Locale locale = defaultLocale;
+            if (exchange.containsKey(LOCALE_KEY)) {
+                locale = (Locale) exchange.get(LOCALE_KEY);
+            }
+            context.putIfAbsent(LOCALE_KEY, locale);
+
             final EOperation operation = operationCache.get(operationFullyQualifiedName)
                     .orElseThrow(() -> new UnsupportedOperationException("Operation not found: " + operationFullyQualifiedName));
 
@@ -700,24 +732,32 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 measurementKey = METRICS_JUDO_CALL;
 
                 operationCall = (Payload p) -> {
-                    Object behaviourOperationCallResult = getBehaviourCalls().stream()
-                            .filter(b -> b.isSuitableForOperation(operation))
-                            .findFirst()
-                            .orElseThrow(() -> new UnsupportedOperationException("Not supported yet"))
-                            .call(exchange, operation);
+                    try {
+                        Object behaviourOperationCallResult = getBehaviourCalls().stream()
+                                .filter(b -> b.isSuitableForOperation(operation))
+                                .findFirst()
+                                .orElseThrow(() -> new UnsupportedOperationException("Not supported yet"))
+                                .call(exchange, operation);
 
-                    Payload payload = operationType != null && behaviourOperationCallResult != null
-                            ? Payload.map(outputParameterName.get(), behaviourOperationCallResult)
-                            : Payload.empty();
+                        Payload payload = operationType != null && behaviourOperationCallResult != null
+                                ? Payload.map(outputParameterName.get(), behaviourOperationCallResult)
+                                : Payload.empty();
 
-                    if (exposed && exchange.containsKey(DefaultDispatcher.RECORD_COUNT_KEY)) {
-                        payload.putIfAbsent(Dispatcher.HEADERS_KEY, new ConcurrentHashMap<>());
-                        ((Map<String, Object>) payload.get(Dispatcher.HEADERS_KEY))
-                                .put("X-Judo-Count", exchange.get(DefaultDispatcher.RECORD_COUNT_KEY));
-                        exchange.remove(DefaultDispatcher.RECORD_COUNT_KEY);
+                        if (exposed && exchange.containsKey(DefaultDispatcher.RECORD_COUNT_KEY)) {
+                            payload.putIfAbsent(Dispatcher.HEADERS_KEY, new ConcurrentHashMap<>());
+                            ((Map<String, Object>) payload.get(Dispatcher.HEADERS_KEY))
+                                    .put("X-Judo-Count", exchange.get(DefaultDispatcher.RECORD_COUNT_KEY));
+                            exchange.remove(DefaultDispatcher.RECORD_COUNT_KEY);
+                        }
+                        return payload;
+                    } catch (InterceptorCallBusinessException e) {
+                        java.util.Map<String, Object> map = new HashMap<>();
+                        map.put(FAULT_ERROR_CODE, e.getErrorCode());
+                        map.put(FAULT_TYPE, e.getType());
+                        map.put(FAULT_CAUSE, e.getCause());
+                        map.put(FAULT_DETAILS, e.getDetails());
+                        return hu.blackbelt.judo.dao.api.Payload.map("_fault", map);
                     }
-
-                    return payload;
                 };
             }
 
@@ -753,7 +793,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 producedBy = operation;
             }
 
-            processFault(result, outputParameterName.orElse(null), operationType, exposed, producedBy, immutable, operation.isMany(), implementationName);
+            processResponse(result, outputParameterName.orElse(null), operationType, exposed, producedBy, immutable, operation.isMany(), implementationName, locale);
             if (log.isTraceEnabled()) {
                 log.trace("Operation result: {}", result);
             }
