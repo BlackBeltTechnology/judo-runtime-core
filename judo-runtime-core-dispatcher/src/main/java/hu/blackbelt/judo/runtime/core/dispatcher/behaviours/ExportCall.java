@@ -152,7 +152,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                             queryCustomizer.getMask().keySet().stream().toList(),
                             null,
                             asmModel,
-                            operation.getEGenericType().getEClassifier().getName(),
+                            serviceContext.getAsmUtils().getClassifierFQName(owner.getEReferenceType()),
                             locale);
 
                     result.put("locale", locale.toString());
