@@ -19,7 +19,7 @@ public class JxlsExport implements Export {
 
     @Override
     public void exportToOutputStream(OutputStream output, String type, List<Payload> list, List<String> attributes, AsmModel asmModel, String fqName, Locale locale) throws IOException {
-        JxlExportUtil.createExcelExport(asmModel, fqName, output, list, JxlExportUtil.getAttributesFromModel(asmModel, fqName), attributes);
+        JxlExportUtil.createExcelExport(asmModel, fqName.substring(fqName.lastIndexOf('.') + 1), output, list, JxlExportUtil.getAttributesFromModel(asmModel, fqName), attributes);
     }
 
     @Override
@@ -29,6 +29,6 @@ public class JxlsExport implements Export {
 
     @Override
     public InputStream exportToInputStream(String type, List<Payload> list, List<String> attributes, OutputStream output, AsmModel asmModel, String fqName, Locale locale) throws IOException {
-        return JxlExportUtil.createExcelExportToInputStream(asmModel, fqName, output, list, JxlExportUtil.getAttributesFromModel(asmModel, fqName), attributes);
+        return JxlExportUtil.createExcelExportToInputStream(asmModel, fqName.substring(fqName.lastIndexOf('.') + 1), output, list, JxlExportUtil.getAttributesFromModel(asmModel, fqName), attributes);
     }
 }
