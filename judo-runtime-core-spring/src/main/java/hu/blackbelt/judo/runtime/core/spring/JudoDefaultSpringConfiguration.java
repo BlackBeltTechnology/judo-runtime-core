@@ -38,6 +38,7 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.accessmanager.DefaultAccessManager;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
@@ -129,10 +130,14 @@ public class JudoDefaultSpringConfiguration {
     @Autowired
     private RdbmsParameterMapper rdbmsParameterMapper;
 
+    @Autowired
+    private AuthenticationInterceptorProvider authenticationInterceptorProvider;
+
     @Bean
     public AccessManager getAccessManager() {
         return DefaultAccessManager.builder()
                 .asmModel(asmModel)
+                .authenticationInterceptorProvider(authenticationInterceptorProvider)
                 .build();
     }
 
