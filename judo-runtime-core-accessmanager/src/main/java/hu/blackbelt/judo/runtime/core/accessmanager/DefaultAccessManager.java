@@ -130,7 +130,7 @@ public class DefaultAccessManager implements AccessManager {
                     .build());
         }
 
-        if (authenticationInterceptorProvider != null) {
+        if (authenticationInterceptorProvider != null && principal != null) {
             authenticationInterceptorProvider.getAuthenticationInterceptors().stream()
                     .filter(authenticationInterceptor -> authenticationInterceptor.isSuitableForOperation(
                             operation,
