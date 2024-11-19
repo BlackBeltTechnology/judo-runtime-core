@@ -26,6 +26,8 @@ import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptor;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.SignedIdentifier;
 import hu.blackbelt.judo.runtime.core.accessmanager.behaviours.*;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
@@ -44,6 +46,8 @@ public class DefaultAccessManager implements AccessManager {
 
     @NonNull
     AsmModel asmModel;
+
+    AuthenticationInterceptorProvider authenticationInterceptorProvider;
 
     private final Collection<String> publicActors = new HashSet<>();
 
@@ -67,8 +71,9 @@ public class DefaultAccessManager implements AccessManager {
     }
 
     @Builder
-    public DefaultAccessManager(@NonNull AsmModel asmModel) {
+    public DefaultAccessManager(@NonNull AsmModel asmModel, AuthenticationInterceptorProvider authenticationInterceptorProvider) {
         this.asmModel = asmModel;
+        this.authenticationInterceptorProvider = authenticationInterceptorProvider;
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         setupAuthorizers(asmModel);
 
@@ -123,6 +128,25 @@ public class DefaultAccessManager implements AccessManager {
                     .code("ACCESS_DENIED_FOR_INSTANCE_OF_BOUND_OPERATION")
                     .level(ValidationResult.Level.ERROR)
                     .build());
+        }
+
+        if (authenticationInterceptorProvider != null && principal != null) {
+            authenticationInterceptorProvider.getAuthenticationInterceptors().stream()
+                    .filter(authenticationInterceptor -> authenticationInterceptor.isSuitableForOperation(
+                            operation,
+                            principal.getName(),
+                            principal.getRealm(),
+                            principal.getClient(),
+                            principal.getAttributes()))
+                    .forEach(authenticationInterceptor -> {
+                        authenticationInterceptor.success(operation,
+                                signedIdentifier,
+                                exchange,
+                                principal.getName(),
+                                principal.getRealm(),
+                                principal.getClient(),
+                                principal.getAttributes());
+                    });
         }
 
         authorizers.stream()
