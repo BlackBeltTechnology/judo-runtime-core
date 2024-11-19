@@ -136,7 +136,7 @@ public class DefaultAccessManager implements AccessManager {
                             operation,
                             principal.getName(),
                             principal.getRealm(),
-                            principal.getRealm(),
+                            principal.getClient(),
                             principal.getAttributes()))
                     .forEach(authenticationInterceptor -> {
                         authenticationInterceptor.success(operation,
