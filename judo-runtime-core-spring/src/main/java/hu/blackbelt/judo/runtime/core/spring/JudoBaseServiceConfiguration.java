@@ -26,6 +26,8 @@ import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptor;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.*;
 import hu.blackbelt.judo.runtime.core.dispatcher.context.ThreadContext;
 import hu.blackbelt.judo.runtime.core.security.*;
@@ -36,10 +38,7 @@ import org.eclipse.emf.ecore.EOperation;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -82,6 +81,29 @@ public class JudoBaseServiceConfiguration {
     }
 
     @Bean
+    public AuthenticationInterceptorProvider getAuthenticationInterceptorProvider() {
+        final Collection<AuthenticationInterceptor> authenticationInterceptors = new ArrayList<>();
+        return  new AuthenticationInterceptorProvider() {
+            @Override
+            public Collection<AuthenticationInterceptor> getAuthenticationInterceptors() {
+                return authenticationInterceptors;
+            }
+        };
+    }
+
+    @Bean
+    public OperationCallInterceptorProvider getOperationCallInterceptorProvider() {
+        final Collection<OperationCallInterceptor> operationCallInterceptors = new ArrayList<>();
+
+        return new OperationCallInterceptorProvider() {
+            @Override
+            public Collection<OperationCallInterceptor> getCallOperationInterceptors() {
+                return operationCallInterceptors;
+            }
+        };
+    }
+
+    @Bean
     public DispatcherFunctionProvider getDispatcherFunctionProvider() {
         final Map<EOperation, Function<Payload, Payload>> scripts = new HashMap<>();
         DispatcherFunctionProvider dispatcherFunctionProvider = new DispatcherFunctionProvider() {
@@ -96,11 +118,6 @@ public class JudoBaseServiceConfiguration {
             }
         };
         return dispatcherFunctionProvider;
-    }
-
-    @Bean
-    public OperationCallInterceptorProvider getOperationCallInterceptorProvider() {
-        return new OperationCallInterceptorProvider() {};
     }
 
     @Bean

@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import org.eclipse.emf.ecore.EOperation;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -30,7 +31,7 @@ import java.util.stream.Collectors;
 public interface OperationCallInterceptorProvider {
 
     default Collection<OperationCallInterceptor> getCallOperationInterceptors()  {
-        return Collections.emptyList();
+        return new ArrayList<>();
     };
 
     default Collection<OperationCallInterceptor> getInterceptorsForOperation(AsmModel asmModel, EOperation operation) {
