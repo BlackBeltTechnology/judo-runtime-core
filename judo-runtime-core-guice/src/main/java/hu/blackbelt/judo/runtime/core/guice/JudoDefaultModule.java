@@ -37,8 +37,10 @@ import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AccessManager;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.UnsupportedExportImpl;
 import hu.blackbelt.judo.runtime.core.guice.accessmanager.DefaultAccessManagerProvider;
+import hu.blackbelt.judo.runtime.core.guice.accessmanager.DefaultAuthenticationInterceptorProviderProvider;
 import hu.blackbelt.judo.runtime.core.guice.core.DataTypeManagerProvider;
 import hu.blackbelt.judo.runtime.core.guice.core.UUIDIdentifierProviderProvider;
 import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.*;
@@ -147,6 +149,7 @@ public class JudoDefaultModule extends AbstractModule {
 
         // Access manager
         bind(AccessManager.class).toProvider(DefaultAccessManagerProvider.class);
+        bind(AuthenticationInterceptorProvider.class).toProvider(DefaultAuthenticationInterceptorProviderProvider.class);
 
         // Context
         bind(Context.class).toProvider(ThreadContextProvider.class).in(Singleton.class);
