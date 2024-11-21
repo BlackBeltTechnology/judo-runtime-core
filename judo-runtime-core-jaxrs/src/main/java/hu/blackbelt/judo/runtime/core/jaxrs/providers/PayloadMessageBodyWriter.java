@@ -33,7 +33,10 @@ public class PayloadMessageBodyWriter implements MessageBodyWriter<PayloadImpl> 
 
     @Override
     public void writeTo(PayloadImpl payload, Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType, MultivaluedMap<String, Object> httpHeaders, OutputStream entityStream) throws IOException, WebApplicationException {
-        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(entityStream);
-        objectMapper.writeValue(outputStreamWriter, payload);
+        try {
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(entityStream);
+            objectMapper.writeValue(outputStreamWriter, payload);
+        } catch (Throwable throwable) {
+        }
     }
 }

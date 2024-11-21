@@ -618,7 +618,10 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         }
 
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_DISPATCHER)) {
+            exchange.put("__operationFullyQualifiedName", operationFullyQualifiedName);
             actorResolver.authenticateActor(exchange);
+            exchange.remove("__operationFullyQualifiedName");
+
             if (exchange.containsKey(ACTOR_KEY)) {
                 context.putIfAbsent(ACTOR_KEY, exchange.get(ACTOR_KEY));
             }
