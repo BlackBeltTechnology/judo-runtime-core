@@ -744,7 +744,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         };
 
         final Set<ID> currentReferences;
-        if (!reference.isTransient() && markSelectedRangeItems && instanceId != null) {
+        if (AsmUtils.annotatedAsFalse(reference, "transient") && markSelectedRangeItems && instanceId != null) {
             currentReferences = searchNavigationResultAt(instanceId, reference, QueryCustomizer.<ID>builder().withoutFeatures(true).build()).stream()
                     .map(p -> p.getAs(identifierProvider.getType(), identifierProvider.getName()))
                     .collect(Collectors.toSet());
