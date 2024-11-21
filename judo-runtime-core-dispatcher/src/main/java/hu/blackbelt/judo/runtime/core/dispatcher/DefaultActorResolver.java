@@ -28,6 +28,7 @@ import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.QueryCustomizerParameterProcessor;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
@@ -40,6 +41,7 @@ import org.eclipse.emf.ecore.EEnum;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.Principal;
 import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -59,23 +61,42 @@ public class DefaultActorResolver<ID> implements ActorResolver {
 
     private AsmUtils asmUtils;
 
+    AuthenticationInterceptorProvider authenticationInterceptorProvider;
+
 
     @Builder
     public DefaultActorResolver(
             @NonNull DataTypeManager dataTypeManager,
             @NonNull DAO<ID> dao,
             @NonNull AsmModel asmModel,
+            AuthenticationInterceptorProvider authenticationInterceptorProvider,
             Boolean checkMappedActors) {
         this.dataTypeManager = dataTypeManager;
         this.dao = dao;
         this.asmModel = asmModel;
         this.checkMappedActors = checkMappedActors == null ? false : checkMappedActors;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
+        this.authenticationInterceptorProvider = authenticationInterceptorProvider;
     }
 
     @Override
     public void authenticateActor(final Map<String, Object> exchange) {
-        final Object principal = exchange.get(Dispatcher.PRINCIPAL_KEY);
+        final Principal principal = (Principal) exchange.get(Dispatcher.PRINCIPAL_KEY);
+
+        final String operationFullyQualifiedName = (String) exchange.get("__operationFullyQualifiedName");
+        if (authenticationInterceptorProvider != null &&
+                operationFullyQualifiedName != null && principal != null) {
+            JudoPrincipal judoPrincipal = principal instanceof JudoPrincipal ? (JudoPrincipal) principal : null;
+            authenticationInterceptorProvider.getAuthenticationInterceptors().stream()
+                    .forEach(authenticationInterceptor -> {
+                        authenticationInterceptor.authenticate(operationFullyQualifiedName,
+                                exchange,
+                                principal.getName(),
+                                judoPrincipal != null ? judoPrincipal.getRealm() : null,
+                                judoPrincipal != null ? judoPrincipal.getClient() : null,
+                                judoPrincipal != null ? judoPrincipal.getAttributes() : null);
+                    });
+        }
 
         if ((principal instanceof JudoPrincipal) && !exchange.containsKey(Dispatcher.ACTOR_KEY) && checkMappedActors) {
             final Optional<Payload> actor = authenticateByPrincipal((JudoPrincipal) principal);

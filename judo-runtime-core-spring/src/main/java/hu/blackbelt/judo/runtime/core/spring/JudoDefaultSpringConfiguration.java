@@ -300,6 +300,7 @@ public class JudoDefaultSpringConfiguration {
                 .dao(dao)
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
+                .authenticationInterceptorProvider(authenticationInterceptorProvider)
                 .build();
     }
 
