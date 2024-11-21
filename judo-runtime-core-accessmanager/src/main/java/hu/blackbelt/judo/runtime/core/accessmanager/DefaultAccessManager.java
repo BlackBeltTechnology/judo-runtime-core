@@ -38,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
+import java.security.Principal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -92,8 +93,8 @@ public class DefaultAccessManager implements AccessManager {
             throw new IllegalStateException("Unsupported principal");
         }
 
-        final JudoPrincipal principal = exchange.get(Dispatcher.PRINCIPAL_KEY) != null ? (JudoPrincipal) exchange.get(Dispatcher.PRINCIPAL_KEY) : null;
-        final String actorFqName = principal != null ? principal.getClient() : null;
+        final Principal principal = exchange.get(Dispatcher.PRINCIPAL_KEY) != null ? (Principal) exchange.get(Dispatcher.PRINCIPAL_KEY) : null;
+        final String actorFqName = principal != null && principal instanceof  JudoPrincipal ? ((JudoPrincipal) principal).getClient() : null;
 
         final boolean exposedForPublicOrTokenActor = AsmUtils.getExtensionAnnotationListByName(operation, "exposedBy").stream()
                 .anyMatch(a -> publicActors.contains(a.getDetails().get("value")) || Objects.equals(actorFqName, a.getDetails().get("value")));
@@ -131,21 +132,23 @@ public class DefaultAccessManager implements AccessManager {
         }
 
         if (authenticationInterceptorProvider != null && principal != null) {
+
+            JudoPrincipal judoPrincipal = principal instanceof JudoPrincipal ? (JudoPrincipal) principal : null;
             authenticationInterceptorProvider.getAuthenticationInterceptors().stream()
                     .filter(authenticationInterceptor -> authenticationInterceptor.isSuitableForOperation(
                             operation,
                             principal.getName(),
-                            principal.getRealm(),
-                            principal.getClient(),
-                            principal.getAttributes()))
+                            judoPrincipal != null ? judoPrincipal.getRealm() : null,
+                            judoPrincipal != null ? judoPrincipal.getClient(): null,
+                            judoPrincipal != null ? judoPrincipal.getAttributes() : null))
                     .forEach(authenticationInterceptor -> {
                         authenticationInterceptor.success(operation,
                                 signedIdentifier,
                                 exchange,
                                 principal.getName(),
-                                principal.getRealm(),
-                                principal.getClient(),
-                                principal.getAttributes());
+                                judoPrincipal != null ? judoPrincipal.getRealm() : null,
+                                judoPrincipal != null ? judoPrincipal.getClient() : null,
+                                judoPrincipal != null ? judoPrincipal.getAttributes() : null);
                     });
         }
 
