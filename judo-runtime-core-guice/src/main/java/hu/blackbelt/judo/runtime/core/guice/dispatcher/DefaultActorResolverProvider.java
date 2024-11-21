@@ -26,6 +26,7 @@ import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
+import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 
@@ -45,6 +46,9 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     @Inject
     DataTypeManager dataTypeManager;
 
+    @Inject
+    AuthenticationInterceptorProvider authenticationInterceptorProvider;
+
     @Inject(optional = true)
     @Named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS)
     @Nullable
@@ -58,6 +62,7 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
                 .dao(dao)
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
+                .authenticationInterceptorProvider(authenticationInterceptorProvider)
                 .build();
     }
 }
