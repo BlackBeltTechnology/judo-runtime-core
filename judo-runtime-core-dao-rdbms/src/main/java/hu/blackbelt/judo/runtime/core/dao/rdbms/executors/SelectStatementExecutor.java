@@ -93,6 +93,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     private final DataTypeManager dataTypeManager;
     private final int chunkSize;
     private final AsmUtils asmUtils;
+    private final int maximumRecursionCount;
 
     @Builder
     public SelectStatementExecutor(@NonNull final AsmModel asmModel,
@@ -105,13 +106,16 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                    @NonNull final IdentifierProvider<ID> identifierProvider,
                                    @NonNull final RdbmsBuilder<ID> rdbmsBuilder,
                                    @NonNull final MetricsCollector metricsCollector,
-                                   @NonNull final Integer chunkSize) {
+                                   @NonNull final Integer chunkSize,
+                                   @NonNull final Integer maximumRecursionCount) {
+
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, dataTypeManager.getCoercer(),
                 identifierProvider);
         this.queryFactory = queryFactory;
         this.dataTypeManager = dataTypeManager;
         this.metricsCollector = metricsCollector;
         this.chunkSize = chunkSize;
+        this.maximumRecursionCount = Objects.requireNonNullElse(maximumRecursionCount, 3);
 
         asmUtils = new AsmUtils(asmModel.getResourceSet());
 
@@ -266,7 +270,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             queryCustomizer != null ? queryCustomizer.getSeek() : null,
                             queryCustomizer != null && queryCustomizer.isWithoutFeatures(),
                             queryCustomizer != null ? queryCustomizer.getMask() : null,
-                            queryCustomizer != null ? queryCustomizer.getParameters() : null, true).getResultSet();
+                            queryCustomizer != null ? queryCustomizer.getParameters() : null, true, new Stack<>()).getResultSet();
 
             final Collection<Payload> ret = result.get(select.getMainTarget()).values();
             if (queryCustomizer != null &&
@@ -342,7 +346,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             final Map<Target, Map<ID, Payload>> results =
                     runQuery(jdbcTemplate, subSelect, false,null, null, Collections.emptyList(), null,
-                            false, Collections.singletonMap(attribute.getName(), true), parameters, true).getResultSet();
+                            false, Collections.singletonMap(attribute.getName(), true), parameters, true, new Stack<>()).getResultSet();
 
             final Collection<Payload> resultSet = results.get(subSelect.getSelect().getMainTarget()).values();
             checkArgument(resultSet != null && resultSet.size() == 1, "Invalid result set");
@@ -437,7 +441,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             queryCustomizer != null ? queryCustomizer.getSeek() : null,
                             queryCustomizer != null ? queryCustomizer.isWithoutFeatures() : false,
                             queryCustomizer != null ? queryCustomizer.getMask() : null,
-                            queryCustomizer != null ? queryCustomizer.getParameters() : null, true)
+                            queryCustomizer != null ? queryCustomizer.getParameters() : null, true, new Stack<>())
                             .getResultSet();
 
             final Target subQueryTarget = query.getSelect().getMainTarget();
@@ -693,7 +697,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final boolean withoutFeatures,
             final Map<String, Object> mask,
             final Map<String, Object> queryParameters,
-            final boolean skipParents
+            final boolean skipParents,
+            final Stack<SubSelect> subSelectStack
     ) {
 
         // get JDBC result set and process the records
@@ -797,7 +802,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     resultSet = jdbcTemplate.queryForList(sql, sqlParameters);
                 }
                 try (MetricsCancelToken ct = metricsCollector.start(METRICS_SELECT_PROCESSING)) {
-                    mapResults(results, jdbcTemplate, query, resultSet, chunk, mask, referenceChain, withoutFeatures, queryParameters);
+                    mapResults(results, jdbcTemplate, query, resultSet, chunk, mask, referenceChain, withoutFeatures, queryParameters, subSelectStack);
                 }
             }
         };
@@ -815,7 +820,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             final Map<String, Object> mask,
                             final List<EReference> referenceChain,
                             final boolean withoutFeatures,
-                            final Map<String, Object> queryParameters
+                            final Map<String, Object> queryParameters,
+                            final Stack<SubSelect> subSelectStack
                             ) {
         // key used to identify parent instance in subselects
         final String parentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
@@ -1009,10 +1015,16 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         if (!withoutFeatures) {
             metaCache.getSingleEmbeddedReferences().stream()
                     .forEach(e -> e.getValue().stream()
-                            .forEach(subSelect ->
+                            .forEach(subSelect -> {
+                                long cnt = subSelectStack.stream().filter(s -> s == subSelect).count();
+                                if (cnt < maximumRecursionCount) {
+                                    subSelectStack.push(subSelect);
                                     runSubQuery(jdbcTemplate, query,  subSelect, e.getKey(), results,
                                             mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
-                                            queryParameters)));
+                                            queryParameters, subSelectStack);
+                                    subSelectStack.pop();
+                                }
+                            }));
         }
 
         if (log.isTraceEnabled()) {
@@ -1114,7 +1126,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 false,
                 new HashMap<>(),
                 queryParameters,
-                true).getCount();
+                true, new Stack<>()).getCount();
     }
 
     private void runSubQuery(final NamedParameterJdbcTemplate jdbcTemplate,
@@ -1123,7 +1135,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                              final List<EReference> referenceChain,
                              final Map<Target, Map<ID, Payload>> results,
                              final Map<String, Object> mask,
-                             final Map<String, Object> queryParameters) {
+                             final Map<String, Object> queryParameters,
+                             final Stack<SubSelect> subSelectStack) {
         checkArgument(subSelect.getTransferRelation() != null,
                 "SubSelect must have transfer relation");
 
@@ -1148,10 +1161,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                         (Objects.equals(subSelect.getBase(), query.getSelect()) ||
                                 query.getSelect().getAllJoins().contains(subSelect.getBase())) &&
                                 subSelect.getLimit() == null) {
-                    executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, ids, mask, queryParameters);
+                    executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, ids, mask, queryParameters, subSelectStack);
                 } else {
                     ids.forEach(id -> executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results,
-                            Collections.singleton(id), mask, queryParameters));
+                            Collections.singleton(id), mask, queryParameters, subSelectStack));
                 }
             }
         } else {
@@ -1167,14 +1180,15 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                  final Map<Target, Map<ID, Payload>> results,
                                  final Collection<ID> ids,
                                  final Map<String, Object> mask,
-                                 final Map<String, Object> queryParameters) {
+                                 final Map<String, Object> queryParameters,
+                                 final Stack<SubSelect> subSelectStack) {
         if (log.isTraceEnabled()) {
             log.trace("  IDs: {}", ids);
         }
 
         // map storing subquery results, it will be filled by recursive call
         final Map<Target, Map<ID, Payload>> subQueryResults =
-                runQuery(jdbcTemplate, subSelect, false, null, ids, newReferenceChain, null, false, mask, queryParameters, false)
+                 runQuery(jdbcTemplate, subSelect, false, null, ids, newReferenceChain, null, false, mask, queryParameters, false, subSelectStack)
                         .getResultSet();
 
         if (log.isDebugEnabled()) {
