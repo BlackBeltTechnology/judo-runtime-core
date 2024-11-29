@@ -20,8 +20,17 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.query.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import hu.blackbelt.judo.meta.query.Filter;
+import hu.blackbelt.judo.meta.query.Join;
+import hu.blackbelt.judo.meta.query.Node;
+import hu.blackbelt.judo.meta.query.SubSelect;
+import hu.blackbelt.judo.meta.query.SubSelectFeature;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
@@ -33,14 +42,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.UniqueEList;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.getParentIdColumnAlias;
 
@@ -64,7 +66,7 @@ public class FilterJoinProcessor {
             log.trace(builderContext.toString());
         }
 
-        if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
+        if (joins.stream().noneMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
             joins.add(RdbmsTableJoin.builder()
                     .tableName(rdbmsBuilder.getTableName(filter.getType()))
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
