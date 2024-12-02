@@ -20,8 +20,19 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.query.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+
+import hu.blackbelt.judo.meta.query.Filter;
+import hu.blackbelt.judo.meta.query.Join;
+import hu.blackbelt.judo.meta.query.Node;
+import hu.blackbelt.judo.meta.query.ReferencedJoin;
+import hu.blackbelt.judo.meta.query.Select;
+import hu.blackbelt.judo.meta.query.SubSelect;
+import hu.blackbelt.judo.meta.query.SubSelectFeature;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
@@ -33,14 +44,8 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.RdbmsTableJoin;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.ECollections;
 import org.eclipse.emf.common.util.UniqueEList;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.getParentIdColumnAlias;
 
@@ -64,7 +69,7 @@ public class FilterJoinProcessor {
             log.trace(builderContext.toString());
         }
 
-        if (!joins.stream().anyMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
+        if (joins.stream().noneMatch(j -> Objects.equals(filter.getAlias(), j.getAlias()))) {
             joins.add(RdbmsTableJoin.builder()
                     .tableName(rdbmsBuilder.getTableName(filter.getType()))
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
@@ -104,22 +109,36 @@ public class FilterJoinProcessor {
                                     .build()
                     ));
                     processedNodesForJoins.add(join);
-                };
+                }
 
-                List<Join> filterFeaturesNoProcessed = filter.getFeature().getNodes().stream()
-                        .filter(n -> !processedNodesForJoins.contains(n) && !Objects.equals(n, filter) && n instanceof Join)
-                        .flatMap(n -> ((Join) n).getAllJoins().stream())
-                        .collect(Collectors.toList());
+                List<Join> filterFeaturesNotProcessed =
+                        filter.getFeature().getNodes().stream()
+                              .filter(n -> !processedNodesForJoins.contains(n) && !Objects.equals(n, filter) && n instanceof Join)
+                              .flatMap(n -> ((Join) n).getAllJoins().stream())
+                              .collect(Collectors.toList());
 
-                for (Join join : filterFeaturesNoProcessed) {
+                for (Join join : filterFeaturesNotProcessed) {
+                    Join joinToUse;
+                    if (join instanceof ReferencedJoin && filter.eContainer() instanceof Select selectOfFilter && selectOfFilter.eContainer() == null) {
+                        // these joins are presumably added by the filters defined in query customizer
+                        Join newJoin = EcoreUtil.copy(join);
+                        newJoin.setPartner(filter);
+                        joinToUse = newJoin;
+                    } else {
+                        joinToUse = join;
+                    }
+
                     joins.addAll(rdbmsBuilder.processJoin(
                             JoinProcessParameters.builder()
-                                    .builderContext(builderContext)
-                                    .join(join)
-                                    .build()
+                                                 .builderContext(builderContext)
+                                                 .join(joinToUse)
+                                                 .build()
                     ));
-                    processedNodesForJoins.add(join);
-                };
+                    processedNodesForJoins.add(joinToUse);
+                    if (!joinToUse.equals(join)) {
+                        processedNodesForJoins.add(join);
+                    }
+                }
             }
         }
 
