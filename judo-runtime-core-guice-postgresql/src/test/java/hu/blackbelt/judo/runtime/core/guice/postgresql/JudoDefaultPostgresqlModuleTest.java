@@ -20,6 +20,12 @@ package hu.blackbelt.judo.runtime.core.guice.postgresql;
  * #L%
  */
 
+import com.github.dockerjava.api.command.CreateContainerCmd;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
+import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.reactor.Command;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
@@ -50,16 +56,18 @@ import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 import org.junit.jupiter.api.*;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.images.builder.dockerfile.traits.CmdStatementTrait;
 
 import java.net.ServerSocket;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
 
 import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class JudoDefaultpostgresqlModuleTest {
+class JudoDefaultPostgresqlModuleTest {
 
     @SuppressWarnings("rawtypes")
     @Inject
@@ -82,13 +90,17 @@ class JudoDefaultpostgresqlModuleTest {
     void init() throws Exception {
         ServerSocket serverSocket = new ServerSocket(0);
         int port = serverSocket.getLocalPort();
+        serverSocket.close();
 
         sqlContainer =
-                (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest")
+                (PostgreSQLContainer) new PostgreSQLContainer("postgres:16-alpine")
+                        .withDatabaseName("test")
+                        .withUsername("test")
+                        .withDatabaseName("test")
                         .withExposedPorts(port)
-                        .withStartupTimeout(Duration.ofSeconds(600));
-//                                .withEnv("TZ", "GMT")
-//                                .withEnv("PGTZ", "GMT");
+                        .withAccessToHost(true)
+                        .withStartupTimeout(Duration.ofSeconds(10));
+        sqlContainer.setPortBindings(Arrays.asList(port + ":" + 5432));
         sqlContainer.start();
 
         AsmModel asmModel = AsmModel.buildAsmModel()
