@@ -21,9 +21,8 @@ package hu.blackbelt.judo.runtime.core.guice.postgresql;
  */
 
 import com.google.inject.*;
-import com.google.inject.name.Names;
+import com.google.inject.Module;
 import com.google.inject.util.Modules;
-import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
@@ -44,8 +43,7 @@ import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelReso
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.guice.JudoDefaultModule;
 import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
-import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql.JudoPostgresqlModules;
-import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql.PostgresqlDataSourceProvider;
+import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql.JudoPostgresqlModule;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
@@ -53,6 +51,7 @@ import org.junit.jupiter.api.*;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.net.ServerSocket;
 import java.time.Duration;
 import java.util.HashMap;
 
@@ -81,10 +80,13 @@ class JudoDefaultpostgresqlModuleTest {
     @SuppressWarnings({ "rawtypes", "resource" })
     @BeforeEach
     void init() throws Exception {
-
+        ServerSocket serverSocket = new ServerSocket(0);
+        int port = serverSocket.getLocalPort();
 
         sqlContainer =
-                (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600));
+                (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest")
+                        .withExposedPorts(port)
+                        .withStartupTimeout(Duration.ofSeconds(600));
 //                                .withEnv("TZ", "GMT")
 //                                .withEnv("PGTZ", "GMT");
         sqlContainer.start();
@@ -133,23 +135,29 @@ class JudoDefaultpostgresqlModuleTest {
                 .trace(new HashMap<>())
                 .build();
 
-        injector = Guice.createInjector(
-                Modules.override(JudoPostgresqlModules.builder().build()).with(binder -> {
-                    binder.bind(Integer.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PORT)).toInstance(sqlContainer.getMappedPort(5432));
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_HOST)).toInstance(sqlContainer.getHost());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_USER)).toInstance(sqlContainer.getUsername());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(sqlContainer.getPassword());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(sqlContainer.getDatabaseName());
-                }),
-                new JudoDefaultModule(this,
+        Module judoModule = JudoDefaultModule.builder()
+                .injectModulesTo(this)
+                .judoModelLoader(
                         JudoModelLoader.builder()
-                            .asmModel(asmModel)
-                            .rdbmsModel(rdbmsModel)
-                            .measureModel(measureModel)
-                            .expressionModel(expressionModel)
-                            .liquibaseModel(liquibaseModel)
-                            .asm2rdbms(asm2rdbms)
-                            .build()));
+                                .asmModel(asmModel)
+                                .rdbmsModel(rdbmsModel)
+                                .measureModel(measureModel)
+                                .expressionModel(expressionModel)
+                                .liquibaseModel(liquibaseModel)
+                                .asm2rdbms(asm2rdbms)
+                                .build())
+                .build();
+
+        Module postgreModule = JudoPostgresqlModule.builder()
+                .databaseName(sqlContainer.getUsername())
+                .host(sqlContainer.getHost())
+                .user(sqlContainer.getUsername())
+                .password(sqlContainer.getPassword())
+                .port((Integer) sqlContainer.getExposedPorts().get(0))
+                .build();
+
+        Module application = Modules.combine(judoModule, postgreModule);
+        injector = Guice.createInjector(application);
 
         log.info("DAO: " + dao);
         log.info("Sequence: " + sequence);

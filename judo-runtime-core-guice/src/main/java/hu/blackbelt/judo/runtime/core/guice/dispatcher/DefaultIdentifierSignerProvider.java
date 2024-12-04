@@ -29,13 +29,12 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultIdentifierSigner;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
+import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
 
 import javax.annotation.Nullable;
 
 @SuppressWarnings("rawtypes")
 public class DefaultIdentifierSignerProvider implements Provider<IdentifierSigner> {
-
-    public static final String IDENTIFIER_SIGNER_SECRET = "identifierSignerSecret";
 
     @Inject
     AsmModel asmModel;
@@ -47,7 +46,7 @@ public class DefaultIdentifierSignerProvider implements Provider<IdentifierSigne
     IdentifierProvider identifierProvider;
 
     @Inject(optional = true)
-    @Named(IDENTIFIER_SIGNER_SECRET)
+    @JudoModuleConfiguration.IdentifierSignerSecret
     @Nullable
     String secret;
 

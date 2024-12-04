@@ -31,6 +31,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
+import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 
@@ -39,8 +40,6 @@ import javax.inject.Provider;
 
 @SuppressWarnings("rawtypes")
 public class SelectStatementExecutorProvider implements Provider<SelectStatementExecutor> {
-
-    public static final String SELECT_CHUNK_SIZE = "rdbmsDaoChunkSize";
 
     @Inject
     AsmModel asmModel;
@@ -73,7 +72,7 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
     RdbmsResolver rdbmsResolver;
 
     @Inject(optional = true)
-    @Named(SELECT_CHUNK_SIZE)
+    @JudoModuleConfiguration.RdbmsDaoChunkSize
     @Nullable
     private Integer chunkSize = 1000;
 

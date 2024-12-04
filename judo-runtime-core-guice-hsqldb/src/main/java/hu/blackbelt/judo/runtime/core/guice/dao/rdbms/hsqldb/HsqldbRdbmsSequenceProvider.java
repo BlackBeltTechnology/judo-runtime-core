@@ -25,6 +25,7 @@ import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsSequence;
+import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -38,17 +39,17 @@ public class HsqldbRdbmsSequenceProvider implements Provider<Sequence> {
     private DataSource dataSource;
 
     @Inject(optional = true)
-    @Named(RDBMS_SEQUENCE_START)
+    @JudoModuleConfiguration.RdbmsSequenceStart
     @Nullable
     Long start = 1L;
 
     @Inject(optional = true)
-    @Named(RDBMS_SEQUENCE_INCREMENT)
+    @JudoModuleConfiguration.RdbmsSequenceIncrement
     @Nullable
     Long increment = 1L;
 
     @Inject(optional = true)
-    @Named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)
+    @JudoModuleConfiguration.RdbmsSequenceCreateIfNotExists
     @Nullable
     Boolean createIfNotExists = true;
 

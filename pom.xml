@@ -528,6 +528,7 @@
                 <module>judo-runtime-core-security</module>
                 <module>judo-runtime-core-security-keycloak</module>
                 <module>judo-runtime-core-security-keycloak-cxf</module>
+                <module>judo-runtime-core-jaxrs-cxf-server</module>
                 <module>judo-runtime-core-jackson</module>
                 <module>judo-runtime-core-jaxrs</module>
                 <module>judo-runtime-core-jaxrs-cxf</module>
@@ -535,6 +536,7 @@
                 <module>judo-runtime-core-guice</module>
                 <module>judo-runtime-core-guice-hsqldb</module>
                 <module>judo-runtime-core-guice-postgresql</module>
+                <module>judo-runtime-core-guice-cxf</module>
                 <module>judo-runtime-core-dependencies</module>
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>

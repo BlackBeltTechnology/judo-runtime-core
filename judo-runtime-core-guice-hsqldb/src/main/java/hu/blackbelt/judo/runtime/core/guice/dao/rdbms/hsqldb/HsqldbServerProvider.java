@@ -33,23 +33,20 @@ import java.nio.file.Files;
 
 public class HsqldbServerProvider implements Provider<Server> {
 
-    public static final String HSQLDB_SERVER_DATABASE_NAME = "hsqldbServerDatabaseName";
-    public static final String HSQLDB_SERVER_DATABASE_PATH = "hsqldbServerDatabasePath";
-    public static final String HSQLDB_SERVER_PORT = "hsqldbServerPort";
 
 
     @Inject(optional = true)
-    @Named(HSQLDB_SERVER_DATABASE_NAME)
+    @HsqlDbConfiguration.HsqldbServerDatabaseName
     @Nullable
     private String databaseName;
 
     @Inject(optional = true)
-    @Named(HSQLDB_SERVER_DATABASE_PATH)
+    @HsqlDbConfiguration.HsqldbServerDatabasePath
     @Nullable
     private File databasePath;
 
     @Inject(optional = true)
-    @Named(HSQLDB_SERVER_PORT)
+    @HsqlDbConfiguration.HsqldbServerPort
     @Nullable
     private Integer port;
 

@@ -22,7 +22,6 @@ package hu.blackbelt.judo.runtime.core.guice.dispatcher;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
@@ -38,6 +37,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.Export;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
+import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
@@ -48,11 +48,6 @@ import javax.annotation.Nullable;
 
 @SuppressWarnings("rawtypes")
 public class DefaultDispatcherProvider implements Provider<Dispatcher> {
-
-    public static final String DISPATCHER_METRICS_RETURNED = "dispatcherMetricsReturned";
-    public static final String DISPATCHER_ENABLE_VALIDATION = "dispatcherEnableDefaultValidation";
-    public static final String DISPATCHER_TRIM_STRING = "dispatcherTrimString";
-    public static final String DISPATCHER_CASE_INSENSITIVE_LIKE = "dispatcherCaseInsensitiveLike";
 
     @Inject
     JudoModelLoader models;
@@ -113,22 +108,22 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     TokenValidator filestoreTokenValidator;
 
     @Inject(optional = true)
-    @Named(DISPATCHER_METRICS_RETURNED)
+    @JudoModuleConfiguration.DispatcherMetricsReturned
     @Nullable
     Boolean metricsReturned;
 
     @Inject(optional = true)
-    @Named(DISPATCHER_ENABLE_VALIDATION)
+    @JudoModuleConfiguration.DispatcherEnableDefaultValidation
     @Nullable
     Boolean enableValidation;
 
     @Inject(optional = true)
-    @Named(DISPATCHER_TRIM_STRING)
+    @JudoModuleConfiguration.DispatcherTrimString
     @Nullable
     Boolean trimString;
 
     @Inject(optional = true)
-    @Named(DISPATCHER_CASE_INSENSITIVE_LIKE)
+    @JudoModuleConfiguration.DispatcherCaseInsensitiveLike
     @Nullable
     Boolean caseInsensitiveLike;
 

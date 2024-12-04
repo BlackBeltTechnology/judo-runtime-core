@@ -19,17 +19,12 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb;
  * SPDX-License-Identifier: EPL-2.0 OR GPL-2.0 WITH Classpath-exception-2.0
  * #L%
  */
-
-import static hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.HsqldbServerProvider.HSQLDB_SERVER_DATABASE_NAME;
-import static hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.HsqldbServerProvider.HSQLDB_SERVER_DATABASE_PATH;
-import static hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.HsqldbServerProvider.HSQLDB_SERVER_PORT;
-
 import java.io.File;
 
 import javax.sql.DataSource;
 
+import com.google.inject.AbstractModule;
 import com.google.inject.util.Providers;
-import hu.blackbelt.judo.runtime.core.guice.JudoModule;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import lombok.Builder;
 import org.hsqldb.server.Server;
@@ -43,13 +38,12 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 
-public class JudoHsqldbModules extends JudoModule {
+public class JudoHsqldbModules extends AbstractModule {
 
     private Boolean runServer = false;
     private String databaseName = "judo";
     private File databasePath = new File(".", "judo.db");
     private Integer port = 31001;
-
 
     public static class JudoHsqldbModulesBuilder {
         private Boolean runServer = false;
@@ -67,45 +61,43 @@ public class JudoHsqldbModules extends JudoModule {
     protected void configure() {
         super.configure();
 
+        configureDialect();
+        configureMapperFactory();
+        configureRdbmsParameterMapper();
+        configureDataSource();
+        configureSequence();
+        configureRdbmsInit();
+        configureServer();
+    }
+    protected void configureServer() {
         // HSQLDB
         if (runServer) {
             bind(Server.class).toProvider(HsqldbServerProvider.class).in(Singleton.class);
         } else {
             bind(Server.class).toProvider(Providers.of(null)).in(Singleton.class);
         }
-
-        bind(String.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_NAME)).toInstance(databaseName);
-        bind(File.class).annotatedWith(Names.named(HSQLDB_SERVER_DATABASE_PATH)).toInstance(databasePath);
-        bind(Integer.class).annotatedWith(Names.named(HSQLDB_SERVER_PORT)).toInstance(port);
     }
 
-
-    @Override
     protected void configureDialect() {
         bind(Dialect.class).toInstance(new HsqldbDialect());
     }
 
-    @Override
     protected void configureMapperFactory() {
         bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);
     }
 
-    @Override
     protected void configureRdbmsParameterMapper() {
         bind(RdbmsParameterMapper.class).toProvider(HsqldbRdbmsParameterMapperProvider.class).in(Singleton.class);
     }
 
-    @Override
     protected void configureDataSource() {
         bind(DataSource.class).toProvider(HsqldbDataSourceProvider.class).in(Singleton.class);
     }
 
-    @Override
     protected void configureSequence() {
         bind(Sequence.class).toProvider(HsqldbRdbmsSequenceProvider.class).in(Singleton.class);
     }
 
-    @Override
     protected void configureRdbmsInit() {
         bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
     }
