@@ -21,6 +21,8 @@ package hu.blackbelt.judo.runtime.core.guice.hsqldb;
  */
 
 import com.google.inject.*;
+import com.google.inject.Module;
+import com.google.inject.util.Modules;
 import org.slf4j.Logger;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.dao.api.DAO;
@@ -116,17 +118,25 @@ class JudoDefaultHsqldbModuleTest {
                 .trace(new HashMap<>())
                 .build();
 
-        injector = Guice.createInjector(
-                JudoHsqldbModules.builder().build(),
-                new JudoDefaultModule(this,
+        Module hsqlDbModule = JudoHsqldbModules.builder()
+                .build();
+
+        Module judoModule = JudoDefaultModule.builder()
+                .injectModulesTo(this)
+                .judoModelLoader(
                         JudoModelLoader.builder()
-                            .asmModel(asmModel)
-                            .rdbmsModel(rdbmsModel)
-                            .measureModel(measureModel)
-                            .expressionModel(expressionModel)
-                            .liquibaseModel(liquibaseModel)
-                            .asm2rdbms(asm2rdbms)
-                            .build()));
+                                .asmModel(asmModel)
+                                .rdbmsModel(rdbmsModel)
+                                .measureModel(measureModel)
+                                .expressionModel(expressionModel)
+                                .liquibaseModel(liquibaseModel)
+                                .asm2rdbms(asm2rdbms)
+                                .build())
+                .build();
+
+        Module application = Modules.combine(judoModule, hsqlDbModule);
+
+        injector = Guice.createInjector(application);
 
         log.info("DAO: " + dao);
         log.info("Sequence: " + sequence);

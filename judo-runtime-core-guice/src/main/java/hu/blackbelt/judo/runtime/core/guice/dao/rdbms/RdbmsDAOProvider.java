@@ -33,6 +33,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsDAOImpl;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
+import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 
 import javax.annotation.Nullable;
@@ -40,9 +41,6 @@ import javax.sql.DataSource;
 
 @SuppressWarnings("rawtypes")
 public class RdbmsDAOProvider implements Provider<DAO> {
-    public static final String RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED = "rdbmsDaoOptimisticLockEnabled";
-    public static final String RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS = "rdbmsDaoMarkSelectedRangeItems";
-
 
     // Force execute liquibase database creation
     @SuppressWarnings("unused")
@@ -77,12 +75,12 @@ public class RdbmsDAOProvider implements Provider<DAO> {
     private QueryFactory queryFactory;
 
     @Inject(optional = true)
-    @Named(RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED)
+    @JudoModuleConfiguration.RdbmsDaoOptimisticLockEnabled
     @Nullable
     private Boolean optimisticLockEnabled = true;
 
     @Inject(optional = true)
-    @Named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)
+    @JudoModuleConfiguration.RdbmsDaoMarkSelectedRangeItems
     @Nullable
     private Boolean markSelectedRangeItems = false;
 

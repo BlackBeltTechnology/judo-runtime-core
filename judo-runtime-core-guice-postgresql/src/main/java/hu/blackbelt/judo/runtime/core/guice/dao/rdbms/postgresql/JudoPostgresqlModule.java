@@ -22,11 +22,11 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql;
 
 
 import javax.sql.DataSource;
+
+import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
-import com.google.inject.name.Names;
 
 import hu.blackbelt.judo.dispatcher.api.Sequence;
-import hu.blackbelt.judo.runtime.core.guice.JudoModule;
 import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.PlatformTransactionManagerProvider;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
@@ -36,7 +36,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
 import lombok.Builder;
 import org.springframework.transaction.PlatformTransactionManager;
 
-public class JudoPostgresqlModules extends JudoModule {
+public class JudoPostgresqlModule extends AbstractModule {
 
     String host = "localhost";
     Integer port = 5432;
@@ -45,7 +45,7 @@ public class JudoPostgresqlModules extends JudoModule {
     String databaseName = "judo";
     Integer poolSize = 10;
 
-    public static class JudoPostgresqlModulesBuilder {
+    public static class JudoPostgresqlModuleBuilder {
         String host = "localhost";
         Integer port = 5432;
         String user = "judo";
@@ -55,7 +55,7 @@ public class JudoPostgresqlModules extends JudoModule {
     }
 
     @Builder
-    private JudoPostgresqlModules(String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
+    private JudoPostgresqlModule(String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
         this.host = host;
         this.port = port;
         this.user = user;
@@ -63,43 +63,51 @@ public class JudoPostgresqlModules extends JudoModule {
         this.databaseName = databaseName;
         this.poolSize = poolSize;
     }
+    protected void configure() {
+        configureDialect();
+        configurePlatformTransactionManager();
+        configureOptions();
+        configureDataSource();
+        configureMapperFactory();
+        configureRdbmsInit();
+        configureRdbmsParameterMapper();
+        configureSequence();
+    }
 
-    @Override
+
     protected void configureDialect() {
         bind(Dialect.class).toInstance(new PostgresqlDialect());
     }
 
-    @Override
+    protected void configureOptions() {
+        bind(Integer.class).annotatedWith(PostgresqlConfiguration.PostgresqlPort.class).toInstance(port);
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlHost.class).toInstance(host);
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlUser.class).toInstance(user);
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlPassword.class).toInstance(password);
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlDatabaseName.class).toInstance(databaseName);
+    }
+
+
     protected void configureMapperFactory() {
         bind(MapperFactory.class).toProvider(PostgresqlMapperFactoryProvider.class).in(Singleton.class);
     }
 
-    @Override
     protected void configureRdbmsParameterMapper() {
         bind(RdbmsParameterMapper.class).toProvider(PostgresqlRdbmsParameterMapperProvider.class).in(Singleton.class);
     }
 
-    @Override
     protected void configureDataSource() {
         bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
     }
 
-    @Override
     protected void configureSequence() {
         bind(Sequence.class).toProvider(PostgresqlRdbmsSequenceProvider.class).in(Singleton.class);
     }
 
-    @Override
-    protected void configureTransactionManager() {
-        bind(Integer.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PORT)).toInstance(port);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_HOST)).toInstance(host);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_USER)).toInstance(user);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(password);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(databaseName);
+    protected void configurePlatformTransactionManager() {
         bind(PlatformTransactionManager.class).toProvider(new PlatformTransactionManagerProvider()).in(Singleton.class);
     }
 
-    @Override
     protected void configureRdbmsInit() {
         bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
     }

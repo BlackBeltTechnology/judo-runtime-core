@@ -32,38 +32,30 @@ import java.nio.file.Files;
 
 public class PostgresqlDataSourceProvider implements Provider<DataSource> {
 
-    public static final String POSTGRESQL_PORT = "postgresqlPort";
-    public static final String POSTGRESQL_HOST = "postgresqlHost";
-    public static final String POSTGRESQL_USER = "postgresqlUser";
-    public static final String POSTGRESQL_PASSWORD = "postgresqlPassword";
-    public static final String POSTGRESQL_DATABASENAME = "postgresqlDatabaseName";
-
 
     @Inject
-    @Named(POSTGRESQL_PORT)
+    @PostgresqlConfiguration.PostgresqlPort
     public Integer port = 5432;
 
     @Inject
-    @Named(POSTGRESQL_HOST)
+    @PostgresqlConfiguration.PostgresqlHost
     public String host = "localhost";
 
     @Inject
-    @Named(POSTGRESQL_USER)
+    @PostgresqlConfiguration.PostgresqlUser
     public String user;
 
     @Inject
-    @Named(POSTGRESQL_PASSWORD)
+    @PostgresqlConfiguration.PostgresqlPassword
     public String password;
 
     @Inject
-    @Named(POSTGRESQL_DATABASENAME)
+    @PostgresqlConfiguration.PostgresqlDatabaseName
     public String databaseName;
 
 
     @Override
     public DataSource get() {
-
-
         PGSimpleDataSource ds = new PGSimpleDataSource();
         ds.setUrl("jdbc:postgresql://" + host + ":" + port + "/" + databaseName);
         ds.setUser(user);
