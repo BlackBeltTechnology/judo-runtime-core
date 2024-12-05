@@ -4,7 +4,11 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.endpoint.Server;
+import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
+import org.apache.cxf.metrics.MetricsFeature;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
 
 import javax.annotation.Nullable;
 import javax.ws.rs.ApplicationPath;
@@ -12,6 +16,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.ext.RuntimeDelegate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Slf4j
@@ -25,6 +30,8 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
     }
 
     private static final String APPLICATION_PATH = "applicationPath";
+    private static final String SKIP_DEFAULT_JSON_PROVIDER_REGISTRATION_KEY = "skip.default.json.provider.registration";
+    private static final String WADL_SERVICE_DESCRIPTION_AVAILABLE_KEY = "wadl.service.description.available";
 
     @Inject(optional = true)
     @CxfConfigurations.CxfJaxRsServerPort
@@ -95,7 +102,6 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
             }
 
             final JAXRSServerFactoryBean serverFactory = delegate.createEndpoint(application, JAXRSServerFactoryBean.class);
-
             String applicationPath = getApplicationPath(application);
             serverFactory.setAddress((cxfJaxRsServerUrl == null ? "http://localhost" : cxfJaxRsServerUrl)
                     + ":"
@@ -148,6 +154,7 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
             if (log.isDebugEnabled()) {
                 log.debug("Starting JAX-RS application, service.id = " + application.getClass().getName());
             }
+
             server.start();
             serverHolder.getServers().put(application, server);
         }
@@ -165,4 +172,100 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
         }
         return applicationPath;
     }
+/*
+    void setupCxfBus() {
+        final Boolean skipDefaultJsonProviderRegistration = false;
+        final Boolean wadlServiceDescriptionAvailable = true;
+        final Boolean newMetricsEnabled = true
+        final Boolean newLoggingEnabled = true
+
+        boolean updated = false;
+        if (skipDefaultJsonProviderRegistration != null) {
+            bus.setProperty(SKIP_DEFAULT_JSON_PROVIDER_REGISTRATION_KEY, skipDefaultJsonProviderRegistration);
+            updated = true;
+        }
+        if (wadlServiceDescriptionAvailable != null && !wadlServiceDescriptionAvailable.equals(newWadlServiceDescriptionAvailable)) {
+            wadlServiceDescriptionAvailable = newWadlServiceDescriptionAvailable;
+            bus.setProperty(WADL_SERVICE_DESCRIPTION_AVAILABLE_KEY, wadlServiceDescriptionAvailable);
+            updated = true;
+        }
+        if (!metricsEnabled.equals(newMetricsEnabled)) {
+            metricsEnabled = newMetricsEnabled;
+            if (metricsEnabled) {
+                bus.getFeatures().add(new MetricsFeature());
+            } else {
+                bus.getFeatures().removeIf(f -> f instanceof MetricsFeature);
+            }
+            updated = true;
+        }
+        if (!loggingEnabled.equals(newMetricsEnabled)) {
+            loggingEnabled = newLoggingEnabled;
+            if (loggingEnabled) {
+                bus.getFeatures().add(new LoggingFeature());
+            } else {
+                bus.getFeatures().removeIf(f -> f instanceof LoggingFeature);
+            }
+            updated = true;
+        }
+
+        final String newInInterceptorsFilter = config.interceptors_in_components();
+        if (!Objects.equals(inInterceptorsFilter, newInInterceptorsFilter)) {
+            log.debug("IN interceptors have been changed");
+            inInterceptorsFilter = newInInterceptorsFilter;
+            updated = true;
+            if (inInterceptorTracker != null) {
+                inInterceptorTracker.close();
+                inInterceptorTracker = null;
+            }
+            if (inInterceptorsFilter != null && !inInterceptorsFilter.trim().isEmpty()) {
+                try {
+                    inInterceptorTracker = new InterceptorTracker(context, inInterceptorsFilter, inInterceptors);
+                    inInterceptorTracker.open();
+                } catch (InvalidSyntaxException ex) {
+                    log.error("Invalid IN interceptor filter, ignore it", ex);
+                }
+            }
+        }
+        final String newOutInterceptorsFilter = config.interceptors_out_components();
+        if (!Objects.equals(outInterceptorsFilter, newOutInterceptorsFilter)) {
+            log.debug("OUT interceptors have been changed");
+            outInterceptorsFilter = newOutInterceptorsFilter;
+            updated = true;
+            if (outInterceptorTracker != null) {
+                outInterceptorTracker.close();
+                outInterceptorTracker = null;
+            }
+            if (outInterceptorsFilter != null && !outInterceptorsFilter.trim().isEmpty()) {
+                try {
+                    outInterceptorTracker = new InterceptorTracker(context, outInterceptorsFilter, outInterceptors);
+                    outInterceptorTracker.open();
+                } catch (InvalidSyntaxException ex) {
+                    log.error("Invalid OUT interceptor filter, ignore it", ex);
+                }
+            }
+        }
+        final String newFaultInterceptorsFilter = config.interceptors_fault_components();
+        if (!Objects.equals(faultInterceptorsFilter, newFaultInterceptorsFilter)) {
+            log.debug("FAULT interceptors have been changed");
+            faultInterceptorsFilter = newFaultInterceptorsFilter;
+            updated = true;
+            if (faultInterceptorTracker != null) {
+                faultInterceptorTracker.close();
+                faultInterceptorTracker = null;
+            }
+            if (faultInterceptorsFilter != null && !faultInterceptorsFilter.trim().isEmpty()) {
+                try {
+                    faultInterceptorTracker = new InterceptorTracker(context, faultInterceptorsFilter, faultInterceptors);
+                    faultInterceptorTracker.open();
+                } catch (InvalidSyntaxException ex) {
+                    log.error("Invalid FAULT interceptor filter, ignore it", ex);
+                }
+            }
+        }
+
+        if (updated) {
+            log.debug("CXF bus registered: {} [{}={}; {}={}]", id, SKIP_DEFAULT_JSON_PROVIDER_REGISTRATION_KEY, skipDefaultJsonProviderRegistration, WADL_SERVICE_DESCRIPTION_AVAILABLE_KEY, wadlServiceDescriptionAvailable);
+        }
+    }
+     */
 }
