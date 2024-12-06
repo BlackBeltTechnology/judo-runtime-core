@@ -45,6 +45,7 @@
         <jackson-version>2.17.2</jackson-version>
         <spring-version>4.3.12.RELEASE</spring-version>
         <cxf-version>3.6.2</cxf-version>
+        <cxf-jetty-version>10.0.24</cxf-jetty-version>
 
         <epsilon-runtime-version>1.5.1.20241202_003816_c9b63ad9_develop</epsilon-runtime-version>
         <judo-tatami-core-version>1.1.4.20241202_041508_e3484451_develop</judo-tatami-core-version>
