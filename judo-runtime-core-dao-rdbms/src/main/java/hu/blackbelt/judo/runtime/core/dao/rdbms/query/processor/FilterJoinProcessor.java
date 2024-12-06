@@ -164,7 +164,7 @@ public class FilterJoinProcessor {
             processedNodesForJoins.add(currentJoin);
             processedNodesForJoins.add(newJoin);
 
-            joinStack.add(newJoin);
+            joinStack.push(newJoin);
             currentNode = currentJoin.getPartner();
         }
 
@@ -185,7 +185,7 @@ public class FilterJoinProcessor {
         while (currentNode instanceof Join currentJoin) {
             processedNodesForJoins.add(currentJoin);
 
-            joinStack.add(currentJoin);
+            joinStack.push(currentJoin);
             currentNode = currentJoin.getPartner();
         }
 
