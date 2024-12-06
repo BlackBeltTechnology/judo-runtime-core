@@ -113,7 +113,7 @@ public class FilterJoinProcessor {
                       .filter(f -> joins.stream().noneMatch(j -> Objects.equals(f.getSubSelect().getAlias(), j.getAlias())))
                       .toList();
 
-        List<RdbmsQueryJoin> subSelectFilterFeaturesQueryJoins =
+        List<RdbmsQueryJoin<ID>> subSelectFilterFeaturesQueryJoins =
                 subSelectFilterFeaturesNotProcessed.stream()
                                                    .map(f -> RdbmsQueryJoin.<ID>builder()
                                                                            .resultSet(RdbmsResultSet.<ID>builder()
