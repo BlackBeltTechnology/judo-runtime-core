@@ -31,7 +31,6 @@ import java.util.stream.Collectors;
 import hu.blackbelt.judo.meta.query.Filter;
 import hu.blackbelt.judo.meta.query.Join;
 import hu.blackbelt.judo.meta.query.Node;
-import hu.blackbelt.judo.meta.query.ReferencedJoin;
 import hu.blackbelt.judo.meta.query.Select;
 import hu.blackbelt.judo.meta.query.SubSelect;
 import hu.blackbelt.judo.meta.query.SubSelectFeature;
@@ -94,10 +93,10 @@ public class FilterJoinProcessor {
                                                       .filter(j -> !processedNodesForJoins.contains(j))
                                                       .flatMap(j -> getPartnerJoins(j).stream())
                                                       .collect(Collectors.toSet());
-                    if (!processedNodesForJoins.contains(join) && !allPartnerJoins.contains(join)) {
-                        // process join tree from the bottom
-                        if (join instanceof ReferencedJoin && filter.eContainer() instanceof Select selectOfFilter && selectOfFilter.eContainer() == null) {
-                            // these joins are presumably added by the filters defined in query customizer
+                    if (!processedNodesForJoins.contains(join) && !allPartnerJoins.contains(join)) { // process join tree from the bottom
+                        if (filter.eContainer() instanceof Select selectOfFilter && selectOfFilter.eContainer() == null) {
+                            // In the case of filters added by the query customizer (not JQL filter expressions), the filter's container is a Select,
+                            // and that Select does not have its own container
                             processJoinTreeForFilter(builderContext, join, processedNodesForJoins, filter, joins, rdbmsBuilder);
                         } else {
                             processExistingJoinTree(builderContext, join, processedNodesForJoins, joins, rdbmsBuilder);

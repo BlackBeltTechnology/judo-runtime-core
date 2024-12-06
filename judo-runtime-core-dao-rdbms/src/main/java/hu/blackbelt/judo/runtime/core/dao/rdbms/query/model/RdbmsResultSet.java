@@ -207,7 +207,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
         joins.addAll(subSelects.stream()
                 .filter(s -> s.getSelect().isAggregated())
-//                 TODO: add required elements to features during query model building OR inject derived related into joins here
+//                 TODO: https://blackbelt.atlassian.net/browse/JNG-6045
+//                  add required elements to features during query model building OR inject derived related into joins here
 //                .filter(s ->
 //                        query.getSelect().getFeatures().stream().anyMatch(f ->
 //                                f.getNodes().stream().anyMatch(n ->
