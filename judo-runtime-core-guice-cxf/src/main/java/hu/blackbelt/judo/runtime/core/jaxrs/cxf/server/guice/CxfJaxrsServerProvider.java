@@ -2,22 +2,33 @@ package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import liquibase.pro.packaged.J;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.cxf.Bus;
+import org.apache.cxf.BusFactory;
+import org.apache.cxf.endpoint.EndpointImpl;
 import org.apache.cxf.endpoint.Server;
 import org.apache.cxf.ext.logging.LoggingFeature;
 import org.apache.cxf.jaxrs.JAXRSServerFactoryBean;
+import org.apache.cxf.jaxrs.utils.ResourceUtils;
 import org.apache.cxf.metrics.MetricsFeature;
+import org.apache.cxf.transport.servlet.CXFServlet;
+import org.apache.cxf.transport.servlet.ServletController;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
+import org.springframework.web.context.ContextLoaderListener;
+import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.web.filter.DelegatingFilterProxy;
 
 import javax.annotation.Nullable;
+import javax.servlet.DispatcherType;
 import javax.ws.rs.ApplicationPath;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.ext.RuntimeDelegate;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.ServerHolder> {
@@ -48,50 +59,62 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
     @Nullable
     private String cxfJaxRsServerPath;
 
+    @Inject(optional = true)
+    @CxfConfigurations.CxfSkipDefaultJsonProviderRegistration
+    @Nullable
+    private Boolean skipDefaultJsonProviderRegistration = false;
+
+    @Inject(optional = true)
+    @CxfConfigurations.CxfWadlServiceDescriptionAvailable
+    @Nullable
+    private Boolean wadlServiceDescriptionAvailable = true;
+
+    @Inject(optional = true)
+    @CxfConfigurations.CxfMetricsEnabled
+    @Nullable
+    private Boolean metricsEnabled = true;
+
+    @Inject(optional = true)
+    @CxfConfigurations.CxfLoggingEnabled
+    @Nullable
+    private Boolean loggingEnabled = true;
+
+
     @Inject
     private Set<Application> applications;
 
     @Override
     public ServerHolder get() {
-        ServerHolder serverHolder = new ServerHolder();
 
         /*
-        JAXRSServerFactoryBean sf = new JAXRSServerFactoryBean();
+        // Register and map the dispatcher servlet
+        final ServletHolder servletHolder = new ServletHolder( new CXFServlet() );
+        final ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath( "/" );
+        context.addServlet( servletHolder, "/rest/*" );
+        context.addEventListener( new ContextLoaderListener() );
 
-        // you need to provide a default configuration
-        JettyHTTPServerEngineFactory serverEngineFactory = sf.getBus().getExtension(JettyHTTPServerEngineFactory.class);
+        context.setInitParameter( "contextClass", AnnotationConfigWebApplicationContext.class.getName() );
+        context.setInitParameter( "contextConfigLocation", AppConfig.class.getName() );
 
-        JettyHTTPServerEngine eng = new JettyHTTPServerEngine();
-        eng.setPort(0); // with the port zero
-        ThreadingParameters defaultThreadingParams = new ThreadingParameters();
-        defaultThreadingParams.setMinThreads(5);
-        defaultThreadingParams.setMaxThreads(10);
-        defaultThreadingParams.setThreadNamePrefix("myjetty");
-        eng.setThreadingParameters(defaultThreadingParams);
-        serverEngineFactory.setEnginesList(Arrays.asList(eng));
+        // Add Spring Security Filter by the name
+        context.addFilter(
+                new FilterHolder( new DelegatingFilterProxy( "springSecurityFilterChain" ) ),
+                "/*", EnumSet.allOf( DispatcherType.class )
+        );
 
-         */
+        Server server = new Server( 8080 );
+        server.setHandler( context );
+        server.start();
 
-        RuntimeDelegate delegate = RuntimeDelegate.getInstance();
-        /*
-        JAXRSServerFactoryBean bean = delegate.createEndpoint(application, JAXRSServerFactoryBean.class);
-        bean.setAddress((cxfServerUrl == null ? "http://localhost" : cxfServerUrl)
-                + ":"
-                + (cxfServerPort == null ? "8080" : cxfServerPort.toString())
-                + (cxfServerPath == null ? "/api" : cxfServerPath)
-                + bean.getAddress());
-
-        Server server = bean.create();
-        return server;
         */
-        /*
-        applications.put(applicationId, application);
-        if (applicationBundle != null) {
-            applicationBundles.put(applicationId, applicationBundle);
-        } else {
-            applicationBundles.remove(applicationId);
-        } */
+        ServerHolder serverHolder = new ServerHolder();
+        JettyContainer jettyContainer = new JettyContainer();
+        ServletContextHandler servletContextHandler = jettyContainer.start(cxfJaxRsServerPort);
+        Bus bus = BusFactory.getThreadDefaultBus();
+        setupCxfBus(bus);
 
+        //RuntimeDelegate delegate = RuntimeDelegate.getInstance();
         for (Application application : applications) {
             final Set<Class<?>> classes = application.getClasses();
             final Set<Object> singletons = application.getSingletons();
@@ -101,15 +124,20 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
                 return null;
             }
 
-            final JAXRSServerFactoryBean serverFactory = delegate.createEndpoint(application, JAXRSServerFactoryBean.class);
+            final JAXRSServerFactoryBean serverFactory = ResourceUtils.createApplication(application, false, false, false, bus);
+
+
+            //delegate.createEndpoint(application, JAXRSServerFactoryBean.class);
             String applicationPath = getApplicationPath(application);
+
+            /*
             serverFactory.setAddress((cxfJaxRsServerUrl == null ? "http://localhost" : cxfJaxRsServerUrl)
                     + ":"
                     + (cxfJaxRsServerPort == null ? "8080" : cxfJaxRsServerPort.toString())
                     + (cxfJaxRsServerPath == null ? "/api" : cxfJaxRsServerPath)
                     + "/"
                     + applicationPath);
-
+            */
 
             /*
             final CxfContext cxfContext;
@@ -150,9 +178,12 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
             applicationProviders.put(applicationId, _providers);
             */
 
+            //Bus bus = BusFactory.getThreadDefaultBus();
+            //serverFactory.setBus(bus);
             final Server server = serverFactory.create();
+
             if (log.isDebugEnabled()) {
-                log.debug("Starting JAX-RS application, service.id = " + application.getClass().getName());
+                log.info("Starting JAX-RS application, service class = " + application.getClass().getName() + " on path: " + applicationPath);
             }
 
             server.start();
@@ -168,64 +199,60 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
         if (application.getClass().isAnnotationPresent(ApplicationPath.class)) {
             ApplicationPath ap = application.getClass().getAnnotation(ApplicationPath.class);
             applicationPath = ap.value();
-            //log.warn("No @ApplicationPath found on component: " + application.getClass().getName());
         }
         return applicationPath;
     }
-/*
-    void setupCxfBus() {
-        final Boolean skipDefaultJsonProviderRegistration = false;
-        final Boolean wadlServiceDescriptionAvailable = true;
-        final Boolean newMetricsEnabled = true
-        final Boolean newLoggingEnabled = true
 
-        boolean updated = false;
+    void setupCxf(Bus bus, ServletContextHandler applicationContext) {
+//        System.setProperty(BusFactory.BUS_FACTORY_PROPERTY_NAME, CXFBusFactory.class.getName());
+//        bus = BusFactory.getDefaultBus(true);
+        final CXFServlet cxfServlet = new CXFServlet();
+        cxfServlet.setBus(bus);
+        final ServletHolder cxfServletHolder = new ServletHolder(cxfServlet);
+        cxfServletHolder.setName(cxfJaxRsServerPath);
+        cxfServletHolder.setForcedPath(cxfJaxRsServerPath);
+        applicationContext.addServlet(cxfServletHolder, "/" + cxfJaxRsServerPath + "/*");
+        log.info("Found request listners. Adding to the context.");
+        BusFactory.setDefaultBus(bus);
+
+    }
+
+    void setupCxfBus(Bus bus) {
+
         if (skipDefaultJsonProviderRegistration != null) {
             bus.setProperty(SKIP_DEFAULT_JSON_PROVIDER_REGISTRATION_KEY, skipDefaultJsonProviderRegistration);
-            updated = true;
         }
-        if (wadlServiceDescriptionAvailable != null && !wadlServiceDescriptionAvailable.equals(newWadlServiceDescriptionAvailable)) {
-            wadlServiceDescriptionAvailable = newWadlServiceDescriptionAvailable;
+        if (wadlServiceDescriptionAvailable != null) {
             bus.setProperty(WADL_SERVICE_DESCRIPTION_AVAILABLE_KEY, wadlServiceDescriptionAvailable);
-            updated = true;
         }
-        if (!metricsEnabled.equals(newMetricsEnabled)) {
-            metricsEnabled = newMetricsEnabled;
-            if (metricsEnabled) {
-                bus.getFeatures().add(new MetricsFeature());
-            } else {
-                bus.getFeatures().removeIf(f -> f instanceof MetricsFeature);
-            }
-            updated = true;
+        if (metricsEnabled) {
+            bus.getFeatures().add(new MetricsFeature());
+        } else {
+            bus.getFeatures().removeIf(f -> f instanceof MetricsFeature);
         }
-        if (!loggingEnabled.equals(newMetricsEnabled)) {
-            loggingEnabled = newLoggingEnabled;
-            if (loggingEnabled) {
-                bus.getFeatures().add(new LoggingFeature());
-            } else {
-                bus.getFeatures().removeIf(f -> f instanceof LoggingFeature);
-            }
-            updated = true;
+        if (loggingEnabled) {
+            bus.getFeatures().add(new LoggingFeature());
+        } else {
+            bus.getFeatures().removeIf(f -> f instanceof LoggingFeature);
         }
 
-        final String newInInterceptorsFilter = config.interceptors_in_components();
-        if (!Objects.equals(inInterceptorsFilter, newInInterceptorsFilter)) {
-            log.debug("IN interceptors have been changed");
-            inInterceptorsFilter = newInInterceptorsFilter;
-            updated = true;
-            if (inInterceptorTracker != null) {
-                inInterceptorTracker.close();
-                inInterceptorTracker = null;
-            }
-            if (inInterceptorsFilter != null && !inInterceptorsFilter.trim().isEmpty()) {
-                try {
-                    inInterceptorTracker = new InterceptorTracker(context, inInterceptorsFilter, inInterceptors);
-                    inInterceptorTracker.open();
-                } catch (InvalidSyntaxException ex) {
-                    log.error("Invalid IN interceptor filter, ignore it", ex);
-                }
+        /*
+        log.debug("IN interceptors have been changed");
+        inInterceptorsFilter = newInInterceptorsFilter;
+        updated = true;
+        if (inInterceptorTracker != null) {
+            inInterceptorTracker.close();
+            inInterceptorTracker = null;
+        }
+        if (inInterceptorsFilter != null && !inInterceptorsFilter.trim().isEmpty()) {
+            try {
+                inInterceptorTracker = new InterceptorTracker(context, inInterceptorsFilter, inInterceptors);
+                inInterceptorTracker.open();
+            } catch (InvalidSyntaxException ex) {
+                log.error("Invalid IN interceptor filter, ignore it", ex);
             }
         }
+
         final String newOutInterceptorsFilter = config.interceptors_out_components();
         if (!Objects.equals(outInterceptorsFilter, newOutInterceptorsFilter)) {
             log.debug("OUT interceptors have been changed");
@@ -265,7 +292,6 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
 
         if (updated) {
             log.debug("CXF bus registered: {} [{}={}; {}={}]", id, SKIP_DEFAULT_JSON_PROVIDER_REGISTRATION_KEY, skipDefaultJsonProviderRegistration, WADL_SERVICE_DESCRIPTION_AVAILABLE_KEY, wadlServiceDescriptionAvailable);
-        }
+        } */
     }
-     */
 }
