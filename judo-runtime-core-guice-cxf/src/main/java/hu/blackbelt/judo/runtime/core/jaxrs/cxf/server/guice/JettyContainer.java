@@ -27,21 +27,21 @@ public class JettyContainer {
 //    private static final String WS_PATH_SPEC = "/" + WEB_SERVICE_URI + "/*";
 
     private Server webServer;
-    private final ServletContextHandler applicationContext = new ServletContextHandler(ServletContextHandler.SESSIONS);
 
-    public ServletContextHandler start(int port, String contextPath, String webServiceUri) {
+    public ServletContextHandler start(int port, String contextPath) {
         try {
             if (port <= 0) {
                 port = 8080;
             }
             webServer = new Server();
             webServer.setConnectors(assembleConnectors(port, webServer));
+            final ServletContextHandler applicationContext = new ServletContextHandler(ServletContextHandler.SESSIONS);
             applicationContext.setContextPath(contextPath);
             applicationContext.setSessionHandler(new SessionHandler());
             webServer.setHandler(applicationContext);
             webServer.start();
             log.info(String.format("Server now running on http://localhost:%s", port));
-            log.info(String.format("Access REST-services on anywhereBut(http://localhost:%s/%s/*)", port, webServiceUri));
+//            log.info(String.format("Access REST-services on anywhereBut(http://localhost:%s/%s/*)", port, webServiceUri));
             return applicationContext;
 
         } catch (Exception e) {
