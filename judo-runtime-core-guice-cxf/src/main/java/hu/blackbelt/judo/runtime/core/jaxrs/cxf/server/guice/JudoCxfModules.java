@@ -28,6 +28,9 @@ import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.interceptors.ExchangeIdRe
 import lombok.Builder;
 import org.apache.cxf.rs.security.cors.CrossOriginResourceSharingFilter;
 
+import javax.inject.Qualifier;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Objects;
 
 public class JudoCxfModules extends AbstractModule {
@@ -37,23 +40,40 @@ public class JudoCxfModules extends AbstractModule {
     private String cxfJaxRsServerUrl;
     private String cxfJaxRsServerPath;
 
+    private Boolean cxfSkipDefaultJsonProviderRegistration;
+    private Boolean cxfWadlServiceDescriptionAvailable;
+    private Boolean cxfMetricsEnabled;
+    private Boolean cxfLoggingEnabled;
 
     public static class JudoCxfModulesBuilder {
         Boolean exchangeIdInterceptors;
         Integer cxfJaxRsServerPort;
         String cxfJaxRsServerUrl;
         String cxfJaxRsServerPath;
+        Boolean cxfSkipDefaultJsonProviderRegistration;
+        Boolean cxfWadlServiceDescriptionAvailable;
+        Boolean cxfMetricsEnabled;
+        Boolean cxfLoggingEnabled;
     }
 
     @Builder
     private JudoCxfModules(Integer cxfJaxRsServerPort,
-                           String cxfJaxRsServerUrl,
-                           String cxfJaxRsServerPath,
-                           Boolean exchangeIdInterceptors) {
+                            String cxfJaxRsServerUrl,
+                            String cxfJaxRsServerPath,
+                            Boolean exchangeIdInterceptors,
+                            Boolean cxfSkipDefaultJsonProviderRegistration,
+                            Boolean cxfWadlServiceDescriptionAvailable,
+                            Boolean cxfMetricsEnabled,
+                            Boolean cxfLoggingEnabled
+                           ) {
         this.cxfJaxRsServerPort = Objects.requireNonNullElse(cxfJaxRsServerPort, 8181);
         this.cxfJaxRsServerUrl = Objects.requireNonNullElse(cxfJaxRsServerUrl, "http://localhost");
-        this.cxfJaxRsServerPath = Objects.requireNonNullElse(cxfJaxRsServerPath, "http://localhost");
+        this.cxfJaxRsServerPath = Objects.requireNonNullElse(cxfJaxRsServerPath, "api");
         this.exchangeIdInterceptors = Objects.requireNonNullElse(exchangeIdInterceptors, true);
+        this.cxfSkipDefaultJsonProviderRegistration = Objects.requireNonNullElse(cxfSkipDefaultJsonProviderRegistration, false);
+        this.cxfWadlServiceDescriptionAvailable = Objects.requireNonNullElse(cxfWadlServiceDescriptionAvailable, true);
+        this.cxfMetricsEnabled = Objects.requireNonNullElse(cxfMetricsEnabled, true);
+        this.cxfLoggingEnabled = Objects.requireNonNullElse(cxfLoggingEnabled, true);
     }
 
     protected void configure() {
@@ -63,7 +83,11 @@ public class JudoCxfModules extends AbstractModule {
         }
         bind(Integer.class).annotatedWith(CxfConfigurations.CxfJaxRsServerPort.class).toInstance(cxfJaxRsServerPort);
         bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerUrl.class).toInstance(cxfJaxRsServerUrl);
-        bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerUrl.class).toInstance(cxfJaxRsServerPath);
+        bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerPath.class).toInstance(cxfJaxRsServerPath);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfSkipDefaultJsonProviderRegistration.class).toInstance(cxfSkipDefaultJsonProviderRegistration);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfWadlServiceDescriptionAvailable.class).toInstance(cxfWadlServiceDescriptionAvailable);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfMetricsEnabled.class).toInstance(cxfMetricsEnabled);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfLoggingEnabled.class).toInstance(cxfLoggingEnabled);
     }
 
     protected void configureServer() {

@@ -1,7 +1,12 @@
 package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.providers.ISO8601DateParamHandler;
 import liquibase.pro.packaged.J;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.Bus;
@@ -40,9 +45,11 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
         }
     }
 
-    private static final String APPLICATION_PATH = "applicationPath";
     private static final String SKIP_DEFAULT_JSON_PROVIDER_REGISTRATION_KEY = "skip.default.json.provider.registration";
     private static final String WADL_SERVICE_DESCRIPTION_AVAILABLE_KEY = "wadl.service.description.available";
+
+    @Inject
+    ObjectMapper objectMapper;
 
     @Inject(optional = true)
     @CxfConfigurations.CxfJaxRsServerPort
@@ -79,65 +86,43 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
     @Nullable
     private Boolean loggingEnabled = true;
 
-
     @Inject
     private Set<Application> applications;
 
+    @Inject
+
+
     @Override
     public ServerHolder get() {
-
-        /*
-        // Register and map the dispatcher servlet
-        final ServletHolder servletHolder = new ServletHolder( new CXFServlet() );
-        final ServletContextHandler context = new ServletContextHandler();
-        context.setContextPath( "/" );
-        context.addServlet( servletHolder, "/rest/*" );
-        context.addEventListener( new ContextLoaderListener() );
-
-        context.setInitParameter( "contextClass", AnnotationConfigWebApplicationContext.class.getName() );
-        context.setInitParameter( "contextConfigLocation", AppConfig.class.getName() );
-
-        // Add Spring Security Filter by the name
-        context.addFilter(
-                new FilterHolder( new DelegatingFilterProxy( "springSecurityFilterChain" ) ),
-                "/*", EnumSet.allOf( DispatcherType.class )
-        );
-
-        Server server = new Server( 8080 );
-        server.setHandler( context );
-        server.start();
-
-        */
         ServerHolder serverHolder = new ServerHolder();
         JettyContainer jettyContainer = new JettyContainer();
-        ServletContextHandler servletContextHandler = jettyContainer.start(cxfJaxRsServerPort);
+        ServletContextHandler servletContextHandler = jettyContainer.start(cxfJaxRsServerPort, "/");
+
         Bus bus = BusFactory.getThreadDefaultBus();
         setupCxfBus(bus);
+        setupCxf(bus, servletContextHandler);
 
-        //RuntimeDelegate delegate = RuntimeDelegate.getInstance();
+        JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider(objectMapper, JacksonJaxbJsonProvider.DEFAULT_ANNOTATIONS);
+        jacksonJaxbJsonProvider.configure(SerializationFeature.INDENT_OUTPUT, false);
+        jacksonJaxbJsonProvider.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        jacksonJaxbJsonProvider.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        ISO8601DateParamHandler iso8601DateParamHandler = new ISO8601DateParamHandler();
+
+        RuntimeDelegate delegate = RuntimeDelegate.getInstance();
         for (Application application : applications) {
             final Set<Class<?>> classes = application.getClasses();
-            final Set<Object> singletons = application.getSingletons();
+            final List<Object> singletons = new ArrayList<>(application.getSingletons());
 
             if ((classes == null || classes.isEmpty()) && (singletons == null || singletons.isEmpty())) {
                 log.warn("No resource classes found, do not start JAX-RS application");
                 return null;
             }
 
-            final JAXRSServerFactoryBean serverFactory = ResourceUtils.createApplication(application, false, false, false, bus);
+            final JAXRSServerFactoryBean serverFactory = delegate.createEndpoint(application, JAXRSServerFactoryBean.class);
+            serverFactory.setBus(bus);
 
-
-            //delegate.createEndpoint(application, JAXRSServerFactoryBean.class);
-            String applicationPath = getApplicationPath(application);
-
-            /*
-            serverFactory.setAddress((cxfJaxRsServerUrl == null ? "http://localhost" : cxfJaxRsServerUrl)
-                    + ":"
-                    + (cxfJaxRsServerPort == null ? "8080" : cxfJaxRsServerPort.toString())
-                    + (cxfJaxRsServerPath == null ? "/api" : cxfJaxRsServerPath)
-                    + "/"
-                    + applicationPath);
-            */
+            //String applicationPath = getApplicationPath(application);
 
             /*
             final CxfContext cxfContext;
@@ -154,6 +139,7 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
             } else {
                 cxfContext = null;
             }
+
             if (cxfContext != null) {
                 serverFactory.setBus(cxfContext.getBus());
 
@@ -178,34 +164,17 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
             applicationProviders.put(applicationId, _providers);
             */
 
-            //Bus bus = BusFactory.getThreadDefaultBus();
-            //serverFactory.setBus(bus);
+            serverFactory.setProviders(List.of(jacksonJaxbJsonProvider, iso8601DateParamHandler));
+
             final Server server = serverFactory.create();
-
-            if (log.isDebugEnabled()) {
-                log.info("Starting JAX-RS application, service class = " + application.getClass().getName() + " on path: " + applicationPath);
-            }
-
+            log.info("Starting JAX-RS application, service class = " + application.getClass().getName() + " on path: " + serverFactory.getAddress());
             server.start();
             serverHolder.getServers().put(application, server);
         }
         return serverHolder;
     }
 
-    private static String getApplicationPath(Application application) {
-        final Map<String, Object> properties = application.getProperties();
-        String applicationPath = properties != null ? (String) properties.get(APPLICATION_PATH) : null;
-
-        if (application.getClass().isAnnotationPresent(ApplicationPath.class)) {
-            ApplicationPath ap = application.getClass().getAnnotation(ApplicationPath.class);
-            applicationPath = ap.value();
-        }
-        return applicationPath;
-    }
-
     void setupCxf(Bus bus, ServletContextHandler applicationContext) {
-//        System.setProperty(BusFactory.BUS_FACTORY_PROPERTY_NAME, CXFBusFactory.class.getName());
-//        bus = BusFactory.getDefaultBus(true);
         final CXFServlet cxfServlet = new CXFServlet();
         cxfServlet.setBus(bus);
         final ServletHolder cxfServletHolder = new ServletHolder(cxfServlet);
@@ -235,6 +204,8 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
         } else {
             bus.getFeatures().removeIf(f -> f instanceof LoggingFeature);
         }
+
+        bus.getInFaultInterceptors()
 
         /*
         log.debug("IN interceptors have been changed");

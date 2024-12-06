@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.guice.postgresql;
+package hu.blackbelt.judo.runtime.core.guice;
 
 /*-
  * #%L
@@ -21,8 +21,6 @@ package hu.blackbelt.judo.runtime.core.guice.postgresql;
  */
 
 import com.google.inject.*;
-import com.google.inject.name.Names;
-import com.google.inject.util.Modules;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
@@ -41,17 +39,10 @@ import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
-import hu.blackbelt.judo.runtime.core.guice.JudoDefaultModule;
-import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
-import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql.JudoCxfModules;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 import org.junit.jupiter.api.*;
-import org.testcontainers.containers.JdbcDatabaseContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-
-import java.time.Duration;
 import java.util.HashMap;
 
 import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
