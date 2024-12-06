@@ -39,13 +39,9 @@ public class RdbmsJoinComparator implements Comparator<RdbmsJoin> {
             leftAliasToCompare = left.aliasToCompareWith;
         }
 
-        String rightAliasToCompare = left.alias;
+        String rightAliasToCompare = right.alias;
         if (right.aliasToCompareWith != null && !right.aliasToCompareWith.isBlank()) {
             rightAliasToCompare = right.aliasToCompareWith;
-        }
-
-        if (left.equals(right)) {
-            return 0;
         }
 
         // right needs left
