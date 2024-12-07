@@ -74,64 +74,13 @@ class JudoDefaultHsqldbModuleTest {
     @BeforeEach
     void init() throws Exception {
 
-
-        AsmModel asmModel = AsmModel.buildAsmModel()
-                .resourceSet(AsmModelResourceSupport.createAsmResourceSet())
-                .build();
-
-        asmModel.getAsmModelResourceSupport().addContent(EPackageBuilder.create()
-                .withName("judo").withNsPrefix("judo").withNsURI("http://blackbelt.hu/test/judo/judo").build());
-
-        RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
-                .build();
-
-
-        // The RDBMS model resources have to know the mapping models
-        RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
-        RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
-        RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
-        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
-            injectExcelMappings(rdbmsModel, bufferedLog, calculateExcelMapping2RdbmsTransformationScriptURI(), calculateExcelMappingModelURI(), "hsqldb");
-        }
-
-        MeasureModel measureModel = MeasureModel.buildMeasureModel()
-                .name(asmModel.getName())
-                .resourceSet(MeasureModelResourceSupport.createMeasureResourceSet())
-                .build();
-
-        ExpressionModel expressionModel = ExpressionModel.buildExpressionModel()
-                .name(asmModel.getName())
-                .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
-                .build();
-
-        LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
-                .name(asmModel.getName())
-                .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
-                .build();
-
-        liquibaseModel.getResource().getContents().add(databaseChangeLogBuilder.create().build());
-
-        Asm2RdbmsTransformationTrace asm2rdbms = Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
-                .asmModel(asmModel)
-                .rdbmsModel(rdbmsModel)
-                .trace(new HashMap<>())
-                .build();
-
         Module hsqlDbModule = JudoHsqldbModules.builder()
                 .build();
 
         Module judoModule = JudoDefaultModule.builder()
                 .injectModulesTo(this)
                 .judoModelLoader(
-                        JudoModelLoader.builder()
-                                .asmModel(asmModel)
-                                .rdbmsModel(rdbmsModel)
-                                .measureModel(measureModel)
-                                .expressionModel(expressionModel)
-                                .liquibaseModel(liquibaseModel)
-                                .asm2rdbms(asm2rdbms)
-                                .build())
+                        JudoModelLoader.empty())
                 .build();
 
         Module application = Modules.combine(judoModule, hsqlDbModule);

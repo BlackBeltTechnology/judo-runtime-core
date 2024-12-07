@@ -271,6 +271,18 @@
 
             <dependency>
                 <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-guice-jetty</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
+                <artifactId>judo-runtime-core-guice-cxf</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>hu.blackbelt.judo.runtime</groupId>
                 <artifactId>judo-runtime-core-spring</artifactId>
                 <version>${project.version}</version>
             </dependency>

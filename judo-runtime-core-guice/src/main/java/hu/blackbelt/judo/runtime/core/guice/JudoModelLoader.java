@@ -20,10 +20,16 @@ package hu.blackbelt.judo.runtime.core.guice;
  * #L%
  */
 
+import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
+import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
+import hu.blackbelt.judo.meta.liquibase.support.LiquibaseModelResourceSupport;
+import hu.blackbelt.judo.meta.liquibase.util.builder.databaseChangeLogBuilder;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
+import hu.blackbelt.judo.meta.measure.support.MeasureModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
@@ -35,8 +41,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
+import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 
 import java.io.File;
 import java.io.InputStream;
@@ -44,11 +52,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Enumeration;
+import java.util.HashMap;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.LoadArguments.asmLoadArgumentsBuilder;
+import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
 
 @Builder
 @Getter
+@Slf4j
 public class JudoModelLoader {
 
     @NonNull
@@ -205,5 +216,60 @@ public class JudoModelLoader {
             ret = new URI(root + "/" + rel);
         }
         return ret;
+    }
+
+    public static JudoModelLoader empty() throws Exception {
+
+        AsmModel asmModel = AsmModel.buildAsmModel()
+                .resourceSet(AsmModelResourceSupport.createAsmResourceSet())
+                .build();
+
+        asmModel.getAsmModelResourceSupport().addContent(EPackageBuilder.create()
+                .withName("judo").withNsPrefix("judo").withNsURI("http://blackbelt.hu/test/judo/judo").build());
+
+        RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
+                .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
+                .build();
+
+        // The RDBMS model resources have to know the mapping models
+        RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
+        RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
+        RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
+        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
+            injectExcelMappings(rdbmsModel, bufferedLog, calculateExcelMapping2RdbmsTransformationScriptURI(), calculateExcelMappingModelURI(), "hsqldb");
+        }
+
+        MeasureModel measureModel = MeasureModel.buildMeasureModel()
+                .name(asmModel.getName())
+                .resourceSet(MeasureModelResourceSupport.createMeasureResourceSet())
+                .build();
+
+        ExpressionModel expressionModel = ExpressionModel.buildExpressionModel()
+                .name(asmModel.getName())
+                .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
+                .build();
+
+        LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
+                .name(asmModel.getName())
+                .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
+                .build();
+
+        liquibaseModel.getResource().getContents().add(databaseChangeLogBuilder.create().build());
+
+        Asm2RdbmsTransformationTrace asm2rdbms = Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
+                .trace(new HashMap<>())
+                .build();
+
+        JudoModelLoader judoModelLoader = JudoModelLoader.builder()
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
+                .measureModel(measureModel)
+                .expressionModel(expressionModel)
+                .liquibaseModel(liquibaseModel)
+                .asm2rdbms(asm2rdbms)
+                .build();
+        return judoModelLoader;
     }
 }

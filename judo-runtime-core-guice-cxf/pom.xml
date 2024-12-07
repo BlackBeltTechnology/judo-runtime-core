@@ -37,6 +37,16 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-guice-hsqldb</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-guice-jetty</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dao-core</artifactId>
         </dependency>
 
@@ -53,6 +63,16 @@
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dao-rdbms-liquibase</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-jaxrs</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-jaxrs-cxf</artifactId>
         </dependency>
 
         <dependency>
