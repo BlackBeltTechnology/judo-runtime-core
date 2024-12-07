@@ -23,15 +23,13 @@ package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
-import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.interceptors.ExchangeIdDecorator;
-import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.interceptors.ExchangeIdResponseWriter;
+import com.google.inject.multibindings.Multibinder;
+import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers.*;
+import hu.blackbelt.judo.runtime.core.jaxrs.providers.SetDefaultContentTypePreMatchContainerRequestFilter;
 import lombok.Builder;
-import org.apache.cxf.rs.security.cors.CrossOriginResourceSharingFilter;
+import org.apache.cxf.interceptor.Interceptor;
 
-import javax.inject.Qualifier;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.util.Objects;
+import javax.annotation.Nullable;
 
 public class JudoCxfModules extends AbstractModule {
 
@@ -44,17 +42,45 @@ public class JudoCxfModules extends AbstractModule {
     private Boolean cxfWadlServiceDescriptionAvailable;
     private Boolean cxfMetricsEnabled;
     private Boolean cxfLoggingEnabled;
+    private Boolean cxfLogException;
+
+    private Boolean cxfReturnRuntimeExceptions;
+    private Boolean cxfIncludeBusinessCause;
+    private String cxfDefaultRequestContentType;
+    private String corsAllowOrigin;
+    private Boolean corsAllowCredentials;
+    private String corsAllowHeaders;
+    private String corsExposeHeaders;
+    private Integer corsMaxAge;
+    private Integer corsPrefligthErrorStatus;
+    private Boolean corsBlockIfUnauthorized;
+    private Boolean corsDefaultOptionsMethodsHandlePreflight;
+
 
     public static class JudoCxfModulesBuilder {
-        Boolean exchangeIdInterceptors;
-        Integer cxfJaxRsServerPort;
-        String cxfJaxRsServerUrl;
-        String cxfJaxRsServerPath;
-        Boolean cxfSkipDefaultJsonProviderRegistration;
-        Boolean cxfWadlServiceDescriptionAvailable;
-        Boolean cxfMetricsEnabled;
-        Boolean cxfLoggingEnabled;
+        Boolean exchangeIdInterceptors = true;
+        Integer cxfJaxRsServerPort = 8181;
+        String cxfJaxRsServerUrl = "http://localhost";
+        String cxfJaxRsServerPath = "api";
+        Boolean cxfSkipDefaultJsonProviderRegistration = false;
+        Boolean cxfWadlServiceDescriptionAvailable = true;
+        Boolean cxfMetricsEnabled = true;
+        Boolean cxfLoggingEnabled = true;
+        Boolean cxfLogException = true;
+        Boolean cxfReturnRuntimeExceptions = true;
+        Boolean cxfIncludeBusinessCause = true;
+        String cxfDefaultRequestContentType = SetDefaultContentTypePreMatchContainerRequestFilter.APPLICTION_JSON;
+        String corsAllowOrigin = "*";
+        Boolean corsAllowCredentials = true;
+        String corsAllowHeaders = "Content-Type,Origin,Accept,Authorization,X-Judo-SignedIdentifier,X-Judo-CountRecords";
+        String corsExposeHeaders ="X-Exchange-Id,X-Fault,X-Judo-Count";
+        Integer corsMaxAge = -1;
+        Integer corsPrefligthErrorStatus = 400;
+        Boolean corsBlockIfUnauthorized = false;
+        Boolean corsDefaultOptionsMethodsHandlePreflight = false;
     }
+
+
 
     @Builder
     private JudoCxfModules(Integer cxfJaxRsServerPort,
@@ -64,23 +90,69 @@ public class JudoCxfModules extends AbstractModule {
                             Boolean cxfSkipDefaultJsonProviderRegistration,
                             Boolean cxfWadlServiceDescriptionAvailable,
                             Boolean cxfMetricsEnabled,
-                            Boolean cxfLoggingEnabled
-                           ) {
-        this.cxfJaxRsServerPort = Objects.requireNonNullElse(cxfJaxRsServerPort, 8181);
-        this.cxfJaxRsServerUrl = Objects.requireNonNullElse(cxfJaxRsServerUrl, "http://localhost");
-        this.cxfJaxRsServerPath = Objects.requireNonNullElse(cxfJaxRsServerPath, "api");
-        this.exchangeIdInterceptors = Objects.requireNonNullElse(exchangeIdInterceptors, true);
-        this.cxfSkipDefaultJsonProviderRegistration = Objects.requireNonNullElse(cxfSkipDefaultJsonProviderRegistration, false);
-        this.cxfWadlServiceDescriptionAvailable = Objects.requireNonNullElse(cxfWadlServiceDescriptionAvailable, true);
-        this.cxfMetricsEnabled = Objects.requireNonNullElse(cxfMetricsEnabled, true);
-        this.cxfLoggingEnabled = Objects.requireNonNullElse(cxfLoggingEnabled, true);
+                            Boolean cxfLoggingEnabled,
+                            Boolean cxfLogException,
+                            Boolean cxfReturnRuntimeExceptions,
+                            Boolean cxfIncludeBusinessCause,
+                            String cxfDefaultRequestContentType,
+                            String corsAllowOrigin,
+                            Boolean corsAllowCredentials,
+                            String corsAllowHeaders,
+                            String corsExposeHeaders,
+                            Integer corsMaxAge,
+                            Integer corsPrefligthErrorStatus,
+                            Boolean corsBlockIfUnauthorized,
+                            Boolean corsDefaultOptionsMethodsHandlePreflight
+    ) {
+        this.cxfJaxRsServerPort = cxfJaxRsServerPort;
+        this.cxfJaxRsServerUrl = cxfJaxRsServerUrl;
+        this.cxfJaxRsServerPath = cxfJaxRsServerPath;
+        this.exchangeIdInterceptors = exchangeIdInterceptors;
+        this.cxfSkipDefaultJsonProviderRegistration = cxfSkipDefaultJsonProviderRegistration;
+        this.cxfWadlServiceDescriptionAvailable = cxfWadlServiceDescriptionAvailable;
+        this.cxfMetricsEnabled = cxfMetricsEnabled;
+        this.cxfLoggingEnabled = cxfLoggingEnabled;
+        this.cxfLogException = cxfLogException;
+        this.cxfReturnRuntimeExceptions = cxfReturnRuntimeExceptions;
+        this.cxfIncludeBusinessCause = cxfIncludeBusinessCause;
+        this.cxfDefaultRequestContentType = cxfDefaultRequestContentType;
+        this.corsAllowOrigin = corsAllowOrigin;
+        this.corsAllowCredentials = corsAllowCredentials;
+        this.corsAllowHeaders = corsAllowHeaders;
+        this.corsExposeHeaders = corsExposeHeaders;
+        this.corsMaxAge = corsMaxAge;
+        this.corsPrefligthErrorStatus = corsPrefligthErrorStatus;
+        this.corsBlockIfUnauthorized = corsBlockIfUnauthorized;
+        this.corsDefaultOptionsMethodsHandlePreflight = corsDefaultOptionsMethodsHandlePreflight;
     }
 
+    Multibinder<Object> providersBinder;
+    Multibinder<Interceptor> inInterceptorsBinder;
+    Multibinder<Interceptor> outInterceptorsBinder;
+    Multibinder<Interceptor> faultInterceptorsBinder;
+
     protected void configure() {
+        providersBinder = Multibinder.newSetBinder(binder(), Object.class, CxfQualifiers.Providers.class);
+        inInterceptorsBinder = Multibinder.newSetBinder(binder(), Interceptor.class, CxfQualifiers.InInterceptors.class);
+        outInterceptorsBinder = Multibinder.newSetBinder(binder(), Interceptor.class, CxfQualifiers.OutInterceptors.class);
+        faultInterceptorsBinder = Multibinder.newSetBinder(binder(), Interceptor.class, CxfQualifiers.FaultInterceptors.class);
+
         configureServer();
         if (exchangeIdInterceptors) {
             configureExchangeInterceptors();
         }
+        configureOptions();
+        configureClientExceptionMapper();
+        configurePayloadMessageBodyWriter();
+        configureCrossOriginResourceSharingFilter();
+        configureSetDefaultContentTypePreMatchContainerRequestFilter();
+        configureFaultInterceptor();
+        configureJudoAuthorizingInterceptor();
+        configureJacksonJaxbJsonProvider();
+        configureISO8601DateParamHandler();
+    }
+
+    protected void configureOptions() {
         bind(Integer.class).annotatedWith(CxfConfigurations.CxfJaxRsServerPort.class).toInstance(cxfJaxRsServerPort);
         bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerUrl.class).toInstance(cxfJaxRsServerUrl);
         bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerPath.class).toInstance(cxfJaxRsServerPath);
@@ -88,6 +160,19 @@ public class JudoCxfModules extends AbstractModule {
         bind(Boolean.class).annotatedWith(CxfConfigurations.CxfWadlServiceDescriptionAvailable.class).toInstance(cxfWadlServiceDescriptionAvailable);
         bind(Boolean.class).annotatedWith(CxfConfigurations.CxfMetricsEnabled.class).toInstance(cxfMetricsEnabled);
         bind(Boolean.class).annotatedWith(CxfConfigurations.CxfLoggingEnabled.class).toInstance(cxfLoggingEnabled);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfLogException.class).toInstance(cxfLogException);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfReturnRuntimeExceptions.class).toInstance(cxfReturnRuntimeExceptions);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfIncludeBusinessCause.class).toInstance(cxfIncludeBusinessCause);
+        bind(String.class).annotatedWith(CxfConfigurations.CxfDefaultRequestContentType.class).toInstance(cxfDefaultRequestContentType);
+        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsAllowOrigin.class).toInstance(corsAllowOrigin);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsAllowCredentials.class).toInstance(corsAllowCredentials);
+        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsAllowHeaders.class).toInstance(corsAllowHeaders);
+        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsExposeHeaders.class).toInstance(corsExposeHeaders);
+        bind(Integer.class).annotatedWith(CxfConfigurations.CxfCorsMaxAge.class).toInstance(corsMaxAge);
+        bind(Integer.class).annotatedWith(CxfConfigurations.CxfCorsPrefligthErrorStatus.class).toInstance(corsPrefligthErrorStatus);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsBlockIfUnauthorized.class).toInstance(corsBlockIfUnauthorized);
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsDefaultOptionsMethodsHandlePreflight.class).toInstance(corsDefaultOptionsMethodsHandlePreflight);
+
     }
 
     protected void configureServer() {
@@ -95,50 +180,40 @@ public class JudoCxfModules extends AbstractModule {
     }
 
     protected void configureExchangeInterceptors() {
-        bind(ExchangeIdDecorator.class).toProvider(ExchangeIdDecoratorProvider.class).asEagerSingleton();
-        bind(ExchangeIdResponseWriter.class).toProvider(ExchangeIdResponseWriterProvider.class).asEagerSingleton();
-        bind(CrossOriginResourceSharingFilter.class).toProvider(CrossOriginResourceSharingFilterProvider.class).asEagerSingleton();
+        inInterceptorsBinder.addBinding().toProvider(ExchangeIdDecoratorProvider.class).asEagerSingleton();
+        outInterceptorsBinder.addBinding().toProvider(ExchangeIdResponseWriterProvider.class).asEagerSingleton();
     }
 
-    /*
-    @Override
-    protected void configureDialect() {
-        bind(Dialect.class).toInstance(new PostgresqlDialect());
+    protected void configureCrossOriginResourceSharingFilter() {
+        providersBinder.addBinding().toProvider(CrossOriginResourceSharingFilterProvider.class).asEagerSingleton();
     }
 
-    @Override
-    protected void configureMapperFactory() {
-        bind(MapperFactory.class).toProvider(PostgresqlMapperFactoryProvider.class).in(Singleton.class);
+    protected void configureClientExceptionMapper() {
+        providersBinder.addBinding().toProvider(ClientExceptionMapperProvider.class).in(Singleton.class);
     }
 
-    @Override
-    protected void configureRdbmsParameterMapper() {
-        bind(RdbmsParameterMapper.class).toProvider(PostgresqlRdbmsParameterMapperProvider.class).in(Singleton.class);
+    protected void configurePayloadMessageBodyWriter() {
+        providersBinder.addBinding().toProvider(PayloadMessageBodyWriterProvider.class).in(Singleton.class);
     }
 
-    @Override
-    protected void configureDataSource() {
-        bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
+    protected void configureSetDefaultContentTypePreMatchContainerRequestFilter() {
+        providersBinder.addBinding().toProvider(SetDefaultContentTypePreMatchContainerRequestFilterProvider.class).in(Singleton.class);
     }
 
-    @Override
-    protected void configureSequence() {
-        bind(Sequence.class).toProvider(PostgresqlRdbmsSequenceProvider.class).in(Singleton.class);
+    protected void configureFaultInterceptor() {
+        faultInterceptorsBinder.addBinding().toProvider(FaultInterceptorProvider.class).in(Singleton.class);
     }
 
-    @Override
-    protected void configureTransactionManager() {
-        bind(Integer.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PORT)).toInstance(port);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_HOST)).toInstance(host);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_USER)).toInstance(user);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(password);
-        bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(databaseName);
-        bind(PlatformTransactionManager.class).toProvider(new PlatformTransactionManagerProvider()).in(Singleton.class);
+    protected void configureJudoAuthorizingInterceptor() {
+        inInterceptorsBinder.addBinding().toProvider(JudoAuthorizingInterceptorProvider.class).in(Singleton.class);
     }
 
-    @Override
-    protected void configureRdbmsInit() {
-        bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+    protected void configureJacksonJaxbJsonProvider() {
+        providersBinder.addBinding().toProvider(JacksonJaxbJsonProviderProvider.class).in(Singleton.class);
     }
-    */
+
+    protected void configureISO8601DateParamHandler() {
+        providersBinder.addBinding().toProvider(ISO8601DateParamHandlerProvider.class).in(Singleton.class);
+    }
+
 }

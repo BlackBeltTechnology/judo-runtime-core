@@ -11,29 +11,78 @@ public class CxfConfigurations {
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CxfJaxRsServerPort {}
+    public @interface CxfJaxRsServerPort {}
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CxfJaxRsServerUrl {}
+    public @interface CxfJaxRsServerUrl {}
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CxfJaxRsServerPath {}
+    public @interface CxfJaxRsServerPath {}
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CxfSkipDefaultJsonProviderRegistration {}
+    public @interface CxfSkipDefaultJsonProviderRegistration {}
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CxfWadlServiceDescriptionAvailable {}
+    public @interface CxfWadlServiceDescriptionAvailable {}
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CxfMetricsEnabled {}
+    public @interface CxfMetricsEnabled {}
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @interface CxfLoggingEnabled {}
+    public @interface CxfLoggingEnabled {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfLogException {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfReturnRuntimeExceptions {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfIncludeBusinessCause {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfDefaultRequestContentType {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsAllowOrigin {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsAllowCredentials {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsAllowHeaders {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsExposeHeaders {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsMaxAge {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsPrefligthErrorStatus {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsBlockIfUnauthorized {}
+
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface CxfCorsDefaultOptionsMethodsHandlePreflight {}
+
 }

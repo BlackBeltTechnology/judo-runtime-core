@@ -21,6 +21,8 @@ package hu.blackbelt.judo.runtime.core.guice;
  */
 
 import com.google.inject.*;
+import com.google.inject.Module;
+import com.google.inject.util.Modules;
 import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
@@ -39,6 +41,11 @@ import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
+import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.JudoHsqldbModules;
+import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.JudoCxfModules;
+import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers.CxfJaxrsServerProvider;
+import hu.blackbelt.judo.runtime.core.jetty.guice.JettyContainer;
+import hu.blackbelt.judo.runtime.core.jetty.guice.JudoJettyModules;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
@@ -53,14 +60,10 @@ class JudoCxfModuleTest {
 
     @SuppressWarnings("rawtypes")
     @Inject
-    DAO dao;
-
-    @SuppressWarnings("rawtypes")
-    @Inject
-    Sequence sequence;
+    JettyContainer jettyContainer;
 
     @Inject
-    Dispatcher dispatcher;
+    CxfJaxrsServerProvider.ServerHolder serverHolder;
 
     Injector injector;
 
@@ -68,77 +71,22 @@ class JudoCxfModuleTest {
     @BeforeEach
     void init() throws Exception {
 
-        AsmModel asmModel = AsmModel.buildAsmModel()
-                .resourceSet(AsmModelResourceSupport.createAsmResourceSet())
-                .build();
+        Module judoModule = JudoDefaultModule.builder()
+                .injectModulesTo(this).judoModelLoader(JudoModelLoader.empty()).build();
 
+        Module sqlModule = JudoHsqldbModules.builder().build();
 
-        asmModel.getAsmModelResourceSupport().addContent(EPackageBuilder.create()
-                .withName("judo").withNsPrefix("judo").withNsURI("http://blackbelt.hu/test/judo/judo").build());
+        Module jettyModule = JudoJettyModules.builder().build();
 
-        RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
-                .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
-                .build();
+        Module cxfModule = JudoCxfModules.builder().build();
 
+        injector = Guice.createInjector(Modules.combine(judoModule, sqlModule, jettyModule, cxfModule));
 
-        // The RDBMS model resources have to know the mapping models
-        RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
-        RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
-        RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
-        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
-            injectExcelMappings(rdbmsModel, bufferedLog, calculateExcelMapping2RdbmsTransformationScriptURI(), calculateExcelMappingModelURI(), "hsqldb");
-        }
-
-        MeasureModel measureModel = MeasureModel.buildMeasureModel()
-                .name(asmModel.getName())
-                .resourceSet(MeasureModelResourceSupport.createMeasureResourceSet())
-                .build();
-
-        ExpressionModel expressionModel = ExpressionModel.buildExpressionModel()
-                .name(asmModel.getName())
-                .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
-                .build();
-
-        LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
-                .name(asmModel.getName())
-                .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
-                .build();
-
-        liquibaseModel.getResource().getContents().add(databaseChangeLogBuilder.create().build());
-
-        Asm2RdbmsTransformationTrace asm2rdbms = Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
-                .asmModel(asmModel)
-                .rdbmsModel(rdbmsModel)
-                .trace(new HashMap<>())
-                .build();
-
-        /*
-        injector = Guice.createInjector(
-                Modules.override(JudoCxfModules.builder().build()).with(binder -> {
-                    binder.bind(Integer.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PORT)).toInstance(sqlContainer.getMappedPort(5432));
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_HOST)).toInstance(sqlContainer.getHost());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_USER)).toInstance(sqlContainer.getUsername());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_PASSWORD)).toInstance(sqlContainer.getPassword());
-                    binder.bind(String.class).annotatedWith(Names.named(PostgresqlDataSourceProvider.POSTGRESQL_DATABASENAME)).toInstance(sqlContainer.getDatabaseName());
-                }),
-                JudoDefaultModule.builder()
-                        .injectModulesTo(this).judoModelLoader(
-                                JudoModelLoader.builder()
-                                        .asmModel(asmModel)
-                                        .rdbmsModel(rdbmsModel)
-                                        .measureModel(measureModel)
-                                        .expressionModel(expressionModel)
-                                        .liquibaseModel(liquibaseModel)
-                                        .asm2rdbms(asm2rdbms)
-                                        .build()).build());
-        */
-        log.info("DAO: " + dao);
-        log.info("Sequence: " + sequence);
-        log.info("dispatcher: " + dispatcher);
     }
 
     @AfterEach
-    public void teardownDatasource() throws Exception {
+    public void teardown() throws Exception {
+        jettyContainer.stop();
     }
 
     @Test

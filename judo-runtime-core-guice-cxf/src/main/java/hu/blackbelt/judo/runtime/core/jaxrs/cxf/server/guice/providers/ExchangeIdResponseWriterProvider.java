@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice;
+package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers;
 
 import com.google.inject.Provider;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.interceptors.ExchangeIdResponseWriter;
