@@ -26,6 +26,7 @@ import com.github.dockerjava.api.model.HostConfig;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.reactor.Command;
+import com.google.common.base.Stopwatch;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
@@ -64,21 +65,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class JudoDefaultPostgresqlModuleTest {
-
-    @SuppressWarnings("rawtypes")
-    @Inject
-    DAO dao;
-
-    @SuppressWarnings("rawtypes")
-    @Inject
-    Sequence sequence;
-
-    @Inject
-    Dispatcher dispatcher;
 
     Injector injector;
 
@@ -103,8 +94,7 @@ class JudoDefaultPostgresqlModuleTest {
         sqlContainer.setPortBindings(Arrays.asList(port + ":" + 5432));
         sqlContainer.start();
 
-
-
+        Stopwatch timer = Stopwatch.createStarted();
         Module judoModule = JudoDefaultModule.builder()
                 .injectModulesTo(this)
                 .judoModelLoader(JudoModelLoader.empty())
@@ -120,10 +110,7 @@ class JudoDefaultPostgresqlModuleTest {
 
         Module application = Modules.combine(judoModule, postgreModule);
         injector = Guice.createInjector(application);
-
-        log.info("DAO: " + dao);
-        log.info("Sequence: " + sequence);
-        log.info("dispatcher: " + dispatcher);
+        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
     }
 
     @AfterEach
@@ -135,6 +122,6 @@ class JudoDefaultPostgresqlModuleTest {
 
     @Test
     void test() {
-        assertTrue(true);
+        assertNotNull(injector.getInstance(DAO.class));
     }
 }

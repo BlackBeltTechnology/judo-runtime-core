@@ -20,43 +20,45 @@ package hu.blackbelt.judo.runtime.core.jetty.guice;
  * #L%
  */
 
+import com.google.common.base.Stopwatch;
 import com.google.inject.Guice;
-import com.google.inject.Inject;
 import com.google.inject.Injector;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.ServerSocket;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class JudoJettyModuleTest {
     Injector injector;
 
-    @Inject
-    JettyContainer jettyContainer;
-
     @SuppressWarnings({ "rawtypes", "resource" })
     @BeforeEach
     void init() throws Exception {
+        Stopwatch timer = Stopwatch.createStarted();
+        int port = new ServerSocket(0).getLocalPort();
+        JudoJettyModules jettyModules = JudoJettyModules.builder()
+                .jettyServerPort(port)
+                .jettyContextPath("/")
+                .build();
 
-        injector = Guice.createInjector(JudoJettyModules.builder()
-                        .jettyServerPort(8181)
-                        .jettyContextPath("/")
-                        .build());
+        injector = Guice.createInjector(jettyModules);
 
-        injector.injectMembers(this);
+        injector.injectMembers(jettyModules);
+        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
     }
 
     @AfterEach
     public void teardown() throws Exception {
-        jettyContainer.stop();
+        injector.getInstance(JettyContainer.class).stop();
     }
 
     @Test
     void test() {
-        assertEquals("/", jettyContainer.getContextPath());
+        assertEquals("/", injector.getInstance(JettyContainer.class).getContextPath());
     }
 }

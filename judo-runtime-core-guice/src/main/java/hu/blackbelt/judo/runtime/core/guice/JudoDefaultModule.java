@@ -62,70 +62,51 @@ import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
-import lombok.Builder;
+import lombok.*;
 import org.eclipse.emf.ecore.EReference;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class JudoDefaultModule extends AbstractModule {
 
-    public final Object injectModulesTo;
-    public final JudoModelLoader judoModelLoader;
-    public final Boolean bindModelHolder;
-    public final Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions;
-    public final Boolean rdbmsDaoOptimisticLockEnabled;
-    public final Boolean rdbmsDaoMarkSelectedRangeItems;
-    public final Integer rdbmsDaoChunkSize;
-    public final Boolean actorResolverCheckMappedActors;
-    public final Boolean dispatcherMetricsReturned;
-    public final Boolean dispatcherEnableDefaultValidation;
-    public final Boolean dispatcherTrimString;
-    public final Boolean dispatcherCaseInsensitiveLike;
-    public final String identifierSignerSecret;
-    public final Consumer metricsCollectorConsumer;
-    public final Boolean metricsCollectorEnabled;
-    public final Boolean metricsCollectorVerbose;
-    public final String payloadValidatorRequiredStringValidatorOption;
-    public final Boolean threadContextDebugThreadFork;
-    public final Boolean threadContextInheritableContext;
-    public final Long rdbmsSequenceStart;
-    public final Long rdbmsSequenceIncrement;
-    public final Boolean rdbmsSequenceCreateIfNotExists;
+    @Getter
+    private JudoDefaultModuleConfiguration configuration = JudoDefaultModuleConfiguration.builder().build();
 
     public static class JudoDefaultModuleBuilder {
-        Object injectModulesTo = false;
-        JudoModelLoader judoModelLoader = null;
-        Boolean bindModelHolder = true;
-        Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions = new ConcurrentHashMap<>();
-        Boolean rdbmsDaoOptimisticLockEnabled = true;
-        Boolean rdbmsDaoMarkSelectedRangeItems = false;
-        Integer rdbmsDaoChunkSize = 1000;
-        Boolean actorResolverCheckMappedActors = false;
-        Boolean dispatcherMetricsReturned = false;
-        Boolean dispatcherEnableDefaultValidation = true;
-        Boolean dispatcherCaseInsensitiveLike = false;
-        Boolean dispatcherTrimString = false;
-
-        String identifierSignerSecret;
-        Consumer metricsCollectorConsumer = (m) -> {};
-        Boolean metricsCollectorEnabled = false;
-        Boolean metricsCollectorVerbose = false;
-        String payloadValidatorRequiredStringValidatorOption = DefaultPayloadValidatorProvider.ACCEPT_NON_EMPTY;
-        Boolean threadContextDebugThreadFork = false;
-        Boolean threadContextInheritableContext = true;
-        Long rdbmsSequenceStart = 1L;
-        Long rdbmsSequenceIncrement = 1L;
-        Boolean rdbmsSequenceCreateIfNotExists = true;
+        JudoDefaultModuleConfiguration configuration = configuration = null;
+        Object injectModulesTo = JudoDefaultModuleConfiguration.DEFAULT.getInjectModulesTo();
+        JudoModelLoader judoModelLoader = JudoDefaultModuleConfiguration.DEFAULT.getJudoModelLoader();
+        Boolean bindModelHolder = JudoDefaultModuleConfiguration.DEFAULT.getBindModelHolder();
+        Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions = JudoDefaultModuleConfiguration.DEFAULT.getQueryFactoryCustomJoinDefinitions();
+        Boolean rdbmsDaoOptimisticLockEnabled = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoOptimisticLockEnabled();
+        Boolean rdbmsDaoMarkSelectedRangeItems = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMarkSelectedRangeItems();
+        Integer rdbmsDaoChunkSize = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoChunkSize();
+        Boolean actorResolverCheckMappedActors = JudoDefaultModuleConfiguration.DEFAULT.getActorResolverCheckMappedActors();
+        Boolean dispatcherMetricsReturned = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherMetricsReturned();
+        Boolean dispatcherEnableDefaultValidation = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherEnableDefaultValidation();
+        Boolean dispatcherCaseInsensitiveLike = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherCaseInsensitiveLike();
+        Boolean dispatcherTrimString = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherTrimString();
+        String identifierSignerSecret = JudoDefaultModuleConfiguration.DEFAULT.getIdentifierSignerSecret();
+        Consumer metricsCollectorConsumer = JudoDefaultModuleConfiguration.DEFAULT.getMetricsCollectorConsumer();
+        Boolean metricsCollectorEnabled = JudoDefaultModuleConfiguration.DEFAULT.getMetricsCollectorEnabled();
+        Boolean metricsCollectorVerbose = JudoDefaultModuleConfiguration.DEFAULT.getMetricsCollectorVerbose();
+        String payloadValidatorRequiredStringValidatorOption = JudoDefaultModuleConfiguration.DEFAULT.getPayloadValidatorRequiredStringValidatorOption();
+        Boolean threadContextDebugThreadFork = JudoDefaultModuleConfiguration.DEFAULT.getThreadContextDebugThreadFork();
+        Boolean threadContextInheritableContext = JudoDefaultModuleConfiguration.DEFAULT.getThreadContextInheritableContext();
+        Long rdbmsSequenceStart = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsSequenceStart();
+        Long rdbmsSequenceIncrement = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsSequenceIncrement();
+        Boolean rdbmsSequenceCreateIfNotExists = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsSequenceCreateIfNotExists();
     }
 
     @Builder
-    public JudoDefaultModule(Object injectModulesTo,
+    public JudoDefaultModule(
+                            JudoDefaultModuleConfiguration configuration,
+                            Object injectModulesTo,
                             JudoModelLoader judoModelLoader,
                             Boolean bindModelHolder,
                             Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions,
@@ -148,29 +129,34 @@ public class JudoDefaultModule extends AbstractModule {
                             Long rdbmsSequenceIncrement,
                             Boolean rdbmsSequenceCreateIfNotExists
          ) {
-        this.injectModulesTo = injectModulesTo;
-        this.judoModelLoader = judoModelLoader;
-        this.bindModelHolder = bindModelHolder;
-        this.queryFactoryCustomJoinDefinitions = queryFactoryCustomJoinDefinitions;
-        this.rdbmsDaoOptimisticLockEnabled = rdbmsDaoOptimisticLockEnabled;
-        this.rdbmsDaoMarkSelectedRangeItems = rdbmsDaoMarkSelectedRangeItems;
-        this.rdbmsDaoChunkSize = rdbmsDaoChunkSize;
-        this.actorResolverCheckMappedActors = actorResolverCheckMappedActors;
-        this.dispatcherMetricsReturned = dispatcherMetricsReturned;
-        this.dispatcherEnableDefaultValidation = dispatcherEnableDefaultValidation;
-        this.dispatcherTrimString = dispatcherTrimString;
-        this.dispatcherCaseInsensitiveLike = dispatcherCaseInsensitiveLike;
-        this.identifierSignerSecret = Objects.requireNonNullElseGet(identifierSignerSecret, () -> generateNewSecret());
-        this.metricsCollectorConsumer = metricsCollectorConsumer;
-        this.metricsCollectorEnabled = metricsCollectorEnabled;
-        this.metricsCollectorVerbose = metricsCollectorVerbose;
-        this.payloadValidatorRequiredStringValidatorOption = payloadValidatorRequiredStringValidatorOption;
-        this.threadContextDebugThreadFork = threadContextDebugThreadFork;
-        this.threadContextInheritableContext = threadContextInheritableContext;
-        this.rdbmsSequenceStart = rdbmsSequenceStart;
-        this.rdbmsSequenceIncrement = rdbmsSequenceIncrement;
-        this.rdbmsSequenceCreateIfNotExists = rdbmsSequenceCreateIfNotExists;
-
+        if (configuration != null) {
+            this.configuration = configuration;
+        } else {
+            this.configuration = JudoDefaultModuleConfiguration.builder()
+                    .injectModulesTo(injectModulesTo)
+                    .judoModelLoader(judoModelLoader)
+                    .bindModelHolder(bindModelHolder)
+                    .queryFactoryCustomJoinDefinitions(queryFactoryCustomJoinDefinitions)
+                    .rdbmsDaoOptimisticLockEnabled(rdbmsDaoOptimisticLockEnabled)
+                    .rdbmsDaoMarkSelectedRangeItems(rdbmsDaoMarkSelectedRangeItems)
+                    .rdbmsDaoChunkSize(rdbmsDaoChunkSize)
+                    .actorResolverCheckMappedActors(actorResolverCheckMappedActors)
+                    .dispatcherMetricsReturned(dispatcherMetricsReturned)
+                    .dispatcherEnableDefaultValidation(dispatcherEnableDefaultValidation)
+                    .dispatcherTrimString(dispatcherTrimString)
+                    .dispatcherCaseInsensitiveLike(dispatcherCaseInsensitiveLike)
+                    .identifierSignerSecret(identifierSignerSecret)
+                    .metricsCollectorConsumer(metricsCollectorConsumer)
+                    .metricsCollectorEnabled(metricsCollectorEnabled)
+                    .metricsCollectorVerbose(metricsCollectorVerbose)
+                    .payloadValidatorRequiredStringValidatorOption(payloadValidatorRequiredStringValidatorOption)
+                    .threadContextDebugThreadFork(threadContextDebugThreadFork)
+                    .threadContextInheritableContext(threadContextInheritableContext)
+                    .rdbmsSequenceStart(rdbmsSequenceStart)
+                    .rdbmsSequenceIncrement(rdbmsSequenceIncrement)
+                    .rdbmsSequenceCreateIfNotExists(rdbmsSequenceCreateIfNotExists)
+                    .build();
+        }
     }
 
     public static String generateNewSecret() {
@@ -186,38 +172,38 @@ public class JudoDefaultModule extends AbstractModule {
     }
 
     protected void configureModels() {
-        bind(AsmModel.class).toInstance(judoModelLoader.getAsmModel());
-        bind(RdbmsModel.class).toInstance(judoModelLoader.getRdbmsModel());
-        bind(MeasureModel.class).toInstance(judoModelLoader.getMeasureModel());
-        bind(LiquibaseModel.class).toInstance(judoModelLoader.getLiquibaseModel());
-        bind(ExpressionModel.class).toInstance(judoModelLoader.getExpressionModel());
+        bind(AsmModel.class).toInstance(configuration.getJudoModelLoader().getAsmModel());
+        bind(RdbmsModel.class).toInstance(configuration.getJudoModelLoader().getRdbmsModel());
+        bind(MeasureModel.class).toInstance(configuration.getJudoModelLoader().getMeasureModel());
+        bind(LiquibaseModel.class).toInstance(configuration.getJudoModelLoader().getLiquibaseModel());
+        bind(ExpressionModel.class).toInstance(configuration.getJudoModelLoader().getExpressionModel());
 
         // Model
-        if (bindModelHolder) {
-            bind(JudoModelLoader.class).toInstance(judoModelLoader);
+        if (configuration.getBindModelHolder()) {
+            bind(JudoModelLoader.class).toInstance(configuration.getJudoModelLoader());
         }
     }
 
     protected void configureOptions() {
-        bind(Map.class).annotatedWith(JudoModuleConfiguration.QueryFactoryCustomJoinDefinitions.class).toInstance(queryFactoryCustomJoinDefinitions);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.RdbmsDaoOptimisticLockEnabled.class).toInstance(rdbmsDaoOptimisticLockEnabled);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.RdbmsDaoMarkSelectedRangeItems.class).toInstance(rdbmsDaoMarkSelectedRangeItems);
-        bind(Integer.class).annotatedWith(JudoModuleConfiguration.RdbmsDaoChunkSize.class).toInstance(rdbmsDaoChunkSize);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.ActorResolverCheckMappedActors.class).toInstance(actorResolverCheckMappedActors);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.DispatcherMetricsReturned.class).toInstance(dispatcherMetricsReturned);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.DispatcherEnableDefaultValidation.class).toInstance(dispatcherEnableDefaultValidation);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.DispatcherTrimString.class).toInstance(dispatcherTrimString);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.DispatcherCaseInsensitiveLike.class).toInstance(dispatcherCaseInsensitiveLike);
-        bind(String.class).annotatedWith(JudoModuleConfiguration.IdentifierSignerSecret.class).toInstance(identifierSignerSecret);
-        bind(Consumer.class).annotatedWith(JudoModuleConfiguration.MetricsCollectorConsumer.class).toInstance(metricsCollectorConsumer);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.MetricsCollectorEnabled.class).toInstance(metricsCollectorEnabled);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.MetricsCollectorVerbose.class).toInstance(metricsCollectorVerbose);
-        bind(String.class).annotatedWith(JudoModuleConfiguration.PayloadValidatorRequiredStringValidatorOption.class).toInstance(payloadValidatorRequiredStringValidatorOption);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.ThreadContextDebugThreadFork.class).toInstance(threadContextDebugThreadFork);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.ThreadContextInheritableContext.class).toInstance(threadContextInheritableContext);
-        bind(Long.class).annotatedWith(JudoModuleConfiguration.RdbmsSequenceStart.class).toInstance(rdbmsSequenceStart);
-        bind(Long.class).annotatedWith(JudoModuleConfiguration.RdbmsSequenceIncrement.class).toInstance(rdbmsSequenceIncrement);
-        bind(Boolean.class).annotatedWith(JudoModuleConfiguration.RdbmsSequenceCreateIfNotExists.class).toInstance(rdbmsSequenceCreateIfNotExists);
+        bind(Map.class).annotatedWith(JudoConfigurationQualifiers.QueryFactoryCustomJoinDefinitions.class).toInstance(configuration.getQueryFactoryCustomJoinDefinitions());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled.class).toInstance(configuration.getRdbmsDaoOptimisticLockEnabled());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems.class).toInstance(configuration.getRdbmsDaoMarkSelectedRangeItems());
+        bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class).toInstance(configuration.getRdbmsDaoChunkSize());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverCheckMappedActors.class).toInstance(configuration.getActorResolverCheckMappedActors());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class).toInstance(configuration.getDispatcherTrimString());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherCaseInsensitiveLike.class).toInstance(configuration.getDispatcherCaseInsensitiveLike());
+        bind(String.class).annotatedWith(JudoConfigurationQualifiers.IdentifierSignerSecret.class).toInstance(configuration.getIdentifierSignerSecret() != null ? configuration.getIdentifierSignerSecret() : generateNewSecret());
+        bind(Consumer.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorConsumer.class).toInstance(configuration.getMetricsCollectorConsumer());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorEnabled.class).toInstance(configuration.getMetricsCollectorEnabled());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorVerbose.class).toInstance(configuration.getMetricsCollectorVerbose());
+        bind(String.class).annotatedWith(JudoConfigurationQualifiers.PayloadValidatorRequiredStringValidatorOption.class).toInstance(configuration.getPayloadValidatorRequiredStringValidatorOption());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextDebugThreadFork.class).toInstance(configuration.getThreadContextDebugThreadFork());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextInheritableContext.class).toInstance(configuration.getThreadContextInheritableContext());
+        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceStart.class).toInstance(configuration.getRdbmsSequenceStart());
+        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceIncrement.class).toInstance(configuration.getRdbmsSequenceIncrement());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceCreateIfNotExists.class).toInstance(configuration.getRdbmsSequenceCreateIfNotExists());
     }
 
     protected void configureRdbmsResolver() {
@@ -317,9 +303,13 @@ public class JudoDefaultModule extends AbstractModule {
         bind(Export.class).to(UnsupportedExportImpl.class);
     }
 
+    protected void configurePlatformTransactionManager() {
+        bind(PlatformTransactionManager.class).toProvider(PlatformTransactionManagerProvider.class).in(Singleton.class);
+    }
+
     protected void configure() {
-        if (injectModulesTo != null) {
-            requestInjection(injectModulesTo);
+        if (configuration.getInjectModulesTo() != null) {
+            requestInjection(configuration.getInjectModulesTo());
         }
         configureModels();
         configureOptions();
@@ -347,5 +337,6 @@ public class JudoDefaultModule extends AbstractModule {
         configureValidatorProvider();
         configurePayloadValidator();
         configureExport();
+        //configurePlatformTransactionManager();
     }
 }

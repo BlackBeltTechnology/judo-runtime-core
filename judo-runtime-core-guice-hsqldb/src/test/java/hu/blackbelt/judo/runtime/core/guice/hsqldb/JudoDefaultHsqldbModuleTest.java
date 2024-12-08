@@ -20,61 +20,34 @@ package hu.blackbelt.judo.runtime.core.guice.hsqldb;
  * #L%
  */
 
+import com.google.common.base.Stopwatch;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
-import org.slf4j.Logger;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
-import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
-import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
-import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
-import hu.blackbelt.judo.meta.liquibase.support.LiquibaseModelResourceSupport;
-import hu.blackbelt.judo.meta.liquibase.util.builder.databaseChangeLogBuilder;
-import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
-import hu.blackbelt.judo.meta.measure.support.MeasureModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.guice.JudoDefaultModule;
 import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
-import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.JudoHsqldbModules;
-import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
+import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.JudoHsqldbModule;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 import org.junit.jupiter.api.*;
 
-import java.util.HashMap;
+import java.net.ServerSocket;
 
-import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class JudoDefaultHsqldbModuleTest {
 
-    @SuppressWarnings("rawtypes")
-    @Inject
-    DAO dao;
-
-    @SuppressWarnings("rawtypes")
-    @Inject
-    Sequence sequence;
-
-    @Inject
-    Dispatcher dispatcher;
-
     Injector injector;
 
     @BeforeEach
     void init() throws Exception {
+        Stopwatch timer = Stopwatch.createStarted();
 
-        Module hsqlDbModule = JudoHsqldbModules.builder()
+        Module hsqlDbModule = JudoHsqldbModule.builder()
                 .build();
 
         Module judoModule = JudoDefaultModule.builder()
@@ -86,10 +59,8 @@ class JudoDefaultHsqldbModuleTest {
         Module application = Modules.combine(judoModule, hsqlDbModule);
 
         injector = Guice.createInjector(application);
+        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
 
-        log.info("DAO: " + dao);
-        log.info("Sequence: " + sequence);
-        log.info("dispatcher: " + dispatcher);
     }
 
     @AfterEach
@@ -99,6 +70,6 @@ class JudoDefaultHsqldbModuleTest {
 
     @Test
     void test() {
-        assertTrue(true);
+        assertNotNull(injector.getInstance(DAO.class));
     }
 }

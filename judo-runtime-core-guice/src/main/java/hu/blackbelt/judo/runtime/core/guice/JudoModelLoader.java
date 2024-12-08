@@ -51,8 +51,11 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.LoadArguments.asmLoadArgumentsBuilder;
 import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
@@ -85,8 +88,11 @@ public class JudoModelLoader {
 
         Enumeration<URL> urlEnumeration = classLoader.getResources("model");
         URL url = null;
+
+        List<URL> classPathUrls = new ArrayList<>();
         while (urlEnumeration.hasMoreElements() && url == null) {
             URL urlToTest = urlEnumeration.nextElement();
+            classPathUrls.add(urlToTest);
             try {
                 URL relativeUrl = calculateRelativeURI(urlToTest.toURI(), "/" + modelName + "-asm.model").toURL();
                 InputStream stream = relativeUrl.openStream();
@@ -99,6 +105,9 @@ public class JudoModelLoader {
                 }
             } catch (Exception e) {
             }
+        }
+        if (url == null) {
+            throw new IllegalArgumentException("Could not load model from classpath: " + modelName + " from: \n" + classPathUrls.stream().map(u -> u.toString()).collect(Collectors.joining("\n\t")));
         }
         return loadFromURL(modelName, url.toURI(), dialect, validate);
     }

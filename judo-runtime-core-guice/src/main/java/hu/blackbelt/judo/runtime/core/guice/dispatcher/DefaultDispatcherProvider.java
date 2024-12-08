@@ -37,7 +37,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.Export;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
-import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
@@ -108,22 +108,22 @@ public class DefaultDispatcherProvider implements Provider<Dispatcher> {
     TokenValidator filestoreTokenValidator;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.DispatcherMetricsReturned
+    @JudoConfigurationQualifiers.DispatcherMetricsReturned
     @Nullable
     Boolean metricsReturned;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.DispatcherEnableDefaultValidation
+    @JudoConfigurationQualifiers.DispatcherEnableDefaultValidation
     @Nullable
     Boolean enableValidation;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.DispatcherTrimString
+    @JudoConfigurationQualifiers.DispatcherTrimString
     @Nullable
     Boolean trimString;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.DispatcherCaseInsensitiveLike
+    @JudoConfigurationQualifiers.DispatcherCaseInsensitiveLike
     @Nullable
     Boolean caseInsensitiveLike;
 

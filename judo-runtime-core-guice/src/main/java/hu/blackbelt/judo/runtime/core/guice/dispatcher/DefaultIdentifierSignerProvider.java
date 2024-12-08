@@ -22,14 +22,12 @@ package hu.blackbelt.judo.runtime.core.guice.dispatcher;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
-import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultIdentifierSigner;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
-import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 
 import javax.annotation.Nullable;
 
@@ -46,7 +44,7 @@ public class DefaultIdentifierSignerProvider implements Provider<IdentifierSigne
     IdentifierProvider identifierProvider;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.IdentifierSignerSecret
+    @JudoConfigurationQualifiers.IdentifierSignerSecret
     @Nullable
     String secret;
 

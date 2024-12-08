@@ -1,10 +1,10 @@
 package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers;
 
 import com.google.inject.Provider;
-import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.interceptors.ExchangeIdResponseWriter;
+import hu.blackbelt.judo.runtime.core.jaxrs.cxf.interceptors.ExchangeIdResponseWriter;
 
 
-public class ExchangeIdResponseWriterProvider implements Provider<ExchangeIdResponseWriter> {
+public class ExchangeIdResponseWriterProviderFault implements Provider<ExchangeIdResponseWriter> {
 
     public ExchangeIdResponseWriter get() {
         return new ExchangeIdResponseWriter();

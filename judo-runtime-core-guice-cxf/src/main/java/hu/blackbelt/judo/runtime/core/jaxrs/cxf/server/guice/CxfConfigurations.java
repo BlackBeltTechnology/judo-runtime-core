@@ -11,10 +11,6 @@ public class CxfConfigurations {
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface CxfJaxRsServerPort {}
-
-    @Qualifier
-    @Retention(RetentionPolicy.RUNTIME)
     public @interface CxfJaxRsServerUrl {}
 
     @Qualifier

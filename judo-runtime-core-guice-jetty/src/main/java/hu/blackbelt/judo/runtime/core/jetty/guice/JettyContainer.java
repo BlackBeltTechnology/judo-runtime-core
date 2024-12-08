@@ -10,6 +10,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -34,15 +35,43 @@ public class JettyContainer {
     @Nullable
     private String contextPath;
 
+    @Getter
+    @Inject(optional = true)
+    @JettyConfigurations.JettyServerMaxThreads
+    @Nullable
+    Integer maxThreads = 100;
+
+    @Getter
+    @Inject(optional = true)
+    @JettyConfigurations.JettyServerMinThreads
+    @Nullable
+    Integer minThreads = 10;
+
+    @Getter
+    @Inject(optional = true)
+    @JettyConfigurations.JettyServerIdleTimeout
+    @Nullable
+    Integer idleTimeout = 120;
+
     public static class JettyContainerBuilder {
-        private Integer port = 8181;
-        private String contextPath = "/";
+        Integer port = 8181;
+        String contextPath = "/";
+        Integer maxThreads = 100;
+        Integer minThreads = 10;
+        Integer idleTimeout = 120;
     }
 
     @Builder
-    public JettyContainer(int port, String contextPath) {
+    public JettyContainer(int port,
+                            String contextPath,
+                            Integer maxThreads,
+                            Integer minThreads,
+                            Integer idleTimeout) {
         this.port = port;
         this.contextPath = contextPath;
+        this.maxThreads = maxThreads;
+        this.minThreads = minThreads;
+        this.idleTimeout = idleTimeout;
         start();
     }
 
@@ -51,7 +80,9 @@ public class JettyContainer {
             if (port <= 0) {
                 port = 8080;
             }
-            webServer = new Server();
+
+            QueuedThreadPool threadPool = new QueuedThreadPool(maxThreads, minThreads, idleTimeout);
+            webServer = new Server(threadPool);
             webServer.setConnectors(assembleConnectors(port, webServer));
             servletContextHandler= new ServletContextHandler(ServletContextHandler.SESSIONS);
             servletContextHandler.setContextPath(contextPath);

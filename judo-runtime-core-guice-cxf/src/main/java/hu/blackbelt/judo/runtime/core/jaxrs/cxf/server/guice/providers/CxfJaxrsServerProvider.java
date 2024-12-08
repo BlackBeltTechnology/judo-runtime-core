@@ -1,14 +1,10 @@
 package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.CxfConfigurations;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.CxfQualifiers;
-import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.providers.ISO8601DateParamHandler;
 import hu.blackbelt.judo.runtime.core.jetty.guice.JettyContainer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.Bus;
@@ -27,7 +23,7 @@ import javax.annotation.Nullable;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.ext.RuntimeDelegate;
 import java.util.*;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.ServerHolder> {
@@ -47,11 +43,6 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
 
     @Inject
     JettyContainer jettyContainer;
-
-    @Inject(optional = true)
-    @CxfConfigurations.CxfJaxRsServerPort
-    @Nullable
-    private Integer cxfJaxRsServerPort;
 
     @Inject(optional = true)
     @CxfConfigurations.CxfJaxRsServerUrl
@@ -90,17 +81,17 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
     @Inject(optional = true)
     @CxfQualifiers.InInterceptors
     @Nullable
-    private Set<Interceptor<Message>> inInterceptors = new HashSet<>();
+    private Set<Interceptor> inInterceptors = new HashSet<>();
 
     @Inject(optional = true)
     @CxfQualifiers.OutInterceptors
     @Nullable
-    private Set<Interceptor<Message>> outInterceptors = new HashSet<>();
+    private Set<Interceptor> outInterceptors = new HashSet<>();
 
     @Inject(optional = true)
     @CxfQualifiers.FaultInterceptors
     @Nullable
-    private Set<Interceptor<Message>> faultInterceptors = new HashSet<>();
+    private Set<Interceptor> faultInterceptors = new HashSet<>();
 
     @Inject(optional = true)
     @CxfQualifiers.Providers
@@ -155,12 +146,16 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
     }
 
     void setupCxfInterceptors(JAXRSServerFactoryBean jaxrsServerFactoryBean) {
-        jaxrsServerFactoryBean.getInInterceptors().addAll(inInterceptors);
-        jaxrsServerFactoryBean.getOutInterceptors().addAll(outInterceptors);
-        jaxrsServerFactoryBean.getOutFaultInterceptors().addAll(faultInterceptors);
+        log.info("Registering IN INTERCEPTORS: " + inInterceptors.stream().map(i -> i.getClass().getName()).collect(Collectors.joining(", ")));
+        jaxrsServerFactoryBean.getInInterceptors().addAll(inInterceptors.stream().map(m -> (Interceptor<Message>) m).toList());
+        log.info("Registering OUT INTERCEPTORS: " + outInterceptors.stream().map(i -> i.getClass().getName()).collect(Collectors.joining(", ")));
+        jaxrsServerFactoryBean.getOutInterceptors().addAll(outInterceptors.stream().map(m -> (Interceptor<Message>) m).toList());
+        log.info("Registering FAULT INTERCEPTORS: " + faultInterceptors.stream().map(i -> i.getClass().getName()).collect(Collectors.joining(", ")));
+        jaxrsServerFactoryBean.getOutFaultInterceptors().addAll(faultInterceptors.stream().map(m -> (Interceptor<Message>) m).toList());
     }
 
     void setupCxfProviders(JAXRSServerFactoryBean jaxrsServerFactoryBean) {
+        log.info("Registering PROVIDER: " + providers.stream().map(i -> i.getClass().getName()).collect(Collectors.joining(", ")));
         jaxrsServerFactoryBean.setProviders(providers.stream().toList());
     }
 

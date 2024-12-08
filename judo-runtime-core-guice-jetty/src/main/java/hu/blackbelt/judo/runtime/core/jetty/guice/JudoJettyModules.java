@@ -22,24 +22,61 @@ package hu.blackbelt.judo.runtime.core.jetty.guice;
 
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import lombok.Builder;
+import lombok.*;
 
 public class JudoJettyModules extends AbstractModule {
 
-    private Integer jettyServerPort;
-    private String jettyContextPath;
-
-
-    public static class JudoJettyModulesBuilder {
-        Integer jettyServerPort = 8181;
-        String jettyContextPath = "/";
-    }
+    @Getter
+    JudoJettyModulesConfiguration configuration;
 
     @Builder
-    private JudoJettyModules(Integer jettyServerPort, String jettyContextPath) {
-        this.jettyServerPort = jettyServerPort;
-        this.jettyContextPath = jettyContextPath;
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class JudoJettyModulesConfiguration {
+        public static final JudoJettyModulesConfiguration DEFAULT = JudoJettyModulesConfiguration.builder().build();
+        @Builder.Default Integer jettyServerPort = 8181;
+        @Builder.Default String jettyContextPath = "/";
+        @Builder.Default Integer maxThreads = 100;
+        @Builder.Default Integer minThreads = 10;
+        @Builder.Default Integer idleTimeout = 120;
+    }
+
+    public static class JudoJettyModulesBuilder {
+        JudoJettyModulesConfiguration configuration = null;
+        Integer jettyServerPort = JudoJettyModulesConfiguration.DEFAULT.getJettyServerPort();
+        String jettyContextPath = JudoJettyModulesConfiguration.DEFAULT.getJettyContextPath();
+        Integer maxThreads = JudoJettyModulesConfiguration.DEFAULT.getMaxThreads();
+        Integer minThreads = JudoJettyModulesConfiguration.DEFAULT.getMinThreads();
+        Integer idleTimeout = JudoJettyModulesConfiguration.DEFAULT.getIdleTimeout();
+    }
+
+    @Inject
+    @Getter
+    JettyContainer jettyContainer;
+
+    @Builder
+    private JudoJettyModules(JudoJettyModulesConfiguration configuration,
+                                Integer jettyServerPort,
+                                String jettyContextPath,
+                                Integer maxThreads,
+                                Integer minThreads,
+                                Integer idleTimeout
+                             ) {
+        if (configuration != null) {
+            this.configuration = configuration;
+        } else {
+            this.configuration = JudoJettyModulesConfiguration.builder()
+                    .jettyServerPort(jettyServerPort)
+                    .jettyContextPath(jettyContextPath)
+                    .maxThreads(maxThreads)
+                    .minThreads(minThreads)
+                    .idleTimeout(idleTimeout)
+                    .build();
+        }
     }
 
     protected void configure() {
@@ -48,8 +85,11 @@ public class JudoJettyModules extends AbstractModule {
     }
 
     protected void configureOptions() {
-        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerPort.class).toInstance(jettyServerPort);
-        bind(String.class).annotatedWith(JettyConfigurations.JettyServerContextPath.class).toInstance(jettyContextPath);
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerPort.class).toInstance(configuration.getJettyServerPort());
+        bind(String.class).annotatedWith(JettyConfigurations.JettyServerContextPath.class).toInstance(configuration.getJettyContextPath());
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerMaxThreads.class).toInstance(configuration.getMaxThreads());
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerMinThreads.class).toInstance(configuration.getMinThreads());
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerIdleTimeout.class).toInstance(configuration.getIdleTimeout());
     }
 
     protected void configureServer() {

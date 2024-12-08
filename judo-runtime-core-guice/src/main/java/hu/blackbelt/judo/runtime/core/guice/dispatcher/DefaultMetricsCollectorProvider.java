@@ -25,7 +25,7 @@ import com.google.inject.Provider;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultMetricsCollector;
-import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
@@ -37,17 +37,17 @@ public class DefaultMetricsCollectorProvider implements Provider<MetricsCollecto
 
     @SuppressWarnings("rawtypes")
     @Inject(optional = true)
-    @JudoModuleConfiguration.MetricsCollectorConsumer
+    @JudoConfigurationQualifiers.MetricsCollectorConsumer
     @Nullable
     Consumer metricsConsumer = (m) -> {};
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.MetricsCollectorEnabled
+    @JudoConfigurationQualifiers.MetricsCollectorEnabled
     @Nullable
     Boolean enabled = false;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.MetricsCollectorVerbose
+    @JudoConfigurationQualifiers.MetricsCollectorVerbose
     @Nullable
     Boolean verbose = false;
 
