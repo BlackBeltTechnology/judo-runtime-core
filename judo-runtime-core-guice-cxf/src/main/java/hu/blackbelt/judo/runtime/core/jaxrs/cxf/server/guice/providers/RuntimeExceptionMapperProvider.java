@@ -3,7 +3,6 @@ package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.CxfConfigurations;
-import hu.blackbelt.judo.runtime.core.jaxrs.providers.ClientExceptionMapper;
 import hu.blackbelt.judo.runtime.core.jaxrs.providers.RuntimeExceptionMapper;
 
 import javax.annotation.Nullable;
