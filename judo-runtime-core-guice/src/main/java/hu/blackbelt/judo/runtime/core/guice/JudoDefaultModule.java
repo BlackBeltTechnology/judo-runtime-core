@@ -290,15 +290,15 @@ public class JudoDefaultModule extends AbstractModule {
     }
 
     protected void configureDispatcher() {
-        bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).asEagerSingleton();
+        bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).in(Singleton.class);
     }
 
     protected void configureValidatorProvider() {
-        bind(ValidatorProvider.class).toProvider(ValidatorProviderProvider.class).asEagerSingleton();
+        bind(ValidatorProvider.class).toProvider(ValidatorProviderProvider.class).in(Singleton.class);
     }
 
     protected void configurePayloadValidator() {
-        bind(PayloadValidator.class).toProvider(DefaultPayloadValidatorProvider.class).asEagerSingleton();
+        bind(PayloadValidator.class).toProvider(DefaultPayloadValidatorProvider.class).in(Singleton.class);
     }
 
     protected void configureExport() {
