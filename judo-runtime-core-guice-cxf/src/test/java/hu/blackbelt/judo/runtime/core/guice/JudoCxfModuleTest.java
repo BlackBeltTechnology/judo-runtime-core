@@ -28,7 +28,7 @@ import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.JudoHsqldbModule;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.JudoCxfModule;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers.CxfJaxrsServerProvider;
 import hu.blackbelt.judo.runtime.core.jetty.guice.JettyContainer;
-import hu.blackbelt.judo.runtime.core.jetty.guice.JudoJettyModules;
+import hu.blackbelt.judo.runtime.core.jetty.guice.JudoJettyModule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.cxf.jaxrs.client.WebClient;
 import org.junit.jupiter.api.*;
@@ -60,7 +60,7 @@ class JudoCxfModuleTest {
 
         Module sqlModule = JudoHsqldbModule.builder().build();
 
-        Module jettyModule = JudoJettyModules.builder()
+        Module jettyModule = JudoJettyModule.builder()
                 .jettyServerPort(port)
                 .build();
 

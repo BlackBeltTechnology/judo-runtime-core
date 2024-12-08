@@ -41,7 +41,7 @@ class JudoJettyModuleTest {
     void init() throws Exception {
         Stopwatch timer = Stopwatch.createStarted();
         int port = new ServerSocket(0).getLocalPort();
-        JudoJettyModules jettyModules = JudoJettyModules.builder()
+        JudoJettyModule jettyModules = JudoJettyModule.builder()
                 .jettyServerPort(port)
                 .jettyContextPath("/")
                 .build();

@@ -167,7 +167,7 @@ public class JudoKeycloakModule extends AbstractModule {
 
     protected void configureKeycloakLoginInterceptor() {
         Multibinder<Interceptor> inInterceptorsBinder = Multibinder.newSetBinder(binder(), Interceptor.class, CxfQualifiers.InInterceptors.class);
-        inInterceptorsBinder.addBinding().toProvider(KeycloakLoginInterceptorProvider.class).in(Singleton.class);
+        inInterceptorsBinder.addBinding().toProvider(KeycloakLoginInterceptorProvider.class).asEagerSingleton();
     }
 
     protected void configurePasswordPolicy() {
@@ -175,24 +175,24 @@ public class JudoKeycloakModule extends AbstractModule {
     }
 
     protected void configureAdminClient() {
-        bind(KeycloakAdminClient.class).toProvider(KeycloakAdminClientProvider.class).in(Singleton.class);
+        bind(KeycloakAdminClient.class).toProvider(KeycloakAdminClientProvider.class).asEagerSingleton();
     }
 
     protected void configureKeycloakConnector() {
-        bind(KeycloakConnector.class).toProvider(KeycloakConnectorProvider.class).in(Singleton.class);
-        bind(OpenIdConfigurationProvider.class).toProvider(KeycloakConnectorOpenIdConfigurationProviderProvider.class).in(Singleton.class);
+        bind(KeycloakConnector.class).toProvider(KeycloakConnectorProvider.class).asEagerSingleton();
+        bind(OpenIdConfigurationProvider.class).toProvider(KeycloakConnectorOpenIdConfigurationProviderProvider.class).asEagerSingleton();
     }
 
     protected void configureKeycloakUserManager() {
-        bind(KeycloakUserManager.class).toProvider(KeycloakUserManagerProvider.class).in(Singleton.class);
+        bind(KeycloakUserManager.class).toProvider(KeycloakUserManagerProvider.class).asEagerSingleton();
     }
 
     protected void configureRealmSyncornizer() {
-        bind(KeycloakRealmSynchronizer.class).toProvider(KeycloakRealmSynchronizerProvider.class).in(Singleton.class);
+        bind(KeycloakRealmSynchronizer.class).toProvider(KeycloakRealmSynchronizerProvider.class).asEagerSingleton();
     }
 
     protected void configureRealmExtractor() {
-        bind(RealmExtractor.class).toProvider(PathInfoRealmExtractorProvider.class).in(Singleton.class);
+        bind(RealmExtractor.class).toProvider(PathInfoRealmExtractorProvider.class).asEagerSingleton();
     }
 
 }

@@ -160,7 +160,7 @@ public class JudoCxfModule extends AbstractModule {
     }
 
     protected void configureServer() {
-        bind(CxfJaxrsServerProvider.ServerHolder.class).toProvider(CxfJaxrsServerProvider.class).in(Singleton.class);
+        bind(CxfJaxrsServerProvider.ServerHolder.class).toProvider(CxfJaxrsServerProvider.class).asEagerSingleton();
     }
 
     protected void configureExchangeInterceptors() {
@@ -174,31 +174,31 @@ public class JudoCxfModule extends AbstractModule {
     }
 
     protected void configureClientExceptionMapper() {
-        providersBinder.addBinding().toProvider(ClientExceptionMapperProvider.class).in(Singleton.class);
+        providersBinder.addBinding().toProvider(ClientExceptionMapperProvider.class).asEagerSingleton();
     }
 
     protected void configurePayloadMessageBodyWriter() {
-        providersBinder.addBinding().toProvider(PayloadMessageBodyWriterProvider.class).in(Singleton.class);
+        providersBinder.addBinding().toProvider(PayloadMessageBodyWriterProvider.class).asEagerSingleton();
     }
 
     protected void configureSetDefaultContentTypePreMatchContainerRequestFilter() {
-        providersBinder.addBinding().toProvider(SetDefaultContentTypePreMatchContainerRequestFilterProvider.class).in(Singleton.class);
+        providersBinder.addBinding().toProvider(SetDefaultContentTypePreMatchContainerRequestFilterProvider.class).asEagerSingleton();
     }
 
     protected void configureFaultInterceptor() {
-        faultInterceptorsBinder.addBinding().toProvider(FaultInterceptorProvider.class).in(Singleton.class);
+        faultInterceptorsBinder.addBinding().toProvider(FaultInterceptorProvider.class).asEagerSingleton();
     }
 
     protected void configureJudoAuthorizingInterceptor() {
-        inInterceptorsBinder.addBinding().toProvider(JudoAuthorizingInterceptorProvider.class).in(Singleton.class);
+        inInterceptorsBinder.addBinding().toProvider(JudoAuthorizingInterceptorProvider.class).asEagerSingleton();
     }
 
     protected void configureJacksonJaxbJsonProvider() {
-        providersBinder.addBinding().toProvider(JacksonJaxbJsonProviderProvider.class).in(Singleton.class);
+        providersBinder.addBinding().toProvider(JacksonJaxbJsonProviderProvider.class).asEagerSingleton();
     }
 
     protected void configureISO8601DateParamHandler() {
-        providersBinder.addBinding().toProvider(ISO8601DateParamHandlerProvider.class).in(Singleton.class);
+        providersBinder.addBinding().toProvider(ISO8601DateParamHandlerProvider.class).asEagerSingleton();
     }
 
 }
