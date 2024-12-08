@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.interceptors;
+package hu.blackbelt.judo.runtime.core.jaxrs.cxf.interceptors;
 
 /*-
  * #%L

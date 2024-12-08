@@ -22,7 +22,6 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import org.hsqldb.server.Server;
 
 import javax.annotation.Nullable;
@@ -36,17 +35,17 @@ public class HsqldbServerProvider implements Provider<Server> {
 
 
     @Inject(optional = true)
-    @HsqlDbConfiguration.HsqldbServerDatabaseName
+    @HsqlDbConfigurationQualifier.HsqldbServerDatabaseName
     @Nullable
     private String databaseName;
 
     @Inject(optional = true)
-    @HsqlDbConfiguration.HsqldbServerDatabasePath
+    @HsqlDbConfigurationQualifier.HsqldbServerDatabasePath
     @Nullable
     private File databasePath;
 
     @Inject(optional = true)
-    @HsqlDbConfiguration.HsqldbServerPort
+    @HsqlDbConfigurationQualifier.HsqldbServerPort
     @Nullable
     private Integer port;
 

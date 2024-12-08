@@ -26,7 +26,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
-import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator;
 
@@ -49,7 +49,7 @@ public class DefaultPayloadValidatorProvider implements Provider<PayloadValidato
     IdentifierProvider identifierProvider;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.PayloadValidatorRequiredStringValidatorOption
+    @JudoConfigurationQualifiers.PayloadValidatorRequiredStringValidatorOption
     @Nullable
     String requiredStringValidatorOption;
 

@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.providers;
+package hu.blackbelt.judo.runtime.core.jaxrs.providers;
 
 /*-
  * #%L

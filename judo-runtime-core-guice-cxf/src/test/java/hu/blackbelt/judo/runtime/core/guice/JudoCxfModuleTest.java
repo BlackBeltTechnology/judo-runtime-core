@@ -20,77 +20,81 @@ package hu.blackbelt.judo.runtime.core.guice;
  * #L%
  */
 
+import com.google.common.base.Stopwatch;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
-import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dispatcher.api.Dispatcher;
-import hu.blackbelt.judo.dispatcher.api.Sequence;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
-import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
-import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
-import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
-import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
-import hu.blackbelt.judo.meta.liquibase.support.LiquibaseModelResourceSupport;
-import hu.blackbelt.judo.meta.liquibase.util.builder.databaseChangeLogBuilder;
-import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
-import hu.blackbelt.judo.meta.measure.support.MeasureModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
-import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
-import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
-import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.JudoHsqldbModules;
-import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.JudoCxfModules;
+import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb.JudoHsqldbModule;
+import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.JudoCxfModule;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers.CxfJaxrsServerProvider;
 import hu.blackbelt.judo.runtime.core.jetty.guice.JettyContainer;
 import hu.blackbelt.judo.runtime.core.jetty.guice.JudoJettyModules;
-import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
+import org.apache.cxf.jaxrs.client.WebClient;
 import org.junit.jupiter.api.*;
-import java.util.HashMap;
 
-import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
+import java.net.ServerSocket;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 class JudoCxfModuleTest {
 
-    @SuppressWarnings("rawtypes")
-    @Inject
-    JettyContainer jettyContainer;
+    Injector injector;
+
+    int port;
+    String restUri;
 
     @Inject
     CxfJaxrsServerProvider.ServerHolder serverHolder;
 
-    Injector injector;
-
     @SuppressWarnings({ "rawtypes", "resource" })
     @BeforeEach
     void init() throws Exception {
+        Stopwatch timer = Stopwatch.createStarted();
+        int port = new ServerSocket(0).getLocalPort();
 
         Module judoModule = JudoDefaultModule.builder()
-                .injectModulesTo(this).judoModelLoader(JudoModelLoader.empty()).build();
+                .judoModelLoader(JudoModelLoader.empty()).build();
 
-        Module sqlModule = JudoHsqldbModules.builder().build();
+        Module sqlModule = JudoHsqldbModule.builder().build();
 
-        Module jettyModule = JudoJettyModules.builder().build();
+        Module jettyModule = JudoJettyModules.builder()
+                .jettyServerPort(port)
+                .build();
 
-        Module cxfModule = JudoCxfModules.builder().build();
+        Module cxfModule = JudoCxfModule.builder().build();
+        Module calcModule = new CalcModule();
 
-        injector = Guice.createInjector(Modules.combine(judoModule, sqlModule, jettyModule, cxfModule));
+        injector = Guice.createInjector(Modules.combine(judoModule, sqlModule, jettyModule, cxfModule, calcModule));
+        injector.injectMembers(cxfModule);
+        injector.injectMembers(this);
 
+        restUri = "http://localhost:" + port + "/api/Calc";
+        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
     }
 
     @AfterEach
-    public void teardown() throws Exception {
-        jettyContainer.stop();
+    void destroy() {
+        injector.getInstance(CxfJaxrsServerProvider.ServerHolder.class).getServers().values().stream().forEach(s -> s.destroy());
+        injector.getInstance(JettyContainer.class).stop();
     }
 
     @Test
-    void test() {
-        assertTrue(true);
+    public void testAddCall() {
+        int a = 122;
+        int b = 34;
+        WebClient plainAddClient = WebClient.create(restUri);
+        plainAddClient.path("calc/add").path(a + "/" + b).accept("application/json");
+        String res = plainAddClient.get(String.class);
+        assertEquals("156.0", res);
     }
+
+    /*
+    @AfterEach
+    public void teardown() throws Exception {
+        jettyContainer.stop();
+    } */
+
 }

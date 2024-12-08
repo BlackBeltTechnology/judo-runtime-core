@@ -25,7 +25,7 @@ import com.google.inject.Provider;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.dispatcher.context.ThreadContext;
-import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 
 import javax.annotation.Nullable;
 
@@ -35,12 +35,12 @@ public class ThreadContextProvider implements Provider<Context> {
     DataTypeManager dataTypeManager;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.ThreadContextDebugThreadFork
+    @JudoConfigurationQualifiers.ThreadContextDebugThreadFork
     @Nullable
     Boolean debugThreadFork = false;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.ThreadContextInheritableContext
+    @JudoConfigurationQualifiers.ThreadContextInheritableContext
     @Nullable
     Boolean inheritableContext = true;
 

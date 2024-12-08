@@ -33,35 +33,53 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
-import lombok.Builder;
+import lombok.*;
 import org.springframework.transaction.PlatformTransactionManager;
 
 public class JudoPostgresqlModule extends AbstractModule {
 
-    String host = "localhost";
-    Integer port = 5432;
-    String user = "judo";
-    String password = "judo";
-    String databaseName = "judo";
-    Integer poolSize = 10;
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Getter
+    @Setter
+    public static class JudoPostgresqlModuleConfiguration {
+        public final static JudoPostgresqlModuleConfiguration DEFAULT = JudoPostgresqlModuleConfiguration.builder().build();
+        @Builder.Default String host = "localhost";
+        @Builder.Default Integer port = 5432;
+        @Builder.Default String user = "judo";
+        @Builder.Default String password = "judo";
+        @Builder.Default String databaseName = "judo";
+        @Builder.Default Integer poolSize = 10;
+    }
+
+    @Getter
+    private JudoPostgresqlModuleConfiguration configuration;
 
     public static class JudoPostgresqlModuleBuilder {
-        String host = "localhost";
-        Integer port = 5432;
-        String user = "judo";
-        String password = "judo";
-        String databaseName = "judo";
-        Integer poolSize = 10;
+        JudoPostgresqlModuleConfiguration configuration = null;
+        String host = JudoPostgresqlModuleConfiguration.DEFAULT.getHost();
+        Integer port = JudoPostgresqlModuleConfiguration.DEFAULT.getPort();
+        String user = JudoPostgresqlModuleConfiguration.DEFAULT.getUser();
+        String password = JudoPostgresqlModuleConfiguration.DEFAULT.getPassword();
+        String databaseName = JudoPostgresqlModuleConfiguration.DEFAULT.getDatabaseName();
+        Integer poolSize = JudoPostgresqlModuleConfiguration.DEFAULT.getPoolSize();
     }
 
     @Builder
-    private JudoPostgresqlModule(String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
-        this.host = host;
-        this.port = port;
-        this.user = user;
-        this.password = password;
-        this.databaseName = databaseName;
-        this.poolSize = poolSize;
+    private JudoPostgresqlModule(JudoPostgresqlModuleConfiguration configuration, String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
+        if (configuration != null) {
+            this.configuration = configuration;
+        } else {
+            this.configuration = JudoPostgresqlModuleConfiguration.builder()
+                    .host(host)
+                    .port(port)
+                    .user(user)
+                    .password(password)
+                    .databaseName(databaseName)
+                    .poolSize(poolSize)
+                    .build();
+        }
     }
     protected void configure() {
         configureDialect();
@@ -80,11 +98,11 @@ public class JudoPostgresqlModule extends AbstractModule {
     }
 
     protected void configureOptions() {
-        bind(Integer.class).annotatedWith(PostgresqlConfiguration.PostgresqlPort.class).toInstance(port);
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlHost.class).toInstance(host);
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlUser.class).toInstance(user);
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlPassword.class).toInstance(password);
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlDatabaseName.class).toInstance(databaseName);
+        bind(Integer.class).annotatedWith(PostgresqlConfiguration.PostgresqlPort.class).toInstance(configuration.getPort());
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlHost.class).toInstance(configuration.getHost());
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlUser.class).toInstance(configuration.getUser());
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlPassword.class).toInstance(configuration.getPassword());
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlDatabaseName.class).toInstance(configuration.getDatabaseName());
     }
 
 

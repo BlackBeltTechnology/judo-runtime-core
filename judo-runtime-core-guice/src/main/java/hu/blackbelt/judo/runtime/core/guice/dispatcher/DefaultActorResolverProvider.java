@@ -28,7 +28,7 @@ import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
-import hu.blackbelt.judo.runtime.core.guice.JudoModuleConfiguration;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 
 import javax.annotation.Nullable;
 
@@ -48,7 +48,7 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     AuthenticationInterceptorProvider authenticationInterceptorProvider;
 
     @Inject(optional = true)
-    @JudoModuleConfiguration.ActorResolverCheckMappedActors
+    @JudoConfigurationQualifiers.ActorResolverCheckMappedActors
     @Nullable
     Boolean checkMappedActors = false;
 

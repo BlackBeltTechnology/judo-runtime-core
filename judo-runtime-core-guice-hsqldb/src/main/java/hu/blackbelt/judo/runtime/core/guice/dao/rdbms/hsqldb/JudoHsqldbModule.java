@@ -26,37 +26,49 @@ import javax.sql.DataSource;
 import com.google.inject.AbstractModule;
 import com.google.inject.util.Providers;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
-import lombok.Builder;
+import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.PlatformTransactionManagerProvider;
+import lombok.*;
 import org.hsqldb.server.Server;
 
 import com.google.inject.Singleton;
-import com.google.inject.name.Names;
 
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
+import org.springframework.transaction.PlatformTransactionManager;
 
-public class JudoHsqldbModules extends AbstractModule {
+public class JudoHsqldbModule extends AbstractModule {
 
-    private Boolean runServer = false;
-    private String databaseName = "judo";
-    private File databasePath = new File(".", "judo.db");
-    private Integer port = 31001;
+    @Getter
+    private JudoHsqldbModuleConfiguration configuration;
 
-    public static class JudoHsqldbModulesBuilder {
-        private Boolean runServer = false;
-        private String databaseName = "judo";
-        private File databasePath = new File(".", "judo.db");
-        private Integer port = 31001;
+    public static class JudoHsqldbModuleBuilder {
+        JudoHsqldbModuleConfiguration configuration = null;
+        Boolean runServer = JudoHsqldbModuleConfiguration.DEFAULT.getRunServer();
+        String databaseName = JudoHsqldbModuleConfiguration.DEFAULT.getDatabaseName();
+        File databasePath = JudoHsqldbModuleConfiguration.DEFAULT.getDatabasePath();
+        Integer port = JudoHsqldbModuleConfiguration.DEFAULT.getPort();
     }
+
     @Builder
-    private JudoHsqldbModules(Boolean runServer, String databaseName, File databasePath, Integer port) {
-        this.runServer = runServer;
-        this.databaseName = databaseName;
-        this.databasePath = databasePath;
-        this.port = port;
+    private JudoHsqldbModule(JudoHsqldbModuleConfiguration configuration,
+                             Boolean runServer,
+                             String databaseName,
+                             File databasePath,
+                             Integer port) {
+
+        if (configuration != null) {
+            this.configuration = configuration;
+        } else {
+            this.configuration = JudoHsqldbModuleConfiguration.builder()
+                    .port(port)
+                    .runServer(runServer)
+                    .databaseName(databaseName)
+                    .databasePath(databasePath)
+                    .build();
+        }
     }
     protected void configure() {
         super.configure();
@@ -68,10 +80,17 @@ public class JudoHsqldbModules extends AbstractModule {
         configureSequence();
         configureRdbmsInit();
         configureServer();
+        configurePlatformTransactionManager();
     }
+
+    protected void configureOptions() {
+        bind(Integer.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerPort.class).toInstance(configuration.getPort());
+        bind(String.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabaseName.class).toInstance(configuration.getDatabaseName());
+        bind(File.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabasePath.class).toInstance(configuration.getDatabasePath());
+    }
+
     protected void configureServer() {
-        // HSQLDB
-        if (runServer) {
+        if (configuration.getRunServer()) {
             bind(Server.class).toProvider(HsqldbServerProvider.class).in(Singleton.class);
         } else {
             bind(Server.class).toProvider(Providers.of(null)).in(Singleton.class);
@@ -80,6 +99,10 @@ public class JudoHsqldbModules extends AbstractModule {
 
     protected void configureDialect() {
         bind(Dialect.class).toInstance(new HsqldbDialect());
+    }
+
+    protected void configurePlatformTransactionManager() {
+        bind(PlatformTransactionManager.class).toProvider(PlatformTransactionManagerProvider.class).in(Singleton.class);
     }
 
     protected void configureMapperFactory() {
