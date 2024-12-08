@@ -30,6 +30,7 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
+import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -177,6 +178,7 @@ public class JudoDefaultModule extends AbstractModule {
         bind(MeasureModel.class).toInstance(configuration.getJudoModelLoader().getMeasureModel());
         bind(LiquibaseModel.class).toInstance(configuration.getJudoModelLoader().getLiquibaseModel());
         bind(ExpressionModel.class).toInstance(configuration.getJudoModelLoader().getExpressionModel());
+        bind(KeycloakModel.class).toInstance(configuration.getJudoModelLoader().getKeycloakModel());
 
         // Model
         if (configuration.getBindModelHolder()) {
@@ -337,6 +339,5 @@ public class JudoDefaultModule extends AbstractModule {
         configureValidatorProvider();
         configurePayloadValidator();
         configureExport();
-        //configurePlatformTransactionManager();
     }
 }

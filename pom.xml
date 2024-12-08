@@ -539,6 +539,7 @@
                 <module>judo-runtime-core-guice-postgresql</module>
                 <module>judo-runtime-core-guice-jetty</module>
                 <module>judo-runtime-core-guice-cxf</module>
+                <module>judo-runtime-core-guice-keycloak</module>
                 <module>judo-runtime-core-dependencies</module>
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>

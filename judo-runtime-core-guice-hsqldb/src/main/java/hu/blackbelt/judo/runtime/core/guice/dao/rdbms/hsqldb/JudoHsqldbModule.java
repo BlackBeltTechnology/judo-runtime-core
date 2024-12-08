@@ -71,8 +71,6 @@ public class JudoHsqldbModule extends AbstractModule {
         }
     }
     protected void configure() {
-        super.configure();
-
         configureDialect();
         configureMapperFactory();
         configureRdbmsParameterMapper();

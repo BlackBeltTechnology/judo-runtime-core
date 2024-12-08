@@ -22,13 +22,10 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
+import com.zaxxer.hikari.HikariDataSource;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import javax.sql.DataSource;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 
 public class PostgresqlDataSourceProvider implements Provider<DataSource> {
 
@@ -56,10 +53,32 @@ public class PostgresqlDataSourceProvider implements Provider<DataSource> {
 
     @Override
     public DataSource get() {
-        PGSimpleDataSource ds = new PGSimpleDataSource();
-        ds.setUrl("jdbc:postgresql://" + host + ":" + port + "/" + databaseName);
-        ds.setUser(user);
-        ds.setPassword(password);
-        return ds;
+
+        boolean hikari = true;
+        boolean pooled = true;
+
+        String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + databaseName;
+        DataSource pg;
+//        if (pooled) {
+//            PGConnectionPoolDataSource pgConnectionPoolDataSource = new PGConnectionPoolDataSource();
+//            pgConnectionPoolDataSource.setUrl(jdbcUrl);
+//            pgConnectionPoolDataSource.setUser(user);
+//            pgConnectionPoolDataSource.setPassword(password);
+//            pg = pgConnectionPoolDataSource;
+//        } else {
+            PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
+            pgSimpleDataSource.setUrl(jdbcUrl);
+            pgSimpleDataSource.setUser(user);
+            pgSimpleDataSource.setPassword(password);
+            pg = pgSimpleDataSource;
+//        }
+
+        DataSource dataSource = pg;
+        if (hikari) {
+            HikariDataSource hikariDataSource = new HikariDataSource();
+            hikariDataSource.setDataSource(pg);
+            dataSource = hikariDataSource;
+        }
+        return dataSource;
     }
 }
