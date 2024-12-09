@@ -22,7 +22,6 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dispatcher.api.Context;
@@ -33,6 +32,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsDAOImpl;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 
 import javax.annotation.Nullable;
@@ -40,9 +40,6 @@ import javax.sql.DataSource;
 
 @SuppressWarnings("rawtypes")
 public class RdbmsDAOProvider implements Provider<DAO> {
-    public static final String RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED = "rdbmsDaoOptimisticLockEnabled";
-    public static final String RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS = "rdbmsDaoMarkSelectedRangeItems";
-
 
     // Force execute liquibase database creation
     @SuppressWarnings("unused")
@@ -77,12 +74,12 @@ public class RdbmsDAOProvider implements Provider<DAO> {
     private QueryFactory queryFactory;
 
     @Inject(optional = true)
-    @Named(RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED)
+    @JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled
     @Nullable
     private Boolean optimisticLockEnabled = true;
 
     @Inject(optional = true)
-    @Named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)
+    @JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems
     @Nullable
     private Boolean markSelectedRangeItems = false;
 

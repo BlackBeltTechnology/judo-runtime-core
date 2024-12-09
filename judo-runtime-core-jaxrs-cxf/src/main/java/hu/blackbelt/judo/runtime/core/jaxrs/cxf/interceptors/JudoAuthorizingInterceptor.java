@@ -50,21 +50,25 @@ public class JudoAuthorizingInterceptor extends AbstractAuthorizingInInterceptor
 
         Objects.requireNonNull(method, "Method is mandatory");
 
-        final String operationFQName = method.getDeclaredAnnotation(JudoOperation.class).value();
+        if (method.isAnnotationPresent(JudoOperation.class)) {
+            final String operationFQName = method.getDeclaredAnnotation(JudoOperation.class).value();
 
-        final EOperation operation = asmUtils.resolveOperation(operationFQName)
-                .orElseThrow(() -> new IllegalStateException("Operation not found in ASM model: " + operationFQName));
+            final EOperation operation = asmUtils.resolveOperation(operationFQName)
+                    .orElseThrow(() -> new IllegalStateException("Operation not found in ASM model: " + operationFQName));
 
-        final List<EClassifier> accessPoints = AsmUtils.getExtensionAnnotationListByName(operation, "exposedBy").stream()
-                .map(a -> a.getDetails().get("value"))
-                .filter(accessPointFqName -> accessPointFqName != null)
-                .map(accessPointFqName -> asmUtils.resolve(accessPointFqName).orElseThrow(() -> new IllegalStateException("Access point not found: " + accessPointFqName)))
-                .collect(Collectors.toList());
+            final List<EClassifier> accessPoints = AsmUtils.getExtensionAnnotationListByName(operation, "exposedBy").stream()
+                    .map(a -> a.getDetails().get("value"))
+                    .filter(accessPointFqName -> accessPointFqName != null)
+                    .map(accessPointFqName -> asmUtils.resolve(accessPointFqName).orElseThrow(() -> new IllegalStateException("Access point not found: " + accessPointFqName)))
+                    .collect(Collectors.toList());
 
-        final boolean publicActor = accessPoints.stream()
-                .map(accessPoint -> AsmUtils.getExtensionAnnotationByName(accessPoint, "actor", false).orElse(null))
-                .anyMatch(actor -> actor == null || !actor.getDetails().containsKey("realm") || "".equals(actor.getDetails().get("realm")));
+            final boolean publicActor = accessPoints.stream()
+                    .map(accessPoint -> AsmUtils.getExtensionAnnotationByName(accessPoint, "actor", false).orElse(null))
+                    .anyMatch(actor -> actor == null || !actor.getDetails().containsKey("realm") || "".equals(actor.getDetails().get("realm")));
 
-        return publicActor ? Collections.emptyList() : accessPoints.stream().map(accessPoint -> AsmUtils.getClassifierFQName(accessPoint)).collect(Collectors.toList());
+            return publicActor ? Collections.emptyList() : accessPoints.stream().map(accessPoint -> AsmUtils.getClassifierFQName(accessPoint)).collect(Collectors.toList());
+        } else {
+            return Collections.emptyList();
+        }
     }
 }
