@@ -50,6 +50,12 @@ public class JudoHsqldbModule extends AbstractModule {
         String databaseName = JudoHsqldbModuleConfiguration.DEFAULT.getDatabaseName();
         File databasePath = JudoHsqldbModuleConfiguration.DEFAULT.getDatabasePath();
         Integer port = JudoHsqldbModuleConfiguration.DEFAULT.getPort();
+        PlatformTransactionManager platformTransactionManager = JudoHsqldbModuleConfiguration.DEFAULT.getPlatformTransactionManager();
+        MapperFactory mapperFactory = JudoHsqldbModuleConfiguration.DEFAULT.getMapperFactory();
+        RdbmsParameterMapper rdbmsParameterMapper = JudoHsqldbModuleConfiguration.DEFAULT.getRdbmsParameterMapper();;
+        DataSource dataSource = JudoHsqldbModuleConfiguration.DEFAULT.getDataSource();
+        Sequence sequence = JudoHsqldbModuleConfiguration.DEFAULT.getSequence();
+        RdbmsInit rdbmsInit = JudoHsqldbModuleConfiguration.DEFAULT.getRdbmsInit();
     }
 
     @Builder
@@ -57,7 +63,13 @@ public class JudoHsqldbModule extends AbstractModule {
                              Boolean runServer,
                              String databaseName,
                              File databasePath,
-                             Integer port) {
+                             Integer port,
+                             PlatformTransactionManager platformTransactionManager,
+                             MapperFactory mapperFactory,
+                             RdbmsParameterMapper rdbmsParameterMapper,
+                             DataSource dataSource,
+                             Sequence sequence,
+                             RdbmsInit rdbmsInit) {
 
         if (configuration != null) {
             this.configuration = configuration;
@@ -67,6 +79,12 @@ public class JudoHsqldbModule extends AbstractModule {
                     .runServer(runServer)
                     .databaseName(databaseName)
                     .databasePath(databasePath)
+                    .platformTransactionManager(platformTransactionManager)
+                    .mapperFactory(mapperFactory)
+                    .rdbmsParameterMapper(rdbmsParameterMapper)
+                    .dataSource(dataSource)
+                    .sequence(sequence)
+                    .rdbmsInit(rdbmsInit)
                     .build();
         }
     }
@@ -100,26 +118,50 @@ public class JudoHsqldbModule extends AbstractModule {
     }
 
     protected void configurePlatformTransactionManager() {
-        bind(PlatformTransactionManager.class).toProvider(PlatformTransactionManagerProvider.class).in(Singleton.class);
+        if (configuration.getPlatformTransactionManager() != null) {
+            bind(PlatformTransactionManager.class).toInstance(configuration.getPlatformTransactionManager());
+        } else {
+            bind(PlatformTransactionManager.class).toProvider(PlatformTransactionManagerProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureMapperFactory() {
-        bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);
+        if (configuration.getMapperFactory() != null) {
+            bind(MapperFactory.class).toInstance(configuration.getMapperFactory());
+        } else {
+            bind(MapperFactory.class).toProvider(HsqldbMapperFactoryProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureRdbmsParameterMapper() {
-        bind(RdbmsParameterMapper.class).toProvider(HsqldbRdbmsParameterMapperProvider.class).in(Singleton.class);
+        if (configuration.getRdbmsParameterMapper() != null) {
+            bind(RdbmsParameterMapper.class).toInstance(configuration.getRdbmsParameterMapper());
+        } else {
+            bind(RdbmsParameterMapper.class).toProvider(HsqldbRdbmsParameterMapperProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureDataSource() {
-        bind(DataSource.class).toProvider(HsqldbDataSourceProvider.class).in(Singleton.class);
+        if (configuration.getDataSource() != null) {
+            bind(DataSource.class).toInstance(configuration.getDataSource());
+        } else {
+            bind(DataSource.class).toProvider(HsqldbDataSourceProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureSequence() {
-        bind(Sequence.class).toProvider(HsqldbRdbmsSequenceProvider.class).in(Singleton.class);
+        if (configuration.getSequence() != null) {
+            bind(Sequence.class).toInstance(configuration.getSequence());
+        } else {
+            bind(Sequence.class).toProvider(HsqldbRdbmsSequenceProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureRdbmsInit() {
-        bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
+        if (configuration.getRdbmsInit() != null) {
+            bind(RdbmsInit.class).toInstance(configuration.getRdbmsInit());
+        } else {
+            bind(RdbmsInit.class).toProvider(HsqldbRdbmsInitProvider.class).in(Singleton.class);
+        }
     }
 }

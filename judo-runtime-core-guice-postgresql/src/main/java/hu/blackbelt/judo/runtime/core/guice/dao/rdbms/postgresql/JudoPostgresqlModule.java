@@ -38,21 +38,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 public class JudoPostgresqlModule extends AbstractModule {
 
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Getter
-    @Setter
-    public static class JudoPostgresqlModuleConfiguration {
-        public final static JudoPostgresqlModuleConfiguration DEFAULT = JudoPostgresqlModuleConfiguration.builder().build();
-        @Builder.Default String host = "localhost";
-        @Builder.Default Integer port = 5432;
-        @Builder.Default String user = "judo";
-        @Builder.Default String password = "judo";
-        @Builder.Default String databaseName = "judo";
-        @Builder.Default Integer poolSize = 10;
-    }
-
     @Getter
     private JudoPostgresqlModuleConfiguration configuration;
 
@@ -64,10 +49,28 @@ public class JudoPostgresqlModule extends AbstractModule {
         String password = JudoPostgresqlModuleConfiguration.DEFAULT.getPassword();
         String databaseName = JudoPostgresqlModuleConfiguration.DEFAULT.getDatabaseName();
         Integer poolSize = JudoPostgresqlModuleConfiguration.DEFAULT.getPoolSize();
+        PlatformTransactionManager platformTransactionManager = JudoPostgresqlModuleConfiguration.DEFAULT.getPlatformTransactionManager();
+        MapperFactory mapperFactory = JudoPostgresqlModuleConfiguration.DEFAULT.getMapperFactory();
+        RdbmsParameterMapper rdbmsParameterMapper = JudoPostgresqlModuleConfiguration.DEFAULT.getRdbmsParameterMapper();;
+        DataSource dataSource = JudoPostgresqlModuleConfiguration.DEFAULT.getDataSource();
+        Sequence sequence = JudoPostgresqlModuleConfiguration.DEFAULT.getSequence();
+        RdbmsInit rdbmsInit = JudoPostgresqlModuleConfiguration.DEFAULT.getRdbmsInit();
     }
 
     @Builder
-    private JudoPostgresqlModule(JudoPostgresqlModuleConfiguration configuration, String host, Integer port, String user, String password, String databaseName, Integer poolSize) {
+    private JudoPostgresqlModule(JudoPostgresqlModuleConfiguration configuration, 
+                                 String host,
+                                 Integer port,
+                                 String user,
+                                 String password,
+                                 String databaseName,
+                                 Integer poolSize,
+                                 PlatformTransactionManager platformTransactionManager,
+                                 MapperFactory mapperFactory,
+                                 RdbmsParameterMapper rdbmsParameterMapper,
+                                 DataSource dataSource,
+                                 Sequence sequence,
+                                 RdbmsInit rdbmsInit) {
         if (configuration != null) {
             this.configuration = configuration;
         } else {
@@ -78,6 +81,12 @@ public class JudoPostgresqlModule extends AbstractModule {
                     .password(password)
                     .databaseName(databaseName)
                     .poolSize(poolSize)
+                    .platformTransactionManager(platformTransactionManager)
+                    .mapperFactory(mapperFactory)
+                    .rdbmsParameterMapper(rdbmsParameterMapper)
+                    .dataSource(dataSource)
+                    .sequence(sequence)
+                    .rdbmsInit(rdbmsInit)
                     .build();
         }
     }
@@ -106,27 +115,51 @@ public class JudoPostgresqlModule extends AbstractModule {
     }
 
 
+    protected void configurePlatformTransactionManager() {
+        if (configuration.getPlatformTransactionManager() != null) {
+            bind(PlatformTransactionManager.class).toInstance(configuration.getPlatformTransactionManager());
+        } else {
+            bind(PlatformTransactionManager.class).toProvider(PlatformTransactionManagerProvider.class).in(Singleton.class);
+        }
+    }
+
     protected void configureMapperFactory() {
-        bind(MapperFactory.class).toProvider(PostgresqlMapperFactoryProvider.class).in(Singleton.class);
+        if (configuration.getMapperFactory() != null) {
+            bind(MapperFactory.class).toInstance(configuration.getMapperFactory());
+        } else {
+            bind(MapperFactory.class).toProvider(PostgresqlMapperFactoryProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureRdbmsParameterMapper() {
-        bind(RdbmsParameterMapper.class).toProvider(PostgresqlRdbmsParameterMapperProvider.class).in(Singleton.class);
+        if (configuration.getRdbmsParameterMapper() != null) {
+            bind(RdbmsParameterMapper.class).toInstance(configuration.getRdbmsParameterMapper());
+        } else {
+            bind(RdbmsParameterMapper.class).toProvider(PostgresqlRdbmsParameterMapperProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureDataSource() {
-        bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
+        if (configuration.getDataSource() != null) {
+            bind(DataSource.class).toInstance(configuration.getDataSource());
+        } else {
+            bind(DataSource.class).toProvider(PostgresqlDataSourceProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureSequence() {
-        bind(Sequence.class).toProvider(PostgresqlRdbmsSequenceProvider.class).in(Singleton.class);
-    }
-
-    protected void configurePlatformTransactionManager() {
-        bind(PlatformTransactionManager.class).toProvider(new PlatformTransactionManagerProvider()).in(Singleton.class);
+        if (configuration.getSequence() != null) {
+            bind(Sequence.class).toInstance(configuration.getSequence());
+        } else {
+            bind(Sequence.class).toProvider(PostgresqlRdbmsSequenceProvider.class).in(Singleton.class);
+        }
     }
 
     protected void configureRdbmsInit() {
-        bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+        if (configuration.getRdbmsInit() != null) {
+            bind(RdbmsInit.class).toInstance(configuration.getRdbmsInit());
+        } else {
+            bind(RdbmsInit.class).toProvider(PostgresqlRdbmsInitProvider.class).in(Singleton.class);
+        }
     }
 }
