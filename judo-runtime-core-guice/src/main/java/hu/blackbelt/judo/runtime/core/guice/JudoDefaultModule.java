@@ -450,7 +450,7 @@ public class JudoDefaultModule extends AbstractModule {
         if (configuration.getDispatcher() != null) {
             bind(Dispatcher.class).toInstance(configuration.getDispatcher());
         } else {
-            bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).in(Singleton.class);
+            bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).asEagerSingleton();
         }
     }
 
