@@ -22,14 +22,12 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbRdbmsSequence;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
-
-import static hu.blackbelt.judo.runtime.core.guice.JudoModule.*;
 
 @SuppressWarnings("rawtypes")
 public class HsqldbRdbmsSequenceProvider implements Provider<Sequence> {
@@ -38,17 +36,17 @@ public class HsqldbRdbmsSequenceProvider implements Provider<Sequence> {
     private DataSource dataSource;
 
     @Inject(optional = true)
-    @Named(RDBMS_SEQUENCE_START)
+    @JudoConfigurationQualifiers.RdbmsSequenceStart
     @Nullable
     Long start = 1L;
 
     @Inject(optional = true)
-    @Named(RDBMS_SEQUENCE_INCREMENT)
+    @JudoConfigurationQualifiers.RdbmsSequenceIncrement
     @Nullable
     Long increment = 1L;
 
     @Inject(optional = true)
-    @Named(RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS)
+    @JudoConfigurationQualifiers.RdbmsSequenceCreateIfNotExists
     @Nullable
     Boolean createIfNotExists = true;
 
