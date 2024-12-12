@@ -22,36 +22,32 @@ package hu.blackbelt.judo.runtime.core.guice.dispatcher;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultMetricsCollector;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 
 import javax.annotation.Nullable;
 import java.util.function.Consumer;
 
 public class DefaultMetricsCollectorProvider implements Provider<MetricsCollector> {
 
-    public static final String METRICS_COLLECTOR_CONSUMER = "metricsCollectorConsumer";
-    public static final String METRICS_COLLECTOR_ENABLED = "metricsCollectorEnabled";
-    public static final String METRICS_COLLECTOR_VERBOSE = "metricsCollectorVerbose";
-
     @Inject
     Context context;
 
     @SuppressWarnings("rawtypes")
     @Inject(optional = true)
-    @Named(METRICS_COLLECTOR_CONSUMER)
+    @JudoConfigurationQualifiers.MetricsCollectorConsumer
     @Nullable
     Consumer metricsConsumer = (m) -> {};
 
     @Inject(optional = true)
-    @Named(METRICS_COLLECTOR_ENABLED)
+    @JudoConfigurationQualifiers.MetricsCollectorEnabled
     @Nullable
     Boolean enabled = false;
 
     @Inject(optional = true)
-    @Named(METRICS_COLLECTOR_VERBOSE)
+    @JudoConfigurationQualifiers.MetricsCollectorVerbose
     @Nullable
     Boolean verbose = false;
 
