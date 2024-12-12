@@ -20,62 +20,106 @@ package hu.blackbelt.judo.runtime.core.guice;
  * #L%
  */
 
+import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
+import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
+import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
+import hu.blackbelt.judo.meta.liquibase.support.LiquibaseModelResourceSupport;
+import hu.blackbelt.judo.meta.liquibase.util.builder.databaseChangeLogBuilder;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
+import hu.blackbelt.judo.meta.measure.support.MeasureModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport;
+import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
+import hu.blackbelt.judo.meta.keycloak.support.KeycloakModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
+import hu.blackbelt.judo.tatami.asm2keycloak.Asm2KeycloakTransformationTrace;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
+import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 
 import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.LoadArguments.asmLoadArgumentsBuilder;
+import static hu.blackbelt.judo.tatami.asm2rdbms.ExcelMappingModels2Rdbms.*;
 
-@Builder
 @Getter
+@Slf4j
 public class JudoModelLoader {
 
-    @NonNull
     AsmModel asmModel;
-
-    @NonNull
     RdbmsModel rdbmsModel;
-
-    @NonNull
     MeasureModel measureModel;
-
-    @NonNull
     ExpressionModel expressionModel;
-
-    @NonNull
     LiquibaseModel liquibaseModel;
-
-    @NonNull
+    KeycloakModel keycloakModel;
     Asm2RdbmsTransformationTrace asm2rdbms;
+    Asm2KeycloakTransformationTrace asm2keycloak;
+    Boolean useKeycloak;
 
+    public static class JudoModelLoaderBuilder {
+        AsmModel asmModel;
+        RdbmsModel rdbmsModel;
+        MeasureModel measureModel;
+        ExpressionModel expressionModel;
+        LiquibaseModel liquibaseModel;
+        KeycloakModel keycloakModel;
+        Asm2RdbmsTransformationTrace asm2rdbms;
+        Asm2KeycloakTransformationTrace asm2keycloak;
+        Boolean useKeycloak = true;
+    }
 
-    public static JudoModelLoader loadFromClassloader(String modelName, ClassLoader classLoader, Dialect dialect, boolean validate) throws Exception {
+    @Builder
+    public JudoModelLoader(AsmModel asmModel,
+                            RdbmsModel rdbmsModel,
+                            MeasureModel measureModel,
+                            ExpressionModel expressionModel,
+                            LiquibaseModel liquibaseModel,
+                            KeycloakModel keycloakModel,
+                            Asm2RdbmsTransformationTrace asm2rdbms,
+                            Asm2KeycloakTransformationTrace asm2keycloak,
+                            Boolean useKeycloak) {
+        this.asmModel = asmModel;
+        this.rdbmsModel = rdbmsModel;
+        this.measureModel = measureModel;
+        this.expressionModel = expressionModel;
+        this.liquibaseModel = liquibaseModel;
+        this.keycloakModel = keycloakModel;
+        this.asm2rdbms = asm2rdbms;
+        this.asm2keycloak = asm2keycloak;
+        this.useKeycloak = useKeycloak;
+    }
+
+    public static JudoModelLoader loadFromClassloader(String modelName, ClassLoader classLoader, Dialect dialect, boolean validate, boolean loadKeycloak) throws Exception {
 
         Enumeration<URL> urlEnumeration = classLoader.getResources("model");
         URL url = null;
+
+        List<URL> classPathUrls = new ArrayList<>();
         while (urlEnumeration.hasMoreElements() && url == null) {
             URL urlToTest = urlEnumeration.nextElement();
+            classPathUrls.add(urlToTest);
             try {
                 URL relativeUrl = calculateRelativeURI(urlToTest.toURI(), "/" + modelName + "-asm.model").toURL();
                 InputStream stream = relativeUrl.openStream();
@@ -89,14 +133,17 @@ public class JudoModelLoader {
             } catch (Exception e) {
             }
         }
-        return loadFromURL(modelName, url.toURI(), dialect, validate);
+        if (url == null) {
+            throw new IllegalArgumentException("Could not load model from classpath: " + modelName + " from: \n" + classPathUrls.stream().map(u -> u.toString()).collect(Collectors.joining("\n\t")));
+        }
+        return loadFromURL(modelName, url.toURI(), dialect, validate, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect) throws Exception {
-        return loadFromDirectory(modelName, directory, dialect, true);
+    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean loadKeycloak) throws Exception {
+        return loadFromDirectory(modelName, directory, dialect, true, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean validate) throws Exception {
+    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean validate, boolean loadKeycloak) throws Exception {
         if (directory == null) {
             throw new IllegalArgumentException("Directory is null");
         }
@@ -107,14 +154,14 @@ public class JudoModelLoader {
             throw new IllegalArgumentException("Given file is not directory: " + directory);
         }
 
-        return loadFromURL(modelName, directory.toURI(), dialect, validate);
+        return loadFromURL(modelName, directory.toURI(), dialect, validate, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect) throws Exception {
-        return loadFromURL(modelName, uri, dialect, true);
+    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean loadKeycloak) throws Exception {
+        return loadFromURL(modelName, uri, dialect, true, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean validate) throws Exception {
+    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean validate, boolean loadKeycloak) throws Exception {
 
         if (modelName == null) {
             throw new IllegalArgumentException("Model name have to be defined");
@@ -139,6 +186,7 @@ public class JudoModelLoader {
         RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
                 .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
                 .build();
+
 
         // The RDBMS model resources have to know the mapping models
         RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
@@ -173,6 +221,19 @@ public class JudoModelLoader {
                 asmModel, rdbmsModel,
                 calculateRelativeURI(uri, "/" + modelName + "-asm2rdbms_" + dialect.getName() + ".model").toURL().openStream());
 
+        KeycloakModel keycloakModel = null;
+        Asm2KeycloakTransformationTrace asm2keycloak = null;
+        if (loadKeycloak) {
+            keycloakModel = KeycloakModel.loadKeycloakModel(KeycloakModel.LoadArguments.keycloakLoadArgumentsBuilder()
+                    .inputStream(calculateRelativeURI(uri, "/" + modelName + "-liquibase_" + dialect.getName() + ".changelog.xml").toURL().openStream())
+                    .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-liquibase_" + dialect.getName() + ".changelog.xml"))
+                    .validateModel(validate)
+                    .name(asmModel.getName()));
+
+            asm2keycloak = Asm2KeycloakTransformationTrace.fromModelsAndTrace(modelName,
+                    asmModel, keycloakModel,
+                    calculateRelativeURI(uri, "/" + modelName + "-asm2keycloak.model").toURL().openStream());
+        }
 
         return JudoModelLoader.builder()
                 .asmModel(asmModel)
@@ -180,7 +241,9 @@ public class JudoModelLoader {
                 .measureModel(measureModel)
                 .expressionModel(expressionModel)
                 .liquibaseModel(liquibaseModel)
+                .keycloakModel(keycloakModel)
                 .asm2rdbms(asm2rdbms)
+                .asm2keycloak(asm2keycloak)
                 .build();
     }
 
@@ -205,5 +268,80 @@ public class JudoModelLoader {
             ret = new URI(root + "/" + rel);
         }
         return ret;
+    }
+
+
+    @Builder
+    public static JudoModelLoader load(String modelName, File directory, Dialect dialect) throws Exception {
+        return loadFromDirectory(modelName, directory, dialect, true);
+    }
+
+
+    public static JudoModelLoader empty() throws Exception {
+
+        AsmModel asmModel = AsmModel.buildAsmModel()
+                .resourceSet(AsmModelResourceSupport.createAsmResourceSet())
+                .build();
+
+        asmModel.getAsmModelResourceSupport().addContent(EPackageBuilder.create()
+                .withName("judo").withNsPrefix("judo").withNsURI("http://blackbelt.hu/test/judo/judo").build());
+
+        RdbmsModel rdbmsModel = RdbmsModel.buildRdbmsModel()
+                .resourceSet(RdbmsModelResourceSupport.createRdbmsResourceSet())
+                .build();
+
+        // The RDBMS model resources have to know the mapping models
+        RdbmsNameMappingModelResourceSupport.registerRdbmsNameMappingMetamodel(rdbmsModel.getResourceSet());
+        RdbmsDataTypesModelResourceSupport.registerRdbmsDataTypesMetamodel(rdbmsModel.getResourceSet());
+        RdbmsTableMappingRulesModelResourceSupport.registerRdbmsTableMappingRulesMetamodel(rdbmsModel.getResourceSet());
+        try (BufferedSlf4jLogger bufferedLog = new BufferedSlf4jLogger(log)) {
+            injectExcelMappings(rdbmsModel, bufferedLog, calculateExcelMapping2RdbmsTransformationScriptURI(), calculateExcelMappingModelURI(), "hsqldb");
+        }
+
+        MeasureModel measureModel = MeasureModel.buildMeasureModel()
+                .name(asmModel.getName())
+                .resourceSet(MeasureModelResourceSupport.createMeasureResourceSet())
+                .build();
+
+        ExpressionModel expressionModel = ExpressionModel.buildExpressionModel()
+                .name(asmModel.getName())
+                .resourceSet(ExpressionModelResourceSupport.createExpressionResourceSet())
+                .build();
+
+        LiquibaseModel liquibaseModel = LiquibaseModel.buildLiquibaseModel()
+                .name(asmModel.getName())
+                .resourceSet(LiquibaseModelResourceSupport.createLiquibaseResourceSet())
+                .build();
+
+        liquibaseModel.getResource().getContents().add(databaseChangeLogBuilder.create().build());
+
+        KeycloakModel keycloakModel = KeycloakModel.buildKeycloakModel()
+                .name(asmModel.getName())
+                .resourceSet(KeycloakModelResourceSupport.createKeycloakResourceSet())
+                .build();
+
+        Asm2RdbmsTransformationTrace asm2rdbms = Asm2RdbmsTransformationTrace.asm2RdbmsTransformationTraceBuilder()
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
+                .trace(new HashMap<>())
+                .build();
+
+        Asm2KeycloakTransformationTrace asm2keycloak = Asm2KeycloakTransformationTrace.asm2KeycloakTransformationTraceBuilder()
+                .asmModel(asmModel)
+                .keycloakModel(keycloakModel)
+                .trace(new HashMap<>())
+                .build();
+
+        JudoModelLoader judoModelLoader = JudoModelLoader.builder()
+                .asmModel(asmModel)
+                .rdbmsModel(rdbmsModel)
+                .measureModel(measureModel)
+                .expressionModel(expressionModel)
+                .liquibaseModel(liquibaseModel)
+                .keycloakModel(keycloakModel)
+                .asm2rdbms(asm2rdbms)
+                .asm2keycloak(asm2keycloak)
+                .build();
+        return judoModelLoader;
     }
 }
