@@ -59,19 +59,11 @@ public class PostgresqlDataSourceProvider implements Provider<DataSource> {
 
         String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + databaseName;
         DataSource pg;
-//        if (pooled) {
-//            PGConnectionPoolDataSource pgConnectionPoolDataSource = new PGConnectionPoolDataSource();
-//            pgConnectionPoolDataSource.setUrl(jdbcUrl);
-//            pgConnectionPoolDataSource.setUser(user);
-//            pgConnectionPoolDataSource.setPassword(password);
-//            pg = pgConnectionPoolDataSource;
-//        } else {
-            PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
-            pgSimpleDataSource.setUrl(jdbcUrl);
-            pgSimpleDataSource.setUser(user);
-            pgSimpleDataSource.setPassword(password);
-            pg = pgSimpleDataSource;
-//        }
+        PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
+        pgSimpleDataSource.setUrl(jdbcUrl);
+        pgSimpleDataSource.setUser(user);
+        pgSimpleDataSource.setPassword(password);
+        pg = pgSimpleDataSource;
 
         DataSource dataSource = pg;
         if (hikari) {
