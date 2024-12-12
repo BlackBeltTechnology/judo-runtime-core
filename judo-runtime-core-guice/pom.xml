@@ -48,6 +48,11 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
             <artifactId>judo-runtime-core-dao-core</artifactId>
         </dependency>
 
@@ -92,9 +97,20 @@
         </dependency>
 
         <dependency>
+            <groupId>hu.blackbelt.mapper</groupId>
+            <artifactId>mapper-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>2.6.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
         </dependency>
 
         <dependency>
@@ -103,8 +119,19 @@
         </dependency>
 
         <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2keycloak</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.liquibase.model</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.keycloak.model</artifactId>
+        </dependency>
+
     </dependencies>
 </project>

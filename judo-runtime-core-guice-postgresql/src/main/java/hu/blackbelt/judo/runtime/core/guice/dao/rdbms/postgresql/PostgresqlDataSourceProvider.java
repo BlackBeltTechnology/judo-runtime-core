@@ -22,52 +22,55 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
+import com.zaxxer.hikari.HikariDataSource;
 import org.postgresql.ds.PGSimpleDataSource;
 
 import javax.sql.DataSource;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 
 public class PostgresqlDataSourceProvider implements Provider<DataSource> {
 
-    public static final String POSTGRESQL_PORT = "postgresqlPort";
-    public static final String POSTGRESQL_HOST = "postgresqlHost";
-    public static final String POSTGRESQL_USER = "postgresqlUser";
-    public static final String POSTGRESQL_PASSWORD = "postgresqlPassword";
-    public static final String POSTGRESQL_DATABASENAME = "postgresqlDatabaseName";
-
 
     @Inject
-    @Named(POSTGRESQL_PORT)
+    @PostgresqlConfiguration.PostgresqlPort
     public Integer port = 5432;
 
     @Inject
-    @Named(POSTGRESQL_HOST)
+    @PostgresqlConfiguration.PostgresqlHost
     public String host = "localhost";
 
     @Inject
-    @Named(POSTGRESQL_USER)
+    @PostgresqlConfiguration.PostgresqlUser
     public String user;
 
     @Inject
-    @Named(POSTGRESQL_PASSWORD)
+    @PostgresqlConfiguration.PostgresqlPassword
     public String password;
 
     @Inject
-    @Named(POSTGRESQL_DATABASENAME)
+    @PostgresqlConfiguration.PostgresqlDatabaseName
     public String databaseName;
 
 
     @Override
     public DataSource get() {
 
+        boolean hikari = true;
+        boolean pooled = true;
 
-        PGSimpleDataSource ds = new PGSimpleDataSource();
-        ds.setUrl("jdbc:postgresql://" + host + ":" + port + "/" + databaseName);
-        ds.setUser(user);
-        ds.setPassword(password);
-        return ds;
+        String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + databaseName;
+        DataSource pg;
+        PGSimpleDataSource pgSimpleDataSource = new PGSimpleDataSource();
+        pgSimpleDataSource.setUrl(jdbcUrl);
+        pgSimpleDataSource.setUser(user);
+        pgSimpleDataSource.setPassword(password);
+        pg = pgSimpleDataSource;
+
+        DataSource dataSource = pg;
+        if (hikari) {
+            HikariDataSource hikariDataSource = new HikariDataSource();
+            hikariDataSource.setDataSource(pg);
+            dataSource = hikariDataSource;
+        }
+        return dataSource;
     }
 }
