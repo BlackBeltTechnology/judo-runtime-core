@@ -22,7 +22,6 @@ package hu.blackbelt.judo.runtime.core.guice;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Singleton;
-import com.google.inject.name.Names;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
@@ -31,6 +30,7 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.VariableResolver;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
+import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
@@ -41,7 +41,9 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationIntercepto
 import hu.blackbelt.judo.runtime.core.dispatcher.UnsupportedExportImpl;
 import hu.blackbelt.judo.runtime.core.guice.accessmanager.DefaultAccessManagerProvider;
 import hu.blackbelt.judo.runtime.core.guice.accessmanager.DefaultAuthenticationInterceptorProviderProvider;
+import hu.blackbelt.judo.runtime.core.guice.core.CoercererProvider;
 import hu.blackbelt.judo.runtime.core.guice.core.DataTypeManagerProvider;
+import hu.blackbelt.judo.runtime.core.guice.core.ExtendableCoercererProvider;
 import hu.blackbelt.judo.runtime.core.guice.core.UUIDIdentifierProviderProvider;
 import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.*;
 import hu.blackbelt.judo.runtime.core.guice.dispatcher.*;
@@ -55,56 +57,185 @@ import hu.blackbelt.judo.runtime.core.dispatcher.Export;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
+import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
-import hu.blackbelt.mapper.impl.DefaultCoercer;
-import lombok.Builder;
+import lombok.*;
+import org.eclipse.emf.ecore.EReference;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Map;
 import java.util.function.Consumer;
-
-import static hu.blackbelt.judo.runtime.core.guice.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS;
-import static hu.blackbelt.judo.runtime.core.guice.dao.rdbms.RdbmsDAOProvider.RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED;
-import static hu.blackbelt.judo.runtime.core.guice.dispatcher.DefaultDispatcherProvider.*;
-import static hu.blackbelt.judo.runtime.core.guice.dispatcher.DefaultIdentifierSignerProvider.IDENTIFIER_SIGNER_SECRET;
-import static hu.blackbelt.judo.runtime.core.guice.dispatcher.DefaultMetricsCollectorProvider.*;
-import static hu.blackbelt.judo.runtime.core.guice.dispatcher.DefaultPayloadValidatorProvider.PAYLOAD_VALIDATOR_REQUIRED_STRING_VALIDATOR_OPTION;
-import static hu.blackbelt.judo.runtime.core.guice.dispatcher.ThreadContextProvider.THREAD_CONTEXT_DEBUG_THREAD_FORK;
-import static hu.blackbelt.judo.runtime.core.guice.dispatcher.ThreadContextProvider.THREAD_CONTEXT_INHERITABLE_CONTEXT;
 
 public class JudoDefaultModule extends AbstractModule {
 
-    public static final String ACTOR_RESOLVER_CHECK_MAPPED_ACTORS = "actorResolverCheckMappedActors";
-
-    private final Object injectModulesTo;
-    private final JudoModelLoader judoModelLoader;
-    private Boolean bindModelHolder;
+    @Getter
+    private JudoDefaultModuleConfiguration configuration = JudoDefaultModuleConfiguration.builder().build();
 
     public static class JudoDefaultModuleBuilder {
-        private Object injectModulesTo = false;
-        private JudoModelLoader judoModelLoader = null;
-        private Boolean bindModelHolder = true;
-    }
-
-    public JudoDefaultModule(Object injectModulesTo, JudoModelLoader models) {
-        this.injectModulesTo = injectModulesTo;
-        this.judoModelLoader = models;
-        this.bindModelHolder = true;
+        JudoDefaultModuleConfiguration configuration = configuration = null;
+        Object injectModulesTo = JudoDefaultModuleConfiguration.DEFAULT.getInjectModulesTo();
+        JudoModelLoader judoModelLoader = JudoDefaultModuleConfiguration.DEFAULT.getJudoModelLoader();
+        Boolean bindModelHolder = JudoDefaultModuleConfiguration.DEFAULT.getBindModelHolder();
+        Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions = JudoDefaultModuleConfiguration.DEFAULT.getQueryFactoryCustomJoinDefinitions();
+        Boolean rdbmsDaoOptimisticLockEnabled = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoOptimisticLockEnabled();
+        Boolean rdbmsDaoMarkSelectedRangeItems = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMarkSelectedRangeItems();
+        Integer rdbmsDaoChunkSize = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoChunkSize();
+        Boolean actorResolverCheckMappedActors = JudoDefaultModuleConfiguration.DEFAULT.getActorResolverCheckMappedActors();
+        Boolean dispatcherMetricsReturned = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherMetricsReturned();
+        Boolean dispatcherEnableDefaultValidation = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherEnableDefaultValidation();
+        Boolean dispatcherCaseInsensitiveLike = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherCaseInsensitiveLike();
+        Boolean dispatcherTrimString = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherTrimString();
+        String identifierSignerSecret = JudoDefaultModuleConfiguration.DEFAULT.getIdentifierSignerSecret();
+        Consumer metricsCollectorConsumer = JudoDefaultModuleConfiguration.DEFAULT.getMetricsCollectorConsumer();
+        Boolean metricsCollectorEnabled = JudoDefaultModuleConfiguration.DEFAULT.getMetricsCollectorEnabled();
+        Boolean metricsCollectorVerbose = JudoDefaultModuleConfiguration.DEFAULT.getMetricsCollectorVerbose();
+        String payloadValidatorRequiredStringValidatorOption = JudoDefaultModuleConfiguration.DEFAULT.getPayloadValidatorRequiredStringValidatorOption();
+        Boolean threadContextDebugThreadFork = JudoDefaultModuleConfiguration.DEFAULT.getThreadContextDebugThreadFork();
+        Boolean threadContextInheritableContext = JudoDefaultModuleConfiguration.DEFAULT.getThreadContextInheritableContext();
+        Long rdbmsSequenceStart = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsSequenceStart();
+        Long rdbmsSequenceIncrement = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsSequenceIncrement();
+        Boolean rdbmsSequenceCreateIfNotExists = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsSequenceCreateIfNotExists();
+        RdbmsResolver RdbmsResolver = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsResolver();
+        VariableResolver VariableResolver = JudoDefaultModuleConfiguration.DEFAULT.getVariableResolver();
+        RdbmsBuilder RdbmsBuilder = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsBuilder();
+        QueryFactory QueryFactory = JudoDefaultModuleConfiguration.DEFAULT.getQueryFactory();
+        SelectStatementExecutor SelectStatementExecutor = JudoDefaultModuleConfiguration.DEFAULT.getSelectStatementExecutor();
+        ModifyStatementExecutor ModifyStatementExecutor = JudoDefaultModuleConfiguration.DEFAULT.getModifyStatementExecutor();
+        ExtendableCoercer ExtendableCoercer = JudoDefaultModuleConfiguration.DEFAULT.getExtendableCoercer();
+        DataTypeManager DataTypeManager = JudoDefaultModuleConfiguration.DEFAULT.getDataTypeManager();
+        IdentifierProvider IdentifierProvider = JudoDefaultModuleConfiguration.DEFAULT.getIdentifierProvider();
+        IdentifierSigner IdentifierSigner = JudoDefaultModuleConfiguration.DEFAULT.getIdentifierSigner();
+        AccessManager AccessManager = JudoDefaultModuleConfiguration.DEFAULT.getAccessManager();
+        AuthenticationInterceptorProvider AuthenticationInterceptorProvider = JudoDefaultModuleConfiguration.DEFAULT.getAuthenticationInterceptorProvider();
+        Context Context = JudoDefaultModuleConfiguration.DEFAULT.getContext();
+        MetricsCollector MetricsCollector = JudoDefaultModuleConfiguration.DEFAULT.getMetricsCollector();
+        TransformationTraceService TransformationTraceService = JudoDefaultModuleConfiguration.DEFAULT.getTransformationTraceService();
+        InstanceCollector InstanceCollector = JudoDefaultModuleConfiguration.DEFAULT.getInstanceCollector();
+        DAO DAO = JudoDefaultModuleConfiguration.DEFAULT.getDao();
+        ActorResolver ActorResolver = JudoDefaultModuleConfiguration.DEFAULT.getActorResolver();
+        DispatcherFunctionProvider DispatcherFunctionProvider = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherFunctionProvider();
+        OperationCallInterceptorProvider OperationCallInterceptorProvider = JudoDefaultModuleConfiguration.DEFAULT.getOperationCallInterceptorProvider();
+        Dispatcher Dispatcher = JudoDefaultModuleConfiguration.DEFAULT.getDispatcher();
+        ValidatorProvider ValidatorProvider = JudoDefaultModuleConfiguration.DEFAULT.getValidatorProvider();
+        PayloadValidator PayloadValidator = JudoDefaultModuleConfiguration.DEFAULT.getPayloadValidator();
+        Export Export = JudoDefaultModuleConfiguration.DEFAULT.getExport();
+        PlatformTransactionManager PlatformTransactionManager = JudoDefaultModuleConfiguration.DEFAULT.getPlatformTransactionManager();
     }
 
     @Builder
-    public JudoDefaultModule(Object injectModulesTo, JudoModelLoader judoModelLoader, Boolean bindModelHolder) {
-        this.injectModulesTo = injectModulesTo;
-        this.judoModelLoader = judoModelLoader;
-        this.bindModelHolder = bindModelHolder;
+    public JudoDefaultModule(
+                            JudoDefaultModuleConfiguration configuration,
+                            Object injectModulesTo,
+                            JudoModelLoader judoModelLoader,
+                            Boolean bindModelHolder,
+                            Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions,
+                            Boolean rdbmsDaoOptimisticLockEnabled,
+                            Boolean rdbmsDaoMarkSelectedRangeItems,
+                            Integer rdbmsDaoChunkSize,
+                            Boolean actorResolverCheckMappedActors,
+                            Boolean dispatcherMetricsReturned,
+                            Boolean dispatcherEnableDefaultValidation,
+                            Boolean dispatcherTrimString,
+                            Boolean dispatcherCaseInsensitiveLike,
+                            String identifierSignerSecret,
+                            Consumer metricsCollectorConsumer,
+                            Boolean metricsCollectorEnabled,
+                            Boolean metricsCollectorVerbose,
+                            String payloadValidatorRequiredStringValidatorOption,
+                            Boolean threadContextDebugThreadFork,
+                            Boolean threadContextInheritableContext,
+                            Long rdbmsSequenceStart,
+                            Long rdbmsSequenceIncrement,
+                            Boolean rdbmsSequenceCreateIfNotExists,
+                            RdbmsResolver rdbmsResolver,
+                            VariableResolver variableResolver,
+                            RdbmsBuilder rdbmsBuilder,
+                            QueryFactory queryFactory,
+                            SelectStatementExecutor selectStatementExecutor,
+                            ModifyStatementExecutor modifyStatementExecutor,
+                            ExtendableCoercer extendableCoercer,
+                            DataTypeManager dataTypeManager,
+                            IdentifierProvider identifierProvider,
+                            IdentifierSigner identifierSigner,
+                            AccessManager accessManager,
+                            AuthenticationInterceptorProvider authenticationInterceptorProvider,
+                            Context context,
+                            MetricsCollector metricsCollector,
+                            TransformationTraceService transformationTraceService,
+                            InstanceCollector instanceCollector,
+                            DAO dao,
+                            ActorResolver actorResolver,
+                            DispatcherFunctionProvider dispatcherFunctionProvider,
+                            OperationCallInterceptorProvider operationCallInterceptorProvider,
+                            Dispatcher dispatcher,
+                            ValidatorProvider validatorProvider,
+                            PayloadValidator payloadValidator,
+                            Export export,
+                            PlatformTransactionManager platformTransactionManager
+         ) {
+        if (configuration != null) {
+            this.configuration = configuration;
+        } else {
+            this.configuration = JudoDefaultModuleConfiguration.builder()
+                    .injectModulesTo(injectModulesTo)
+                    .judoModelLoader(judoModelLoader)
+                    .bindModelHolder(bindModelHolder)
+                    .queryFactoryCustomJoinDefinitions(queryFactoryCustomJoinDefinitions)
+                    .rdbmsDaoOptimisticLockEnabled(rdbmsDaoOptimisticLockEnabled)
+                    .rdbmsDaoMarkSelectedRangeItems(rdbmsDaoMarkSelectedRangeItems)
+                    .rdbmsDaoChunkSize(rdbmsDaoChunkSize)
+                    .actorResolverCheckMappedActors(actorResolverCheckMappedActors)
+                    .dispatcherMetricsReturned(dispatcherMetricsReturned)
+                    .dispatcherEnableDefaultValidation(dispatcherEnableDefaultValidation)
+                    .dispatcherTrimString(dispatcherTrimString)
+                    .dispatcherCaseInsensitiveLike(dispatcherCaseInsensitiveLike)
+                    .identifierSignerSecret(identifierSignerSecret)
+                    .metricsCollectorConsumer(metricsCollectorConsumer)
+                    .metricsCollectorEnabled(metricsCollectorEnabled)
+                    .metricsCollectorVerbose(metricsCollectorVerbose)
+                    .payloadValidatorRequiredStringValidatorOption(payloadValidatorRequiredStringValidatorOption)
+                    .threadContextDebugThreadFork(threadContextDebugThreadFork)
+                    .threadContextInheritableContext(threadContextInheritableContext)
+                    .rdbmsSequenceStart(rdbmsSequenceStart)
+                    .rdbmsSequenceIncrement(rdbmsSequenceIncrement)
+                    .rdbmsSequenceCreateIfNotExists(rdbmsSequenceCreateIfNotExists)
+                    .rdbmsResolver(rdbmsResolver)
+                    .variableResolver(variableResolver)
+                    .rdbmsBuilder(rdbmsBuilder)
+                    .queryFactory(queryFactory)
+                    .selectStatementExecutor(selectStatementExecutor)
+                    .modifyStatementExecutor(modifyStatementExecutor)
+                    .extendableCoercer(extendableCoercer)
+                    .dataTypeManager(dataTypeManager)
+                    .identifierProvider(identifierProvider)
+                    .identifierSigner(identifierSigner)
+                    .accessManager(accessManager)
+                    .authenticationInterceptorProvider(authenticationInterceptorProvider)
+                    .context(context)
+                    .metricsCollector(metricsCollector)
+                    .transformationTraceService(transformationTraceService)
+                    .instanceCollector(instanceCollector)
+                    .dao(dao)
+                    .actorResolver(actorResolver)
+                    .dispatcherFunctionProvider(dispatcherFunctionProvider)
+                    .operationCallInterceptorProvider(operationCallInterceptorProvider)
+                    .dispatcher(dispatcher)
+                    .validatorProvider(validatorProvider)
+                    .payloadValidator(payloadValidator)
+                    .export(export)
+                    .platformTransactionManager(platformTransactionManager)
+                    .build();
+        }
     }
 
-    public String generateNewSecret() {
+    public static String generateNewSecret() {
         final SecureRandom random;
         try {
             random = SecureRandom.getInstanceStrong();
@@ -115,81 +246,275 @@ public class JudoDefaultModule extends AbstractModule {
             throw new RuntimeException(e);
         }
     }
-    protected void configure() {
-        if (injectModulesTo != null) {
-            requestInjection(injectModulesTo);
+
+    protected void configureModels() {
+        bind(AsmModel.class).toInstance(configuration.getJudoModelLoader().getAsmModel());
+        bind(RdbmsModel.class).toInstance(configuration.getJudoModelLoader().getRdbmsModel());
+        bind(MeasureModel.class).toInstance(configuration.getJudoModelLoader().getMeasureModel());
+        bind(LiquibaseModel.class).toInstance(configuration.getJudoModelLoader().getLiquibaseModel());
+        bind(ExpressionModel.class).toInstance(configuration.getJudoModelLoader().getExpressionModel());
+        if (configuration.getJudoModelLoader().getKeycloakModel() != null) {
+            bind(KeycloakModel.class).toInstance(configuration.getJudoModelLoader().getKeycloakModel());
         }
-
-        bind(AsmModel.class).toInstance(judoModelLoader.getAsmModel());
-        bind(RdbmsModel.class).toInstance(judoModelLoader.getRdbmsModel());
-        bind(MeasureModel.class).toInstance(judoModelLoader.getMeasureModel());
-        bind(LiquibaseModel.class).toInstance(judoModelLoader.getLiquibaseModel());
-        bind(ExpressionModel.class).toInstance(judoModelLoader.getExpressionModel());
-
         // Model
-        if (bindModelHolder) {
-            bind(JudoModelLoader.class).toInstance(judoModelLoader);
+        if (configuration.getBindModelHolder()) {
+            bind(JudoModelLoader.class).toInstance(configuration.getJudoModelLoader());
         }
+    }
 
-        bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
-        bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
-        bind(RdbmsBuilder.class).toProvider(RdbmsBuilderProvider.class).in(Singleton.class);
-        bind(QueryFactory.class).toProvider(QueryFactoryProvider.class).in(Singleton.class);
-        bind(SelectStatementExecutor.class).toProvider(SelectStatementExecutorProvider.class).in(Singleton.class);
-        bind(ModifyStatementExecutor.class).toProvider(ModifyStatementExecutorProvider.class).in(Singleton.class);
+    protected void configureOptions() {
+        bind(Map.class).annotatedWith(JudoConfigurationQualifiers.QueryFactoryCustomJoinDefinitions.class).toInstance(configuration.getQueryFactoryCustomJoinDefinitions());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled.class).toInstance(configuration.getRdbmsDaoOptimisticLockEnabled());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems.class).toInstance(configuration.getRdbmsDaoMarkSelectedRangeItems());
+        bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class).toInstance(configuration.getRdbmsDaoChunkSize());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverCheckMappedActors.class).toInstance(configuration.getActorResolverCheckMappedActors());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class).toInstance(configuration.getDispatcherTrimString());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherCaseInsensitiveLike.class).toInstance(configuration.getDispatcherCaseInsensitiveLike());
+        bind(String.class).annotatedWith(JudoConfigurationQualifiers.IdentifierSignerSecret.class).toInstance(configuration.getIdentifierSignerSecret() != null ? configuration.getIdentifierSignerSecret() : generateNewSecret());
+        bind(Consumer.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorConsumer.class).toInstance(configuration.getMetricsCollectorConsumer());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorEnabled.class).toInstance(configuration.getMetricsCollectorEnabled());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorVerbose.class).toInstance(configuration.getMetricsCollectorVerbose());
+        bind(String.class).annotatedWith(JudoConfigurationQualifiers.PayloadValidatorRequiredStringValidatorOption.class).toInstance(configuration.getPayloadValidatorRequiredStringValidatorOption());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextDebugThreadFork.class).toInstance(configuration.getThreadContextDebugThreadFork());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextInheritableContext.class).toInstance(configuration.getThreadContextInheritableContext());
+        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceStart.class).toInstance(configuration.getRdbmsSequenceStart());
+        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceIncrement.class).toInstance(configuration.getRdbmsSequenceIncrement());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceCreateIfNotExists.class).toInstance(configuration.getRdbmsSequenceCreateIfNotExists());
+    }
 
-        ExtendableCoercer coercer = new DefaultCoercer();
-        bind(Coercer.class).toInstance(coercer);
-        bind(ExtendableCoercer.class).toInstance(coercer);
-        bind(DataTypeManager.class).toProvider(DataTypeManagerProvider.class).in(Singleton.class);
-        bind(IdentifierProvider.class).toProvider(UUIDIdentifierProviderProvider.class).in(Singleton.class);
+    protected void configureRdbmsResolver() {
+        if (configuration.getRdbmsResolver() != null) {
+            bind(RdbmsResolver.class).toInstance(configuration.getRdbmsResolver());
+        } else {
+            bind(RdbmsResolver.class).toProvider(RdbmsResolverProvider.class).in(Singleton.class);
+        }
+    }
 
-        bind(IdentifierSigner.class).toProvider(DefaultIdentifierSignerProvider.class).in(Singleton.class);
-        bind(String.class).annotatedWith(Names.named(IDENTIFIER_SIGNER_SECRET)).toInstance(generateNewSecret());
+    protected void configureVariableResolver() {
+        if (configuration.getVariableResolver() != null) {
+            bind(VariableResolver.class).toInstance(configuration.getVariableResolver());
+        } else {
+            bind(VariableResolver.class).toProvider(DefaultVariableResolverProvider.class).in(Singleton.class);
+        }
+    }
 
-        // Access manager
-        bind(AccessManager.class).toProvider(DefaultAccessManagerProvider.class);
-        bind(AuthenticationInterceptorProvider.class).toProvider(DefaultAuthenticationInterceptorProviderProvider.class);
+    protected void configureRdbmsBuilder() {
+        if (configuration.getRdbmsBuilder() != null) {
+            bind(RdbmsBuilder.class).toInstance(configuration.getRdbmsBuilder());
+        } else {
+            bind(RdbmsBuilder.class).toProvider(RdbmsBuilderProvider.class).in(Singleton.class);
+        }
+    }
 
-        // Context
-        bind(Context.class).toProvider(ThreadContextProvider.class).in(Singleton.class);
-        bind(Boolean.class).annotatedWith(Names.named(THREAD_CONTEXT_DEBUG_THREAD_FORK)).toInstance(Boolean.FALSE);
-        bind(Boolean.class).annotatedWith(Names.named(THREAD_CONTEXT_INHERITABLE_CONTEXT)).toInstance(Boolean.FALSE);
+    protected void configureQueryFactory() {
+        if (configuration.getQueryFactory() != null) {
+            bind(QueryFactory.class).toInstance(configuration.getQueryFactory());
+        } else {
+            bind(QueryFactory.class).toProvider(QueryFactoryProvider.class).in(Singleton.class);
+        }
+    }
 
-        // Metrics collector
-        bind(MetricsCollector.class).toProvider(DefaultMetricsCollectorProvider.class).in(Singleton.class);
-        bind(Consumer.class).annotatedWith(Names.named(METRICS_COLLECTOR_CONSUMER)).toInstance((c) -> {});
-        bind(Boolean.class).annotatedWith(Names.named(METRICS_COLLECTOR_ENABLED)).toInstance(Boolean.FALSE);
-        bind(Boolean.class).annotatedWith(Names.named(METRICS_COLLECTOR_VERBOSE)).toInstance(Boolean.FALSE);
+    protected void configureSelectStatementExecutor() {
+        if (configuration.getSelectStatementExecutor() != null) {
+            bind(SelectStatementExecutor.class).toInstance(configuration.getSelectStatementExecutor());
+        } else {
+            bind(SelectStatementExecutor.class).toProvider(SelectStatementExecutorProvider.class).in(Singleton.class);
+        }
+    }
 
-        bind(TransformationTraceService.class).toProvider(TransformationTraceServiceProvider.class).in(Singleton.class);
+    protected void configureModifyStatementExecutor() {
+        if (configuration.getModifyStatementExecutor() != null) {
+            bind(ModifyStatementExecutor.class).toInstance(configuration.getModifyStatementExecutor());
+        } else {
+            bind(ModifyStatementExecutor.class).toProvider(ModifyStatementExecutorProvider.class).in(Singleton.class);
+        }
+    }
 
-        bind(InstanceCollector.class).toProvider(RdbmsInstanceCollectorProvider.class).in(Singleton.class);
-        bind(DAO.class).toProvider(RdbmsDAOProvider.class).in(Singleton.class);
-        bind(Boolean.class).annotatedWith(Names.named(RDBMS_DAO_OPTIMISTIC_LOCK_ENABLED)).toInstance(true);
-        bind(Integer.class).annotatedWith(Names.named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)).toInstance(1000);
-        bind(Boolean.class).annotatedWith(Names.named(RDBMS_DAO_MARK_SELECTED_RANGE_ITEMS)).toInstance(false);
+    protected void configureExtendableCoercer() {
+        if (configuration.getExtendableCoercer() != null) {
+            bind(ExtendableCoercer.class).toInstance(configuration.getExtendableCoercer());
+            bind(Coercer.class).toInstance(configuration.getExtendableCoercer());
+        } else {
+            bind(ExtendableCoercer.class).toProvider(ExtendableCoercererProvider.class).asEagerSingleton();
+            bind(Coercer.class).toProvider(CoercererProvider.class).in(Singleton.class);
+        }
+    }
 
-        bind(ActorResolver.class).toProvider(DefaultActorResolverProvider.class).in(Singleton.class);
-        bind(Boolean.class).annotatedWith(Names.named(ACTOR_RESOLVER_CHECK_MAPPED_ACTORS)).toInstance(Boolean.FALSE);
+    protected void configureDataTypeManager() {
+        if (configuration.getDataTypeManager() != null) {
+            bind(DataTypeManager.class).toInstance(configuration.getDataTypeManager());
+        } else {
+            bind(DataTypeManager.class).toProvider(DataTypeManagerProvider.class).in(Singleton.class);
+        }
+    }
 
+    protected void configureIdentifierProvider() {
+        if (configuration.getIdentifierProvider() != null) {
+            bind(IdentifierProvider.class).toInstance(configuration.getIdentifierProvider());
+        } else {
+            bind(IdentifierProvider.class).toProvider(UUIDIdentifierProviderProvider.class).in(Singleton.class);
+        }
+    }
 
-        // Dispatcher
-        bind(DispatcherFunctionProvider.class).toProvider(DispatcherFunctionProviderProvider.class).in(Singleton.class);
-        bind(OperationCallInterceptorProvider.class).toProvider(OperationCallInterceptorProviderProvider.class).in(Singleton.class);
+    protected void configureIdentifierSigner() {
+        if (configuration.getIdentifierSigner() != null) {
+            bind(IdentifierSigner.class).toInstance(configuration.getIdentifierSigner());
+        } else {
+            bind(IdentifierSigner.class).toProvider(DefaultIdentifierSignerProvider.class).in(Singleton.class);
+        }
+    }
 
-        bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).asEagerSingleton();
-        bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_METRICS_RETURNED)).toInstance(Boolean.FALSE);
-        bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_ENABLE_VALIDATION)).toInstance(Boolean.TRUE);
-        bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_TRIM_STRING)).toInstance(Boolean.FALSE);
-        bind(Boolean.class).annotatedWith(Names.named(DISPATCHER_CASE_INSENSITIVE_LIKE)).toInstance(Boolean.FALSE);
+    protected void configureAccessManager() {
+        if (configuration.getAccessManager() != null) {
+            bind(AccessManager.class).toInstance(configuration.getAccessManager());
+        } else {
+            bind(AccessManager.class).toProvider(DefaultAccessManagerProvider.class).asEagerSingleton();
+        }
+    }
 
-        // Validator
-        bind(ValidatorProvider.class).toProvider(ValidatorProviderProvider.class).asEagerSingleton();
-        bind(PayloadValidator.class).toProvider(DefaultPayloadValidatorProvider.class).asEagerSingleton();
-        bind(String.class).annotatedWith(Names.named(PAYLOAD_VALIDATOR_REQUIRED_STRING_VALIDATOR_OPTION)).toInstance("ACCEPT_NON_EMPTY");
+    protected void configureAuthenticationInterceptorProvider() {
+        if (configuration.getAuthenticationInterceptorProvider() != null) {
+            bind(AuthenticationInterceptorProvider.class).toInstance(configuration.getAuthenticationInterceptorProvider());
+        } else {
+            bind(AuthenticationInterceptorProvider.class).toProvider(DefaultAuthenticationInterceptorProviderProvider.class);
+        }
+    }
 
-        bind(Export.class).to(UnsupportedExportImpl.class);
+    protected void configureContext() {
+        if (configuration.getContext() != null) {
+            bind(Context.class).toInstance(configuration.getContext());
+        } else {
+            bind(Context.class).toProvider(ThreadContextProvider.class).in(Singleton.class);
+        }
+    }
 
+    protected void configureMetricsCollector() {
+        if (configuration.getMetricsCollector() != null) {
+            bind(MetricsCollector.class).toInstance(configuration.getMetricsCollector());
+        } else {
+            bind(MetricsCollector.class).toProvider(DefaultMetricsCollectorProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureTransformationTraceService() {
+        if (configuration.getTransformationTraceService() != null) {
+            bind(TransformationTraceService.class).toInstance(configuration.getTransformationTraceService());
+        } else {
+            bind(TransformationTraceService.class).toProvider(TransformationTraceServiceProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureInstanceCollector() {
+        if (configuration.getInstanceCollector() != null) {
+            bind(InstanceCollector.class).toInstance(configuration.getInstanceCollector());
+        } else {
+            bind(InstanceCollector.class).toProvider(RdbmsInstanceCollectorProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureDAO() {
+        if (configuration.getDao() != null) {
+            bind(DAO.class).toInstance(configuration.getDao());
+        } else {
+            bind(DAO.class).toProvider(RdbmsDAOProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureActorResolver() {
+        if (configuration.getActorResolver() != null) {
+            bind(ActorResolver.class).toInstance(configuration.getActorResolver());
+        } else {
+            bind(ActorResolver.class).toProvider(DefaultActorResolverProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureDispatcherFunctionProvider() {
+        if (configuration.getDispatcherFunctionProvider() != null) {
+            bind(DispatcherFunctionProvider.class).toInstance(configuration.getDispatcherFunctionProvider());
+        } else {
+            bind(DispatcherFunctionProvider.class).toProvider(DispatcherFunctionProviderProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureOperationCallInterceptorProvider() {
+        if (configuration.getOperationCallInterceptorProvider() != null) {
+            bind(OperationCallInterceptorProvider.class).toInstance(configuration.getOperationCallInterceptorProvider());
+        } else {
+            bind(OperationCallInterceptorProvider.class).toProvider(OperationCallInterceptorProviderProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureDispatcher() {
+        if (configuration.getDispatcher() != null) {
+            bind(Dispatcher.class).toInstance(configuration.getDispatcher());
+        } else {
+            bind(Dispatcher.class).toProvider(DefaultDispatcherProvider.class).asEagerSingleton();
+        }
+    }
+
+    protected void configureValidatorProvider() {
+        if (configuration.getValidatorProvider() != null) {
+            bind(ValidatorProvider.class).toInstance(configuration.getValidatorProvider());
+        } else {
+            bind(ValidatorProvider.class).toProvider(ValidatorProviderProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configurePayloadValidator() {
+        if (configuration.getPayloadValidator() != null) {
+            bind(PayloadValidator.class).toInstance(configuration.getPayloadValidator());
+        } else {
+            bind(PayloadValidator.class).toProvider(DefaultPayloadValidatorProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configureExport() {
+        if (configuration.getExport() != null) {
+            bind(Export.class).toInstance(configuration.getExport());
+        } else {
+            bind(Export.class).to(UnsupportedExportImpl.class);
+        }
+    }
+
+    protected void configurePlatformTransactionManager() {
+        if (configuration.getPlatformTransactionManager() != null) {
+            bind(PlatformTransactionManager.class).toInstance(configuration.getPlatformTransactionManager());
+        } else {
+            bind(PlatformTransactionManager.class).toProvider(PlatformTransactionManagerProvider.class).in(Singleton.class);
+        }
+    }
+
+    protected void configure() {
+        if (configuration.getInjectModulesTo() != null) {
+            requestInjection(configuration.getInjectModulesTo());
+        }
+        configureModels();
+        configureOptions();
+        configureRdbmsResolver();
+        configureVariableResolver();
+        configureRdbmsBuilder();
+        configureQueryFactory();
+        configureSelectStatementExecutor();
+        configureModifyStatementExecutor();
+        configureExtendableCoercer();
+        configureDataTypeManager();
+        configureIdentifierProvider();
+        configureIdentifierSigner();
+        configureAccessManager();
+        configureAuthenticationInterceptorProvider();
+        configureContext();
+        configureMetricsCollector();
+        configureTransformationTraceService();
+        configureInstanceCollector();
+        configureDAO();
+        configureActorResolver();
+        configureDispatcherFunctionProvider();
+        configureOperationCallInterceptorProvider();
+        configureDispatcher();
+        configureValidatorProvider();
+        configurePayloadValidator();
+        configureExport();
     }
 }

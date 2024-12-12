@@ -31,6 +31,7 @@ import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import lombok.Builder;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -88,6 +89,7 @@ public class KeycloakUserManager implements UserManager<String> {
     private RetryRegistry retryRegistry;
 
     @Setter
+    @Getter
     private boolean identityManagerReady;
 
     @Builder
