@@ -22,11 +22,11 @@ package hu.blackbelt.judo.runtime.core.guice.dispatcher;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
-import com.google.inject.name.Named;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
+import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator;
 
@@ -34,8 +34,8 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 public class DefaultPayloadValidatorProvider implements Provider<PayloadValidator> {
-    public static final String PAYLOAD_VALIDATOR_REQUIRED_STRING_VALIDATOR_OPTION = "payloadValidatorRequiredStringValidatorOption";
 
+    public static final String ACCEPT_NON_EMPTY = "ACCEPT_NON_EMPTY";
     @Inject
     JudoModelLoader models;
 
@@ -49,7 +49,7 @@ public class DefaultPayloadValidatorProvider implements Provider<PayloadValidato
     IdentifierProvider identifierProvider;
 
     @Inject(optional = true)
-    @Named(PAYLOAD_VALIDATOR_REQUIRED_STRING_VALIDATOR_OPTION)
+    @JudoConfigurationQualifiers.PayloadValidatorRequiredStringValidatorOption
     @Nullable
     String requiredStringValidatorOption;
 
@@ -61,7 +61,7 @@ public class DefaultPayloadValidatorProvider implements Provider<PayloadValidato
                 .identifierProvider(identifierProvider)
                 .validatorProvider(validatorProvider)
                 .requiredStringValidatorOption(
-                        DefaultPayloadValidator.RequiredStringValidatorOption.valueOf(Objects.requireNonNullElse(requiredStringValidatorOption, "ACCEPT_NON_EMPTY")))
+                        DefaultPayloadValidator.RequiredStringValidatorOption.valueOf(Objects.requireNonNullElse(requiredStringValidatorOption, ACCEPT_NON_EMPTY)))
                 .build();
     }
 
