@@ -52,7 +52,7 @@ public class JudoHsqldbModule extends AbstractModule {
         Integer port = JudoHsqldbModuleConfiguration.DEFAULT.getPort();
         PlatformTransactionManager platformTransactionManager = JudoHsqldbModuleConfiguration.DEFAULT.getPlatformTransactionManager();
         MapperFactory mapperFactory = JudoHsqldbModuleConfiguration.DEFAULT.getMapperFactory();
-        RdbmsParameterMapper rdbmsParameterMapper = JudoHsqldbModuleConfiguration.DEFAULT.getRdbmsParameterMapper();;
+        RdbmsParameterMapper rdbmsParameterMapper = JudoHsqldbModuleConfiguration.DEFAULT.getRdbmsParameterMapper();
         DataSource dataSource = JudoHsqldbModuleConfiguration.DEFAULT.getDataSource();
         Sequence sequence = JudoHsqldbModuleConfiguration.DEFAULT.getSequence();
         RdbmsInit rdbmsInit = JudoHsqldbModuleConfiguration.DEFAULT.getRdbmsInit();

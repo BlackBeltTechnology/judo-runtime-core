@@ -23,22 +23,22 @@ public class JudoKeycloakModuleConfiguration {
     String keycloakAdminUser = "admin";
 
     @Builder.Default
-    String keycloakAdminPassword = "admin";
+    String keycloakAdminPassword = "judo";
 
     @Builder.Default
     String keycloakClientSecret = "";
 
     @Builder.Default
-    Boolean keycloakRealmSynchronizerSupportLoginByEmail = true;;
+    Boolean keycloakRealmSynchronizerSupportLoginByEmail = true;
 
     @Builder.Default
-    String keycloakRealmSynchronizerClientAccessTypeForHuman = "CONFIDENTIAL";;
+    String keycloakRealmSynchronizerClientAccessTypeForHuman = "CONFIDENTIAL";
 
     @Builder.Default
     String keycloakRealmSynchronizerClientAccessTypeForSystem = "BEARER_ONLY";
 
     @Builder.Default
-    String keycloakRealmSynchronizerCorsAllowOrigin = "";
+    String keycloakRealmSynchronizerCorsAllowOrigin = "*";
 
     @Builder.Default
     Boolean keycloakRealmSynchronizerAsyncServiceCall = true;

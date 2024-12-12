@@ -39,7 +39,7 @@ public class KeycloakRealmSynchronizerProvider implements Provider<KeycloakRealm
     @Inject(optional = true)
     @Named("KeycloakRealmSynchronizerCorsAllowOrigin")
     @Nullable
-    String corsAllowOrigin;
+    String corsAllowOrigin = "*";
 
     @Inject(optional = true)
     @Named("KeycloakRealmSynchronizerAsyncServiceCall")
