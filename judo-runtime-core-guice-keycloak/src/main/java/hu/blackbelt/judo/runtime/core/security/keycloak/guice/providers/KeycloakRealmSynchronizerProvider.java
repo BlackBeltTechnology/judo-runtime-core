@@ -12,6 +12,7 @@ import hu.blackbelt.judo.tatami.core.TransformationTrace;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -86,7 +87,7 @@ public class KeycloakRealmSynchronizerProvider implements Provider<KeycloakRealm
         if (this.corsAllowOrigin != null) {
             corsAllowOrigin = Arrays.stream(this.corsAllowOrigin.split(",")).map(v -> v.trim()).collect(Collectors.toList());
         } else {
-            corsAllowOrigin = Collections.emptySet();
+            corsAllowOrigin = new ArrayList<>();
         }
         KeycloakRealmSynchronizer.AccessType systemDefaultAccessType = KeycloakRealmSynchronizer.AccessType.valueOf(clientAccessTypeSystem);
         KeycloakRealmSynchronizer.AccessType humanDefaultSystemAccessType = KeycloakRealmSynchronizer.AccessType.valueOf(clientAccessTypeHuman);
