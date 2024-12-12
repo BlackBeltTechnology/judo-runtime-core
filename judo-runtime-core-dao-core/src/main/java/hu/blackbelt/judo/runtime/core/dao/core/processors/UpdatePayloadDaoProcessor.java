@@ -205,7 +205,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 a -> {
                     // TODO: Check the differences more proper way
                     Object original = originalPayload.get(a.getKey().getName());
-                    Object update = updatePayloadCleaned.get(a.getKey().getName());;
+                    Object update = updatePayloadCleaned.get(a.getKey().getName());
                     if ((original == null && update != null)
                             || (original != null && update == null)
                             || (original != null && update != null && !original.equals(update))) {

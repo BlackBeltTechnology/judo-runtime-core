@@ -70,16 +70,12 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
     private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER = "Bearer";
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
     RealmExtractor realmExtractor;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
     AsmModel asmModel;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
     OpenIdConfigurationProvider openIdConfigurationProvider;
 
-    @Reference(policyOption = ReferencePolicyOption.GREEDY)
     TransformationTraceService transformationTraceService;
 
     private String authServerUrl;
