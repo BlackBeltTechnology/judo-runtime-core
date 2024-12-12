@@ -90,11 +90,4 @@ class JudoCxfModuleTest {
         String res = plainAddClient.get(String.class);
         assertEquals("156.0", res);
     }
-
-    /*
-    @AfterEach
-    public void teardown() throws Exception {
-        jettyContainer.stop();
-    } */
-
 }

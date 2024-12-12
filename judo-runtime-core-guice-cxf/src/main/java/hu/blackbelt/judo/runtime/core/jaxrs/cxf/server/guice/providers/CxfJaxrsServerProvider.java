@@ -101,7 +101,6 @@ public class CxfJaxrsServerProvider implements Provider<CxfJaxrsServerProvider.S
     @Override
     public ServerHolder get() {
         ServerHolder serverHolder = new ServerHolder();
-//        JettyContainer jettyContainer = new JettyContainer(cxfJaxRsServerPort, "/");
         ServletContextHandler servletContextHandler = jettyContainer.getServletContextHandler();
 
         Bus bus = BusFactory.getThreadDefaultBus();

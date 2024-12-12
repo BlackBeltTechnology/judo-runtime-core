@@ -139,11 +139,11 @@ public class JudoModelLoader {
         return loadFromURL(modelName, url.toURI(), dialect, validate, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean loaKeycloak) throws Exception {
-        return loadFromDirectory(modelName, directory, dialect, true, loaKeycloak);
+    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean loadKeycloak) throws Exception {
+        return loadFromDirectory(modelName, directory, dialect, true, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean validate, boolean loaKeycloak) throws Exception {
+    public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean validate, boolean loadKeycloak) throws Exception {
         if (directory == null) {
             throw new IllegalArgumentException("Directory is null");
         }
@@ -154,14 +154,14 @@ public class JudoModelLoader {
             throw new IllegalArgumentException("Given file is not directory: " + directory);
         }
 
-        return loadFromURL(modelName, directory.toURI(), dialect, validate, loaKeycloak);
+        return loadFromURL(modelName, directory.toURI(), dialect, validate, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean loaKeucloak) throws Exception {
-        return loadFromURL(modelName, uri, dialect, true, loaKeucloak);
+    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean loadKeycloak) throws Exception {
+        return loadFromURL(modelName, uri, dialect, true, loadKeycloak);
     }
 
-    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean validate, boolean loadKetkloak) throws Exception {
+    public static JudoModelLoader loadFromURL(String modelName, URI uri, Dialect dialect, boolean validate, boolean loadKeycloak) throws Exception {
 
         if (modelName == null) {
             throw new IllegalArgumentException("Model name have to be defined");
@@ -223,7 +223,7 @@ public class JudoModelLoader {
 
         KeycloakModel keycloakModel = null;
         Asm2KeycloakTransformationTrace asm2keycloak = null;
-        if (loadKetkloak) {
+        if (loadKeycloak) {
             keycloakModel = KeycloakModel.loadKeycloakModel(KeycloakModel.LoadArguments.keycloakLoadArgumentsBuilder()
                     .inputStream(calculateRelativeURI(uri, "/" + modelName + "-liquibase_" + dialect.getName() + ".changelog.xml").toURL().openStream())
                     .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-liquibase_" + dialect.getName() + ".changelog.xml"))

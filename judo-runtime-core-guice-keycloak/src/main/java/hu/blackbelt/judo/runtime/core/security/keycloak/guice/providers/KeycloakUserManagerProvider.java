@@ -81,34 +81,7 @@ public class KeycloakUserManagerProvider implements Provider<KeycloakUserManager
 
     @Inject
     KeycloakAdminClient keycloakAdminClient;
-
-
-    /*
-    private KeycloakUserManager keycloakUserManager;
-    ServiceRegistration serviceRegistration = null;
-    private volatile IdentityManagerReady identityManagerReady = null;
-
-    @Reference(policyOption = ReferencePolicyOption.GREEDY,
-            name = "identityManagerReady",
-            bind = "bindIdentityManagerReady",
-            unbind = "unbindIdentityManagerReady",
-            policy = ReferencePolicy.DYNAMIC,
-            cardinality = ReferenceCardinality.OPTIONAL)
-    void bindIdentityManagerReady(IdentityManagerReady identityManagerReady) {
-        this.identityManagerReady = identityManagerReady;
-        if (keycloakUserManager != null) {
-            keycloakUserManager.setIdentityManagerReady(true);
-        }
-    };
-
-    void unbindIdentityManagerReady(IdentityManagerReady identityManagerReady) {
-        this.identityManagerReady = null;
-        if (keycloakUserManager != null) {
-            keycloakUserManager.setIdentityManagerReady(false);
-        }
-    };
-    */
-
+    
     public KeycloakUserManager get() {
         KeycloakUserManager keycloakUserManager = KeycloakUserManager.builder()
                 .enabled(Objects.requireNonNullElse(keycloakUserManagerEnabled, true))
@@ -124,14 +97,6 @@ public class KeycloakUserManagerProvider implements Provider<KeycloakUserManager
                 .transformationTraceService(transformationTraceService)
                 .keycloakAdminClient(keycloakAdminClient)
                 .build();
-        /*
-        keycloakUserManager.setIdentityManagerReady(identityManagerReady != null);
-        serviceRegistration = componentContext.getBundleContext().registerService(
-                UserManager.class,
-                keycloakUserManager,
-                componentContext.getProperties());
-
-         */
         return keycloakUserManager;
     }
 }
