@@ -59,6 +59,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.Coercer;
@@ -71,6 +72,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class JudoDefaultModule extends AbstractModule {
@@ -80,6 +82,7 @@ public class JudoDefaultModule extends AbstractModule {
 
     public static class JudoDefaultModuleBuilder {
         JudoDefaultModuleConfiguration configuration = configuration = null;
+        RuntimeVariableResolver runtimeVariableResolver = null;
         Object injectModulesTo = JudoDefaultModuleConfiguration.DEFAULT.getInjectModulesTo();
         JudoModelLoader judoModelLoader = JudoDefaultModuleConfiguration.DEFAULT.getJudoModelLoader();
         Boolean bindModelHolder = JudoDefaultModuleConfiguration.DEFAULT.getBindModelHolder();
@@ -133,6 +136,7 @@ public class JudoDefaultModule extends AbstractModule {
     @Builder
     public JudoDefaultModule(
                             JudoDefaultModuleConfiguration configuration,
+                            RuntimeVariableResolver runtimeVariableResolver,
                             Object injectModulesTo,
                             JudoModelLoader judoModelLoader,
                             Boolean bindModelHolder,
@@ -186,6 +190,8 @@ public class JudoDefaultModule extends AbstractModule {
             this.configuration = configuration;
         } else {
             this.configuration = JudoDefaultModuleConfiguration.builder()
+                    .runtimeVariableResolver(Objects.requireNonNullElseGet(runtimeVariableResolver,
+                            () -> RuntimeVariableResolver.builder().prefix("judo").build()))
                     .injectModulesTo(injectModulesTo)
                     .judoModelLoader(judoModelLoader)
                     .bindModelHolder(bindModelHolder)
@@ -266,26 +272,45 @@ public class JudoDefaultModule extends AbstractModule {
     }
 
     protected void configureOptions() {
-        bind(Map.class).annotatedWith(JudoConfigurationQualifiers.QueryFactoryCustomJoinDefinitions.class).toInstance(configuration.getQueryFactoryCustomJoinDefinitions());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled.class).toInstance(configuration.getRdbmsDaoOptimisticLockEnabled());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems.class).toInstance(configuration.getRdbmsDaoMarkSelectedRangeItems());
-        bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class).toInstance(configuration.getRdbmsDaoChunkSize());
-        bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMaximumRecursionCount.class).toInstance(configuration.getRdbmsDaoMaximumRecursionCount());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverCheckMappedActors.class).toInstance(configuration.getActorResolverCheckMappedActors());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class).toInstance(configuration.getDispatcherTrimString());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherCaseInsensitiveLike.class).toInstance(configuration.getDispatcherCaseInsensitiveLike());
-        bind(String.class).annotatedWith(JudoConfigurationQualifiers.IdentifierSignerSecret.class).toInstance(configuration.getIdentifierSignerSecret() != null ? configuration.getIdentifierSignerSecret() : generateNewSecret());
-        bind(Consumer.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorConsumer.class).toInstance(configuration.getMetricsCollectorConsumer());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorEnabled.class).toInstance(configuration.getMetricsCollectorEnabled());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorVerbose.class).toInstance(configuration.getMetricsCollectorVerbose());
-        bind(String.class).annotatedWith(JudoConfigurationQualifiers.PayloadValidatorRequiredStringValidatorOption.class).toInstance(configuration.getPayloadValidatorRequiredStringValidatorOption());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextDebugThreadFork.class).toInstance(configuration.getThreadContextDebugThreadFork());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextInheritableContext.class).toInstance(configuration.getThreadContextInheritableContext());
-        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceStart.class).toInstance(configuration.getRdbmsSequenceStart());
-        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceIncrement.class).toInstance(configuration.getRdbmsSequenceIncrement());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceCreateIfNotExists.class).toInstance(configuration.getRdbmsSequenceCreateIfNotExists());
+        bind(Map.class).annotatedWith(JudoConfigurationQualifiers.QueryFactoryCustomJoinDefinitions.class)
+                .toInstance(configuration.getQueryFactoryCustomJoinDefinitions());
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("rdbmsDaoOptimisticLockEnabled", configuration.getRdbmsDaoOptimisticLockEnabled()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("rdbmsDaoMarkSelectedRangeItems", configuration.getRdbmsDaoMarkSelectedRangeItems()));
+        bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsInteger("rdbmsDaoChunkSize", configuration.getRdbmsDaoChunkSize()));
+        bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMaximumRecursionCount.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsInteger("rdbmsDaoMaximumRecursionCount", configuration.getRdbmsDaoMaximumRecursionCount()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverCheckMappedActors.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("actorResolverCheckMappedActors", configuration.getActorResolverCheckMappedActors()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("dispatcherMetricsReturned", configuration.getDispatcherMetricsReturned()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("dispatcherEnableDefaultValidation", configuration.getDispatcherEnableDefaultValidation()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("dispatcherTrimString", configuration.getDispatcherTrimString()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherCaseInsensitiveLike.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("dispatcherCaseInsensitiveLike", configuration.getDispatcherCaseInsensitiveLike()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorEnabled.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("metricsCollectorEnabled", configuration.getMetricsCollectorEnabled()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.MetricsCollectorVerbose.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("metricsCollectorVerbose", configuration.getMetricsCollectorVerbose()));
+        bind(String.class).annotatedWith(JudoConfigurationQualifiers.PayloadValidatorRequiredStringValidatorOption.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsString("payloadValidatorRequiredStringValidatorOption", configuration.getPayloadValidatorRequiredStringValidatorOption()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextDebugThreadFork.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("threadContextDebugThreadFork", configuration.getThreadContextDebugThreadFork()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ThreadContextInheritableContext.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("threadContextInheritableContext", configuration.getThreadContextInheritableContext()));
+        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceStart.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsLong("rdbmsSequenceStart", configuration.getRdbmsSequenceStart()));
+        bind(Long.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceIncrement.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsLong("rdbmsSequenceIncrement", configuration.getRdbmsSequenceIncrement()));
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsSequenceCreateIfNotExists.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsBoolean("rdbmsSequenceCreateIfNotExists", configuration.getRdbmsSequenceCreateIfNotExists()));
+        bind(String.class).annotatedWith(JudoConfigurationQualifiers.IdentifierSignerSecret.class)
+                .toInstance(configuration.getRuntimeVariableResolver().getVariableAsString("identifierSignerSecret",
+                        Objects.requireNonNullElseGet(configuration.getIdentifierSignerSecret(), () -> generateNewSecret())));
     }
 
     protected void configureRdbmsResolver() {

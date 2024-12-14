@@ -1,6 +1,7 @@
 package hu.blackbelt.judo.runtime.core.security.keycloak.guice;
 
 import hu.blackbelt.judo.runtime.core.security.keycloak.KeycloakUserManager;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.*;
 
 import java.util.function.Consumer;
@@ -12,6 +13,9 @@ import java.util.function.Consumer;
 @AllArgsConstructor
 public class JudoKeycloakModuleConfiguration {
     public static final JudoKeycloakModuleConfiguration DEFAULT = JudoKeycloakModuleConfiguration.builder().build();
+
+    @Builder.Default
+    RuntimeVariableResolver runtimeVariableResolver = null;
 
     @Builder.Default
     String keycloakServerUrl = "http://localhost:8080/auth";
