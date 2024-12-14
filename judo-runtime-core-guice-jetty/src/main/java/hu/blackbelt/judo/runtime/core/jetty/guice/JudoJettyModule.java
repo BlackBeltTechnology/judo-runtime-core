@@ -24,7 +24,10 @@ package hu.blackbelt.judo.runtime.core.jetty.guice;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.*;
+
+import java.util.Objects;
 
 public class JudoJettyModule extends AbstractModule {
 
@@ -38,6 +41,7 @@ public class JudoJettyModule extends AbstractModule {
     @Setter
     public static class JudoJettyModuleConfiguration {
         public static final JudoJettyModuleConfiguration DEFAULT = JudoJettyModuleConfiguration.builder().build();
+        @Builder.Default RuntimeVariableResolver runtimeVariableResolver = null;
         @Builder.Default Integer jettyServerPort = 8181;
         @Builder.Default String jettyContextPath = "/";
         @Builder.Default Integer maxThreads = 100;
@@ -47,6 +51,7 @@ public class JudoJettyModule extends AbstractModule {
 
     public static class JudoJettyModuleBuilder {
         JudoJettyModuleConfiguration configuration = null;
+        RuntimeVariableResolver runtimeVariableResolver = null;
         Integer jettyServerPort = JudoJettyModuleConfiguration.DEFAULT.getJettyServerPort();
         String jettyContextPath = JudoJettyModuleConfiguration.DEFAULT.getJettyContextPath();
         Integer maxThreads = JudoJettyModuleConfiguration.DEFAULT.getMaxThreads();
@@ -60,6 +65,7 @@ public class JudoJettyModule extends AbstractModule {
 
     @Builder
     private JudoJettyModule(JudoJettyModuleConfiguration configuration,
+                            RuntimeVariableResolver runtimeVariableResolver,
                             Integer jettyServerPort,
                             String jettyContextPath,
                             Integer maxThreads,
@@ -70,6 +76,8 @@ public class JudoJettyModule extends AbstractModule {
             this.configuration = configuration;
         } else {
             this.configuration = JudoJettyModuleConfiguration.builder()
+                    .runtimeVariableResolver(Objects.requireNonNullElseGet(runtimeVariableResolver,
+                            () -> RuntimeVariableResolver.builder().prefix("judo").build()))
                     .jettyServerPort(jettyServerPort)
                     .jettyContextPath(jettyContextPath)
                     .maxThreads(maxThreads)
@@ -85,11 +93,31 @@ public class JudoJettyModule extends AbstractModule {
     }
 
     protected void configureOptions() {
-        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerPort.class).toInstance(configuration.getJettyServerPort());
-        bind(String.class).annotatedWith(JettyConfigurations.JettyServerContextPath.class).toInstance(configuration.getJettyContextPath());
-        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerMaxThreads.class).toInstance(configuration.getMaxThreads());
-        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerMinThreads.class).toInstance(configuration.getMinThreads());
-        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerIdleTimeout.class).toInstance(configuration.getIdleTimeout());
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerPort.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("jettyServerPort",
+                                configuration.getJettyServerPort()));
+
+        bind(String.class).annotatedWith(JettyConfigurations.JettyServerContextPath.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("jettyServerContextPath",
+                                configuration.getJettyContextPath()));
+
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerMaxThreads.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("jettyServerMaxThreads",
+                                configuration.getMaxThreads()));
+
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerMinThreads.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("jettyServerMinThreads",
+                                configuration.getMinThreads()));
+
+        bind(Integer.class).annotatedWith(JettyConfigurations.JettyServerIdleTimeout.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("jettyServerIdleTimeout",
+                                configuration.getIdleTimeout()));
+
     }
 
     protected void configureServer() {
