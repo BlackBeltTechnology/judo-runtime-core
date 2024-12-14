@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public final class ComponentScanModule extends AbstractModule {
+public class ComponentScanModule extends AbstractModule {
     private final String packageName;
     private final Set<Class<? extends Annotation>> bindingAnnotations;
 

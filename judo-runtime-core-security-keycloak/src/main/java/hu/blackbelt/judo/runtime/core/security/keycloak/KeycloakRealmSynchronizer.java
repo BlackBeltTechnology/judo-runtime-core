@@ -100,8 +100,6 @@ public class KeycloakRealmSynchronizer {
     }
 
     public void synchronizeAllRealms() {
-        KeycloakUtils keycloakUtils = new KeycloakUtils(keycloakModel.getResourceSet());
-
         retryRegistry = RetryUtil.createRetryRegistry(retryMaxAttempts,
                 retryWaitDuration, retryExponentialBackoff);
 
