@@ -103,6 +103,10 @@
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
         </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.runtime</groupId>
+            <artifactId>judo-runtime-core</artifactId>
+        </dependency>
 
     </dependencies>
 </project>
