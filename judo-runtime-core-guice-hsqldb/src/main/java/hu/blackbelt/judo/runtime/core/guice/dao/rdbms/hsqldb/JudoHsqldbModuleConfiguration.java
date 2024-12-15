@@ -4,6 +4,7 @@ import hu.blackbelt.judo.dispatcher.api.Sequence;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.*;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -17,6 +18,8 @@ import java.io.File;
 @Getter
 public class JudoHsqldbModuleConfiguration {
     public static final JudoHsqldbModuleConfiguration DEFAULT = JudoHsqldbModuleConfiguration.builder().build();
+    @Builder.Default
+    RuntimeVariableResolver runtimeVariableResolver = null;
     @Builder.Default
     private Boolean runServer = false;
     @Builder.Default
