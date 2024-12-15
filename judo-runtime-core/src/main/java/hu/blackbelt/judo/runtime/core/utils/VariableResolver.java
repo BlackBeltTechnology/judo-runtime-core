@@ -9,8 +9,8 @@ public interface VariableResolver {
     String getName();
     Map<String, Object> process();
 
-    static Map<String, Object> generalizeTemplateVariableNames(Map<String, Object> parametrers) {
-        return parametrers.entrySet().stream().filter(e -> e.getKey() != null && e.getValue() != null).collect(
+    static Map<String, Object> generalizeTemplateVariableNames(Map<String, Object> parameters) {
+        return parameters.entrySet().stream().filter(e -> e.getKey() != null && e.getValue() != null).collect(
                 Collectors.toMap(
                         e -> generalizeName(String.valueOf(e.getKey())),
                         e -> e.getValue(),
