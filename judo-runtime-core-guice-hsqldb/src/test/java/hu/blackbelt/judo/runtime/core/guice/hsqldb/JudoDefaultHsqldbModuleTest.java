@@ -59,7 +59,7 @@ class JudoDefaultHsqldbModuleTest {
         Module application = Modules.combine(judoModule, hsqlDbModule);
 
         injector = Guice.createInjector(application);
-        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
+        log.info("Init: ⏱ " + timer.elapsed().toMillis()+ " ms");
 
     }
 
