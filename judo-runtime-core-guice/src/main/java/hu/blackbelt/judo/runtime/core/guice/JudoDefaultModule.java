@@ -81,7 +81,7 @@ public class JudoDefaultModule extends AbstractModule {
     private JudoDefaultModuleConfiguration configuration = JudoDefaultModuleConfiguration.builder().build();
 
     public static class JudoDefaultModuleBuilder {
-        JudoDefaultModuleConfiguration configuration = configuration = null;
+        JudoDefaultModuleConfiguration configuration = null;
         RuntimeVariableResolver runtimeVariableResolver = null;
         Object injectModulesTo = JudoDefaultModuleConfiguration.DEFAULT.getInjectModulesTo();
         JudoModelLoader judoModelLoader = JudoDefaultModuleConfiguration.DEFAULT.getJudoModelLoader();
