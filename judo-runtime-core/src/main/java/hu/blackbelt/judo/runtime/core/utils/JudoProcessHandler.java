@@ -8,11 +8,16 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.spi.FileSystemProvider;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,9 +30,12 @@ public class JudoProcessHandler {
 
     final RuntimeVariableResolver runtimeVariableResolver;
     final Runnable shutdownHook;
+    final File judoPidFile;
 
     @Builder
-    public JudoProcessHandler(RuntimeVariableResolver runtimeVariableResolver, Runnable shutdownHook) {
+    public JudoProcessHandler(RuntimeVariableResolver runtimeVariableResolver,
+                              File judoPidFile,
+                              Runnable shutdownHook) {
         if (runtimeVariableResolver != null) {
             this.runtimeVariableResolver = runtimeVariableResolver;
         } else {
@@ -42,6 +50,7 @@ public class JudoProcessHandler {
         } else {
             this.shutdownHook = () -> {};
         }
+        this.judoPidFile = judoPidFile;
     }
 
     public long getCurrentProcessPid() {
@@ -49,21 +58,33 @@ public class JudoProcessHandler {
         return pid;
     }
 
-    public File getPidFile() {
-        URL classUrl = null;
+    public File getApplicationRoot() {
         try {
-            classUrl = JudoProcessHandler.class.getProtectionDomain().getCodeSource().getLocation().toURI().toURL();
-            File pidPath = ("jar".equals(classUrl.getProtocol())) ? (new File(classUrl.getPath())).getParentFile() : new File(classUrl.getPath());
-            //final String pidPath = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
-            //final String dirPath = new File(this.getClass().getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
-            File pidFile = new File(runtimeVariableResolver.getVariableAsString(JUDO_PID_FILE,
-                    new File(pidPath, runtimeVariableResolver.getVariableAsString(JUDO_PID_NAME, JUDO_DEFAULT_PID_NAME)).getAbsolutePath()));
-            return pidFile;
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        } catch (URISyntaxException e) {
+            String className = JudoProcessHandler.class.getName().replace('.', '/') + ".class";
+            URI rootUri = null;
+            try {
+                rootUri = Thread.currentThread().getContextClassLoader().getResource("").toURI();
+            } catch (Exception e) {
+                rootUri = this.getClass().getProtectionDomain().getCodeSource().getLocation().toURI();
+            }
+            if (rootUri.toURL().toString().endsWith(".jar")) {
+                rootUri = Path.of(rootUri).getParent().toUri();
+            }
+            File pidPath = Path.of(rootUri).toFile();
+            return pidPath;
+        } catch (URISyntaxException | MalformedURLException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public File getPidFile() {
+        if (this.judoPidFile != null) {
+            return judoPidFile;
+        }
+        File pidPath = getApplicationRoot();
+        File pidFile = new File(runtimeVariableResolver.getVariableAsString(JUDO_PID_FILE,
+                new File(pidPath, runtimeVariableResolver.getVariableAsString(JUDO_PID_NAME, JUDO_DEFAULT_PID_NAME)).getAbsolutePath()));
+        return pidFile;
     }
 
     public boolean checkPid() {
@@ -84,7 +105,7 @@ public class JudoProcessHandler {
                     } else {
                         pidFile.delete();
                     }
-                // The current process is same from the process registered in file
+                    // The current process is same from the process registered in file
                 } else {
                     log.error("Pid file already presented for this application instance");
                     return false;
@@ -93,6 +114,15 @@ public class JudoProcessHandler {
         }
         return true;
     }
+
+    public boolean isRunning() {
+        Optional<Long> pid = readPid();
+        if (pid.isPresent()) {
+            return ProcessHandle.of(pid.get()).isPresent();
+        }
+        return false;
+    }
+
     public boolean writePid() {
         if (checkPid()) {
             Iterable<String> pid = ImmutableList.of(Long.toString(getCurrentProcessPid()));

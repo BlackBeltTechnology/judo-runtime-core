@@ -110,7 +110,7 @@ class JudoDefaultPostgresqlModuleTest {
 
         Module application = Modules.combine(judoModule, postgreModule);
         injector = Guice.createInjector(application);
-        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
+        log.info("Init: ⏱ " + timer.elapsed().toMillis()+ " ms");
     }
 
     @AfterEach

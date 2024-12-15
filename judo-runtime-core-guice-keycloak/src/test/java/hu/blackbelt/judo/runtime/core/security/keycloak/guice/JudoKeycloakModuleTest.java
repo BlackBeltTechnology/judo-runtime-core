@@ -83,7 +83,7 @@ class JudoKeycloakModuleTest {
         injector.injectMembers(this);
         keycloakRealmSynchronizer.synchronizeAllRealms();
 
-        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
+        log.info("Init: ⏱ " + timer.elapsed().toMillis()+ " ms");
     }
 
     @AfterEach

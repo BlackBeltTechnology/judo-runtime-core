@@ -72,7 +72,7 @@ class JudoCxfModuleTest {
         injector.injectMembers(this);
 
         restUri = "http://localhost:" + port + "/api/Calc";
-        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
+        log.info("Init: ⏱ " + timer.elapsed().toMillis()+ " ms");
     }
 
     @AfterEach

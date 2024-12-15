@@ -7,13 +7,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class JudoProcessHandlerTest {
 
     @Test
-    void testVariableHandling() {
+    void testPid() {
         JudoProcessHandler judoProcessHandler = JudoProcessHandler.builder()
                 .build();
         judoProcessHandler.addShutdownHandler(() -> {});
 
         assertTrue(judoProcessHandler.checkPid());
+        assertFalse(judoProcessHandler.isRunning());
         judoProcessHandler.writePid();
         assertFalse(judoProcessHandler.checkPid());
+        assertTrue(judoProcessHandler.isRunning());
     }
 }
