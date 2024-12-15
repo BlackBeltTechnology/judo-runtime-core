@@ -33,8 +33,11 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsParameterMapper;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.postgresql.PostgresqlDialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.MapperFactory;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.*;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.util.Objects;
 
 public class JudoPostgresqlModule extends AbstractModule {
 
@@ -43,6 +46,7 @@ public class JudoPostgresqlModule extends AbstractModule {
 
     public static class JudoPostgresqlModuleBuilder {
         JudoPostgresqlModuleConfiguration configuration = null;
+        RuntimeVariableResolver runtimeVariableResolver = null;
         String host = JudoPostgresqlModuleConfiguration.DEFAULT.getHost();
         Integer port = JudoPostgresqlModuleConfiguration.DEFAULT.getPort();
         String user = JudoPostgresqlModuleConfiguration.DEFAULT.getUser();
@@ -58,7 +62,8 @@ public class JudoPostgresqlModule extends AbstractModule {
     }
 
     @Builder
-    private JudoPostgresqlModule(JudoPostgresqlModuleConfiguration configuration, 
+    private JudoPostgresqlModule(JudoPostgresqlModuleConfiguration configuration,
+                                 RuntimeVariableResolver runtimeVariableResolver,
                                  String host,
                                  Integer port,
                                  String user,
@@ -75,6 +80,8 @@ public class JudoPostgresqlModule extends AbstractModule {
             this.configuration = configuration;
         } else {
             this.configuration = JudoPostgresqlModuleConfiguration.builder()
+                    .runtimeVariableResolver(Objects.requireNonNullElseGet(runtimeVariableResolver,
+                            () -> RuntimeVariableResolver.builder().prefix("judo").build()))
                     .host(host)
                     .port(port)
                     .user(user)
@@ -107,11 +114,30 @@ public class JudoPostgresqlModule extends AbstractModule {
     }
 
     protected void configureOptions() {
-        bind(Integer.class).annotatedWith(PostgresqlConfiguration.PostgresqlPort.class).toInstance(configuration.getPort());
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlHost.class).toInstance(configuration.getHost());
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlUser.class).toInstance(configuration.getUser());
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlPassword.class).toInstance(configuration.getPassword());
-        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlDatabaseName.class).toInstance(configuration.getDatabaseName());
+        bind(Integer.class).annotatedWith(PostgresqlConfiguration.PostgresqlPort.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("postgresqlPort",
+                                configuration.getPort()));
+
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlHost.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("postgresqlHost",
+                                configuration.getHost()));
+
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlUser.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("postgresqlUser",
+                                configuration.getUser()));
+
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlPassword.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("postgresqlPassword",
+                                configuration.getPassword()));
+
+        bind(String.class).annotatedWith(PostgresqlConfiguration.PostgresqlDatabaseName.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("postgresqlDatabaseName",
+                                configuration.getDatabaseName()));
     }
 
 
