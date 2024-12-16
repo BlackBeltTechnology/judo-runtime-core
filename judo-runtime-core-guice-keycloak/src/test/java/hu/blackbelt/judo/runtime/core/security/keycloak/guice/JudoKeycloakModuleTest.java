@@ -45,7 +45,7 @@ import java.net.ServerSocket;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class JudeKeycloakModuleTest {
+class JudoKeycloakModuleTest {
 
     Injector injector;
 
@@ -80,12 +80,10 @@ class JudeKeycloakModuleTest {
         Module keycloakModule = JudoKeycloakModule.builder().build();
 
         injector = Guice.createInjector(Modules.combine(judoModule, sqlModule, jettyModule, cxfModule, keycloakModule));
-        injector.injectMembers(cxfModule);
-        injector.injectMembers(keycloakModule);
         injector.injectMembers(this);
         keycloakRealmSynchronizer.synchronizeAllRealms();
 
-        log.info("Init: " + (timer.elapsed().getNano() / 1024 / 1024) + "ms");
+        log.info("Init: ⏱ " + timer.elapsed().toMillis()+ " ms");
     }
 
     @AfterEach

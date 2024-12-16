@@ -34,9 +34,11 @@ import hu.blackbelt.judo.runtime.core.security.keycloak.KeycloakConnector;
 import hu.blackbelt.judo.runtime.core.security.keycloak.KeycloakRealmSynchronizer;
 import hu.blackbelt.judo.runtime.core.security.keycloak.KeycloakUserManager;
 import hu.blackbelt.judo.runtime.core.security.keycloak.guice.providers.*;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.Builder;
 import org.apache.cxf.interceptor.Interceptor;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 
 public class JudoKeycloakModule extends AbstractModule {
@@ -45,6 +47,7 @@ public class JudoKeycloakModule extends AbstractModule {
 
     public static class JudoKeycloakModuleBuilder {
         JudoKeycloakModuleConfiguration configuration = null;
+        RuntimeVariableResolver runtimeVariableResolver = null;
         String keycloakServerUrl = JudoKeycloakModuleConfiguration.DEFAULT.getKeycloakServerUrl();
         String keycloakPublicUrl = JudoKeycloakModuleConfiguration.DEFAULT.getKeycloakPublicUrl();
         String keycloakAdminUser = JudoKeycloakModuleConfiguration.DEFAULT.getKeycloakAdminUser();
@@ -71,6 +74,7 @@ public class JudoKeycloakModule extends AbstractModule {
 
     @Builder
     public JudoKeycloakModule(JudoKeycloakModuleConfiguration configuration,
+                                    RuntimeVariableResolver runtimeVariableResolver,
                                     String keycloakServerUrl,
                                     String keycloakPublicUrl,
                                     String keycloakAdminUser,
@@ -99,6 +103,8 @@ public class JudoKeycloakModule extends AbstractModule {
             this.configuration = configuration;
         } else {
             this.configuration = JudoKeycloakModuleConfiguration.builder()
+                    .runtimeVariableResolver(Objects.requireNonNullElseGet(runtimeVariableResolver,
+                            () -> RuntimeVariableResolver.builder().prefix("judo").build()))
                     .keycloakServerUrl(keycloakServerUrl)
                     .keycloakPublicUrl(keycloakPublicUrl)
                     .keycloakAdminUser(keycloakAdminUser)
@@ -141,28 +147,113 @@ public class JudoKeycloakModule extends AbstractModule {
     }
 
     public void configureOptions() {
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakServerUrl.class).toInstance(configuration.getKeycloakServerUrl());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakPublicUrl.class).toInstance(configuration.getKeycloakPublicUrl());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakAdminUser.class).toInstance(configuration.getKeycloakAdminUser());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakAdminPassword.class).toInstance(configuration.getKeycloakAdminPassword());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakClientSecret.class).toInstance(configuration.getKeycloakClientSecret());
-        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerSupportLoginByEmail.class).toInstance(configuration.getKeycloakRealmSynchronizerSupportLoginByEmail());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerClientAccessTypeForHuman.class).toInstance(configuration.getKeycloakRealmSynchronizerClientAccessTypeForHuman());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerClientAccessTypeForSystem.class).toInstance(configuration.getKeycloakRealmSynchronizerClientAccessTypeForSystem());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerCorsAllowOrigin.class).toInstance(configuration.getKeycloakRealmSynchronizerCorsAllowOrigin());
-        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerAsyncServiceCall.class).toInstance(configuration.getKeycloakRealmSynchronizerAsyncServiceCall());
-        bind(Integer.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerRetryMaxAttempts.class).toInstance(configuration.getKeycloakRealmSynchronizerRetryMaxAttempts());
-        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerRetryExponentialBackoff.class).toInstance(configuration.getKeycloakRealmSynchronizerRetryExponentialBackoff());
-        bind(Long.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerRetryWaitDuration.class).toInstance(configuration.getKeycloakRealmSynchronizerRetryWaitDuration());
-        bind(Consumer.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakIdentityManagerIsReady.class).toInstance(configuration.getKeycloakIdentityManagerIsReady());
-        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerEnabled.class).toInstance(configuration.getKeycloakUserManagerEnabled());
-        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerUpdateExistingUsers.class).toInstance(configuration.getKeycloakUserManagerUpdateExistingUsers());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRequiredActions.class).toInstance(configuration.getKeycloakUserManagerRequiredActions());
-        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerAsyncServiceCall.class).toInstance(configuration.getKeycloakUserManagerAsyncServiceCall());
-        bind(Integer.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRetryMaxAttempts.class).toInstance(configuration.getKeycloakUserManagerRetryMaxAttempts());
-        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRetryExponentialBackoff.class).toInstance(configuration.getKeycloakUserManagerRetryExponentialBackoff());
-        bind(Long.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRetryWaitDuration.class).toInstance(configuration.getKeycloakUserManagerRetryWaitDuration());
-        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakSecurityPasswordPolicyType.class).toInstance(configuration.getKeycloakSecurityPasswordPolicyType());
+        bind(Consumer.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakIdentityManagerIsReady.class)
+                .toInstance(configuration.getKeycloakIdentityManagerIsReady());
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakServerUrl.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakServerUrl",
+                                configuration.getKeycloakServerUrl()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakPublicUrl.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakPublicUrl",
+                                configuration.getKeycloakPublicUrl()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakAdminUser.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakAdminUser",
+                                configuration.getKeycloakAdminUser()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakAdminPassword.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakAdminPassword",
+                                configuration.getKeycloakAdminPassword()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakClientSecret.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakClientSecret",
+                                configuration.getKeycloakClientSecret()));
+
+        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerSupportLoginByEmail.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("keycloakRealmSynchronizerSupportLoginByEmail",
+                                configuration.getKeycloakRealmSynchronizerSupportLoginByEmail()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerClientAccessTypeForHuman.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakRealmSynchronizerClientAccessTypeForHuman",
+                                configuration.getKeycloakRealmSynchronizerClientAccessTypeForHuman()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerClientAccessTypeForSystem.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakRealmSynchronizerClientAccessTypeForSystem",
+                                configuration.getKeycloakRealmSynchronizerClientAccessTypeForSystem()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerCorsAllowOrigin.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakRealmSynchronizerCorsAllowOrigin",
+                                configuration.getKeycloakRealmSynchronizerCorsAllowOrigin()));
+
+        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerAsyncServiceCall.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("keycloakRealmSynchronizerAsyncServiceCall",
+                                configuration.getKeycloakRealmSynchronizerAsyncServiceCall()));
+
+        bind(Integer.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerRetryMaxAttempts.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("keycloakRealmSynchronizerRetryMaxAttempts",
+                                configuration.getKeycloakRealmSynchronizerRetryMaxAttempts()));
+
+        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerRetryExponentialBackoff.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("keycloakRealmSynchronizerRetryExponentialBackoff",
+                                configuration.getKeycloakRealmSynchronizerRetryExponentialBackoff()));
+
+        bind(Long.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakRealmSynchronizerRetryWaitDuration.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsLong("keycloakRealmSynchronizerRetryWaitDuration",
+                                configuration.getKeycloakRealmSynchronizerRetryWaitDuration()));
+
+        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerEnabled.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("keycloakUserManagerEnabled",
+                                configuration.getKeycloakUserManagerEnabled()));
+
+        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerUpdateExistingUsers.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("keycloakUserManagerUpdateExistingUsers",
+                                configuration.getKeycloakUserManagerUpdateExistingUsers()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRequiredActions.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakUserManagerRequiredActions",
+                                configuration.getKeycloakUserManagerRequiredActions()));
+
+        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerAsyncServiceCall.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("keycloakUserManagerAsyncServiceCall",
+                                configuration.getKeycloakUserManagerAsyncServiceCall()));
+
+        bind(Integer.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRetryMaxAttempts.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("keycloakUserManagerRetryMaxAttempts",
+                                configuration.getKeycloakUserManagerRetryMaxAttempts()));
+
+        bind(Boolean.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRetryExponentialBackoff.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("keycloakUserManagerRetryExponentialBackoff",
+                                configuration.getKeycloakUserManagerRetryExponentialBackoff()));
+
+        bind(Long.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakUserManagerRetryWaitDuration.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsLong("keycloakUserManagerRetryWaitDuration",
+                                configuration.getKeycloakUserManagerRetryWaitDuration()));
+
+        bind(String.class).annotatedWith(KeycloakConfigurationQualifiers.KeycloakSecurityPasswordPolicyType.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("keycloakSecurityPasswordPolicyType",
+                                configuration.getKeycloakSecurityPasswordPolicyType()));
     }
 
     protected void configureKeycloakLoginInterceptor() {

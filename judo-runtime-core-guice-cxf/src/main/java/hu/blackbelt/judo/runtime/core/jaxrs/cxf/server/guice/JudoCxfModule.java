@@ -26,8 +26,12 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.multibindings.Multibinder;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers.*;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.*;
 import org.apache.cxf.interceptor.Interceptor;
+
+import java.util.Objects;
+import java.util.function.Consumer;
 
 public class JudoCxfModule extends AbstractModule {
 
@@ -36,6 +40,7 @@ public class JudoCxfModule extends AbstractModule {
 
     public static class JudoCxfModuleBuilder {
         JudoCxfModuleConfiguration configuration = null;
+        RuntimeVariableResolver runtimeVariableResolver = null;
         Boolean exchangeIdInterceptors = JudoCxfModuleConfiguration.DEFAULT.getExchangeIdInterceptors();
         String cxfJaxRsServerUrl = JudoCxfModuleConfiguration.DEFAULT.getCxfJaxRsServerUrl();
         String cxfJaxRsServerPath = JudoCxfModuleConfiguration.DEFAULT.getCxfJaxRsServerPath();
@@ -61,6 +66,7 @@ public class JudoCxfModule extends AbstractModule {
 
     @Builder
     private JudoCxfModule(JudoCxfModuleConfiguration configuration,
+                          RuntimeVariableResolver runtimeVariableResolver,
                           String cxfJaxRsServerUrl,
                           String cxfJaxRsServerPath,
                           Boolean exchangeIdInterceptors,
@@ -85,6 +91,8 @@ public class JudoCxfModule extends AbstractModule {
             this.configuration = configuration;
         } else {
             this.configuration = JudoCxfModuleConfiguration.builder()
+                    .runtimeVariableResolver(Objects.requireNonNullElseGet(runtimeVariableResolver,
+                            () -> RuntimeVariableResolver.builder().prefix("judo").build()))
                     .cxfJaxRsServerUrl(cxfJaxRsServerUrl)
                     .cxfJaxRsServerPath(cxfJaxRsServerPath)
                     .exchangeIdInterceptors(exchangeIdInterceptors)
@@ -139,24 +147,95 @@ public class JudoCxfModule extends AbstractModule {
     }
 
     protected void configureOptions() {
-        bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerUrl.class).toInstance(configuration.getCxfJaxRsServerUrl());
-        bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerPath.class).toInstance(configuration.getCxfJaxRsServerPath());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfSkipDefaultJsonProviderRegistration.class).toInstance(configuration.getCxfSkipDefaultJsonProviderRegistration());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfWadlServiceDescriptionAvailable.class).toInstance(configuration.getCxfWadlServiceDescriptionAvailable());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfMetricsEnabled.class).toInstance(configuration.getCxfMetricsEnabled());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfLoggingEnabled.class).toInstance(configuration.getCxfLoggingEnabled());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfLogException.class).toInstance(configuration.getCxfLogException());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfReturnRuntimeExceptions.class).toInstance(configuration.getCxfReturnRuntimeExceptions());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfIncludeBusinessCause.class).toInstance(configuration.getCxfIncludeBusinessCause());
-        bind(String.class).annotatedWith(CxfConfigurations.CxfDefaultRequestContentType.class).toInstance(configuration.getCxfDefaultRequestContentType());
-        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsAllowOrigin.class).toInstance(configuration.getCorsAllowOrigin());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsAllowCredentials.class).toInstance(configuration.getCorsAllowCredentials());
-        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsAllowHeaders.class).toInstance(configuration.getCorsAllowHeaders());
-        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsExposeHeaders.class).toInstance(configuration.getCorsExposeHeaders());
-        bind(Integer.class).annotatedWith(CxfConfigurations.CxfCorsMaxAge.class).toInstance(configuration.getCorsMaxAge());
-        bind(Integer.class).annotatedWith(CxfConfigurations.CxfCorsPrefligthErrorStatus.class).toInstance(configuration.getCorsPrefligthErrorStatus());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsBlockIfUnauthorized.class).toInstance(configuration.getCorsBlockIfUnauthorized());
-        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsDefaultOptionsMethodsHandlePreflight.class).toInstance(configuration.getCorsDefaultOptionsMethodsHandlePreflight());
+        bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerUrl.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("CxfJaxRsServerUrl",
+                                configuration.getCxfJaxRsServerUrl()));
+
+        bind(String.class).annotatedWith(CxfConfigurations.CxfJaxRsServerPath.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("CxfJaxRsServerPath",
+                                configuration.getCxfJaxRsServerPath()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfSkipDefaultJsonProviderRegistration.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfSkipDefaultJsonProviderRegistration",
+                                configuration.getCxfSkipDefaultJsonProviderRegistration()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfWadlServiceDescriptionAvailable.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfWadlServiceDescriptionAvailable",
+                                configuration.getCxfWadlServiceDescriptionAvailable()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfMetricsEnabled.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfMetricsEnabled",
+                                configuration.getCxfMetricsEnabled()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfLoggingEnabled.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfLoggingEnabled",
+                                configuration.getCxfLoggingEnabled()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfLogException.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfLogException",
+                                configuration.getCxfLogException()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfReturnRuntimeExceptions.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfReturnRuntimeExceptions",
+                                configuration.getCxfReturnRuntimeExceptions()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfIncludeBusinessCause.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfIncludeBusinessCause",
+                                configuration.getCxfIncludeBusinessCause()));
+
+        bind(String.class).annotatedWith(CxfConfigurations.CxfDefaultRequestContentType.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("CxfDefaultRequestContentType",
+                                configuration.getCxfDefaultRequestContentType()));
+
+        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsAllowOrigin.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("CxfCorsAllowOrigin",
+                                configuration.getCorsAllowOrigin()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsAllowCredentials.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfCorsAllowCredentials",
+                                configuration.getCorsAllowCredentials()));
+
+        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsAllowHeaders.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("CxfCorsAllowHeaders",
+                                configuration.getCorsAllowHeaders()));
+
+        bind(String.class).annotatedWith(CxfConfigurations.CxfCorsExposeHeaders.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsString("CxfCorsExposeHeaders",
+                                configuration.getCorsExposeHeaders()));
+
+        bind(Integer.class).annotatedWith(CxfConfigurations.CxfCorsMaxAge.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("CxfCorsMaxAge",
+                                configuration.getCorsMaxAge()));
+
+        bind(Integer.class).annotatedWith(CxfConfigurations.CxfCorsPrefligthErrorStatus.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsInteger("CxfCorsPrefligthErrorStatus",
+                                configuration.getCorsPrefligthErrorStatus()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsBlockIfUnauthorized.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfCorsBlockIfUnauthorized",
+                                configuration.getCorsBlockIfUnauthorized()));
+
+        bind(Boolean.class).annotatedWith(CxfConfigurations.CxfCorsDefaultOptionsMethodsHandlePreflight.class)
+                .toInstance(configuration.getRuntimeVariableResolver()
+                        .getVariableAsBoolean("CxfCorsDefaultOptionsMethodsHandlePreflight",
+                                configuration.getCorsDefaultOptionsMethodsHandlePreflight()));
     }
 
     protected void configureServer() {
