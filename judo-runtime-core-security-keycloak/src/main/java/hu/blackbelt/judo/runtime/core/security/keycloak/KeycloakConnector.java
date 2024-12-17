@@ -185,7 +185,7 @@ public class KeycloakConnector implements OpenIdConfigurationProvider {
     public void ping() {
         try {
             final Response response = WebClient.create(serverUrl, providers).path("/").get();
-            checkState(response.getStatus() == 200, "Keycloak is not ready");
+            checkState(response.getStatus() == 200 || response.getStatus() == 302, "Keycloak is not ready");
         } catch (RuntimeException ex) {
             throw new IllegalStateException("Keycloak is not available", ex);
         }
