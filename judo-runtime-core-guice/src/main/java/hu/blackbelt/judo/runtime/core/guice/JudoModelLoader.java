@@ -43,21 +43,17 @@ import hu.blackbelt.judo.tatami.asm2keycloak.Asm2KeycloakTransformationTrace;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 import java.io.File;
-import java.io.InputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -120,10 +116,11 @@ public class JudoModelLoader {
         ClassPathResource resource = new ClassPathResource("model/" + modelName + "-asm.model", classLoader);
         List<URL> classPathUrls = new ArrayList<>();
         URL urlToTest = resource.getURL();
+        Collection<FileSystem> openedFilesSystems = new ArrayList<>();
         classPathUrls.add(urlToTest);
         if (resource.exists()) {
             try {
-                url = Path.of(resource.getURL().toURI()).getParent().toUri().toURL();
+                url = Paths.get(resource.getURL().toURI()).getParent().toUri().toURL();
             } catch (FileSystemNotFoundException e) {
                 // in this case we need to initialize it first:
                 for (FileSystemProvider provider: FileSystemProvider.installedProviders()) {
@@ -132,11 +129,11 @@ public class JudoModelLoader {
                             provider.getFileSystem(urlToTest.toURI());
                         } catch (FileSystemNotFoundException e2) {
                             // in this case we need to initialize it first:
-                            provider.newFileSystem(urlToTest.toURI(), Collections.emptyMap());
+                            openedFilesSystems.add(provider.newFileSystem(urlToTest.toURI(), Collections.emptyMap()));
                         }
                     }
                 }
-                url = Path.of(resource.getURL().toURI()).getParent().toUri().toURL();
+                url = Paths.get(resource.getURL().toURI()).getParent().toUri().toURL();
             }
         }
         if (url == null) {
@@ -144,7 +141,17 @@ public class JudoModelLoader {
         } else {
             log.info("Model loaded from: " + url.toString());
         }
-        return loadFromURL(modelName, url.toURI(), dialect, validate, loadKeycloak);
+        JudoModelLoader modelLoader = loadFromURL(modelName, url.toURI(), dialect, validate, loadKeycloak);
+        openedFilesSystems.forEach(fs -> {
+                if (fs.isOpen()) {
+                    try {
+                        fs.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        });
+        return modelLoader;
     }
 
     public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean loadKeycloak) throws Exception {

@@ -10,6 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,8 +43,8 @@ public class PropertyFileVariableResolver implements VariableResolver {
                     }
                     if (parameterFile.exists()) {
                         Properties prop = new Properties();
-                        try {
-                            prop.load(new FileReader(parameterFile, Charsets.UTF_8));
+                        try (Reader reader = Files.newBufferedReader(parameterFile.toPath(), StandardCharsets.UTF_8)){
+                            prop.load(reader);
                             variables.putAll(VariableResolver.generalizeTemplateVariableNames(
                                     Maps.fromProperties(prop).entrySet().stream().collect(Collectors.toMap(
                                             e -> String.valueOf(e.getKey()),

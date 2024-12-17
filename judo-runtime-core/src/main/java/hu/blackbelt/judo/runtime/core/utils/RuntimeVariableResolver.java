@@ -94,7 +94,9 @@ public class RuntimeVariableResolver {
     }
 
     public File getVariableAsFile(String name, File defaultValue) {
-        return new File(getVariable(name, defaultValue.getPath(), String.class));
+        String defaultPath = defaultValue != null ? defaultValue.getPath() : null;
+        String path = getVariable(name, defaultPath, String.class);
+        return path != null ? new File(path) : null;
     }
 
 }
