@@ -12,10 +12,10 @@ class JudoProcessHandlerTest {
                 .build();
         judoProcessHandler.addShutdownHandler(() -> {});
 
-        assertTrue(judoProcessHandler.checkPid());
+        assertTrue(judoProcessHandler.cleanupAndValidatePid());
         assertFalse(judoProcessHandler.isRunning());
         judoProcessHandler.writePid();
-        assertFalse(judoProcessHandler.checkPid());
+        assertFalse(judoProcessHandler.cleanupAndValidatePid());
         assertTrue(judoProcessHandler.isRunning());
     }
 }
