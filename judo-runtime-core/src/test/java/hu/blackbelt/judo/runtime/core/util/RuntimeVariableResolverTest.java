@@ -1,13 +1,12 @@
 package hu.blackbelt.judo.runtime.core.util;
 
-import hu.blackbelt.judo.runtime.core.utils.EnvironmentVariableResolver;
-import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
-import hu.blackbelt.judo.runtime.core.utils.PropertyFileVariableResolver;
-import hu.blackbelt.judo.runtime.core.utils.SystemPropertiesVariableResolver;
+import hu.blackbelt.judo.runtime.core.utils.*;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,16 +28,7 @@ class RuntimeVariableResolverTest {
                     .execute(() -> {
                         System.setProperty("judoPidNameCamel", CAMEL_CASE);
                         System.setProperty("judo.pid.name.dot", DOT_SEPARATED);
-                        RuntimeVariableResolver runtimeVariableResolver = RuntimeVariableResolver.builder()
-                                .variableResolvers(Arrays.asList(
-                                        new EnvironmentVariableResolver(),
-                                        new SystemPropertiesVariableResolver(),
-                                        PropertyFileVariableResolver.builder()
-                                                .parameterDirectory(new File(this.getClass().getClassLoader().getResource("./").getFile()))
-                                                .parameterFiles(List.of(new File("testVariableNaming.properties")))
-                                                .build()
-                                ))
-                                .build();
+                        RuntimeVariableResolver runtimeVariableResolver = createResolver(null, null, new File("testVariableNaming.properties"));
                         assertEquals(CAMEL_CASE, runtimeVariableResolver.getVariableAsString("judoPidNameCamel", WRONG));
                         assertEquals(DOT_SEPARATED, runtimeVariableResolver.getVariableAsString("judoPidNameDot", WRONG));
                         assertEquals(ENV, runtimeVariableResolver.getVariableAsString("judoPidNameEnv", WRONG));
@@ -53,11 +43,7 @@ class RuntimeVariableResolverTest {
         restoreSystemProperties(() -> {
             withEnvironmentVariable("JUDO_PREFIX_VARIABLE", "value")
                     .execute(() -> {
-                        RuntimeVariableResolver runtimeVariableResolver = RuntimeVariableResolver.builder()
-                                .prefix("judoPrefix")
-                                .variablePrecedence(List.of(EnvironmentVariableResolver.ENVIRONMENT_VARIABLES))
-                                .variableResolvers(List.of(new EnvironmentVariableResolver()))
-                                .build();
+                        RuntimeVariableResolver runtimeVariableResolver = createResolver(null, "judoPrefix");
                         assertEquals("value", runtimeVariableResolver.getVariableAsString("variable", WRONG));
                     });
         });
@@ -68,10 +54,7 @@ class RuntimeVariableResolverTest {
         restoreSystemProperties(() -> {
             withEnvironmentVariable("BOOLEAN_VARIABLE", "True")
                     .execute(() -> {
-                        RuntimeVariableResolver runtimeVariableResolver = RuntimeVariableResolver.builder()
-                                .variablePrecedence(List.of(EnvironmentVariableResolver.ENVIRONMENT_VARIABLES))
-                                .variableResolvers(List.of(new EnvironmentVariableResolver()))
-                                .build();
+                        RuntimeVariableResolver runtimeVariableResolver = createResolver(null, null);
                         assertEquals(true, runtimeVariableResolver.getVariableAsBoolean("booleanVariable", false));
                     });
         });
@@ -82,10 +65,7 @@ class RuntimeVariableResolverTest {
         restoreSystemProperties(() -> {
             withEnvironmentVariable("INTEGER_VARIABLE", "134")
                     .execute(() -> {
-                        RuntimeVariableResolver runtimeVariableResolver = RuntimeVariableResolver.builder()
-                                .variablePrecedence(List.of(EnvironmentVariableResolver.ENVIRONMENT_VARIABLES))
-                                .variableResolvers(List.of(new EnvironmentVariableResolver()))
-                                .build();
+                        RuntimeVariableResolver runtimeVariableResolver = createResolver(null, null);
                         assertEquals(134, runtimeVariableResolver.getVariableAsInteger("integerVariable", -1));
                     });
         });
@@ -93,49 +73,16 @@ class RuntimeVariableResolverTest {
 
 
     @Test
-    void testBooleanVariable() throws Exception {
-        restoreSystemProperties(() -> {
-            withEnvironmentVariable("JUDO_PID_NAME_ENV", ENV)
-                    .execute(() -> {
-                        System.setProperty("judoPidNameCamel", CAMEL_CASE);
-                        System.setProperty("judo.pid.name.dot", DOT_SEPARATED);
-                        RuntimeVariableResolver runtimeVariableResolver = RuntimeVariableResolver.builder()
-                                .variableResolvers(Arrays.asList(
-                                        new EnvironmentVariableResolver(),
-                                        new SystemPropertiesVariableResolver(),
-                                        PropertyFileVariableResolver.builder()
-                                                .parameterDirectory(new File(this.getClass().getClassLoader().getResource("./").getFile()))
-                                                .parameterFiles(List.of(new File("testVariableNaming.properties")))
-                                                .build()
-                                ))
-                                .build();
-                        assertEquals(CAMEL_CASE, runtimeVariableResolver.getVariableAsString("judoPidNameCamel", WRONG));
-                        assertEquals(DOT_SEPARATED, runtimeVariableResolver.getVariableAsString("judoPidNameDot", WRONG));
-                        assertEquals(ENV, runtimeVariableResolver.getVariableAsString("judoPidNameEnv", WRONG));
-                        assertEquals(PROPERTYFILE, runtimeVariableResolver.getVariableAsString("judoPidNamePropertyFile", WRONG));
-                        assertEquals(WRONG, runtimeVariableResolver.getVariableAsString("judoPidDoesNotExists", WRONG));
-                    });
-        });
-    }
-
-    @Test
     void testVariablePrecedence() throws Exception {
         restoreSystemProperties(() -> {
             withEnvironmentVariable("JUDO_PID_NAME", ENV)
                     .execute(() -> {
                         System.setProperty("judoPidName", CAMEL_CASE);
-                        RuntimeVariableResolver runtimeVariableResolver = RuntimeVariableResolver.builder()
-                                .variableResolvers(Arrays.asList(
-                                        new EnvironmentVariableResolver(),
-                                        new SystemPropertiesVariableResolver(),
-                                        PropertyFileVariableResolver.builder()
-                                                .parameterDirectory(new File(this.getClass().getClassLoader().getResource("./").getFile()))
-                                                .parameterFiles(List.of(new File("testVariablePrecedence.properties")))
-                                                .build()
-                                ))
-                                .variablePrecedence(List.of(SystemPropertiesVariableResolver.SYSTEM_PROPERTIES,
-                                        EnvironmentVariableResolver.ENVIRONMENT_VARIABLES))
-                                .build();
+                        RuntimeVariableResolver runtimeVariableResolver = createResolver(
+                                List.of(SystemPropertiesVariableResolver.SYSTEM_PROPERTIES,
+                                        EnvironmentVariableResolver.ENVIRONMENT_VARIABLES),
+                                null, new File("testVariablePrecedence.properties"));
+
                         assertEquals(ENV, runtimeVariableResolver.getVariableAsString("judoPidName", WRONG));
                     });
         });
@@ -144,21 +91,38 @@ class RuntimeVariableResolverTest {
             withEnvironmentVariable("JUDO_PID_NAME", ENV)
                     .execute(() -> {
                         System.setProperty("judoPidName", CAMEL_CASE);
-                        RuntimeVariableResolver runtimeVariableResolver = RuntimeVariableResolver.builder()
-                                .variableResolvers(Arrays.asList(
-                                        PropertyFileVariableResolver.builder()
-                                                .parameterDirectory(new File(this.getClass().getClassLoader().getResource("./").getFile()))
-                                                .parameterFiles(List.of(new File("testVariablePrecedence.properties")))
-                                                .build()
-                                ))
-                                .variablePrecedence(List.of(SystemPropertiesVariableResolver.SYSTEM_PROPERTIES,
-                                        EnvironmentVariableResolver.ENVIRONMENT_VARIABLES,
-                                        PropertyFileVariableResolver.PROPERTIES_FILES))
-                                .build();
+                        RuntimeVariableResolver runtimeVariableResolver = createResolver(
+                                List.of(SystemPropertiesVariableResolver.SYSTEM_PROPERTIES, EnvironmentVariableResolver.ENVIRONMENT_VARIABLES, PropertyFileVariableResolver.PROPERTIES_FILES),
+                                null, new File("testVariablePrecedence.properties"));
+
                         assertEquals(PROPERTYFILE, runtimeVariableResolver.getVariableAsString("judoPidName", WRONG));
                     });
         });
 
     }
 
+    private RuntimeVariableResolver createResolver(List<String> precedence, String prefix, File... propertyFiles) {
+        RuntimeVariableResolver.RuntimeVariableResolverBuilder builder = RuntimeVariableResolver.builder();
+
+        if (precedence != null) {
+            builder.variablePrecedence(precedence);
+        }
+
+        if (prefix != null) {
+            builder.prefix(prefix);
+        }
+
+        Collection<VariableResolver> resolvers = new ArrayList<>();
+        resolvers.add(new EnvironmentVariableResolver());
+        resolvers.add(new SystemPropertiesVariableResolver());
+
+        if (propertyFiles != null && propertyFiles.length > 0) {
+            resolvers.add(PropertyFileVariableResolver.builder()
+                    .parameterDirectory(new File(getClass().getClassLoader().getResource("./").getFile()))
+                    .parameterFiles(Arrays.asList(propertyFiles))
+                    .build());
+        }
+
+        return builder.variableResolvers(resolvers).build();
+    }
 }

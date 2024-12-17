@@ -1,23 +1,17 @@
 package hu.blackbelt.judo.runtime.core.utils;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
-import java.lang.management.ManagementFactory;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.nio.file.spi.FileSystemProvider;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,11 +47,6 @@ public class JudoProcessHandler {
         this.judoPidFile = judoPidFile;
     }
 
-    public long getCurrentProcessPid() {
-        int pid = Integer.parseInt(ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
-        return pid;
-    }
-
     public File getApplicationRoot() {
         try {
             String className = JudoProcessHandler.class.getName().replace('.', '/') + ".class";
@@ -87,7 +76,7 @@ public class JudoProcessHandler {
         return pidFile;
     }
 
-    public boolean checkPid() {
+    public boolean cleanupAndValidatePid() {
         File pidFile = getPidFile();
         if (pidFile.exists()) {
             Optional<Long> pid = readPid();
@@ -96,7 +85,7 @@ public class JudoProcessHandler {
                 pidFile.delete();
             } else {
                 // Check pid number
-                long currentPid = getCurrentProcessPid();
+                long currentPid = ProcessHandle.current().pid();
                 // The current process is different from the process registered in file
                 if (currentPid != pid.get()) {
                     if (ProcessHandle.of(pid.get()).isPresent()) {
@@ -124,8 +113,8 @@ public class JudoProcessHandler {
     }
 
     public boolean writePid() {
-        if (checkPid()) {
-            Iterable<String> pid = ImmutableList.of(Long.toString(getCurrentProcessPid()));
+        if (cleanupAndValidatePid()) {
+            Iterable<String> pid = ImmutableList.of(Long.toString(ProcessHandle.current().pid()));
             try {
                 Files.write(getPidFile().toPath(), pid, StandardOpenOption.CREATE);
             } catch (IOException e) {
