@@ -1,6 +1,7 @@
 package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice;
 
 import hu.blackbelt.judo.runtime.core.jaxrs.providers.SetDefaultContentTypePreMatchContainerRequestFilter;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.*;
 
 @Builder
@@ -10,7 +11,8 @@ import lombok.*;
 @AllArgsConstructor
 public class JudoCxfModuleConfiguration {
     public static final JudoCxfModuleConfiguration DEFAULT = JudoCxfModuleConfiguration.builder().build();
-
+    @Builder.Default
+    RuntimeVariableResolver runtimeVariableResolver = null;
     @Builder.Default
     Boolean exchangeIdInterceptors = true;
     @Builder.Default

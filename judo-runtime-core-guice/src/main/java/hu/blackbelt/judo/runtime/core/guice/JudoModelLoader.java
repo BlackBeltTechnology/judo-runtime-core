@@ -43,22 +43,22 @@ import hu.blackbelt.judo.tatami.asm2keycloak.Asm2KeycloakTransformationTrace;
 
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.EObject;
-import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
+import org.springframework.core.io.ClassPathResource;
 
 import java.io.File;
-import java.io.InputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.spi.FileSystemProvider;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmModel.LoadArguments.asmLoadArgumentsBuilder;
@@ -112,31 +112,46 @@ public class JudoModelLoader {
     }
 
     public static JudoModelLoader loadFromClassloader(String modelName, ClassLoader classLoader, Dialect dialect, boolean validate, boolean loadKeycloak) throws Exception {
-
-        Enumeration<URL> urlEnumeration = classLoader.getResources("model");
         URL url = null;
-
+        ClassPathResource resource = new ClassPathResource("model/" + modelName + "-asm.model", classLoader);
         List<URL> classPathUrls = new ArrayList<>();
-        while (urlEnumeration.hasMoreElements() && url == null) {
-            URL urlToTest = urlEnumeration.nextElement();
-            classPathUrls.add(urlToTest);
+        URL urlToTest = resource.getURL();
+        Collection<FileSystem> openedFilesSystems = new ArrayList<>();
+        classPathUrls.add(urlToTest);
+        if (resource.exists()) {
             try {
-                URL relativeUrl = calculateRelativeURI(urlToTest.toURI(), "/" + modelName + "-asm.model").toURL();
-                InputStream stream = relativeUrl.openStream();
-                if (stream != null) {
-                    url = urlToTest;
-                    try {
-                        stream.close();
-                    } catch (Exception e2) {
+                url = Paths.get(resource.getURL().toURI()).getParent().toUri().toURL();
+            } catch (FileSystemNotFoundException e) {
+                // in this case we need to initialize it first:
+                for (FileSystemProvider provider: FileSystemProvider.installedProviders()) {
+                    if (provider.getScheme().equalsIgnoreCase("jar")) {
+                        try {
+                            provider.getFileSystem(urlToTest.toURI());
+                        } catch (FileSystemNotFoundException e2) {
+                            // in this case we need to initialize it first:
+                            openedFilesSystems.add(provider.newFileSystem(urlToTest.toURI(), Collections.emptyMap()));
+                        }
                     }
                 }
-            } catch (Exception e) {
+                url = Paths.get(resource.getURL().toURI()).getParent().toUri().toURL();
             }
         }
         if (url == null) {
             throw new IllegalArgumentException("Could not load model from classpath: " + modelName + " from: \n" + classPathUrls.stream().map(u -> u.toString()).collect(Collectors.joining("\n\t")));
+        } else {
+            log.info("Model loaded from: " + url.toString());
         }
-        return loadFromURL(modelName, url.toURI(), dialect, validate, loadKeycloak);
+        JudoModelLoader modelLoader = loadFromURL(modelName, url.toURI(), dialect, validate, loadKeycloak);
+        openedFilesSystems.forEach(fs -> {
+                if (fs.isOpen()) {
+                    try {
+                        fs.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+        });
+        return modelLoader;
     }
 
     public static JudoModelLoader loadFromDirectory(String modelName, File directory, Dialect dialect, boolean loadKeycloak) throws Exception {
