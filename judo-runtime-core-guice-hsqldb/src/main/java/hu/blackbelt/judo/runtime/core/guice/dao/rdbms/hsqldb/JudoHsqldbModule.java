@@ -106,18 +106,20 @@ public class JudoHsqldbModule extends AbstractModule {
     }
 
     protected void configureOptions() {
+        RuntimeVariableResolver runtimeVariableResolver = Objects.requireNonNull(configuration.getRuntimeVariableResolver(), "RuntimeVariableResolver must not be null");
+
         bind(Integer.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerPort.class)
-                .toInstance(configuration.getRuntimeVariableResolver()
+                .toInstance(runtimeVariableResolver
                         .getVariableAsInteger("hsqldbServerPort",
                                 configuration.getPort()));
 
         bind(String.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabaseName.class)
-                .toInstance(configuration.getRuntimeVariableResolver()
+                .toInstance(runtimeVariableResolver
                         .getVariableAsString("hsqldbServerDatabaseName",
                                 configuration.getDatabaseName()));
 
         bind(File.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabasePath.class)
-                .toInstance(configuration.getRuntimeVariableResolver()
+                .toInstance(runtimeVariableResolver
                         .getVariableAsFile("hsqldbServerDatabasePath",
                                 configuration.getDatabasePath()));
     }
