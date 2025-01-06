@@ -42,6 +42,7 @@ import hu.blackbelt.judo.meta.jql.runtime.JqlParser;
 import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.Unit;
 import hu.blackbelt.judo.meta.query.*;
+import hu.blackbelt.judo.meta.query.runtime.QueryUtils;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
@@ -79,12 +80,14 @@ import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
 
 @Slf4j
 public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
+
     private static final String METRICS_SELECT_PREPARE = "select-prepare";
     private static final String METRICS_SELECT_PROCESSING = "select-processing";
     private static final String METRICS_SELECT_QUERY = "select-query";
 
     private static final String METRICS_COUNT_PREPARE = "count-prepare";
     private static final String METRICS_COUNT_QUERY = "count-query";
+    private static final String TRANSFEROBJECT_TYPE_KEY = "__transferObjectType";
 
     private final Translator translator = new Translator();
     private final MetricsCollector metricsCollector;
@@ -1190,7 +1193,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             log.trace("  - parent key: {}", subParentKey);
         }
 
-        subQueryResults.get(subQueryTarget).values().forEach(subQueryRecord -> {
+        for (Payload subQueryRecord : subQueryResults.get(subQueryTarget).values()) {
             final Collection<ID> parentIds = (Collection<ID>) subQueryRecord.get(subParentKey);
             if (log.isTraceEnabled()) {
                 log.trace("    - parent IDs: {}", parentIds);
@@ -1226,58 +1229,76 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     }
                 }
             } else {
-                parentIds.forEach(parentId -> {
-                            if (log.isTraceEnabled()) {
-                                log.trace("      - parent ID: {}", parentId);
-                            }
-                            query.getSelect().getTargets().forEach(target -> {
-                                if (log.isTraceEnabled()) {
-                                    log.trace("        - target: {}", target);
-                                }
-                                checkArgument(results.containsKey(target), "No target found in results");
-
-                                final Map<ID, Payload> targetResult = results.get(target);
-                                if (targetResult.containsKey(parentId)) {
-                                    containers.add(targetResult.get(parentId));
-                                } else {
-                                    if (subSelect.getPartner() instanceof SubSelectJoin) {
-                                        if (log.isDebugEnabled()) {
-                                            log.debug("No parent ID found in container but object selector used, adding all targets");
-                                        }
-                                        containers.addAll(targetResult.values());
-                                    } else {
-                                        if (log.isDebugEnabled()) {
-                                            log.debug("No parent ID found in container result");
-                                        }
-                                    }
-                                }
-                            });
+                for (ID parentId : parentIds) {
+                    if (log.isTraceEnabled()) {
+                        log.trace("      - parent ID: {}", parentId);
+                    }
+                    for (Target target : query.getSelect().getTargets()) {
+                        if (log.isTraceEnabled()) {
+                            log.trace("        - target: {}", target);
                         }
-                );
+                        checkArgument(results.containsKey(target), "No target found in results");
+
+                        final Map<ID, Payload> targetResult = results.get(target);
+                        String classifierFQName = AsmUtils.getClassifierFQName(target.getType());
+                        if (targetResult.containsKey(parentId)) {
+                            Payload payload = targetResult.get(parentId);
+                            payload.putIfAbsent(TRANSFEROBJECT_TYPE_KEY, classifierFQName);
+                            containers.add(payload);
+                        } else {
+                            if (subSelect.getPartner() instanceof SubSelectJoin) {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("No parent ID found in container but object selector used, adding all targets");
+                                }
+                                Collection<Payload> payloads = targetResult.values();
+                                for (Payload payload : payloads) {
+                                    payload.putIfAbsent(TRANSFEROBJECT_TYPE_KEY, classifierFQName);
+                                }
+                                containers.addAll(payloads);
+                            } else {
+                                if (log.isDebugEnabled()) {
+                                    log.debug("No parent ID found in container result");
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            containers.forEach(container -> {
-                final Object containment = container.get(subSelect.getTransferRelation().getName());
+            for (Payload container : containers) {
+                EReference transferRelation = subSelect.getTransferRelation();
+
+                final Object containment = container.get(transferRelation.getName());
                 final boolean initialized = containment != null; // initialized if containment key already present and value is not null
-                final boolean many = subSelect.getTransferRelation().isMany();
+                final boolean many = transferRelation.isMany();
 
                 if (initialized && many) {
                     ((Collection) containment).add(subQueryRecord);
                 } else if (!initialized && !many) {
-                    container.put(subSelect.getTransferRelation().getName(), subQueryRecord);
-                } else if (!many) {
-                    log.info("Single containment is already set: {}", AsmUtils.getReferenceFQName(subSelect.getTransferRelation()));
-                    final Object containmentId = ((Payload) containment).get(getIdentifierProvider().getName());
-                    final Object subQueryRecordId = subQueryRecord.get(getIdentifierProvider().getName());
-                    if (!Objects.equals(containmentId, subQueryRecordId)) {
-                        log.warn("Single containment is already set with different ID: {} != {}", containmentId, subQueryRecordId);
-                    }
+                    container.put(transferRelation.getName(), subQueryRecord);
                 } else {
-                    throw new IllegalStateException("List is not initialized: " + AsmUtils.getReferenceFQName(subSelect.getTransferRelation()));
+                    String referenceFQName = AsmUtils.getReferenceFQName(transferRelation);
+                    if (initialized) { // && !many
+                        log.info("Single containment is already set: {}", referenceFQName);
+                        final Object containmentId = ((Payload) containment).get(getIdentifierProvider().getName());
+                        final Object subQueryRecordId = subQueryRecord.get(getIdentifierProvider().getName());
+                        if (!Objects.equals(containmentId, subQueryRecordId)) {
+                            log.warn("Single containment is already set with different ID: {} != {}", containmentId, subQueryRecordId);
+                        }
+                    } else { // !initialized && many
+                        // Check if container's TransferObjectType contains the transferRelation in meta level
+                        if (!container.containsKey(TRANSFEROBJECT_TYPE_KEY)
+                            || (asmUtils.resolve(container.getAs(String.class, TRANSFEROBJECT_TYPE_KEY)).orElse(null) instanceof EClass transferEClass
+                                && transferEClass.getEAllReferences().stream().anyMatch(r -> AsmUtils.getReferenceFQName(r).equals(referenceFQName)))) {
+                            throw new IllegalStateException("List is not initialized: " + referenceFQName);
+                        }
+                    }
                 }
-            });
+
+                container.remove(TRANSFEROBJECT_TYPE_KEY);
+            }
 
             subQueryRecord.remove(subParentKey); // remove parent key from subquery record because it will be added as nested list
-        });
+        }
     }
 
     @Builder
