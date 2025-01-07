@@ -437,7 +437,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                              false, Collections.singletonMap(attribute.getName(), true), parameters, true).getResultSet();
 
             final Collection<Payload> resultSet = results.get(subSelect.getSelect().getMainTarget()).values();
-            checkArgument(resultSet != null && resultSet.size() == 1, "Invalid result set");
+            checkArgument(resultSet.size() == 1, "Invalid result set");
 
             final Payload result = resultSet.iterator().next();
             return Payload.asPayload(Collections.singletonMap(attribute.getName(), result.get(attribute.getName())));
@@ -506,9 +506,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             Collection<ID> instanceIds;
             final Collection<ID> parentIds;
-            final boolean useIdsAsParents = reference != null &&
-                    !(query.getNavigationJoins().isEmpty() &&
-                    !queryFactory.isStaticReference(reference));
+            final boolean useIdsAsParents = !(query.getNavigationJoins().isEmpty() && !queryFactory.isStaticReference(reference));
 
             if (useIdsAsParents) {
                 instanceIds = null;
@@ -525,9 +523,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             final Map<Target, Map<ID, Payload>> subQueryResults =
                     runQuery(jdbcTemplate, query, false, instanceIds, parentIds,
-                            reference != null ? Collections.singletonList(reference) : Collections.emptyList(),
+                            Collections.singletonList(reference),
                             queryCustomizer != null ? queryCustomizer.getSeek() : null,
-                            queryCustomizer != null ? queryCustomizer.isWithoutFeatures() : false,
+                            queryCustomizer != null && queryCustomizer.isWithoutFeatures(),
                             queryCustomizer != null ? queryCustomizer.getMask() : null,
                             queryCustomizer != null ? queryCustomizer.getParameters() : null, true)
                             .getResultSet();
@@ -621,9 +619,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             Collection<ID> instanceIds;
             final Collection<ID> parentIds;
-            final boolean useIdsAsParents = reference != null &&
-                    !(query.getNavigationJoins().isEmpty() &&
-                        !queryFactory.isStaticReference(reference));
+            final boolean useIdsAsParents = !(query.getNavigationJoins().isEmpty() && !queryFactory.isStaticReference(reference));
             if (useIdsAsParents) {
                 instanceIds = null;
                 parentIds = ids;
@@ -657,8 +653,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             query.getSelect().getFilters().add(filter);
         }
         if (!applyFilterOnly) {
-            final boolean reverse = queryCustomizer != null &&
-                    queryCustomizer.getSeek() != null ? queryCustomizer.getSeek().isReverse() : false;
+            final boolean reverse = queryCustomizer != null && queryCustomizer.getSeek() != null && queryCustomizer.getSeek().isReverse();
             if (queryCustomizer != null &&
                     queryCustomizer.getOrderByList() != null &&
                     !queryCustomizer.getOrderByList().isEmpty()) {
@@ -679,7 +674,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 query.getSelect().getOrderBys().addAll(queryCustomizer.getOrderByList().stream()
                         .map(o -> newOrderByBuilder()
                                 .withFeature(mainFeatures.get(o.getAttribute()))
-                                .withDescending(reverse ? !o.isDescending() : o.isDescending())
+                                .withDescending(reverse != o.isDescending())
                                 .build())
                         .collect(Collectors.toList()));
             }
@@ -773,7 +768,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param skipParents     skip parent IDs from result
      * @return result set
      */
-    @SuppressWarnings("unchecked")
     private QueryResult<ID> runQuery(
             final NamedParameterJdbcTemplate jdbcTemplate,
             final SubSelect query,
