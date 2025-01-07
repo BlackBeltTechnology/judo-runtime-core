@@ -1361,7 +1361,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 } else {
                     String referenceFQName = AsmUtils.getReferenceFQName(transferRelation);
                     if (initialized) { // && !many
-                        log.info("Single containment is already set: {}", referenceFQName);
+                        log.debug("Single containment is already set: {}", referenceFQName);
                         final Object containmentId = ((Payload) containment).get(getIdentifierProvider().getName());
                         final Object subQueryRecordId = subQueryRecord.get(getIdentifierProvider().getName());
                         if (!Objects.equals(containmentId, subQueryRecordId)) {
