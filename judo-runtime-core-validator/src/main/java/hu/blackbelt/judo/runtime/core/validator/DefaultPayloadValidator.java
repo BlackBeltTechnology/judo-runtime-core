@@ -135,8 +135,16 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
         if (!validatorProvider.getValidators().isEmpty()) {
-            ctx.getType().getEAllAttributes().forEach(attribute -> processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues));
-            ctx.getType().getEAllReferences().forEach(reference -> processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues));
+            for (EAttribute attribute : ctx.getType().getEAllAttributes()) {
+                if (!attribute.getName().startsWith("_")) {
+                    processAttribute(instance, attribute, validationResults, validationResultContext, ignoreInvalidValues);
+                }
+            }
+            for (EReference reference : ctx.getType().getEAllReferences()) {
+                if (!reference.getName().startsWith("_")) {
+                    processReference(instance, reference, validationResults, currentContext, ignoreInvalidValues);
+                }
+            }
         }
     }
 
