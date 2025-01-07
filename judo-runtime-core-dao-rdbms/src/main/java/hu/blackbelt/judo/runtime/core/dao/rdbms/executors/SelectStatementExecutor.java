@@ -20,6 +20,29 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
  * #L%
  */
 
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
 import com.google.common.collect.Lists;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
@@ -30,9 +53,32 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.AttributeSelector;
 import hu.blackbelt.judo.meta.expression.LogicalExpression;
 import hu.blackbelt.judo.meta.expression.TypeName;
-import hu.blackbelt.judo.meta.expression.builder.jql.*;
-import hu.blackbelt.judo.meta.expression.constant.*;
-import hu.blackbelt.judo.meta.expression.logical.*;
+import hu.blackbelt.judo.meta.expression.builder.jql.CreateExpressionArguments;
+import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuilder;
+import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuildingContext;
+import hu.blackbelt.judo.meta.expression.constant.BooleanConstant;
+import hu.blackbelt.judo.meta.expression.constant.CustomData;
+import hu.blackbelt.judo.meta.expression.constant.DateConstant;
+import hu.blackbelt.judo.meta.expression.constant.DecimalConstant;
+import hu.blackbelt.judo.meta.expression.constant.Instance;
+import hu.blackbelt.judo.meta.expression.constant.IntegerConstant;
+import hu.blackbelt.judo.meta.expression.constant.Literal;
+import hu.blackbelt.judo.meta.expression.constant.MeasuredDecimal;
+import hu.blackbelt.judo.meta.expression.constant.StringConstant;
+import hu.blackbelt.judo.meta.expression.constant.TimeConstant;
+import hu.blackbelt.judo.meta.expression.constant.TimestampConstant;
+import hu.blackbelt.judo.meta.expression.logical.DateComparison;
+import hu.blackbelt.judo.meta.expression.logical.DecimalComparison;
+import hu.blackbelt.judo.meta.expression.logical.EnumerationComparison;
+import hu.blackbelt.judo.meta.expression.logical.IntegerComparison;
+import hu.blackbelt.judo.meta.expression.logical.KleeneExpression;
+import hu.blackbelt.judo.meta.expression.logical.Like;
+import hu.blackbelt.judo.meta.expression.logical.Matches;
+import hu.blackbelt.judo.meta.expression.logical.NegationExpression;
+import hu.blackbelt.judo.meta.expression.logical.StringComparison;
+import hu.blackbelt.judo.meta.expression.logical.TimeComparison;
+import hu.blackbelt.judo.meta.expression.logical.TimestampComparison;
+import hu.blackbelt.judo.meta.expression.logical.UndefinedComparison;
 import hu.blackbelt.judo.meta.expression.numeric.DecimalOppositeExpression;
 import hu.blackbelt.judo.meta.expression.numeric.IntegerOppositeExpression;
 import hu.blackbelt.judo.meta.expression.object.ObjectVariableReference;
@@ -41,8 +87,19 @@ import hu.blackbelt.judo.meta.jql.jqldsl.JqlExpression;
 import hu.blackbelt.judo.meta.jql.runtime.JqlParser;
 import hu.blackbelt.judo.meta.measure.Measure;
 import hu.blackbelt.judo.meta.measure.Unit;
-import hu.blackbelt.judo.meta.query.*;
-import hu.blackbelt.judo.meta.query.runtime.QueryUtils;
+import hu.blackbelt.judo.meta.query.Attribute;
+import hu.blackbelt.judo.meta.query.Feature;
+import hu.blackbelt.judo.meta.query.FeatureTargetMapping;
+import hu.blackbelt.judo.meta.query.Filter;
+import hu.blackbelt.judo.meta.query.Function;
+import hu.blackbelt.judo.meta.query.Node;
+import hu.blackbelt.judo.meta.query.ReferencedJoin;
+import hu.blackbelt.judo.meta.query.ReferencedTarget;
+import hu.blackbelt.judo.meta.query.Select;
+import hu.blackbelt.judo.meta.query.SubSelect;
+import hu.blackbelt.judo.meta.query.SubSelectFeature;
+import hu.blackbelt.judo.meta.query.SubSelectJoin;
+import hu.blackbelt.judo.meta.query.Target;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
@@ -53,30 +110,62 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.RdbmsResultSet;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.SqlConverterContext;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.*;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.AttributeSelectorTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.BooleanConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.CustomDataTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.DateComparisonTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.DateConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.DecimalComparisonTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.DecimalConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.DecimalOppositeTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.EnumerationComparisonTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.InstanceTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.IntegerComparisonTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.IntegerConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.IntegerOppositeTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.KleeneTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.LikeTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.LiteralTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.MatchesTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.MeasuredDecimalConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.NegationTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.ObjectVariableReferenceTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.StringComparisonTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.StringConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.TimeComparisonTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.TimeConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.TimestampComparisonTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.TimestampConstantTranslator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.Translator;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.UndefinedComparisonTranslator;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
 import hu.blackbelt.judo.runtime.core.query.Context;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.emf.common.util.URI;
-import org.eclipse.emf.ecore.*;
+import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EClassifier;
+import org.eclipse.emf.ecore.EDataType;
+import org.eclipse.emf.ecore.EEnum;
+import org.eclipse.emf.ecore.ENamedElement;
+import org.eclipse.emf.ecore.EObject;
+import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.time.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
-
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.meta.expression.constant.util.builder.ConstantBuilders.newInstanceBuilder;
-import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.*;
+import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newFilterBuilder;
+import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newOrderByBuilder;
+import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newSubSelectBuilder;
 
 @Slf4j
 public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
@@ -344,8 +433,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     .orElseThrow(() -> new IllegalStateException("Query for static data not prepared yet"));
 
             final Map<Target, Map<ID, Payload>> results =
-                    runQuery(jdbcTemplate, subSelect, false,null, null, Collections.emptyList(), null,
-                            false, Collections.singletonMap(attribute.getName(), true), parameters, true).getResultSet();
+                    runQuery(jdbcTemplate, subSelect, false, null, null, Collections.emptyList(), null,
+                             false, Collections.singletonMap(attribute.getName(), true), parameters, true).getResultSet();
 
             final Collection<Payload> resultSet = results.get(subSelect.getSelect().getMainTarget()).values();
             checkArgument(resultSet != null && resultSet.size() == 1, "Invalid result set");
@@ -460,7 +549,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     subQueryRecord.remove(subParentKey); // remove parent key from subquery record because it will be added as nested list
                 }
                 results.add(subQueryRecord);
-            };
+            }
 
             if (queryCustomizer != null &&
                     queryCustomizer.getSeek() != null &&
@@ -557,6 +646,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             rdbmsBuilder.getConstantFields().remove();
         }
     }
+
     private void applyQueryCustomizer(final SubSelect query,
                                       final DAO.QueryCustomizer<ID> queryCustomizer,
                                       boolean applyFilterOnly) {
@@ -623,8 +713,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .buildTypeName(type)
                 .orElseThrow(() -> new IllegalStateException("Invalid type name"));
 
-        @SuppressWarnings("rawtypes")
-        final JqlExpressionBuildingContext context = new JqlExpressionBuildingContext();
+        @SuppressWarnings("rawtypes") final JqlExpressionBuildingContext context = new JqlExpressionBuildingContext();
         final Instance _this = newInstanceBuilder()
                 .withName("this")
                 .withElementName(typeName)
@@ -803,7 +892,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     mapResults(results, jdbcTemplate, query, resultSet, chunk, mask, referenceChain, withoutFeatures, queryParameters);
                 }
             }
-        };
+        }
 
         return QueryResult.<ID>builder()
                 .count(recordNumber.intValue())
@@ -818,8 +907,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             final Map<String, Object> mask,
                             final List<EReference> referenceChain,
                             final boolean withoutFeatures,
-                            final Map<String, Object> queryParameters
-                            ) {
+                            final Map<String, Object> queryParameters) {
         // key used to identify parent instance in subselects
         final String parentKey = RdbmsAliasUtil.getParentIdColumnAlias(query.getContainer());
         final SelectStatementExecutorQueryMetaCache metaCache = new SelectStatementExecutorQueryMetaCache(query, mask, referenceChain);
@@ -843,7 +931,6 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             if (chunk.parentIds != null && parentKey != null) {
                 recordsByTarget.get(query.getSelect().getMainTarget()).put(parentKey, new HashSet<>());
             }
-
 
             for (Map.Entry<String, Object> field : record.entrySet()) {
                 if (log.isTraceEnabled()) {
@@ -908,7 +995,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             }
 
                             recordsByTarget.get(target).put(metaFieldName.get(), value);
-                        };
+                        }
                     } else {
                         if (log.isTraceEnabled()) {
                             log.trace("    - no target of type, source alias: {}, column: {}",
@@ -938,12 +1025,12 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                     .put(featureTargetMapping.get().getTargetAttribute().getName(), convertedValue);
                             foundTargets.add(featureTargetMapping.get().getTarget());
                         }
-                    };
+                    }
                     if (log.isDebugEnabled() && foundTargets.isEmpty()) {
                         log.debug("No target found for {}, value: {}", field.getKey(), field.getValue());
                     }
                 }
-            };
+            }
 
             // replace payload with null if ID of target is NULL
             for (Target target : nullTargets) {
@@ -958,17 +1045,17 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                 if (!withoutFeatures) {
                     // set containments that are selected in single (joined) query
-                    metaCache.getSingleContainmentReferenceTargets(target).forEach(c -> {
+                    for (ReferencedTarget c : metaCache.getSingleContainmentReferenceTargets(target)) {
                         if (log.isTraceEnabled()) {
                             log.trace("    - add: {} AS {}", c.getTarget(), c.getReference().getName());
                         }
-                        if(!Objects.equals(query.getSelect().getMainTarget(), c.getTarget())){
+                        if (!Objects.equals(query.getSelect().getMainTarget(), c.getTarget())) {
                             final Map<String, Object> containment = recordsByTarget.get(c.getTarget());
                             recordsByTarget.get(target).put(c.getReference().getName(), containment);
                         } else {
                             recordsByTarget.get(target).put(c.getReference().getName(), null);
                         }
-                    });
+                    }
 
                     // set containments that will be selected in separate query (multiple relationship or aggregation) to empty list
                     metaCache.getMultipleContainmentReferenceTargets(target).forEach(c ->
@@ -1002,20 +1089,21 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
                     results.get(target).put(tmpId, recordsByTarget.get(target));
                 }
-            };
+            }
 
             if (log.isTraceEnabled()) {
                 log.trace("Records by target:\n{}", recordsByTarget);
             }
-        };
+        }
 
         if (!withoutFeatures) {
-            metaCache.getSingleEmbeddedReferences().stream()
-                    .forEach(e -> e.getValue().stream()
-                            .forEach(subSelect ->
-                                    runSubQuery(jdbcTemplate, query,  subSelect, e.getKey(), results,
-                                            mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
-                                            queryParameters)));
+            for (Pair<List<EReference>, List<SubSelect>> e : metaCache.getSingleEmbeddedReferences()) {
+                for (SubSelect subSelect : e.getValue()) {
+                    runSubQuery(jdbcTemplate, query, subSelect, e.getKey(), results,
+                                mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
+                                queryParameters);
+                }
+            }
         }
 
         if (log.isTraceEnabled()) {
@@ -1153,8 +1241,9 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 subSelect.getLimit() == null) {
                     executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, ids, mask, queryParameters);
                 } else {
-                    ids.forEach(id -> executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results,
-                            Collections.singleton(id), mask, queryParameters));
+                    for (ID id : ids) {
+                        executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, Collections.singleton(id), mask, queryParameters);
+                    }
                 }
             }
         } else {
