@@ -671,9 +671,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
                 final Payload defaultValuePayload = getStaticData(defaultAttribute);
                 Object defaultValue = defaultValuePayload.get(defaultAttribute.getName());
-                if (defaultValue == null && attribute.isRequired()) {
-                    throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultAttributeName);
-                }
                 template.put(attribute.getName(), defaultValue);
             } else {
                 // searching for default value on mapping
@@ -700,9 +697,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     defaultValueFinal = defaultValues;
                 } else {
                     final Payload defaultValue = !defaultValues.isEmpty() ? defaultValues.get(0) : null;
-                    if (reference.getLowerBound() > 0 && defaultValue == null) {
-                        throw new IllegalStateException("Default reference value is undefined on required reference: " + defaultReferenceName);
-                    }
                     defaultValueFinal = defaultValue;
                 }
                 template.put(reference.getName(), defaultValueFinal);
