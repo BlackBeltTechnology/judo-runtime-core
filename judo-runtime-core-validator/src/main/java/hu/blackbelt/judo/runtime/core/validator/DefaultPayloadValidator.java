@@ -20,6 +20,18 @@ package hu.blackbelt.judo.runtime.core.validator;
  * #L%
  */
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
@@ -33,12 +45,18 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.*;
+import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EReference;
 
-import java.util.*;
-import java.util.function.*;
-
-import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_INVALID_CONTENT;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_ATTRIBUTE;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_RELATION;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_NULL_ITEM_IS_NOT_SUPPORTED;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_TOO_FEW_ITEMS;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_TOO_MANY_ITEMS;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.SIZE_PARAMETER;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.addValidationError;
 
 @Slf4j
 public class DefaultPayloadValidator implements PayloadValidator {
