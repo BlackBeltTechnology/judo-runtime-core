@@ -124,12 +124,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
         try {
             PayloadTraverser.builder()
-                    .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                            ? asmUtils.getMappedReference(reference).map(e -> !e.isDerived()).orElse(false)
-                            : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
-                    .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext))
-                    .build()
-                    .traverse(payload, transferObjectType);
+                            .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
+                                                      ? asmUtils.getMappedReference(reference).map(e -> !e.isDerived()).orElse(false)
+                                                      : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
+                            .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext))
+                            .build()
+                            .traverse(payload, transferObjectType);
         } catch (IllegalArgumentException ex) {
             log.debug("Invalid payload", ex);
         }
@@ -293,9 +293,9 @@ public class DefaultPayloadValidator implements PayloadValidator {
                               .filter(mappedCreateReferenceOpposite -> AsmUtils.equals(mappedCreateReferenceOpposite, mappedReference.get()))
                               .isEmpty();
 
-        if (reference.isRequired() && (validateMissingFeatures || instance.containsKey(reference.getName()))
-            && (createReference == null || mappedReference.isEmpty() || validateForCreate.get())
-            && value == null) {
+        if (value == null
+            && reference.isRequired() && (validateMissingFeatures || instance.containsKey(reference.getName()))
+            && (createReference == null || mappedReference.isEmpty() || validateForCreate.get())) {
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
@@ -321,9 +321,9 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
         final List<ValidationResult> validationResults = new ArrayList<>();
 
-        if ((attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
-            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
-            value == null) {
+        if (value == null
+            && (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false))
+            && (validateMissingFeatures || instance.containsKey(attribute.getName()))) {
 
             addValidationError(
                     ImmutableMap.of(
@@ -335,12 +335,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ERROR_MISSING_REQUIRED_ATTRIBUTE
             );
         }
-        if (AsmUtils.isString(attribute.getEAttributeType()) &&
-            (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
-            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
-            value != null &&
-            RequiredStringValidatorOption.REJECT_EMPTY.equals(requiredStringValidatorOption) &&
-            ((String) value).isBlank()) {
+        if (value != null
+            && AsmUtils.isString(attribute.getEAttributeType())
+            && RequiredStringValidatorOption.REJECT_EMPTY.equals(requiredStringValidatorOption)
+            && ((String) value).isBlank()
+            && (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false))
+            && (validateMissingFeatures || instance.containsKey(attribute.getName()))) {
 
             addValidationError(
                     ImmutableMap.of(
