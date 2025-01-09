@@ -656,48 +656,61 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         final Payload template = Payload.empty();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
+        final Optional<EClass> mappedEntityType = asmUtils.getMappedEntityType(clazz);
+
         List<EAttribute> attributes = clazz.getEAllAttributes().stream().filter(EStructuralFeature::isChangeable).toList();
         for (EAttribute attribute : attributes) {
+            // searching for default value on current transfer object type
             String defaultAttributeName = AsmUtils.getExtensionAnnotationValue(attribute, "default", false).orElse(null);
             if (defaultAttributeName != null) {
-                final EAttribute defaultAttribute = clazz.getEAllAttributes().stream()
-                                                         .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
-                                                         .findAny()
-                                                         .orElse(null);
+                final EAttribute defaultAttribute =
+                        clazz.getEAllAttributes().stream()
+                             .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
+                             .findAny()
+                             .orElseThrow(() -> new IllegalStateException("Default attribute not found for %s: %s".formatted(AsmUtils.getAttributeFQName(attribute), defaultAttributeName)));
 
-                if (defaultAttribute != null) {
-                    final Payload defaultValue = getStaticData(defaultAttribute);
-                    if (defaultValue.get(defaultAttribute.getName()) == null && attribute.isRequired()) {
-                        throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultAttributeName);
-                    }
-                    template.put(attribute.getName(), defaultValue.get(defaultAttribute.getName()));
+                final Payload defaultValuePayload = getStaticData(defaultAttribute);
+                Object defaultValue = defaultValuePayload.get(defaultAttribute.getName());
+                if (defaultValue == null && attribute.isRequired()) {
+                    throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultAttributeName);
                 }
+                template.put(attribute.getName(), defaultValue);
+            } else {
+                // searching for default value on mapping
+                // TODO
             }
         }
 
-        List<EReference> references = clazz.getEAllReferences().stream().filter(EStructuralFeature::isChangeable).toList();
+        List<EReference> references = clazz.getEAllReferences().stream()
+                                           .filter(r -> r.isChangeable() && !r.isContainment()) // TODO: support default values on containment?
+                                           .toList();
         for (EReference reference : references) {
+            // searching for default value on current transfer object type
             String defaultReferenceName = AsmUtils.getExtensionAnnotationValue(reference, "default", false).orElse(null);
             if (defaultReferenceName != null) {
-                final EReference defaultReference = clazz.getEAllReferences().stream()
-                                                         .filter(df -> Objects.equals(df.getName(), defaultReferenceName))
-                                                         .findAny()
-                                                         .orElseThrow(() -> new IllegalStateException("Default reference not found: " + defaultReferenceName));
+                final EReference defaultReference =
+                        clazz.getEAllReferences().stream()
+                             .filter(df -> Objects.equals(df.getName(), defaultReferenceName))
+                             .findAny()
+                             .orElseThrow(() -> new IllegalStateException("Default reference not found for %s: %s".formatted(AsmUtils.getReferenceFQName(reference), defaultReferenceName)));
 
+                Object defaultValueFinal;
                 final List<Payload> defaultValues = getAllReferencedInstancesOf(defaultReference, defaultReference.getEReferenceType());
                 if (defaultReference.isMany()) {
-                    template.put(reference.getName(), defaultValues);
+                    defaultValueFinal = defaultValues;
                 } else {
                     final Payload defaultValue = !defaultValues.isEmpty() ? defaultValues.get(0) : null;
                     if (reference.getLowerBound() > 0 && defaultValue == null) {
                         throw new IllegalStateException("Default reference value is undefined on required reference: " + defaultReferenceName);
                     }
-                    template.put(reference.getName(), defaultValue);
+                    defaultValueFinal = defaultValue;
                 }
+                template.put(reference.getName(), defaultValueFinal);
+            } else {
+                // searching for default value on mapping
+                // TODO
             }
         }
-
-        final Optional<EClass> mappedEntityType = asmUtils.getMappedEntityType(clazz);
 
         final Optional<EClass> defaultTransferObjectType = mappedEntityType
                 .flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
