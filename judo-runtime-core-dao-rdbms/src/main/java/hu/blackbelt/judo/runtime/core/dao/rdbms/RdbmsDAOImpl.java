@@ -658,40 +658,41 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
         List<EAttribute> attributes = clazz.getEAllAttributes().stream().filter(EStructuralFeature::isChangeable).toList();
         for (EAttribute attribute : attributes) {
-            Optional<String> defaultFeatureName = AsmUtils.getExtensionAnnotationValue(attribute, "default", false);
-            if (defaultFeatureName.isPresent()) {
+            String defaultAttributeName = AsmUtils.getExtensionAnnotationValue(attribute, "default", false).orElse(null);
+            if (defaultAttributeName != null) {
                 final EAttribute defaultAttribute = clazz.getEAllAttributes().stream()
-                                                         .filter(df -> Objects.equals(df.getName(), defaultFeatureName.get()))
+                                                         .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
                                                          .findAny()
                                                          .orElse(null);
 
                 if (defaultAttribute != null) {
                     final Payload defaultValue = getStaticData(defaultAttribute);
                     if (defaultValue.get(defaultAttribute.getName()) == null && attribute.isRequired()) {
-                        throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultFeatureName.get());
+                        throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultAttributeName);
                     }
                     template.put(attribute.getName(), defaultValue.get(defaultAttribute.getName()));
                 }
             }
         }
 
-        for (EReference eReference : clazz.getEAllReferences().stream().filter(EStructuralFeature::isChangeable).toList()) {
-            Optional<String> defaultReferenceName = AsmUtils.getExtensionAnnotationValue(eReference, "default", false);
-            if (defaultReferenceName.isPresent()) {
+        List<EReference> references = clazz.getEAllReferences().stream().filter(EStructuralFeature::isChangeable).toList();
+        for (EReference reference : references) {
+            String defaultReferenceName = AsmUtils.getExtensionAnnotationValue(reference, "default", false).orElse(null);
+            if (defaultReferenceName != null) {
                 final EReference defaultReference = clazz.getEAllReferences().stream()
-                                                         .filter(df -> Objects.equals(df.getName(), defaultReferenceName.get()))
+                                                         .filter(df -> Objects.equals(df.getName(), defaultReferenceName))
                                                          .findAny()
-                                                         .orElseThrow(() -> new IllegalStateException("Default reference not found: " + defaultReferenceName.get()));
+                                                         .orElseThrow(() -> new IllegalStateException("Default reference not found: " + defaultReferenceName));
 
                 final List<Payload> defaultValues = getAllReferencedInstancesOf(defaultReference, defaultReference.getEReferenceType());
                 if (defaultReference.isMany()) {
-                    template.put(eReference.getName(), defaultValues);
+                    template.put(reference.getName(), defaultValues);
                 } else {
                     final Payload defaultValue = !defaultValues.isEmpty() ? defaultValues.get(0) : null;
-                    if (eReference.getLowerBound() > 0 && defaultValue == null) {
-                        throw new IllegalStateException("Default reference value is undefined on required reference: " + defaultReferenceName.get());
+                    if (reference.getLowerBound() > 0 && defaultValue == null) {
+                        throw new IllegalStateException("Default reference value is undefined on required reference: " + defaultReferenceName);
                     }
-                    template.put(eReference.getName(), defaultValue);
+                    template.put(reference.getName(), defaultValue);
                 }
             }
         }
