@@ -653,28 +653,20 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     protected Payload readDefaultsOf(EClass clazz) {
-        final Payload template = Payload.empty();
+        Payload template = Payload.empty();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
-
-        final Optional<EClass> mappedEntityType = asmUtils.getMappedEntityType(clazz);
 
         List<EAttribute> attributes = clazz.getEAllAttributes().stream().filter(EStructuralFeature::isChangeable).toList();
         for (EAttribute attribute : attributes) {
-            // searching for default value on current transfer object type
             String defaultAttributeName = AsmUtils.getExtensionAnnotationValue(attribute, "default", false).orElse(null);
             if (defaultAttributeName != null) {
-                final EAttribute defaultAttribute =
+                EAttribute defaultAttribute =
                         clazz.getEAllAttributes().stream()
                              .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
                              .findAny()
                              .orElseThrow(() -> new IllegalStateException("Default attribute not found for %s: %s".formatted(AsmUtils.getAttributeFQName(attribute), defaultAttributeName)));
 
-                final Payload defaultValuePayload = getStaticData(defaultAttribute);
-                Object defaultValue = defaultValuePayload.get(defaultAttribute.getName());
-                template.put(attribute.getName(), defaultValue);
-            } else {
-                // searching for default value on mapping
-                // TODO
+                template.put(attribute.getName(), getStaticData(defaultAttribute).get(defaultAttribute.getName()));
             }
         }
 
@@ -682,57 +674,46 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                                            .filter(r -> r.isChangeable() && !r.isContainment()) // TODO: support default values on containment?
                                            .toList();
         for (EReference reference : references) {
-            // searching for default value on current transfer object type
             String defaultReferenceName = AsmUtils.getExtensionAnnotationValue(reference, "default", false).orElse(null);
             if (defaultReferenceName != null) {
-                final EReference defaultReference =
+                EReference defaultReference =
                         clazz.getEAllReferences().stream()
                              .filter(df -> Objects.equals(df.getName(), defaultReferenceName))
                              .findAny()
                              .orElseThrow(() -> new IllegalStateException("Default reference not found for %s: %s".formatted(AsmUtils.getReferenceFQName(reference), defaultReferenceName)));
 
-                Object defaultValueFinal;
-                final List<Payload> defaultValues = getAllReferencedInstancesOf(defaultReference, defaultReference.getEReferenceType());
+                List<Payload> defaultValues = getAllReferencedInstancesOf(defaultReference, defaultReference.getEReferenceType());
                 if (defaultReference.isMany()) {
-                    defaultValueFinal = defaultValues;
+                    template.put(reference.getName(), defaultValues);
                 } else {
-                    final Payload defaultValue = !defaultValues.isEmpty() ? defaultValues.get(0) : null;
-                    defaultValueFinal = defaultValue;
+                    template.put(reference.getName(), !defaultValues.isEmpty() ? defaultValues.get(0) : null);
                 }
-                template.put(reference.getName(), defaultValueFinal);
-            } else {
-                // searching for default value on mapping
-                // TODO
             }
         }
 
-        final Optional<EClass> defaultTransferObjectType = mappedEntityType
-                .flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
-                        .flatMap(dr -> asmUtils.resolve(dr)))
-                .filter(t -> t instanceof EClass).map(t -> (EClass) t);
+        Optional<EClass> defaultTransferObjectType =
+                asmUtils.getMappedEntityType(clazz)
+                        .flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
+                                              .flatMap(asmUtils::resolve))
+                        .filter(t -> t instanceof EClass)
+                        .map(t -> (EClass) t);
 
         if (defaultTransferObjectType.isPresent() && !Objects.equals(defaultTransferObjectType.get(), clazz)) {
-            final Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
+            // if the transfer object has a mapping, read default values of the mapped features
+            // and add them to the template if they are not already present
+            Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
-                    .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
-                    .collect(Collectors.toMap(
-                            identity(),
-                            a -> asmUtils.getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped attribute not found: " + AsmUtils.getAttributeFQName(a)))))
-                    .entrySet().stream()
-                    .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
-                    .collect(Collectors.toMap(
-                            e -> e.getKey().getName(),
-                            e -> entityTypeDefaults.get(e.getValue().getName()))));
+                                 // no performance bottleneck if asmUtils.getMappedAttribute is cached
+                                 .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
+                                 .collect(Collectors.toMap(identity(), a -> asmUtils.getMappedAttribute(a).get())).entrySet().stream()
+                                 .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
+                                 .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
             template.putAll(clazz.getEAllReferences().stream()
-                    .filter(r -> template.get(r.getName()) == null && asmUtils.getMappedReference(r).isPresent())
-                    .collect(Collectors.toMap(
-                            identity(),
-                            r -> asmUtils.getMappedReference(r).orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(r)))))
-                    .entrySet().stream()
-                    .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
-                    .collect(Collectors.toMap(
-                            e -> e.getKey().getName(),
-                            e -> entityTypeDefaults.get(e.getValue().getName()))));
+                                 // no performance bottleneck if asmUtils.getMappedReference is cached
+                                 .filter(r -> !template.containsKey(r.getName()) && asmUtils.getMappedReference(r).isPresent())
+                                 .collect(Collectors.toMap(identity(), r -> asmUtils.getMappedReference(r).get())).entrySet().stream()
+                                 .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
+                                 .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
         }
 
         return template;
