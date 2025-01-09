@@ -20,6 +20,27 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms;
  * #L%
  */
 
+import java.security.Principal;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.sql.DataSource;
+
 import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
@@ -30,7 +51,12 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
-import hu.blackbelt.judo.runtime.core.dao.core.processors.*;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.AddReferencePayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.DeletePayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.InsertPayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.PayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.RemoveReferencePayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.UpdatePayloadDaoProcessor;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.InsertStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
 import hu.blackbelt.judo.runtime.core.dao.core.values.Metadata;
@@ -38,26 +64,16 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecuto
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.*;
+import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import javax.sql.DataSource;
-import java.security.Principal;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
