@@ -525,6 +525,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         final RequestConverter requestConverter = RequestConverter.builder()
                 .transferObjectType(transferObjectType)
                 .coercer(dataTypeManager.getCoercer())
+                .dao(dao)
                 .asmModel(asmModel)
                 .validatorProvider(validatorProvider)
                 .trimString(trimString)

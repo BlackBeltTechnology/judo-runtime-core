@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
+import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dao.api.PayloadValidator;
@@ -62,6 +63,8 @@ public class RequestConverter {
     private final EClass transferObjectType;
 
     private final Coercer coercer;
+
+    private final DAO dao;
 
     private final PayloadValidator payloadValidator;
 
@@ -109,6 +112,7 @@ public class RequestConverter {
     public RequestConverter(@NonNull EClass transferObjectType,
                             @NonNull AsmModel asmModel,
                             @NonNull Coercer coercer,
+                            @NonNull DAO dao,
                             @NonNull PayloadValidator payloadValidator,
                             @NonNull @Singular Collection<String> keepProperties,
                             TokenValidator filestoreTokenValidator,
@@ -120,6 +124,7 @@ public class RequestConverter {
                             boolean throwValidationException) {
         this.transferObjectType = transferObjectType;
         this.coercer = coercer;
+        this.dao = dao;
         this.payloadValidator = payloadValidator;
         this.filestoreTokenValidator = filestoreTokenValidator;
         this.trimString = trimString;
@@ -177,8 +182,18 @@ public class RequestConverter {
 
         // Validate only elements which is contained only from root payload
         final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
-
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
+
+        // load default values if current payload is being "instantiated"
+        if (identifierProvider != null && !instance.containsKey(identifierProvider.getName())) {
+            Payload defaultValues = dao.getDefaultsOf(transferObjectType);
+            for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
+                if (!instance.containsKey(e.getKey())) {
+                    instance.put(e.getKey(), e.getValue());
+                }
+            }
+        }
+
         EList<EAttribute> attributes = transferObjectType.getEAllAttributes();
         for (EAttribute attribute : attributes) {
             processAttribute(instance, attribute, validationResults, validate, feedbackContext, ignoreInvalidValues);
@@ -224,7 +239,6 @@ public class RequestConverter {
     }
 
     private void processReference(Payload instance, EReference reference, Collection<ValidationResult> validationResults, Map<String, Object> currentContext, Map<String, Object> feedbackContext, boolean ignoreInvalidValues) {
-
         validateReferencedIdentifiers(instance, reference, validationResults, currentContext, feedbackContext);
         validationResults.addAll(payloadValidator.validateReference(reference, instance, currentContext, ignoreInvalidValues));
     }
