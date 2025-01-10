@@ -45,6 +45,7 @@ import lombok.Builder;
 import lombok.NonNull;
 import lombok.Singular;
 import lombok.extern.slf4j.Slf4j;
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.*;
 
 import java.util.*;
@@ -165,7 +166,6 @@ public class RequestConverter {
     }
 
     private void processPayload(Payload instance, PayloadTraverser.PayloadTraverserContext ctx, Collection<ValidationResult> validationResults, Map<String, Object> validationContext, Map<String, Object> feedbackContext) {
-
         final String containerLocation = (String) validationContext.getOrDefault(LOCATION_KEY, "");
         final Map<String, Object> currentContext = new TreeMap<>(validationContext);
         currentContext.put(LOCATION_KEY, (containerLocation.isEmpty() ? "" : containerLocation + "/") + ctx.getPathAsString());
@@ -173,22 +173,33 @@ public class RequestConverter {
         feedbackContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY));
         feedbackContext.put(IS_ROOT_KEY, currentContext.get(IS_ROOT_KEY));
 
+        EClass transferObjectType = ctx.getType();
+
         // Validate only elements which is contained only from root payload
         final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
 
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
-        ctx.getType().getEAllAttributes().forEach(a -> processAttribute(instance, a, validationResults, validate, feedbackContext, ignoreInvalidValues));
+        EList<EAttribute> attributes = transferObjectType.getEAllAttributes();
+        for (EAttribute attribute : attributes) {
+            processAttribute(instance, attribute, validationResults, validate, feedbackContext, ignoreInvalidValues);
+        }
 
+        EList<EReference> references = transferObjectType.getEAllReferences();
         if ((Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT) && identifierProvider != null) {
-            ctx.getType().getEAllReferences().stream()
-                    .filter(r -> isEmbedded(r) && !AsmUtils.isAllowedToCreateEmbeddedObject(r) && asmUtils.getMappedReference(r).filter(EReference::isContainment).isPresent())
-                    .forEach(c -> removeNonCreatableReferenceElements(instance, c));
+            references.stream()
+                      .filter(r -> isEmbedded(r)
+                                   && !AsmUtils.isAllowedToCreateEmbeddedObject(r)
+                                   && asmUtils.getMappedReference(r).filter(EReference::isContainment).isPresent())
+                      .forEach(c -> removeNonCreatableReferenceElements(instance, c));
         }
         if (validate) {
-            ctx.getType().getEAllReferences().forEach(r -> processReference(instance, r, validationResults, currentContext, feedbackContext, ignoreInvalidValues));
+            for (EReference reference : references) {
+                processReference(instance, reference, validationResults, currentContext, feedbackContext, ignoreInvalidValues);
+            }
         }
-        instance.entrySet().removeIf(entry -> ctx.getType().getEAllStructuralFeatures().stream().noneMatch(f -> Objects.equals(f.getName(), entry.getKey()))
-                && !keepProperties.contains(entry.getKey()));
+        instance.entrySet().removeIf(entry -> transferObjectType.getEAllStructuralFeatures().stream()
+                                                                .noneMatch(f -> Objects.equals(f.getName(), entry.getKey()))
+                                              && !keepProperties.contains(entry.getKey()));
     }
 
     private void removeNonCreatableReferenceElements(Payload instance, EReference reference) {
