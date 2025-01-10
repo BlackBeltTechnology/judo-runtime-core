@@ -65,12 +65,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
         ACCEPT_EMPTY, REJECT_EMPTY
     }
 
-    private AsmModel asmModel;
-    private Coercer coercer;
-    private RequiredStringValidatorOption requiredStringValidatorOption;
-    private IdentifierProvider identifierProvider;
-    private ValidatorProvider validatorProvider;
-    private AsmUtils asmUtils;
+    private final AsmModel asmModel;
+    private final Coercer coercer;
+    private final RequiredStringValidatorOption requiredStringValidatorOption;
+    private final IdentifierProvider identifierProvider;
+    private final ValidatorProvider validatorProvider;
+    private final AsmUtils asmUtils;
 
     public static final String GLOBAL_VALIDATION_CONTEXT = "globalValidationContext";
 
@@ -109,9 +109,9 @@ public class DefaultPayloadValidator implements PayloadValidator {
             ValidatorProvider validatorProvider) {
         this.asmModel = asmModel;
         this.coercer = coercer;
-        this.requiredStringValidatorOption = Optional.ofNullable(requiredStringValidatorOption).orElse(this.requiredStringValidatorOption);
-        this.identifierProvider = Optional.ofNullable(identifierProvider).orElse(this.identifierProvider);
-        this.validatorProvider = Optional.ofNullable(validatorProvider).orElse(this.validatorProvider);
+        this.requiredStringValidatorOption = requiredStringValidatorOption;
+        this.identifierProvider = identifierProvider;
+        this.validatorProvider = validatorProvider;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
