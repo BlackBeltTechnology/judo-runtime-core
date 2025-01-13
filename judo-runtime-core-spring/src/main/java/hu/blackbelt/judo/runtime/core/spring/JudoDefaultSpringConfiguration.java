@@ -264,6 +264,7 @@ public class JudoDefaultSpringConfiguration {
     ) {
         // TODO: Map parameter
         Integer chunkSize = 1000;
+        Integer maximumRecursionCount=3;
 
         return SelectStatementExecutor.builder()
                 .asmModel(asmModel)
@@ -273,6 +274,7 @@ public class JudoDefaultSpringConfiguration {
                 .identifierProvider(identifierProvider)
                 .metricsCollector(metricsCollector)
                 .chunkSize(chunkSize)
+                .maximumRecursionCount(maximumRecursionCount)
                 .transformationTraceService(transformationTraceService)
                 .rdbmsParameterMapper(rdbmsParameterMapper)
                 .rdbmsBuilder(rdbmsBuilder)
