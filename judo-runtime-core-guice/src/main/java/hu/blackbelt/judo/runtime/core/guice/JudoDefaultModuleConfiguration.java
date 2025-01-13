@@ -57,6 +57,8 @@ public class JudoDefaultModuleConfiguration {
     @Builder.Default
     Integer rdbmsDaoChunkSize = 1000;
     @Builder.Default
+    Integer rdbmsDaoMaximumRecursionCount = 3;
+    @Builder.Default
     Boolean actorResolverCheckMappedActors = false;
     @Builder.Default
     Boolean dispatcherMetricsReturned = false;

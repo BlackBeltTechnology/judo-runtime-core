@@ -72,8 +72,11 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
 
     @Inject(optional = true)
     @JudoConfigurationQualifiers.RdbmsDaoChunkSize
-    @Nullable
     private Integer chunkSize = 1000;
+
+    @Inject(optional = true)
+    @JudoConfigurationQualifiers.RdbmsDaoMaximumRecursionCount
+    private Integer maximumRecursionCount = 3;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -86,6 +89,7 @@ public class SelectStatementExecutorProvider implements Provider<SelectStatement
                 .identifierProvider(identifierProvider)
                 .metricsCollector(metricsCollector)
                 .chunkSize(this.chunkSize)
+                .maximumRecursionCount(this.maximumRecursionCount)
                 .transformationTraceService(this.transformationTraceService)
                 .rdbmsParameterMapper(rdbmsParameterMapper)
                 .rdbmsBuilder(rdbmsBuilder)
