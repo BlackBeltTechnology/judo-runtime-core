@@ -26,6 +26,7 @@ import com.fasterxml.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.keycloak.Client;
+import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakObjectMapper;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import lombok.Builder;
 import lombok.Getter;
@@ -94,7 +95,7 @@ public class KeycloakConnector implements OpenIdConfigurationProvider {
         this.adminPassword = adminPassword;
         this.clientSecret = clientSecret;
         objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        objectMapper.addMixIn(Client.class, ClientSkipAttributeBindingsMixIn.class);
+        objectMapper.addMixIn(Client.class, KeycloakObjectMapper.ClientSkipAttributeBindingsMixIn.class);
 
         providers.add(new JacksonJaxbJsonProvider(objectMapper, JacksonJaxbJsonProvider.DEFAULT_ANNOTATIONS));
 
@@ -184,7 +185,7 @@ public class KeycloakConnector implements OpenIdConfigurationProvider {
     public void ping() {
         try {
             final Response response = WebClient.create(serverUrl, providers).path("/").get();
-            checkState(response.getStatus() == 200, "Keycloak is not ready");
+            checkState(response.getStatus() == 200 || response.getStatus() == 302, "Keycloak is not ready");
         } catch (RuntimeException ex) {
             throw new IllegalStateException("Keycloak is not available", ex);
         }

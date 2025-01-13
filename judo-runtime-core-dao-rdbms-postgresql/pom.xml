@@ -24,8 +24,8 @@
                         </Export-Package>
                         <Import-Package>
                             ${osgi-default-import},
-                            org.springframework.jdbc*;version="[4,6)",
-                            org.springframework.transaction*;version="[4,6)",
+                            org.springframework.jdbc*;version="[4,7)",
+                            org.springframework.transaction*;version="[4,7)",
                             *
                         </Import-Package>
                     </instructions>
@@ -138,5 +138,13 @@
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.5.3</version>
+            <scope>provided</scope>
+        </dependency>
+
     </dependencies>
 </project>

@@ -22,6 +22,7 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb;
 
 import com.google.inject.Inject;
 import com.google.inject.Provider;
+import com.zaxxer.hikari.HikariDataSource;
 import org.hsqldb.jdbc.JDBCDataSource;
 import org.hsqldb.jdbc.JDBCPool;
 import org.hsqldb.server.Server;
@@ -50,19 +51,23 @@ public class HsqldbDataSourceProvider implements Provider<DataSource> {
         }
 
         boolean pooled = true;
+        boolean hikari = true;
 
-        final DataSource ds;
-        final JDBCPool pool;
+        DataSource dataSource;
         if (pooled) {
-            pool = new JDBCPool();
+            final JDBCPool pool = new JDBCPool();
             pool.setURL(jdbcUrl);
-            ds = pool;
+            dataSource = pool;
         } else {
             final JDBCDataSource simple = new JDBCDataSource();
             simple.setURL(jdbcUrl);
-            ds = simple;
-            pool = null;
+            dataSource = simple;
         }
-        return ds;
+        if (hikari) {
+            HikariDataSource hikariDataSource = new HikariDataSource();
+            hikariDataSource.setDataSource(dataSource);
+            dataSource = hikariDataSource;
+        }
+        return dataSource;
     }
 }
