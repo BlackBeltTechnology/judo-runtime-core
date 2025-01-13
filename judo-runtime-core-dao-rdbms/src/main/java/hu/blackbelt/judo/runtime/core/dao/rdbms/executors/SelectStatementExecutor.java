@@ -1092,10 +1092,13 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     long cnt = subSelectStack.stream().filter(s -> s == subSelect).count();
                     if (cnt < maximumRecursionCount) {
                         subSelectStack.push(subSelect);
-                        runSubQuery(jdbcTemplate, query, subSelect, e.getKey(), results,
-                                mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
-                                queryParameters, subSelectStack);
-                        subSelectStack.pop();
+                        try {
+                            runSubQuery(jdbcTemplate, query, subSelect, e.getKey(), results,
+                                    mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
+                                    queryParameters, subSelectStack);
+                        } finally {
+                            subSelectStack.pop();
+                        }
                     }
                 }
             }
