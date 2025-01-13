@@ -679,10 +679,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 EAttribute defaultAttribute =
                         clazz.getEAllAttributes().stream()
                              .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
-                             .findAny()
-                             .orElseThrow(() -> new IllegalStateException("Default attribute not found for %s: %s".formatted(AsmUtils.getAttributeFQName(attribute), defaultAttributeName)));
-
-                template.put(attribute.getName(), getStaticData(defaultAttribute).get(defaultAttribute.getName()));
+                             .findAny().orElse(null);
+                // TODO: why does the transfer attribute have default annotation referencing entity default if transfer reference does not work like this?
+                if (defaultAttribute != null) {
+                    template.put(attribute.getName(), getStaticData(defaultAttribute).get(defaultAttribute.getName()));
+                }
             }
         }
 

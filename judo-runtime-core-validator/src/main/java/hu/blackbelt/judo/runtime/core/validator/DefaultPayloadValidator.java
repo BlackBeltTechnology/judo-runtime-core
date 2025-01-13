@@ -48,10 +48,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.ETypedElement;
 
 import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_INVALID_CONTENT;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_ATTRIBUTE;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_ATTRIBUTE_ON_ENTITY;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_RELATION;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_RELATION_ON_ENTITY;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_NULL_ITEM_IS_NOT_SUPPORTED;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_TOO_FEW_ITEMS;
 import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_TOO_MANY_ITEMS;
@@ -297,7 +300,8 @@ public class DefaultPayloadValidator implements PayloadValidator {
                               .isEmpty();
 
         if (value == null
-            && reference.isRequired() && (validateMissingFeatures || instance.containsKey(reference.getName()))
+            && (reference.isRequired() || mappedReference.map(ETypedElement::isRequired).orElse(false))
+            && (validateMissingFeatures || instance.containsKey(reference.getName()))
             && (createReference == null || mappedReference.isEmpty() || validateForCreate.get())) {
             addValidationError(
                     ImmutableMap.of(
@@ -306,7 +310,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ),
                     currentContext.get(LOCATION_KEY),
                     validationResults,
-                    ERROR_MISSING_REQUIRED_RELATION
+                    reference.isRequired() ? ERROR_MISSING_REQUIRED_RELATION : ERROR_MISSING_REQUIRED_RELATION_ON_ENTITY
             );
         }
         return validationResults;
@@ -355,7 +359,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ),
                     validationContext.get(LOCATION_KEY),
                     validationResults,
-                    ERROR_MISSING_REQUIRED_ATTRIBUTE
+                    attribute.isRequired() ? ERROR_MISSING_REQUIRED_ATTRIBUTE : ERROR_MISSING_REQUIRED_ATTRIBUTE_ON_ENTITY
             );
         }
 
