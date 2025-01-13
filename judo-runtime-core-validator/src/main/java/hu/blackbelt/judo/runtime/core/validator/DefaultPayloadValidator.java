@@ -197,8 +197,11 @@ public class DefaultPayloadValidator implements PayloadValidator {
         boolean validateRootMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_ROOT_MISSING_FEATURES_KEY, VALIDATE_ROOT_MISSING_FEATURES_DEFAULT);
         boolean isRootElement = (Boolean) validationContext.get(IS_ROOT_KEY);
 
-        if (validateMissingFeatures && !validateRootMissingFeatures && isRootElement) {
-            validateMissingFeatures = false;
+        if (validateMissingFeatures) {
+            validateMissingFeatures = getIdentifier(instance) == null;
+            if (!validateRootMissingFeatures && isRootElement) {
+                validateMissingFeatures = false;
+            }
         }
 
         if (reference.isMany()) {
@@ -315,8 +318,11 @@ public class DefaultPayloadValidator implements PayloadValidator {
         boolean validateRootMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_ROOT_MISSING_FEATURES_KEY, VALIDATE_ROOT_MISSING_FEATURES_DEFAULT);
         boolean isRootElement = (Boolean) validationContext.get(IS_ROOT_KEY);
 
-        if (validateMissingFeatures && !validateRootMissingFeatures && isRootElement) {
-            validateMissingFeatures = false;
+        if (validateMissingFeatures) {
+            validateMissingFeatures = getIdentifier(instance) == null;
+            if (!validateRootMissingFeatures && isRootElement) {
+                validateMissingFeatures = false;
+            }
         }
 
         final List<ValidationResult> validationResults = new ArrayList<>();
