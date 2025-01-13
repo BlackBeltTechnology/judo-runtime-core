@@ -27,18 +27,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -207,7 +196,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         this.dataTypeManager = dataTypeManager;
         this.metricsCollector = metricsCollector;
         this.chunkSize = chunkSize;
-        this.maximumRecursionCount = Objects.requireNonNullElse(maximumRecursionCount, 3);
+        this.maximumRecursionCount = maximumRecursionCount;
 
         asmUtils = new AsmUtils(asmModel.getResourceSet());
 
@@ -1098,18 +1087,18 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
 
         if (!withoutFeatures) {
-            metaCache.getSingleEmbeddedReferences().stream()
-                    .forEach(e -> e.getValue().stream()
-                            .forEach(subSelect -> {
-                                long cnt = subSelectStack.stream().filter(s -> s == subSelect).count();
-                                if (cnt < maximumRecursionCount) {
-                                    subSelectStack.push(subSelect);
-                                    runSubQuery(jdbcTemplate, query,  subSelect, e.getKey(), results,
-                                            mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
-                                            queryParameters, subSelectStack);
-                                    subSelectStack.pop();
-                                }
-                            }));
+            for (Pair<List<EReference>, List<SubSelect>> e : metaCache.getSingleEmbeddedReferences()) {
+                for (SubSelect subSelect : e.getValue()) {
+                    long cnt = subSelectStack.stream().filter(s -> s == subSelect).count();
+                    if (cnt < maximumRecursionCount) {
+                        subSelectStack.push(subSelect);
+                        runSubQuery(jdbcTemplate, query, subSelect, e.getKey(), results,
+                                mask != null ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName()) : null,
+                                queryParameters, subSelectStack);
+                        subSelectStack.pop();
+                    }
+                }
+            }
         }
 
         if (log.isTraceEnabled()) {

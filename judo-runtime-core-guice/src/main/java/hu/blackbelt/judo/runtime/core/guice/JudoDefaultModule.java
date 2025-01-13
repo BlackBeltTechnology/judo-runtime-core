@@ -87,6 +87,7 @@ public class JudoDefaultModule extends AbstractModule {
         Boolean rdbmsDaoOptimisticLockEnabled = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoOptimisticLockEnabled();
         Boolean rdbmsDaoMarkSelectedRangeItems = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMarkSelectedRangeItems();
         Integer rdbmsDaoChunkSize = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoChunkSize();
+        Integer rdbmsDaoMaximumRecursionCount = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMaximumRecursionCount();
         Boolean actorResolverCheckMappedActors = JudoDefaultModuleConfiguration.DEFAULT.getActorResolverCheckMappedActors();
         Boolean dispatcherMetricsReturned = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherMetricsReturned();
         Boolean dispatcherEnableDefaultValidation = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherEnableDefaultValidation();
@@ -139,6 +140,7 @@ public class JudoDefaultModule extends AbstractModule {
                             Boolean rdbmsDaoOptimisticLockEnabled,
                             Boolean rdbmsDaoMarkSelectedRangeItems,
                             Integer rdbmsDaoChunkSize,
+                            Integer rdbmsDaoMaximumRecursionCount,
                             Boolean actorResolverCheckMappedActors,
                             Boolean dispatcherMetricsReturned,
                             Boolean dispatcherEnableDefaultValidation,
@@ -191,6 +193,7 @@ public class JudoDefaultModule extends AbstractModule {
                     .rdbmsDaoOptimisticLockEnabled(rdbmsDaoOptimisticLockEnabled)
                     .rdbmsDaoMarkSelectedRangeItems(rdbmsDaoMarkSelectedRangeItems)
                     .rdbmsDaoChunkSize(rdbmsDaoChunkSize)
+                    .rdbmsDaoMaximumRecursionCount(rdbmsDaoMaximumRecursionCount)
                     .actorResolverCheckMappedActors(actorResolverCheckMappedActors)
                     .dispatcherMetricsReturned(dispatcherMetricsReturned)
                     .dispatcherEnableDefaultValidation(dispatcherEnableDefaultValidation)
@@ -267,6 +270,7 @@ public class JudoDefaultModule extends AbstractModule {
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled.class).toInstance(configuration.getRdbmsDaoOptimisticLockEnabled());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems.class).toInstance(configuration.getRdbmsDaoMarkSelectedRangeItems());
         bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class).toInstance(configuration.getRdbmsDaoChunkSize());
+        bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMaximumRecursionCount.class).toInstance(configuration.getRdbmsDaoMaximumRecursionCount());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverCheckMappedActors.class).toInstance(configuration.getActorResolverCheckMappedActors());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());

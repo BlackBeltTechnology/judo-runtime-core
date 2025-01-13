@@ -30,6 +30,11 @@ public class JudoConfigurationQualifiers {
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
+    public @interface RdbmsDaoMaximumRecursionCount {}
+
+    @Qualifier
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
     public @interface ActorResolverCheckMappedActors {}
 
     @Qualifier
