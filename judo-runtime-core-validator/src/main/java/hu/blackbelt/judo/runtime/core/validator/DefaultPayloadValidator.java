@@ -20,6 +20,18 @@ package hu.blackbelt.judo.runtime.core.validator;
  * #L%
  */
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import com.google.common.collect.ImmutableMap;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
@@ -33,26 +45,35 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.ecore.*;
+import org.eclipse.emf.ecore.EAttribute;
+import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EReference;
+import org.eclipse.emf.ecore.ETypedElement;
 
-import java.util.*;
-import java.util.function.*;
-
-import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_INVALID_CONTENT;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_ATTRIBUTE;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_ATTRIBUTE_ON_ENTITY;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_RELATION;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_MISSING_REQUIRED_RELATION_ON_ENTITY;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_NULL_ITEM_IS_NOT_SUPPORTED;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_TOO_FEW_ITEMS;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.ERROR_TOO_MANY_ITEMS;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.SIZE_PARAMETER;
+import static hu.blackbelt.judo.runtime.core.validator.Validator.addValidationError;
 
 @Slf4j
 public class DefaultPayloadValidator implements PayloadValidator {
+
     public enum RequiredStringValidatorOption {
-        ACCEPT_EMPTY, ACCEPT_NON_EMPTY
+        ACCEPT_EMPTY, REJECT_EMPTY
     }
 
-    private AsmModel asmModel;
-    private Coercer coercer;
-    private RequiredStringValidatorOption requiredStringValidatorOption;
-    @SuppressWarnings("rawtypes")
-    private IdentifierProvider identifierProvider;
-    private ValidatorProvider validatorProvider;
-    private AsmUtils asmUtils;
+    private final AsmModel asmModel;
+    private final Coercer coercer;
+    private final RequiredStringValidatorOption requiredStringValidatorOption;
+    private final IdentifierProvider identifierProvider;
+    private final ValidatorProvider validatorProvider;
+    private final AsmUtils asmUtils;
 
     public static final String GLOBAL_VALIDATION_CONTEXT = "globalValidationContext";
 
@@ -84,16 +105,16 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
     @Builder
     public DefaultPayloadValidator(
-        @NonNull AsmModel asmModel,
-        @NonNull Coercer coercer,
-        RequiredStringValidatorOption requiredStringValidatorOption,
-        IdentifierProvider identifierProvider,
-        ValidatorProvider validatorProvider) {
+            @NonNull AsmModel asmModel,
+            @NonNull Coercer coercer,
+            RequiredStringValidatorOption requiredStringValidatorOption,
+            IdentifierProvider identifierProvider,
+            ValidatorProvider validatorProvider) {
         this.asmModel = asmModel;
         this.coercer = coercer;
-        this.requiredStringValidatorOption = Optional.ofNullable(requiredStringValidatorOption).orElse(this.requiredStringValidatorOption);
-        this.identifierProvider = Optional.ofNullable(identifierProvider).orElse(this.identifierProvider);
-        this.validatorProvider = Optional.ofNullable(validatorProvider).orElse(this.validatorProvider);
+        this.requiredStringValidatorOption = requiredStringValidatorOption;
+        this.identifierProvider = identifierProvider;
+        this.validatorProvider = validatorProvider;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
     }
 
@@ -106,12 +127,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
         try {
             PayloadTraverser.builder()
-                    .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                            ? asmUtils.getMappedReference(reference).map(e -> !e.isDerived()).orElse(false)
-                            : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
-                    .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext))
-                    .build()
-                    .traverse(payload, transferObjectType);
+                            .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
+                                                      ? asmUtils.getMappedReference(reference).map(e -> !e.isDerived()).orElse(false)
+                                                      : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
+                            .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext))
+                            .build()
+                            .traverse(payload, transferObjectType);
         } catch (IllegalArgumentException ex) {
             log.debug("Invalid payload", ex);
         }
@@ -180,16 +201,14 @@ public class DefaultPayloadValidator implements PayloadValidator {
         boolean isRootElement = (Boolean) validationContext.get(IS_ROOT_KEY);
 
         if (validateMissingFeatures) {
-            boolean isReferenceMissingAndChangeableAndDefaultValueAvailable = !instance.containsKey(reference.getName()) && reference.isChangeable() && AsmUtils.getExtensionAnnotationValue(reference, "default", false).isPresent();
-            validateMissingFeatures = getIdentifier(instance) == null && !isReferenceMissingAndChangeableAndDefaultValueAvailable;
-            if(!validateRootMissingFeatures && isRootElement) {
+            validateMissingFeatures = getIdentifier(instance) == null;
+            if (!validateRootMissingFeatures && isRootElement) {
                 validateMissingFeatures = false;
             }
         }
 
         if (reference.isMany()) {
             if (!ignoreInvalidValues && value instanceof Collection) {
-                @SuppressWarnings("rawtypes")
                 final int size = ((Collection) value).size();
                 if (size < reference.getLowerBound()) {
                     addValidationError(
@@ -215,8 +234,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     );
                 }
                 int idx = 0;
-                for (@SuppressWarnings("rawtypes")
-                     Iterator it = ((Collection) value).iterator(); it.hasNext(); idx++) {
+                for (Iterator it = ((Collection) value).iterator(); it.hasNext(); idx++) {
                     final Map<String, Object> currentItemContext = new TreeMap<>(currentContext);
                     currentItemContext.put(LOCATION_KEY, currentContext.get(LOCATION_KEY) + "[" + idx + "]");
                     final Object item = it.next();
@@ -233,9 +251,11 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     } else if (!(item instanceof Payload)) {
                         throw new IllegalStateException("Item must be a Payload");
                     } else {
-                        validatorProvider.getValidators().stream()
-                                .filter(v -> v.isApplicable(reference))
-                                .forEach(v -> validationResults.addAll(v.validateValue(instance, reference, item, currentItemContext)));
+                        for (Validator validator : validatorProvider.getValidators()) {
+                            if (validator.isApplicable(reference)) {
+                                validationResults.addAll(validator.validateValue(instance, reference, item, currentItemContext));
+                            }
+                        }
                     }
                 }
             } else if (value != null && !(value instanceof Collection)) {
@@ -263,23 +283,26 @@ public class DefaultPayloadValidator implements PayloadValidator {
             } else if (value != null && !(value instanceof Payload)) {
                 throw new IllegalStateException("Item must be a Payload");
             } else if (!ignoreInvalidValues && value != null) {
-                validatorProvider.getValidators().stream()
-                        .filter(v -> v.isApplicable(reference))
-                        .forEach(v -> validationResults.addAll(v.validateValue(instance, reference, value, currentContext)));
+                for (Validator validator : validatorProvider.getValidators()) {
+                    if (validator.isApplicable(reference)) {
+                        validationResults.addAll(validator.validateValue(instance, reference, value, currentContext));
+                    }
+                }
             }
         }
 
         final Optional<EReference> mappedReference = asmUtils.getMappedReference(reference);
-        final boolean validateForCreate = createReference != null
-                ? mappedReference
-                .map(mr -> asmUtils.getMappedReference(createReference)
-                        .map(EReference::getEOpposite)
-                        .filter(mappedCreateReferenceOpposite -> AsmUtils.equals(mappedCreateReferenceOpposite, mr))
-                        .isEmpty())
-                .orElse(false)
-                : false;
 
-        if (reference.isRequired() && (validateMissingFeatures || instance.containsKey(reference.getName())) && (createReference == null || mappedReference.isEmpty() || validateForCreate) && value == null) {
+        Supplier<Boolean> validateForCreate =
+                () -> asmUtils.getMappedReference(createReference)
+                              .map(EReference::getEOpposite)
+                              .filter(mappedCreateReferenceOpposite -> AsmUtils.equals(mappedCreateReferenceOpposite, mappedReference.get()))
+                              .isEmpty();
+
+        if (value == null
+            && (reference.isRequired() || mappedReference.map(ETypedElement::isRequired).orElse(false))
+            && (validateMissingFeatures || instance.containsKey(reference.getName()))
+            && (createReference == null || mappedReference.isEmpty() || validateForCreate.get())) {
             addValidationError(
                     ImmutableMap.of(
                             Validator.FEATURE_KEY, REFERENCE_TO_MODEL_TYPE.apply(reference),
@@ -287,7 +310,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ),
                     currentContext.get(LOCATION_KEY),
                     validationResults,
-                    ERROR_MISSING_REQUIRED_RELATION
+                    reference.isRequired() ? ERROR_MISSING_REQUIRED_RELATION : ERROR_MISSING_REQUIRED_RELATION_ON_ENTITY
             );
         }
         return validationResults;
@@ -299,19 +322,18 @@ public class DefaultPayloadValidator implements PayloadValidator {
         boolean validateRootMissingFeatures = (Boolean) validationContext.getOrDefault(VALIDATE_ROOT_MISSING_FEATURES_KEY, VALIDATE_ROOT_MISSING_FEATURES_DEFAULT);
         boolean isRootElement = (Boolean) validationContext.get(IS_ROOT_KEY);
 
-        if (validateMissingFeatures ) {
-            boolean isAttributeMissingAndChangeableAndDefaultValueAvailable = !instance.containsKey(attribute.getName()) && attribute.isChangeable() && AsmUtils.getExtensionAnnotationValue(attribute, "default", false).isPresent();
-            validateMissingFeatures = getIdentifier(instance) == null && !isAttributeMissingAndChangeableAndDefaultValueAvailable;
-            if(!validateRootMissingFeatures && isRootElement) {
+        if (validateMissingFeatures) {
+            validateMissingFeatures = getIdentifier(instance) == null;
+            if (!validateRootMissingFeatures && isRootElement) {
                 validateMissingFeatures = false;
             }
         }
 
         final List<ValidationResult> validationResults = new ArrayList<>();
 
-        if ((attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
-            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
-            value == null) {
+        if (value == null
+            && (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false))
+            && (validateMissingFeatures || instance.containsKey(attribute.getName()))) {
 
             addValidationError(
                     ImmutableMap.of(
@@ -323,12 +345,12 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ERROR_MISSING_REQUIRED_ATTRIBUTE
             );
         }
-        if (AsmUtils.isString(attribute.getEAttributeType()) &&
-            (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false)) &&
-            (validateMissingFeatures || instance.containsKey(attribute.getName())) &&
-            value != null &&
-            RequiredStringValidatorOption.ACCEPT_NON_EMPTY.equals(requiredStringValidatorOption) &&
-            ((String) value).isEmpty()) {
+        if (value != null
+            && AsmUtils.isString(attribute.getEAttributeType())
+            && RequiredStringValidatorOption.REJECT_EMPTY.equals(requiredStringValidatorOption)
+            && ((String) value).isBlank()
+            && (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false))
+            && (validateMissingFeatures || instance.containsKey(attribute.getName()))) {
 
             addValidationError(
                     ImmutableMap.of(
@@ -337,19 +359,20 @@ public class DefaultPayloadValidator implements PayloadValidator {
                     ),
                     validationContext.get(LOCATION_KEY),
                     validationResults,
-                    ERROR_MISSING_REQUIRED_ATTRIBUTE
+                    attribute.isRequired() ? ERROR_MISSING_REQUIRED_ATTRIBUTE : ERROR_MISSING_REQUIRED_ATTRIBUTE_ON_ENTITY
             );
         }
 
         if (value != null) {
-            validatorProvider.getValidators().stream()
-                    .filter(v -> v.isApplicable(attribute))
-                    .forEach(v -> validationResults.addAll(v.validateValue(instance, attribute, value, validationContext)));
+            for (Validator validator : validatorProvider.getValidators()) {
+                if (validator.isApplicable(attribute)) {
+                    validationResults.addAll(validator.validateValue(instance, attribute, value, validationContext));
+                }
+            }
         }
 
         return validationResults;
     }
-
 
     private Object getIdentifier(Payload instance) {
         Object identifier = null;
@@ -358,4 +381,5 @@ public class DefaultPayloadValidator implements PayloadValidator {
         }
         return identifier;
     }
+
 }
