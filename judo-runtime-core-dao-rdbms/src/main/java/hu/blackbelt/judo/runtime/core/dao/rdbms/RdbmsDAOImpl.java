@@ -687,9 +687,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             }
         }
 
-        List<EReference> references = clazz.getEAllReferences().stream()
-                                           .filter(r -> r.isChangeable() && !r.isContainment()) // TODO: support default values on containment?
-                                           .toList();
+        // in case a composition has default value, it might cause problems
+        List<EReference> references = clazz.getEAllReferences().stream().filter(EStructuralFeature::isChangeable).toList();
         for (EReference reference : references) {
             String defaultReferenceName = AsmUtils.getExtensionAnnotationValue(reference, "default", false).orElse(null);
             if (defaultReferenceName != null) {
@@ -718,6 +717,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (defaultTransferObjectType.isPresent() && !Objects.equals(defaultTransferObjectType.get(), clazz)) {
             // if the transfer object has a mapping, read default values of the mapped features
             // and add them to the template if they are not already present
+            // TODO: optimization - read default values for only a subset of needed features
             Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
                                  // no performance bottleneck if asmUtils.getMappedAttribute is cached
