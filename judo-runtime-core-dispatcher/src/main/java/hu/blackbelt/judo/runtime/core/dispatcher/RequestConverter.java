@@ -112,7 +112,7 @@ public class RequestConverter {
     public RequestConverter(@NonNull EClass transferObjectType,
                             @NonNull AsmModel asmModel,
                             @NonNull Coercer coercer,
-                            @NonNull DAO dao,
+                            DAO dao,
                             @NonNull PayloadValidator payloadValidator,
                             @NonNull @Singular Collection<String> keepProperties,
                             TokenValidator filestoreTokenValidator,
@@ -184,14 +184,18 @@ public class RequestConverter {
         final boolean validate = !validatorProvider.getValidators().isEmpty() && ctx.getPath().stream().allMatch(e -> e.getReference().isContainment());
         final boolean ignoreInvalidValues = (Boolean) validationContext.getOrDefault(IGNORE_INVALID_VALUES_KEY, IGNORE_INVALID_VALUES_DEFAULT);
 
-        // load default values if current payload is being "instantiated"
-        if (identifierProvider != null && !instance.containsKey(identifierProvider.getName())) {
-            Payload defaultValues = dao.getDefaultsOf(transferObjectType);
-            for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
-                if (!instance.containsKey(e.getKey())) {
-                    instance.put(e.getKey(), e.getValue());
+        if (dao != null) {
+            // load default values if current payload is being "instantiated"
+            if (identifierProvider != null && !instance.containsKey(identifierProvider.getName())) {
+                Payload defaultValues = dao.getDefaultsOf(transferObjectType);
+                for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
+                    if (!instance.containsKey(e.getKey())) {
+                        instance.put(e.getKey(), e.getValue());
+                    }
                 }
             }
+        } else {
+            log.warn("Default values cannot be loaded: DAO is not available for Request converter");
         }
 
         EList<EAttribute> attributes = transferObjectType.getEAllAttributes();
