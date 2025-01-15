@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.dao.api.PayloadImpl;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.MetricsCancelToken;
@@ -79,6 +80,15 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
             Payload result = readDefaultsOf(clazz);
             logResult(result);
             return result;
+        }
+    }
+
+    @Override
+    public Payload populateDefaultsOf(EClass clazz, Payload payload) {
+        try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
+            Payload copyOfPayload = readDeepDefaultsOf(clazz, payload);
+            logResult(copyOfPayload);
+            return copyOfPayload;
         }
     }
 
@@ -628,6 +638,8 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected abstract Payload readDefaultsOf(EClass clazz);
 
+    protected abstract Payload readDeepDefaultsOf(EClass clazz, Payload payload);
+    
     protected abstract Collection<Payload> readRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);
 
     protected abstract long calculateNumberRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);

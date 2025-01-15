@@ -47,8 +47,8 @@ import static java.util.stream.Collectors.toList;
 
 
 /**
- * Analyzing the inserted entities recursively and generating the required executable statements.
- * The entities have be transfer objects which are mapped to other entities via aliases.
+ * Analyze the inserted entities recursively and generate the required executable statements.
+ * The entities must be transfer objects mapped to other entities through aliases.
  *
  * Rules:
  *    - The root type cannot have ID - because its is update

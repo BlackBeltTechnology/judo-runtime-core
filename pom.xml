@@ -60,12 +60,12 @@
         <judo-meta-query-version>1.0.3.20241212_103107_7309e96c_develop</judo-meta-query-version>
         <judo-meta-keycloak-version>1.0.1.20241202_042226_cdd8af59_develop</judo-meta-keycloak-version>
 
-        <judo-dao-api-version>1.0.4.20241127_150110_f05e3ff8_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20241202_042423_0bcd40fc_develop</judo-sdk-common-version>
+        <judo-dao-api-version>1.0.4.20250115_162924_6b4e7526_feature_JNG_6082_Refactor_required_validation_and_default_value_processing</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4.20250115_163208_89427513_feature_JNG_6082_Refactor_required_validation_and_default_value_processing</judo-sdk-common-version>
         <judo-dispatcher-api-version>1.0.3.20241127_150146_84f2988d_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.3.20241202_042406_1861c263_develop</judo-operation-utils-version>
+        <judo-operation-utils-version>1.1.3.20250115_163213_9bede302_feature_JNG_6082_Refactor_required_validation_and_default_value_processing</judo-operation-utils-version>
 
-        <judo-tatami-base-version>1.1.6.20241215_175758_6567f8a2_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20250115_163807_e28ec4ea_feature_JNG_6082_Refactor_required_validation_and_default_value_processing</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20241127_150716_35788c69_develop</mapper-version>
         <osgi-filestore-version>1.3.1.20241127_155448_e9885d1a_develop</osgi-filestore-version>
