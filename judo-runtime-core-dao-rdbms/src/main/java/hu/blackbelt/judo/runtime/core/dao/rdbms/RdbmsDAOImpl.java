@@ -672,7 +672,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         Payload template = Payload.empty();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-        List<EAttribute> attributes = clazz.getEAllAttributes().stream().filter(EStructuralFeature::isChangeable).toList();
+        List<EAttribute> attributes = clazz.getEAllAttributes().stream().filter(a -> a.isChangeable() && !a.isDerived()).toList();
         for (EAttribute attribute : attributes) {
             String defaultAttributeName = AsmUtils.getExtensionAnnotationValue(attribute, "default", false).orElse(null);
             if (defaultAttributeName != null) {
@@ -688,7 +688,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
 
         // in case a composition has default value, it might cause problems
-        List<EReference> references = clazz.getEAllReferences().stream().filter(EStructuralFeature::isChangeable).toList();
+        List<EReference> references = clazz.getEAllReferences().stream().filter(r -> r.isChangeable() && !r.isDerived()).toList();
         for (EReference reference : references) {
             String defaultReferenceName = AsmUtils.getExtensionAnnotationValue(reference, "default", false).orElse(null);
             if (defaultReferenceName != null) {
@@ -734,6 +734,27 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
 
         return template;
+    }
+
+    @Override
+    protected Payload readDeepDefaultsOf(EClass clazz, Payload payload) {
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
+        Payload copyOfPayload = Payload.asPayload(payload);
+        hu.blackbelt.judo.runtime.core.PayloadTraverser.builder()
+                                                       .processor((_payload, context) -> {
+                                                           if (!_payload.containsKey(identifierProvider.getName())) {
+                                                               Payload defaultValues = getDefaultsOf(clazz);
+                                                               for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
+                                                                   if (!_payload.containsKey(e.getKey())) {
+                                                                       _payload.put(e.getKey(), e.getValue());
+                                                                   }
+                                                               }
+                                                           }
+                                                       })
+                                                       .predicate(reference -> asmUtils.getMappedReference(reference).map(r -> r.isChangeable() && !r.isDerived()).orElse(false))
+                                                       .build()
+                                                       .traverse(copyOfPayload, clazz);
+        return copyOfPayload;
     }
 
     @Override
