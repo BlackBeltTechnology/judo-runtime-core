@@ -737,7 +737,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected Payload readDeepDefaultsOf(EClass clazz, Payload payload) {
+    protected Payload applyDeepDefaultsOf(EClass clazz, Payload payload) {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         Payload copyOfPayload = Payload.asPayload(payload);
         hu.blackbelt.judo.runtime.core.PayloadTraverser.builder()
