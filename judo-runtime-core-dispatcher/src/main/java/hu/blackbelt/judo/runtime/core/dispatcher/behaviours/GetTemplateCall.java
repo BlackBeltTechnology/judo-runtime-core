@@ -20,19 +20,16 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
-import hu.blackbelt.judo.dao.api.DAO;
+import java.util.Map;
+
 import hu.blackbelt.judo.dao.api.Payload;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
-import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
-
-import java.util.Map;
 
 public class GetTemplateCall<ID> implements BehaviourCall<ID> {
 
@@ -58,10 +55,15 @@ public class GetTemplateCall<ID> implements BehaviourCall<ID> {
                         .owner((EClass) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation).orElseThrow(
                                 () -> new IllegalArgumentException("Invalid model")))
                 .build());
-        Payload result = null;
+
+        Payload result;
         if (callInterceptorUtil.shouldCallOriginal()) {
-            result = serviceContext.getDao().getDefaultsOf(inputParameter.getOwner());
+            result = Payload.empty();
+            serviceContext.getDao().applyDefaultsOf(inputParameter.getOwner(), result);
+        } else {
+            result = null;
         }
+
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);
     }
 
