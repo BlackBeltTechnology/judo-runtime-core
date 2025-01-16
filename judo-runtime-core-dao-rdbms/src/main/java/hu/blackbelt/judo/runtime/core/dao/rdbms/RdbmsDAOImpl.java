@@ -747,7 +747,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                                                        .processor((_payload, context) -> {
                                                            if (!requireNonNullElse(_payload.getAs(Boolean.class, DEFAULT_VALUES_LOADED_KEY), false)
                                                                && !_payload.containsKey(identifierProvider.getName())) {
-                                                               Payload defaultValues = getDefaultsOf(clazz); // TODO: whitelist
+                                                               Payload defaultValues = getDefaultsOf(context.getType()); // TODO: whitelist
                                                                for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
                                                                    // putIfAbsent is intentionally avoided to keep explicitly set null values
                                                                    if (!_payload.containsKey(e.getKey())) {
