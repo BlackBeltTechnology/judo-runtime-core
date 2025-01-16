@@ -83,11 +83,10 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Payload applyDefaultsOf(EClass clazz, Payload payload) {
+    public void applyDefaultsOf(EClass clazz, Payload payload) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
-            Payload copyOfPayload = applyDeepDefaultsOf(clazz, payload);
-            logResult(copyOfPayload);
-            return copyOfPayload;
+            applyDeepDefaultsOf(clazz, payload);
+            logResult(payload);
         }
     }
 
@@ -637,7 +636,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected abstract Payload readDefaultsOf(EClass clazz);
 
-    protected abstract Payload applyDeepDefaultsOf(EClass clazz, Payload payload);
+    protected abstract void applyDeepDefaultsOf(EClass clazz, Payload payload);
     
     protected abstract Collection<Payload> readRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);
 

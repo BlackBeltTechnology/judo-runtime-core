@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -94,6 +95,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private static final String STATEFUL = "STATEFUL";
     private static final String ROLLBACK = "ROLLBACK";
     public static final String CREATED = "__$created";
+    public static final String DEFAULT_VALUES_LOADED_KEY = "__defaultValuesLoaded";
 
     @Getter private final AsmModel asmModel;
     private final DataSource dataSource;
@@ -137,8 +139,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         this.modifyStatementExecutor = modifyStatementExecutor;
     }
 
-    private Function<EClass, Payload> getDefaultValuesProvider() {
-        return (clazz) -> hasDefaults(clazz) ? getDefaultsOf(clazz) : Payload.empty();
+    private BiConsumer<EClass, Payload> getDefaultValuesApplier() {
+        return (clazz, payload) -> {
+            if (hasDefaults(clazz)) {
+                applyDefaultsOf(clazz, payload);
+            }
+        };
     }
 
     private boolean hasDefaults(EClass clazz) {
@@ -181,11 +187,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected InsertPayloadDaoProcessor getInsertPayloadProcessor(Metadata metadata) {
         return new InsertPayloadDaoProcessor<ID>(asmModel.getResourceSet(),
-                getIdentifierProvider(),
-                queryFactory,
-                instanceCollector,
-                getDefaultValuesProvider(),
-                metadata);
+                                                 getIdentifierProvider(),
+                                                 queryFactory,
+                                                 instanceCollector,
+                                                 getDefaultValuesApplier(),
+                                                 metadata);
     }
 
     protected DeletePayloadDaoProcessor getDeletePayloadProcessor() {
@@ -197,12 +203,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected UpdatePayloadDaoProcessor getUpdatePayloadProcessor(Metadata metadata) {
         return new UpdatePayloadDaoProcessor(asmModel.getResourceSet(),
-                getIdentifierProvider(),
-                queryFactory,
-                instanceCollector,
-                getDefaultValuesProvider(),
-                metadata,
-                optimisticLockEnabled);
+                                             getIdentifierProvider(),
+                                             queryFactory,
+                                             instanceCollector,
+                                             getDefaultValuesApplier(),
+                                             metadata,
+                                             optimisticLockEnabled);
     }
 
     protected AddReferencePayloadDaoProcessor getAddReferencePayloadProcessor() {
@@ -720,13 +726,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             // TODO: optimization - read default values for only a subset of needed features
             Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
-                                 // no performance bottleneck if asmUtils.getMappedAttribute is cached
                                  .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
                                  .collect(Collectors.toMap(identity(), a -> asmUtils.getMappedAttribute(a).get())).entrySet().stream()
                                  .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                                  .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
             template.putAll(clazz.getEAllReferences().stream()
-                                 // no performance bottleneck if asmUtils.getMappedReference is cached
                                  .filter(r -> !template.containsKey(r.getName()) && asmUtils.getMappedReference(r).isPresent())
                                  .collect(Collectors.toMap(identity(), r -> asmUtils.getMappedReference(r).get())).entrySet().stream()
                                  .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
@@ -737,24 +741,25 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected Payload applyDeepDefaultsOf(EClass clazz, Payload payload) {
+    protected void applyDeepDefaultsOf(EClass clazz, Payload payload) {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
-        Payload copyOfPayload = Payload.asPayload(payload);
         hu.blackbelt.judo.runtime.core.PayloadTraverser.builder()
                                                        .processor((_payload, context) -> {
-                                                           if (!_payload.containsKey(identifierProvider.getName())) {
-                                                               Payload defaultValues = getDefaultsOf(clazz);
+                                                           if (!requireNonNullElse(_payload.getAs(Boolean.class, DEFAULT_VALUES_LOADED_KEY), false)
+                                                               && !_payload.containsKey(identifierProvider.getName())) {
+                                                               Payload defaultValues = getDefaultsOf(clazz); // TODO: whitelist
                                                                for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
+                                                                   // putIfAbsent is intentionally avoided to keep explicitly set null values
                                                                    if (!_payload.containsKey(e.getKey())) {
                                                                        _payload.put(e.getKey(), e.getValue());
                                                                    }
                                                                }
+                                                               _payload.put(DEFAULT_VALUES_LOADED_KEY, true);
                                                            }
                                                        })
                                                        .predicate(reference -> asmUtils.getMappedReference(reference).map(r -> r.isChangeable() && !r.isDerived()).orElse(false))
                                                        .build()
-                                                       .traverse(copyOfPayload, clazz);
-        return copyOfPayload;
+                                                       .traverse(payload, clazz);
     }
 
     @Override

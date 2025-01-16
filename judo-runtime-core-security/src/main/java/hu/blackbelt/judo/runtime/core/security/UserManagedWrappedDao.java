@@ -85,8 +85,8 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     }
 
     @Override
-    public Payload populateDefaultsOf(EClass clazz, Payload payload) {
-        return delegatee.populateDefaultsOf(clazz, payload);
+    public void applyDefaultsOf(EClass clazz, Payload payload) {
+        delegatee.applyDefaultsOf(clazz, payload);
     }
 
     @Override

@@ -39,6 +39,7 @@ import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -67,14 +68,14 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
     public UpdatePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
                                      QueryFactory queryFactory, InstanceCollector<ID> instanceCollector,
-                                     Function<EClass, Payload> defaultValuesProvider,
+                                     BiConsumer<EClass, Payload> defaultValuesApplier,
                                      Metadata<ID> metadata,
                                      boolean optimisticLockEnabled) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
         this.metadata = metadata;
         this.optimisticLockEnabled = optimisticLockEnabled;
         insertPayloadDaoProcessor = new InsertPayloadDaoProcessor<ID>(resourceSet, identifierProvider,
-                queryFactory, instanceCollector, defaultValuesProvider, metadata);
+                queryFactory, instanceCollector, defaultValuesApplier, metadata);
         deletePayloadDaoProcessor = new DeletePayloadDaoProcessor<ID>(resourceSet, identifierProvider,
                 queryFactory, instanceCollector);
         addReferencePayloadDaoProcessor = new AddReferencePayloadDaoProcessor<ID>(resourceSet, identifierProvider,

@@ -187,12 +187,7 @@ public class RequestConverter {
         if (dao != null) {
             // load default values if current payload is being "instantiated"
             if (identifierProvider != null && !instance.containsKey(identifierProvider.getName())) {
-                Payload defaultValues = dao.getDefaultsOf(transferObjectType);
-                for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
-                    if (!instance.containsKey(e.getKey())) {
-                        instance.put(e.getKey(), e.getValue());
-                    }
-                }
+                dao.applyDefaultsOf(transferObjectType, instance);
             }
         } else {
             log.warn("Default values cannot be loaded: DAO is not available for Request converter");

@@ -36,7 +36,7 @@ import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -60,18 +60,18 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
     private final AddReferencePayloadDaoProcessor<ID> addReferenceProcessor;
 
-    private final Function<EClass, Payload> defaultValuesProvider;
+    private final BiConsumer<EClass, Payload> defaultValuesApplier;
 
     Metadata<ID> metadata;
 
     public InsertPayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
                                      QueryFactory queryFactory, InstanceCollector<ID> instanceCollector,
-                                     Function<EClass, Payload> defaultValuesProvider,
+                                     BiConsumer<EClass, Payload> defaultValuesApplier,
                                      Metadata<ID> metadata) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
         addReferenceProcessor =
                 new AddReferencePayloadDaoProcessor<ID>(resourceSet, identifierProvider, queryFactory, instanceCollector);
-        this.defaultValuesProvider = defaultValuesProvider;
+        this.defaultValuesApplier = defaultValuesApplier;
         this.metadata = metadata;
     }
 
@@ -94,11 +94,7 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         checkArgument(getAsmUtils().isMappedTransferObjectType(mappedTransferObjectType), "Type have to be mapped transfer object");
 
-        // Set default values of transfer object type (that are missing from payload)
-        Payload defaults = defaultValuesProvider.apply(mappedTransferObjectType);
-        payload.putAll(defaults.entrySet().stream()
-                .filter(e -> !payload.containsKey(e.getKey()) && e.getValue() != null)
-                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
+        defaultValuesApplier.accept(mappedTransferObjectType, payload);
 
         InsertStatement.InsertStatementBuilder<ID> currentStatementBuilder =
                 InsertStatement.<ID>buildInsertStatement()
@@ -122,9 +118,6 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         Optional<EClass> defaultTransferObjectType = AsmUtils.getExtensionAnnotationValue(mappedEntity.get(), "defaultRepresentation", false)
                 .map(defaultTransferObjectTypeName -> getAsmUtils().resolve(defaultTransferObjectTypeName).orElse(null))
                 .filter(t -> t instanceof EClass).map(t -> (EClass) t);
-
-        // Get default values of entity type
-        final Payload entityDefaults = defaultTransferObjectType.map(t -> defaultValuesProvider.apply(t)).orElse(Payload.empty());
 
         // Processing attributes
         attributes = mappedTransferObjectType.getEAllAttributes().stream()
@@ -153,7 +146,6 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         checkReferences(references, payload);
 
         checkForbiddenReferenceUpdates(references, payload);
-
 
         // Add attributes (mapped name of attribute resolved here)
         attributes.stream()
@@ -184,6 +176,9 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                         )
                 );
 
+        // Get default values of entity type
+        final Payload entityDefaults = Payload.empty();
+        defaultTransferObjectType.ifPresent(t -> defaultValuesApplier.accept(t, entityDefaults));
 
         // Add entity default attributes that are not mapped to transfer object type
         defaultTransferObjectType.ifPresent(t -> t.getEAllAttributes().stream()
