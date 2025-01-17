@@ -36,7 +36,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -174,7 +173,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                             .filter(t -> t instanceof EClass).map(t -> (EClass) t))
                     .filter(eClass -> eClass.isPresent())
                     .flatMap(eClass -> eClass.get().getEAllStructuralFeatures().stream())
-                    .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {;
+                    .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {
             return true;
         }
         checked.addAll(classes);
@@ -747,7 +746,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                                                        .processor((_payload, context) -> {
                                                            if (!requireNonNullElse(_payload.getAs(Boolean.class, DEFAULT_VALUES_LOADED_KEY), false)
                                                                && !_payload.containsKey(identifierProvider.getName())) {
-                                                               Payload defaultValues = getDefaultsOf(context.getType()); // TODO: whitelist
+                                                               Payload defaultValues = readDefaultsOf(context.getType());
                                                                for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
                                                                    // putIfAbsent is intentionally avoided to keep explicitly set null values
                                                                    if (!_payload.containsKey(e.getKey())) {
@@ -766,7 +765,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
-                        .orElseThrow(() -> new IllegalStateException("Refence not found on containing class: " + rangeTransferRelationName)))
+                        .orElseThrow(() -> new IllegalStateException("Reference not found on containing class: " + rangeTransferRelationName)))
                 .orElseThrow(() -> new IllegalStateException("No range defined"));
 
         ID instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
