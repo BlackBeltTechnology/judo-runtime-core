@@ -83,6 +83,14 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
+    public void applyDefaultsOf(EClass clazz, Payload payload) {
+        try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
+            applyDeepDefaultsOf(clazz, payload);
+            logResult(payload);
+        }
+    }
+
+    @Override
     public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             Collection<Payload> result = readRangeOf(reference, payload, queryCustomizer, stateful);
@@ -628,6 +636,8 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected abstract Payload readDefaultsOf(EClass clazz);
 
+    protected abstract void applyDeepDefaultsOf(EClass clazz, Payload payload);
+    
     protected abstract Collection<Payload> readRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);
 
     protected abstract long calculateNumberRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);
