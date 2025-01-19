@@ -20,29 +20,18 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
-import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dao.api.IdentifierProvider;
+import java.util.Map;
+
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
-import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
-import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
-import org.eclipse.emf.ecore.EReference;
-import org.springframework.transaction.PlatformTransactionManager;
-import java.util.*;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
 public class ValidateOperationInputCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
@@ -74,12 +63,15 @@ public class ValidateOperationInputCall<ID> extends AlwaysRollbackTransactionalB
                 callInterceptorUtil.preCallInterceptors(
                         ValidateOperationInputCall.ValidateOperationCallPayload.builder()
                                 .owner(owner)
-                                .input(asPayload((Map<String, Object>) exchange.get(inputParameterName)))
+                                .input(Payload.asPayload((Map<String, Object>) exchange.get(inputParameterName)))
                                 .build());
 
-        Payload result = null;
+        Payload result;
         if (callInterceptorUtil.shouldCallOriginal()) {
-            result = serviceContext.getDao().getDefaultsOf(owner.getEContainingClass());
+            result = Payload.empty();
+            serviceContext.getDao().applyDefaultsOf(owner.getEContainingClass(), result);
+        } else {
+            result = null;
         }
 
         return callInterceptorUtil.postCallInterceptors(inputParameter, result);
