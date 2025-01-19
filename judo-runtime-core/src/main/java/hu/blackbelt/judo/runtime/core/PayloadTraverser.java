@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core;
 import com.google.common.collect.ImmutableList;
 import hu.blackbelt.judo.dao.api.Payload;
 import lombok.*;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
@@ -37,6 +38,7 @@ import java.util.stream.Collectors;
 
 @Getter
 @Builder
+@Slf4j
 public class PayloadTraverser {
 
     @NonNull
@@ -44,8 +46,6 @@ public class PayloadTraverser {
 
     @NonNull
     private Predicate<EReference> predicate;
-
-    private static final Predicate<EStructuralFeature> IS_COLLECTION = ETypedElement::isMany;
 
     public Payload traverse(final Payload payload, final EClass transferObjectType) {
         return traverse(payload, PayloadTraverserContext
@@ -88,10 +88,16 @@ public class PayloadTraverser {
 
     private static Collector<EReference, ?, Map<EReference, Collection<Payload>>> toReferencePayloadMapOfPayloadCollection(Payload payload) {
         return Collectors.toMap(Function.identity(), (r) -> {
-            if (IS_COLLECTION.test(r)) {
-                return payload.getAsCollectionPayload(r.getName());
+            String referenceName = r.getName();
+            Object payloadElement = payload.get(referenceName);
+            if (payloadElement instanceof Collection collection) {
+                return collection;
+            } else if (payloadElement instanceof Payload payloadInstance) {
+                return ImmutableList.of(payloadInstance);
             } else {
-                return ImmutableList.of(payload.getAsPayload(r.getName()));
+                log.warn("Reference found with name '{}' cannot be traversed because its type in the payload is neither a Collection or a Payload: {}",
+                         referenceName, payloadElement.getClass().getName());
+                return ImmutableList.of();
             }
         });
     }
