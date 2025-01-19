@@ -178,22 +178,25 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         // Get default values of entity type
         final Payload entityDefaults = Payload.empty();
-        defaultTransferObjectType.ifPresent(t -> defaultValuesApplier.accept(t, entityDefaults));
 
-        // Add entity default attributes that are not mapped to transfer object type
-        defaultTransferObjectType.ifPresent(t -> t.getEAllAttributes().stream()
-                .filter(a -> entityDefaults.get(a.getName()) != null)
-                .collect(Collectors.toMap(
-                        identity(),
-                        a -> getAsmUtils().getMappedAttribute(a).orElse(a)))
-                .entrySet().stream()
-                .filter(e -> !mappedTransferObjectType.getEAllAttributes().stream().anyMatch(ta -> AsmUtils.equals(e.getValue(), getAsmUtils().getMappedAttribute(ta).orElse(null))))
-                .forEach(
-                        a -> currentStatement.getInstance().addAttributeValue(
-                                a.getValue(),
-                                getTransferObjectValueAsEntityValueFromPayload(entityDefaults, a.getKey(), a.getValue()))
-                )
-        );
+        boolean isDTOPresentAndDifferentThanMappedTO =
+                defaultTransferObjectType.isPresent() && !AsmUtils.equals(defaultTransferObjectType.get(), mappedTransferObjectType);
+        if (isDTOPresentAndDifferentThanMappedTO) {
+            defaultValuesApplier.accept(defaultTransferObjectType.get(), entityDefaults);
+
+            // Add entity default attributes that are not mapped to transfer object type
+            Map<EAttribute, EAttribute> dtoAttributeDefaults =
+                    defaultTransferObjectType.get().getEAllAttributes().stream()
+                                             .filter(a -> entityDefaults.get(a.getName()) != null)
+                                             .collect(Collectors.toMap(identity(), a -> getAsmUtils().getMappedAttribute(a).orElse(a)));
+            for (Map.Entry<EAttribute, EAttribute> e : dtoAttributeDefaults.entrySet()) {
+                EAttribute dtoAttribute = e.getKey();
+                EAttribute mappedAttribute = e.getValue();
+                if (mappedTransferObjectType.getEAllAttributes().stream().noneMatch(ta -> AsmUtils.equals(mappedAttribute, getAsmUtils().getMappedAttribute(ta).orElse(null)))) {
+                    currentStatement.getInstance().addAttributeValue(mappedAttribute, getTransferObjectValueAsEntityValueFromPayload(entityDefaults, dtoAttribute, mappedAttribute));
+                }
+            }
+        }
 
         // Inserting all embedded reference
         references.stream()
@@ -252,26 +255,28 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 );
 
         // Add entity default references that are not mapped to transfer object type
-        defaultTransferObjectType.ifPresent(t -> t.getEAllReferences().stream()
-                .filter(r -> entityDefaults.get(r.getName()) != null)
-                .collect(Collectors.toMap(
-                        identity(),
-                        r -> getAsmUtils().getMappedReference(r).orElse(r)))
-                .entrySet().stream()
-                .filter(e -> !mappedTransferObjectType.getEAllReferences().stream().anyMatch(tr -> AsmUtils.equals(e.getValue(), getAsmUtils().getMappedReference(tr).orElse(null))))
-                .forEach(
-                        r -> currentStatements.addAll(
-                                addReferenceProcessor.addReference(
-                                        r.getValue(),
-                                        r.getKey().isMany()
-                                                ? entityDefaults.getAsCollectionPayload(r.getKey().getName()).stream().map(p -> p.getAs(getIdentifierProvider().getType(), getIdentifierProvider().getName())).collect(Collectors.toSet())
-                                                : Collections.singleton(entityDefaults.getAsPayload(r.getKey().getName()).getAs(getIdentifierProvider().getType(), getIdentifierProvider().getName())),
-                                        currentStatement.getInstance().getIdentifier(),
-                                        true
-                                )
-                        )
-                )
-        );
+        if (isDTOPresentAndDifferentThanMappedTO) {
+            Map<EReference, EReference> dtoReferences =
+                    defaultTransferObjectType.get().getEAllReferences().stream()
+                                             .filter(r -> entityDefaults.get(r.getName()) != null)
+                                             .collect(Collectors.toMap(identity(), r -> getAsmUtils().getMappedReference(r).orElse(r)));
+            for (Map.Entry<EReference, EReference> e : dtoReferences.entrySet()) {
+                EReference dtoReference = e.getKey();
+                EReference mappedReference = e.getValue();
+                if (mappedTransferObjectType.getEAllReferences().stream().noneMatch(tr -> AsmUtils.equals(mappedReference, getAsmUtils().getMappedReference(tr).orElse(null)))) {
+                    Set<ID> ids;
+                    if (dtoReference.isMany()) {
+                        ids = entityDefaults.getAsCollectionPayload(dtoReference.getName()).stream()
+                                            .map(p -> p.getAs(getIdentifierProvider().getType(), getIdentifierProvider().getName()))
+                                            .collect(Collectors.toSet());
+                    } else {
+                        ids = Collections.singleton(entityDefaults.getAsPayload(dtoReference.getName())
+                                                                  .getAs(getIdentifierProvider().getType(), getIdentifierProvider().getName()));
+                    }
+                    currentStatements.addAll(addReferenceProcessor.addReference(mappedReference, ids, currentStatement.getInstance().getIdentifier(), true));
+                }
+            }
+        }
 
         statements.addAll(currentStatements);
         return ImmutableSet.copyOf(currentStatements);

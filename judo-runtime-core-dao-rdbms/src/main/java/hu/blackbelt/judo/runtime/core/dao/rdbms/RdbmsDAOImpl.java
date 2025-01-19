@@ -681,13 +681,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         for (EAttribute attribute : attributes) {
             String defaultAttributeName = AsmUtils.getExtensionAnnotationValue(attribute, "default", false).orElse(null);
             if (defaultAttributeName != null) {
-                EAttribute defaultAttribute =
+                Optional<EAttribute> defaultAttribute =
                         clazz.getEAllAttributes().stream()
                              .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
-                             .findAny().orElse(null);
-                if (defaultAttribute != null) {
-                    template.put(attribute.getName(), getStaticData(defaultAttribute).get(defaultAttribute.getName()));
-                }
+                             .findAny();
+                defaultAttribute.ifPresent(eAttribute -> template.put(attribute.getName(), getStaticData(eAttribute).get(eAttribute.getName())));
             }
         }
 
