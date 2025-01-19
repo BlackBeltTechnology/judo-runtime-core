@@ -87,8 +87,6 @@ public class PayloadDaoProcessor<ID> {
     public static Predicate<EStructuralFeature> notDerived = (r) -> !r.isDerived();
     public static Predicate<EStructuralFeature> isChangeable = (r) -> r.isChangeable();
     public static Predicate<EStructuralFeature> notChangeable = (r) -> !r.isChangeable();
-    public static Predicate<EReference> isContainment = (r) -> r.isContainment();
-    public static Predicate<EReference> hasOpposite = (r) -> r.getEOpposite() != null;
 
     @Builder
     public PayloadDaoProcessor(@NonNull ResourceSet resourceSet,
@@ -161,6 +159,10 @@ public class PayloadDaoProcessor<ID> {
                                         .filter(c -> c.containsKey(identifierName)).count() == 0))
         );
     }
+
+    public static Predicate<EReference> isContainment = (r) -> r.isContainment();
+    public static Predicate<EReference> hasOpposite = (r) -> r.getEOpposite() != null;
+
 
     public static Collector<EReference, ?, Map<EReference, Collection<Payload>>>
                                                 toReferencePayloadMapOfPayloadCollection(Payload payload) {

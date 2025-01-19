@@ -92,8 +92,8 @@ public class PayloadTraverser {
             Object payloadElement = payload.get(referenceName);
             if (payloadElement instanceof Collection collection) {
                 return collection;
-            } else if (payloadElement instanceof Payload payload1) {
-                return ImmutableList.of(payload1);
+            } else if (payloadElement instanceof Payload payloadInstance) {
+                return ImmutableList.of(payloadInstance);
             } else {
                 log.warn("Reference found with name '{}' cannot be traversed because its type in the payload is neither a Collection or a Payload: {}",
                          referenceName, payloadElement.getClass().getName());

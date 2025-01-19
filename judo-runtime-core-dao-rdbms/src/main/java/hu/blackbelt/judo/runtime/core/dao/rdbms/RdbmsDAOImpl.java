@@ -685,7 +685,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                         clazz.getEAllAttributes().stream()
                              .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
                              .findAny().orElse(null);
-                // TODO: why does the transfer attribute have default annotation referencing entity default if transfer reference does not work like this?
                 if (defaultAttribute != null) {
                     template.put(attribute.getName(), getStaticData(defaultAttribute).get(defaultAttribute.getName()));
                 }
@@ -722,7 +721,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         if (defaultTransferObjectType.isPresent() && !Objects.equals(defaultTransferObjectType.get(), clazz)) {
             // if the transfer object has a mapping, read default values of the mapped features
             // and add them to the template if they are not already present
-            // TODO: optimization - read default values for only a subset of needed features
             Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
                                  .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
@@ -744,6 +742,8 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
         hu.blackbelt.judo.runtime.core.PayloadTraverser.builder()
                                                        .processor((_payload, context) -> {
+                                                           // checking for identifier might be to strict here
+                                                           // TODO: if this causes issues later, it should be a parameter
                                                            if (!requireNonNullElse(_payload.getAs(Boolean.class, DEFAULT_VALUES_LOADED_KEY), false)
                                                                && !_payload.containsKey(identifierProvider.getName())) {
                                                                Payload defaultValues = readDefaultsOf(context.getType());

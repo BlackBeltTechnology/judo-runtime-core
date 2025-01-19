@@ -348,7 +348,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
         if (value != null
             && AsmUtils.isString(attribute.getEAttributeType())
             && RequiredStringValidatorOption.REJECT_EMPTY.equals(requiredStringValidatorOption)
-            && ((String) value).isEmpty() // DO NOT TRY TRIMMING HERE! (nor use isBlank())
+            && ((String) value).isEmpty()
             && (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false))
             && (validateMissingFeatures || instance.containsKey(attribute.getName()))) {
 
