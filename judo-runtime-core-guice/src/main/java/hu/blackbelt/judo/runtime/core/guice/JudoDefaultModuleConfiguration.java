@@ -77,7 +77,7 @@ public class JudoDefaultModuleConfiguration {
     @Builder.Default
     Boolean metricsCollectorVerbose = false;
     @Builder.Default
-    String payloadValidatorRequiredStringValidatorOption = DefaultPayloadValidatorProvider.REJECT_EMPTY;
+    String payloadValidatorRequiredStringValidatorOption = DefaultPayloadValidatorProvider.ACCEPT_NON_EMPTY;
     @Builder.Default
     Boolean threadContextDebugThreadFork = false;
     @Builder.Default

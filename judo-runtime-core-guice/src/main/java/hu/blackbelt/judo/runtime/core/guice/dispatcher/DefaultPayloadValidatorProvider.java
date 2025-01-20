@@ -35,7 +35,7 @@ import java.util.Objects;
 
 public class DefaultPayloadValidatorProvider implements Provider<PayloadValidator> {
 
-    public static final String REJECT_EMPTY = "REJECT_EMPTY";
+    public static final String ACCEPT_NON_EMPTY = "ACCEPT_NON_EMPTY";
     @Inject
     JudoModelLoader models;
 
@@ -61,7 +61,7 @@ public class DefaultPayloadValidatorProvider implements Provider<PayloadValidato
                 .identifierProvider(identifierProvider)
                 .validatorProvider(validatorProvider)
                 .requiredStringValidatorOption(
-                        DefaultPayloadValidator.RequiredStringValidatorOption.valueOf(Objects.requireNonNullElse(requiredStringValidatorOption, REJECT_EMPTY)))
+                        DefaultPayloadValidator.RequiredStringValidatorOption.valueOf(Objects.requireNonNullElse(requiredStringValidatorOption, ACCEPT_NON_EMPTY)))
                 .build();
     }
 

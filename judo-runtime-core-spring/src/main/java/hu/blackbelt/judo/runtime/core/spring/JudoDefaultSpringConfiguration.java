@@ -324,7 +324,7 @@ public class JudoDefaultSpringConfiguration {
     @SuppressWarnings("unchecked")
     public PayloadValidator getPayloadValidator(ValidatorProvider validatorProvider) {
         // TODO: Parameters
-        String requiredStringValidatorOption = "REJECT_EMPTY";
+        String requiredStringValidatorOption = "ACCEPT_NON_EMPTY";
 
         AsmUtils asm = new AsmUtils(asmModel.getResourceSet());
 

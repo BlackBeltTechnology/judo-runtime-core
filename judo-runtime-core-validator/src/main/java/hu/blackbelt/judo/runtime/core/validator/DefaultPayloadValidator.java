@@ -65,7 +65,7 @@ import static hu.blackbelt.judo.runtime.core.validator.Validator.addValidationEr
 public class DefaultPayloadValidator implements PayloadValidator {
 
     public enum RequiredStringValidatorOption {
-        ACCEPT_EMPTY, REJECT_EMPTY
+        ACCEPT_EMPTY, ACCEPT_NON_EMPTY
     }
 
     private final AsmModel asmModel;
@@ -347,7 +347,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
         }
         if (value != null
             && AsmUtils.isString(attribute.getEAttributeType())
-            && RequiredStringValidatorOption.REJECT_EMPTY.equals(requiredStringValidatorOption)
+            && RequiredStringValidatorOption.ACCEPT_NON_EMPTY.equals(requiredStringValidatorOption)
             && ((String) value).isEmpty()
             && (attribute.isRequired() || asmUtils.getMappedAttribute(attribute).map(EAttribute::isRequired).orElse(false))
             && (validateMissingFeatures || instance.containsKey(attribute.getName()))) {
