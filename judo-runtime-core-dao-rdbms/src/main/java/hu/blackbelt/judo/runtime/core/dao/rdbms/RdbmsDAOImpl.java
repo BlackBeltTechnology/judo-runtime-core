@@ -20,6 +20,27 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms;
  * #L%
  */
 
+import java.security.Principal;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.sql.DataSource;
+
 import com.google.common.collect.ImmutableSet;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
@@ -30,7 +51,12 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.MetricsCollector;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
-import hu.blackbelt.judo.runtime.core.dao.core.processors.*;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.AddReferencePayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.DeletePayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.InsertPayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.PayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.RemoveReferencePayloadDaoProcessor;
+import hu.blackbelt.judo.runtime.core.dao.core.processors.UpdatePayloadDaoProcessor;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.InsertStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.Statement;
 import hu.blackbelt.judo.runtime.core.dao.core.values.Metadata;
@@ -38,26 +64,16 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecuto
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.SelectStatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.*;
+import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import javax.sql.DataSource;
-import java.security.Principal;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -78,6 +94,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private static final String STATEFUL = "STATEFUL";
     private static final String ROLLBACK = "ROLLBACK";
     public static final String CREATED = "__$created";
+    public static final String DEFAULT_VALUES_LOADED_KEY = "__defaultValuesLoaded";
 
     @Getter private final AsmModel asmModel;
     private final DataSource dataSource;
@@ -121,8 +138,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         this.modifyStatementExecutor = modifyStatementExecutor;
     }
 
-    private Function<EClass, Payload> getDefaultValuesProvider() {
-        return (clazz) -> hasDefaults(clazz) ? getDefaultsOf(clazz) : Payload.empty();
+    private BiConsumer<EClass, Payload> getDefaultValuesApplier() {
+        return (clazz, payload) -> {
+            if (hasDefaults(clazz)) {
+                applyDefaultsOf(clazz, payload);
+            }
+        };
     }
 
     private boolean hasDefaults(EClass clazz) {
@@ -152,7 +173,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                             .filter(t -> t instanceof EClass).map(t -> (EClass) t))
                     .filter(eClass -> eClass.isPresent())
                     .flatMap(eClass -> eClass.get().getEAllStructuralFeatures().stream())
-                    .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {;
+                    .anyMatch(c -> AsmUtils.getExtensionAnnotationByName(c, "default", false).isPresent())) {
             return true;
         }
         checked.addAll(classes);
@@ -165,11 +186,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected InsertPayloadDaoProcessor getInsertPayloadProcessor(Metadata metadata) {
         return new InsertPayloadDaoProcessor<ID>(asmModel.getResourceSet(),
-                getIdentifierProvider(),
-                queryFactory,
-                instanceCollector,
-                getDefaultValuesProvider(),
-                metadata);
+                                                 getIdentifierProvider(),
+                                                 queryFactory,
+                                                 instanceCollector,
+                                                 getDefaultValuesApplier(),
+                                                 metadata);
     }
 
     protected DeletePayloadDaoProcessor getDeletePayloadProcessor() {
@@ -181,12 +202,12 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected UpdatePayloadDaoProcessor getUpdatePayloadProcessor(Metadata metadata) {
         return new UpdatePayloadDaoProcessor(asmModel.getResourceSet(),
-                getIdentifierProvider(),
-                queryFactory,
-                instanceCollector,
-                getDefaultValuesProvider(),
-                metadata,
-                optimisticLockEnabled);
+                                             getIdentifierProvider(),
+                                             queryFactory,
+                                             instanceCollector,
+                                             getDefaultValuesApplier(),
+                                             metadata,
+                                             optimisticLockEnabled);
     }
 
     protected AddReferencePayloadDaoProcessor getAddReferencePayloadProcessor() {
@@ -653,85 +674,96 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     protected Payload readDefaultsOf(EClass clazz) {
-        final Payload template = Payload.empty();
+        Payload template = Payload.empty();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
-        clazz.getEAllAttributes().stream()
-                .filter(EStructuralFeature::isChangeable)
-                .forEach(a -> AsmUtils.getExtensionAnnotationValue(a, "default", false).ifPresent(defaultFeatureName -> {
-                    final EAttribute defaultAttribute = clazz.getEAllAttributes().stream()
-                            .filter(df -> Objects.equals(df.getName(), defaultFeatureName))
-                            .findAny()
-                            .orElse(null);
+        List<EAttribute> attributes = clazz.getEAllAttributes().stream().filter(a -> a.isChangeable() && !a.isDerived()).toList();
+        for (EAttribute attribute : attributes) {
+            String defaultAttributeName = AsmUtils.getExtensionAnnotationValue(attribute, "default", false).orElse(null);
+            if (defaultAttributeName != null) {
+                Optional<EAttribute> defaultAttribute =
+                        clazz.getEAllAttributes().stream()
+                             .filter(a -> Objects.equals(a.getName(), defaultAttributeName))
+                             .findAny();
+                defaultAttribute.ifPresent(eAttribute -> template.put(attribute.getName(), getStaticData(eAttribute).get(eAttribute.getName())));
+            }
+        }
 
-                    if (defaultAttribute != null) {
-                        final Payload defaultValue = getStaticData(defaultAttribute);
-                        if (defaultValue.get(defaultAttribute.getName()) == null && a.isRequired()) {
-                            throw new IllegalStateException("Default attribute value is undefined on required attribute: " + defaultFeatureName);
-                        }
-                        template.put(a.getName(), defaultValue.get(defaultAttribute.getName()));
-                    }
-                }));
+        // in case a composition has default value, it might cause problems
+        List<EReference> references = clazz.getEAllReferences().stream().filter(r -> r.isChangeable() && !r.isDerived()).toList();
+        for (EReference reference : references) {
+            String defaultReferenceName = AsmUtils.getExtensionAnnotationValue(reference, "default", false).orElse(null);
+            if (defaultReferenceName != null) {
+                EReference defaultReference =
+                        clazz.getEAllReferences().stream()
+                             .filter(df -> Objects.equals(df.getName(), defaultReferenceName))
+                             .findAny()
+                             .orElseThrow(() -> new IllegalStateException("Default reference not found for %s: %s".formatted(AsmUtils.getReferenceFQName(reference), defaultReferenceName)));
 
-        clazz.getEAllReferences().stream()
-                .filter(EStructuralFeature::isChangeable)
-                .forEach(r -> AsmUtils.getExtensionAnnotationValue(r, "default", false).ifPresent(defaultReferenceName -> {
-                    final EReference defaultReference = clazz.getEAllReferences().stream()
-                            .filter(df -> Objects.equals(df.getName(), defaultReferenceName))
-                            .findAny()
-                            .orElseThrow(() -> new IllegalStateException("Default reference not found: " + defaultReferenceName));
+                List<Payload> defaultValues = getAllReferencedInstancesOf(defaultReference, defaultReference.getEReferenceType());
+                if (defaultReference.isMany()) {
+                    template.put(reference.getName(), defaultValues);
+                } else {
+                    template.put(reference.getName(), !defaultValues.isEmpty() ? defaultValues.get(0) : null);
+                }
+            }
+        }
 
-                    final List<Payload> defaultValues = getAllReferencedInstancesOf(defaultReference, defaultReference.getEReferenceType());
-                    if (defaultReference.isMany()) {
-                        template.put(r.getName(), defaultValues);
-                    } else {
-                        final Payload defaultValue = !defaultValues.isEmpty() ? defaultValues.get(0) : null;
-                        if (r.getLowerBound() > 0 && defaultValue == null) {
-                            throw new IllegalStateException("Default reference value is undefined on required reference: " + defaultReferenceName);
-                        }
-                        template.put(r.getName(), defaultValue);
-                    }
-                }));
-
-        final Optional<EClass> mappedEntityType = asmUtils.getMappedEntityType(clazz);
-
-        final Optional<EClass> defaultTransferObjectType = mappedEntityType
-                .flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
-                        .flatMap(dr -> asmUtils.resolve(dr)))
-                .filter(t -> t instanceof EClass).map(t -> (EClass) t);
+        Optional<EClass> defaultTransferObjectType =
+                asmUtils.getMappedEntityType(clazz)
+                        .flatMap(e -> AsmUtils.getExtensionAnnotationValue(e, "defaultRepresentation", false)
+                                              .flatMap(asmUtils::resolve))
+                        .filter(t -> t instanceof EClass)
+                        .map(t -> (EClass) t);
 
         if (defaultTransferObjectType.isPresent() && !Objects.equals(defaultTransferObjectType.get(), clazz)) {
-            final Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
+            // if the transfer object has a mapping, read default values of the mapped features
+            // and add them to the template if they are not already present
+            Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
-                    .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
-                    .collect(Collectors.toMap(
-                            identity(),
-                            a -> asmUtils.getMappedAttribute(a).orElseThrow(() -> new IllegalStateException("Mapped attribute not found: " + AsmUtils.getAttributeFQName(a)))))
-                    .entrySet().stream()
-                    .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
-                    .collect(Collectors.toMap(
-                            e -> e.getKey().getName(),
-                            e -> entityTypeDefaults.get(e.getValue().getName()))));
+                                 .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
+                                 .collect(Collectors.toMap(identity(), a -> asmUtils.getMappedAttribute(a).get())).entrySet().stream()
+                                 .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
+                                 .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
             template.putAll(clazz.getEAllReferences().stream()
-                    .filter(r -> template.get(r.getName()) == null && asmUtils.getMappedReference(r).isPresent())
-                    .collect(Collectors.toMap(
-                            identity(),
-                            r -> asmUtils.getMappedReference(r).orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(r)))))
-                    .entrySet().stream()
-                    .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
-                    .collect(Collectors.toMap(
-                            e -> e.getKey().getName(),
-                            e -> entityTypeDefaults.get(e.getValue().getName()))));
+                                 .filter(r -> !template.containsKey(r.getName()) && asmUtils.getMappedReference(r).isPresent())
+                                 .collect(Collectors.toMap(identity(), r -> asmUtils.getMappedReference(r).get())).entrySet().stream()
+                                 .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
+                                 .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
         }
 
         return template;
     }
 
     @Override
+    protected void applyDeepDefaultsOf(EClass clazz, Payload payload) {
+        AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
+        hu.blackbelt.judo.runtime.core.PayloadTraverser.builder()
+                                                       .processor((_payload, context) -> {
+                                                           // checking for identifier might be to strict here
+                                                           // TODO: if this causes issues later, it should be a parameter
+                                                           if (!requireNonNullElse(_payload.getAs(Boolean.class, DEFAULT_VALUES_LOADED_KEY), false)
+                                                               && !_payload.containsKey(identifierProvider.getName())) {
+                                                               Payload defaultValues = readDefaultsOf(context.getType());
+                                                               for (Map.Entry<String, Object> e : defaultValues.entrySet()) {
+                                                                   // putIfAbsent is intentionally avoided to keep explicitly set null values
+                                                                   if (!_payload.containsKey(e.getKey())) {
+                                                                       _payload.put(e.getKey(), e.getValue());
+                                                                   }
+                                                               }
+                                                               _payload.put(DEFAULT_VALUES_LOADED_KEY, true);
+                                                           }
+                                                       })
+                                                       .predicate(reference -> asmUtils.getMappedReference(reference).map(r -> r.isChangeable() && !r.isDerived()).orElse(false))
+                                                       .build()
+                                                       .traverse(payload, clazz);
+    }
+
+    @Override
     protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
-                        .orElseThrow(() -> new IllegalStateException("Refence not found on containing class: " + rangeTransferRelationName)))
+                        .orElseThrow(() -> new IllegalStateException("Reference not found on containing class: " + rangeTransferRelationName)))
                 .orElseThrow(() -> new IllegalStateException("No range defined"));
 
         ID instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
