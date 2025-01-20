@@ -85,6 +85,11 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     }
 
     @Override
+    public void applyDefaultsOf(EClass clazz, Payload payload) {
+        delegatee.applyDefaultsOf(clazz, payload);
+    }
+
+    @Override
     public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
         return delegatee.getRangeOf(reference, payload, queryCustomizer, stateful);
     }

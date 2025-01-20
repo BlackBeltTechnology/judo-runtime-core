@@ -446,6 +446,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         final RequestConverter requestConverter = RequestConverter.builder()
                 .transferObjectType(transferObjectType)
                 .coercer(dataTypeManager.getCoercer())
+                .dao(dao)
                 .asmModel(asmModel)
                 .validatorProvider(validatorProvider)
                 .trimString(trimString)
@@ -828,12 +829,12 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                                                      .filter(parameter -> (parameter.getEType() instanceof EClass))
                                                      .collect(Collectors.toList());
 
-        parameters.forEach(parameter -> {
+        for (EParameter parameter : parameters) {
             final EClass transferObjectType = (EClass) parameter.getEType();
             final Map<String, Object> validationContext = new TreeMap<>();
             validationContext.put(LOCATION_KEY, parameters.size() != 1 || parameter.isMany() ? parameter.getName() : "");
             processParameter(operation, parameter, transferObjectType, exchange, validationContext, validationResults);
-        });
+        }
 
         if (!validationResults.isEmpty()) {
             throw new ValidationException("Invalid request", validationResults);
