@@ -163,7 +163,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 .filter(r -> !processedReferences.contains(r.getReference()))
                 .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite())).toList()) {
 
-            if(ref.getReference().getEOpposite() == null || !collectRemoveReferenceStatementIds.contains(ref.getReferencedElement().getId())) {
+            if(!collectRemoveReferenceStatementIds.contains(ref.getReferencedElement().getId())) {
                 collectRemoveReferenceStatementIds.add(ref.getReferencedElement().getId());
                 statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
                         .type(ref.getReference().getEContainingClass())
