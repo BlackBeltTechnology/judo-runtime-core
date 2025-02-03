@@ -156,32 +156,28 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             }
         }
 
-        Set<ID> collectRemoveReferenceStatementIds = statements.stream().filter(s -> s instanceof RemoveReferenceStatement<ID>).map(s -> s.getInstance().getIdentifier()).collect(toSet());
-
         // All references have to remove before deleting. It will contain the containment references too.
         for (InstanceReference<ID> ref :  instanceGraph.getReferences().stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
                 .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite())).toList()) {
 
-            if(!collectRemoveReferenceStatementIds.contains(ref.getReferencedElement().getId())) {
-                collectRemoveReferenceStatementIds.add(ref.getReferencedElement().getId());
-                statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                        .type(ref.getReference().getEContainingClass())
-                        .identifier(instanceGraph.getId())
-                        .build());
+            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                    .type(ref.getReference().getEContainingClass())
+                    .identifier(instanceGraph.getId())
+                    .build());
 
-                statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
-                        .type(ref.getReference().getEReferenceType())
-                        .identifier(ref.getReferencedElement().getId())
-                        .build());
+            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                    .type(ref.getReference().getEReferenceType())
+                    .identifier(ref.getReferencedElement().getId())
+                    .build());
 
-                statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
-                        .type(ref.getReference().getEContainingClass())
-                        .reference(ref.getReference())
-                        .referenceIdentifier(ref.getReferencedElement().getId())
-                        .identifier(instanceGraph.getId())
-                        .build());
-            }
+            statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+                    .type(ref.getReference().getEContainingClass())
+                    .reference(ref.getReference())
+                    .referenceIdentifier(ref.getReferencedElement().getId())
+                    .identifier(instanceGraph.getId())
+                    .build());
+
             if (ref.getReference().getEOpposite() != null && AsmUtils.annotatedAsTrue(ref.getReference().getEOpposite(), "reverseCascadeDelete")) {
                 statementCollector(ref.getReference().getEReferenceType(),
                         getInstanceCollector().collectGraph(ref.getReference().getEReferenceType(), ref.getReferencedElement().getId()),
