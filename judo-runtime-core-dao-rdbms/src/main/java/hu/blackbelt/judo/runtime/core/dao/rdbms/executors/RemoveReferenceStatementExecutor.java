@@ -45,10 +45,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkState;
@@ -172,12 +169,24 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
         });
 
         // Join reference
-        collectRdbmsReferencesReferenceStatements(statements)
+        List<RdbmsReference<ID>> rdbmsReferenceList = collectRdbmsReferencesReferenceStatements(statements)
                 .filter(r ->
                         r.getRule().isJoinTable() &&
                                 // Just one side required
                                 r.getReference().equals(((ReferenceStatement<ID>) r.getStatement()).getReference())
                 )
+                .toList();
+
+        Set<RdbmsReference<ID>> filteredRbmsReferences = new HashSet<>();
+
+        for (RdbmsReference<ID> rdbmsReference : rdbmsReferenceList) {
+            boolean isDuplicate = filteredRbmsReferences.stream().anyMatch(filtered -> isTheSameRecord(rdbmsReference, filtered));
+            if (!isDuplicate) {
+                filteredRbmsReferences.add(rdbmsReference);
+            }
+        }
+
+        filteredRbmsReferences
                 .forEach(r -> {
 
                     RdbmsTable joinTable = getRdbmsResolver().rdbmsJunctionTable(r.getReference());
@@ -227,5 +236,18 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                     count = jdbcTemplate.update(deleteJoinTableSql, jointPairNamedParameters);
                     checkState(count == 1, "There is illegal state, no records updated on delete reference");
                 });
+    }
+
+    // Check if two RdbmsReference objects are considered the same table record
+    private boolean isTheSameRecord(RdbmsReference<ID> first, RdbmsReference<ID> second) {
+        RdbmsTable joinTableFirst = getRdbmsResolver().rdbmsJunctionTable(first.getReference());
+        RdbmsTable joinTableSecond = getRdbmsResolver().rdbmsJunctionTable(second.getReference());
+        // same table
+        if (!joinTableFirst.getSqlName().equals(joinTableSecond.getSqlName())) {
+            return false;
+        }
+        // same id (first and second record)
+        return (first.getIdentifier().equals(second.getIdentifier()) && first.getOppositeIdentifier().equals(second.getOppositeIdentifier())) ||
+                (first.getIdentifier().equals(second.getOppositeIdentifier()) && first.getOppositeIdentifier().equals(second.getIdentifier()));
     }
 }
