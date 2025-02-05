@@ -403,6 +403,7 @@ public class JudoDefaultSpringConfiguration {
         variableResolver.registerSupplier("SYSTEM", "current_time", new CurrentTimeProvider(), false);
         variableResolver.registerFunction("ENVIRONMENT", new EnvironmentVariableProvider(), true);
         variableResolver.registerFunction("SEQUENCE", new SequenceProvider(sequence), false);
+        variableResolver.registerFunction("REQUEST", new RequestParametersVariableProvider(context), false);
         return variableResolver;
     }
 
