@@ -42,7 +42,8 @@ public class RequestParametersVariableProvider<T> implements Function<String, T>
     @Override
     public T apply(final String parameterName) {
         Object value = null;
-        if (context.getAs(Map.class, REQUEST_PARAMETERS_KEY).containsKey(parameterName)) {
+        Map map = context.getAs(Map.class, REQUEST_PARAMETERS_KEY);
+        if (map != null && map.containsKey(parameterName)) {
             value = (String) context.getAs(Map.class, REQUEST_PARAMETERS_KEY).get(parameterName);
         }
         return (T) value;
