@@ -79,6 +79,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public static final String RECORD_COUNT_KEY = "__recordCount";
     public static final String COUNT_QUERY_RECORD_KEY = "__countRecords";
     public static final String LOCALE_KEY = "__locale";
+    public static final String REQUEST_PARAMETERS_KEY = "__requestParameters";
 
     public static final String MASK = "__mask";
     public static final String SDK = "sdk";
@@ -632,6 +633,11 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 locale = (Locale) exchange.get(LOCALE_KEY);
             }
             context.putIfAbsent(LOCALE_KEY, locale);
+
+            if (exchange.containsKey(REQUEST_PARAMETERS_KEY)) {
+                Map<String, String> requestParameters = (Map<String, String>) exchange.get(REQUEST_PARAMETERS_KEY);
+                context.putIfAbsent(REQUEST_PARAMETERS_KEY, requestParameters);
+            }
 
             final EOperation operation = operationCache.get(operationFullyQualifiedName)
                     .orElseThrow(() -> new UnsupportedOperationException("Operation not found: " + operationFullyQualifiedName));
