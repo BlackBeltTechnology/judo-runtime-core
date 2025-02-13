@@ -23,6 +23,29 @@
 					</instructions>
 				</configuration>
 			</plugin>
+
+			<plugin>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<goals>
+							<goal>properties</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>${jacoco.agent} -Dfile.encoding=UTF-8
+						--add-opens java.base/java.lang=ALL-UNNAMED
+						--add-opens java.base/java.util=ALL-UNNAMED
+						--add-opens java.base/java.time=ALL-UNNAMED
+						-javaagent:${com.ginsberg:junit5-system-exit:jar}</argLine>
+				</configuration>
+			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>
@@ -90,6 +113,32 @@
 			<artifactId>mapper-api</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>hu.blackbelt.mapper</groupId>
+			<artifactId>mapper-impl</artifactId>
+		</dependency>
+
+		<!--
+		<dependency>
+			<groupId>org.junit-pioneer</groupId>
+			<artifactId>junit-pioneer</artifactId>
+			<version>2.3.0</version>
+			<scope>test</scope>
+		</dependency>
+		-->
+		<dependency>
+			<groupId>uk.org.webcompere</groupId>
+			<artifactId>system-stubs-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>uk.org.webcompere</groupId>
+			<artifactId>system-stubs-jupiter</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.ginsberg</groupId>
+			<artifactId>junit5-system-exit</artifactId>
+		</dependency>
 
 	</dependencies>
 </project>

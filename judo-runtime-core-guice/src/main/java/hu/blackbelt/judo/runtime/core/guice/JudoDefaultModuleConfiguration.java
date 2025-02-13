@@ -23,6 +23,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.guice.dispatcher.DefaultPayloadValidatorProvider;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
@@ -48,6 +49,8 @@ public class JudoDefaultModuleConfiguration {
     JudoModelLoader judoModelLoader = null;
     @Builder.Default
     Boolean bindModelHolder = true;
+    @Builder.Default
+    RuntimeVariableResolver runtimeVariableResolver = null;
     @Builder.Default
     Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions = new ConcurrentHashMap<>();
     @Builder.Default

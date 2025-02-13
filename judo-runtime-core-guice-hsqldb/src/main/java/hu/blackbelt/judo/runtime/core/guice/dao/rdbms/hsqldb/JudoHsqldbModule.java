@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.hsqldb;
  * #L%
  */
 import java.io.File;
+import java.util.Objects;
 
 import javax.sql.DataSource;
 
@@ -27,6 +28,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.util.Providers;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.PlatformTransactionManagerProvider;
+import hu.blackbelt.judo.runtime.core.utils.RuntimeVariableResolver;
 import lombok.*;
 import org.hsqldb.server.Server;
 
@@ -46,6 +48,7 @@ public class JudoHsqldbModule extends AbstractModule {
 
     public static class JudoHsqldbModuleBuilder {
         JudoHsqldbModuleConfiguration configuration = null;
+        RuntimeVariableResolver runtimeVariableResolver = null;
         Boolean runServer = JudoHsqldbModuleConfiguration.DEFAULT.getRunServer();
         String databaseName = JudoHsqldbModuleConfiguration.DEFAULT.getDatabaseName();
         File databasePath = JudoHsqldbModuleConfiguration.DEFAULT.getDatabasePath();
@@ -60,6 +63,7 @@ public class JudoHsqldbModule extends AbstractModule {
 
     @Builder
     private JudoHsqldbModule(JudoHsqldbModuleConfiguration configuration,
+                             RuntimeVariableResolver runtimeVariableResolver,
                              Boolean runServer,
                              String databaseName,
                              File databasePath,
@@ -75,6 +79,8 @@ public class JudoHsqldbModule extends AbstractModule {
             this.configuration = configuration;
         } else {
             this.configuration = JudoHsqldbModuleConfiguration.builder()
+                    .runtimeVariableResolver(Objects.requireNonNullElseGet(runtimeVariableResolver,
+                            () -> RuntimeVariableResolver.builder().prefix("judo").build()))
                     .port(port)
                     .runServer(runServer)
                     .databaseName(databaseName)
@@ -100,9 +106,22 @@ public class JudoHsqldbModule extends AbstractModule {
     }
 
     protected void configureOptions() {
-        bind(Integer.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerPort.class).toInstance(configuration.getPort());
-        bind(String.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabaseName.class).toInstance(configuration.getDatabaseName());
-        bind(File.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabasePath.class).toInstance(configuration.getDatabasePath());
+        RuntimeVariableResolver runtimeVariableResolver = Objects.requireNonNull(configuration.getRuntimeVariableResolver(), "RuntimeVariableResolver must not be null");
+
+        bind(Integer.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerPort.class)
+                .toInstance(runtimeVariableResolver
+                        .getVariableAsInteger("hsqldbServerPort",
+                                configuration.getPort()));
+
+        bind(String.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabaseName.class)
+                .toInstance(runtimeVariableResolver
+                        .getVariableAsString("hsqldbServerDatabaseName",
+                                configuration.getDatabaseName()));
+
+        bind(File.class).annotatedWith(HsqlDbConfigurationQualifier.HsqldbServerDatabasePath.class)
+                .toInstance(runtimeVariableResolver
+                        .getVariableAsFile("hsqldbServerDatabasePath",
+                                configuration.getDatabasePath()));
     }
 
     protected void configureServer() {
