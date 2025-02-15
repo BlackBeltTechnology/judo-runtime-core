@@ -21,23 +21,18 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.*;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
-import org.springframework.transaction.PlatformTransactionManager;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -54,6 +49,7 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
 
     private static final String OWNER_KEY = "owner";
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
+    public static final String MARK_SELECTED_RANGE_ITEMS_KEY = "markSelectedRangeItems";
 
     @SneakyThrows
     public GetReferenceRangeCall(Context context, ServiceContext<ID> serviceContext,
@@ -122,10 +118,11 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
 
             final Collection<ID> idsToRemove = new HashSet<>();
 
+            Boolean markSelectedRangeItems = context.getAs(Boolean.class, MARK_SELECTED_RANGE_ITEMS_KEY);
             result = serviceContext.getDao().getRangeOf(inputParameter.getOwner(),
                     inputParameter.getOwnerPayload(),
                     inputParameter.getQueryCustomizer(),
-                    true);
+                    true, markSelectedRangeItems == null ? false : markSelectedRangeItems);
 
             if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
                 inputParameter.setRecordCount(serviceContext.getDao().countRangeOf(

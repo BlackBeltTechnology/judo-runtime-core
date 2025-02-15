@@ -49,6 +49,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
 
     private static final String OWNER_KEY = "owner";
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
+    public static final String MARK_SELECTED_RANGE_ITEMS_KEY = "markSelectedRangeItems";
 
     @SneakyThrows
     public GetInputRangeCall(Context context, ServiceContext serviceContext,
@@ -117,11 +118,13 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
             checkArgument(!bound, "Operation must be unbound");
 
             final Collection<ID> idsToRemove = new HashSet<>();
+            Boolean markSelectedRangeItems = context.getAs(Boolean.class, MARK_SELECTED_RANGE_ITEMS_KEY);
+
             result = serviceContext.getDao().getRangeOf(
                     inputParameter.getReference(),
                     inputParameter.getOwnerPayload(),
                     inputParameter.getQueryCustomizer(),
-                    true);
+                    true, markSelectedRangeItems);
 
             if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
                 inputParameter.setRecordCount(serviceContext.getDao().countRangeOf(
