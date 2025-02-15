@@ -211,7 +211,6 @@ public class JudoDefaultSpringConfiguration {
     ) {
         // TODO: Parameters
         Boolean optimisticLockEnabled = true;
-        Boolean markSelectedRangeItems = false;
 
         RdbmsDAOImpl.RdbmsDAOImplBuilder builder =  RdbmsDAOImpl.builder()
                 .dataSource(dataSource)
@@ -221,7 +220,6 @@ public class JudoDefaultSpringConfiguration {
                 .instanceCollector(instanceCollector)
                 .metricsCollector(metricsCollector)
                 .optimisticLockEnabled(optimisticLockEnabled)
-                .markSelectedRangeItems(markSelectedRangeItems)
                 .selectStatementExecutor(selectStatementExecutor)
                 .modifyStatementExecutor(modifyStatementExecutor)
                 .queryFactory(queryFactory)
