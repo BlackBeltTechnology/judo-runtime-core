@@ -76,7 +76,7 @@ public class RangeValidator<ID> implements Validator {
         final Collection<Payload> range = dao.getRangeOf((EReference) feature, instance, DAO.QueryCustomizer.<ID>builder()
                 .withoutFeatures(true)
                 .build(),
-                false, false);
+                false, true);
 
         final Collection<ID> validIds = range.stream()
                 .map(ri -> ri.getAs(identifierProvider.getType(), identifierProvider.getName()))
