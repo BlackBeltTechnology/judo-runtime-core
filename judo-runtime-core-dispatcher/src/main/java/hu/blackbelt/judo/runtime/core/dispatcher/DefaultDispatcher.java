@@ -80,6 +80,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public static final String COUNT_QUERY_RECORD_KEY = "__countRecords";
     public static final String LOCALE_KEY = "__locale";
     public static final String REQUEST_PARAMETERS_KEY = "__requestParameters";
+    public static final String MARK_SELECTED_RANGE_ITEMS_KEY = "__markSelectedRangeItems";
 
     public static final String MASK = "__mask";
     public static final String SDK = "sdk";

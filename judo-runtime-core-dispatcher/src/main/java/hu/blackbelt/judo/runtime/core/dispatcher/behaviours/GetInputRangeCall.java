@@ -118,7 +118,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
             checkArgument(!bound, "Operation must be unbound");
 
             final Collection<ID> idsToRemove = new HashSet<>();
-            Boolean markSelectedRangeItems = context.getAs(Boolean.class, MARK_SELECTED_RANGE_ITEMS_KEY);
+            final boolean markSelectedRangeItems = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.MARK_SELECTED_RANGE_ITEMS_KEY));
 
             result = serviceContext.getDao().getRangeOf(
                     inputParameter.getReference(),
