@@ -90,8 +90,8 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     }
 
     @Override
-    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
-        return delegatee.getRangeOf(reference, payload, queryCustomizer, stateful);
+    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
+        return delegatee.getRangeOf(reference, payload, queryCustomizer, stateful, markSelectedRangeItems);
     }
 
     @Override
