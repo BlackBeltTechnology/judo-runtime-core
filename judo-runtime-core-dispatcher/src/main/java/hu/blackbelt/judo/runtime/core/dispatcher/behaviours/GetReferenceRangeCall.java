@@ -21,23 +21,18 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
-import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dispatcher.api.Context;
-import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.expression.support.ExpressionModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dispatcher.CallInterceptorUtil;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
-import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
-import hu.blackbelt.mapper.api.Coercer;
 import lombok.*;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
-import org.springframework.transaction.PlatformTransactionManager;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -117,6 +112,8 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
         Collection<Payload> result = new ArrayList<>();
 
         if (callInterceptorUtil.shouldCallOriginal()) {
+            final boolean markSelectedRangeItems = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.MARK_SELECTED_RANGE_ITEMS_KEY));
+
             final boolean bound = isBound(operation);
             checkArgument(!bound, "Operation must be unbound");
 
@@ -125,7 +122,7 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
             result = serviceContext.getDao().getRangeOf(inputParameter.getOwner(),
                     inputParameter.getOwnerPayload(),
                     inputParameter.getQueryCustomizer(),
-                    true);
+                    true, markSelectedRangeItems);
 
             if (Boolean.TRUE.equals(exchange.get(DefaultDispatcher.COUNT_QUERY_RECORD_KEY))) {
                 inputParameter.setRecordCount(serviceContext.getDao().countRangeOf(

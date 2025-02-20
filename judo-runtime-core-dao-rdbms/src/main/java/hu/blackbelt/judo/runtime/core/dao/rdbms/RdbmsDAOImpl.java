@@ -102,7 +102,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private final InstanceCollector<ID> instanceCollector;
     private final QueryFactory queryFactory;
     private final boolean optimisticLockEnabled;
-    private final boolean markSelectedRangeItems;
     private final Context context;
     private final MetricsCollector metricsCollector;
     private final SelectStatementExecutor<ID> selectStatementExecutor;
@@ -120,8 +119,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             @NonNull ModifyStatementExecutor modifyStatementExecutor,
             @NonNull SelectStatementExecutor selectStatementExecutor,
             @NonNull QueryFactory queryFactory,
-            Boolean optimisticLockEnabled,
-            Boolean markSelectedRangeItems) {
+            Boolean optimisticLockEnabled) {
         this.asmModel = asmModel;
         this.dataSource = dataSource;
         this.identifierProvider = identifierProvider;
@@ -129,7 +127,6 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         this.queryFactory = queryFactory;
 
         this.optimisticLockEnabled = requireNonNullElse(optimisticLockEnabled, true);
-        this.markSelectedRangeItems = requireNonNullElse(markSelectedRangeItems, false);
 
         this.context = context;
         this.metricsCollector = metricsCollector;
@@ -760,7 +757,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
+    protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
                         .orElseThrow(() -> new IllegalStateException("Reference not found on containing class: " + rangeTransferRelationName)))
