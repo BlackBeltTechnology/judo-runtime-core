@@ -85,7 +85,6 @@ public class JudoDefaultModule extends AbstractModule {
         Boolean bindModelHolder = JudoDefaultModuleConfiguration.DEFAULT.getBindModelHolder();
         Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions = JudoDefaultModuleConfiguration.DEFAULT.getQueryFactoryCustomJoinDefinitions();
         Boolean rdbmsDaoOptimisticLockEnabled = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoOptimisticLockEnabled();
-        Boolean rdbmsDaoMarkSelectedRangeItems = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMarkSelectedRangeItems();
         Integer rdbmsDaoChunkSize = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoChunkSize();
         Integer rdbmsDaoMaximumRecursionCount = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMaximumRecursionCount();
         Boolean actorResolverCheckMappedActors = JudoDefaultModuleConfiguration.DEFAULT.getActorResolverCheckMappedActors();
@@ -138,7 +137,6 @@ public class JudoDefaultModule extends AbstractModule {
                             Boolean bindModelHolder,
                             Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions,
                             Boolean rdbmsDaoOptimisticLockEnabled,
-                            Boolean rdbmsDaoMarkSelectedRangeItems,
                             Integer rdbmsDaoChunkSize,
                             Integer rdbmsDaoMaximumRecursionCount,
                             Boolean actorResolverCheckMappedActors,
@@ -191,7 +189,6 @@ public class JudoDefaultModule extends AbstractModule {
                     .bindModelHolder(bindModelHolder)
                     .queryFactoryCustomJoinDefinitions(queryFactoryCustomJoinDefinitions)
                     .rdbmsDaoOptimisticLockEnabled(rdbmsDaoOptimisticLockEnabled)
-                    .rdbmsDaoMarkSelectedRangeItems(rdbmsDaoMarkSelectedRangeItems)
                     .rdbmsDaoChunkSize(rdbmsDaoChunkSize)
                     .rdbmsDaoMaximumRecursionCount(rdbmsDaoMaximumRecursionCount)
                     .actorResolverCheckMappedActors(actorResolverCheckMappedActors)
@@ -268,7 +265,6 @@ public class JudoDefaultModule extends AbstractModule {
     protected void configureOptions() {
         bind(Map.class).annotatedWith(JudoConfigurationQualifiers.QueryFactoryCustomJoinDefinitions.class).toInstance(configuration.getQueryFactoryCustomJoinDefinitions());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled.class).toInstance(configuration.getRdbmsDaoOptimisticLockEnabled());
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems.class).toInstance(configuration.getRdbmsDaoMarkSelectedRangeItems());
         bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class).toInstance(configuration.getRdbmsDaoChunkSize());
         bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMaximumRecursionCount.class).toInstance(configuration.getRdbmsDaoMaximumRecursionCount());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverCheckMappedActors.class).toInstance(configuration.getActorResolverCheckMappedActors());
