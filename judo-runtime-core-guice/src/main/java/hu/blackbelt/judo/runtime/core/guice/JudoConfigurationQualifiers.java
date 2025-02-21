@@ -20,11 +20,6 @@ public class JudoConfigurationQualifiers {
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface RdbmsDaoMarkSelectedRangeItems {}
-
-    @Qualifier
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
     public @interface RdbmsDaoChunkSize {}
 
     @Qualifier
