@@ -222,8 +222,12 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(s.getContainer()))
-                        .partnerTable(s.getNavigationJoins().isEmpty() ? null : s.getContainer())
-                        .partnerColumnName(s.getNavigationJoins().isEmpty() ? null : StatementExecutor.ID_COLUMN_NAME)
+                        .partnerTable(s.getNavigationJoins().isEmpty() ||
+                                (s.getNavigationJoins().stream().noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(s.getContainer().getAlias()) &&
+                                        s.getTransferRelation() == null)) ? null : s.getContainer())
+                        .partnerColumnName(s.getNavigationJoins().isEmpty() ||
+                                (s.getNavigationJoins().stream().noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(s.getContainer().getAlias()) &&
+                                        s.getTransferRelation() == null))  ? null : StatementExecutor.ID_COLUMN_NAME)
                         .alias(s.getAlias())
                         .build())
                 .collect(Collectors.toList()));
