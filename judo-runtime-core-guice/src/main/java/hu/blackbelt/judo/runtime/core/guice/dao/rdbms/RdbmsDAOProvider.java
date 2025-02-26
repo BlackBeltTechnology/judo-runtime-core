@@ -78,11 +78,6 @@ public class RdbmsDAOProvider implements Provider<DAO> {
     @Nullable
     private Boolean optimisticLockEnabled = true;
 
-    @Inject(optional = true)
-    @JudoConfigurationQualifiers.RdbmsDaoMarkSelectedRangeItems
-    @Nullable
-    private Boolean markSelectedRangeItems = false;
-
     @Override
     @SuppressWarnings("unchecked")
     public DAO get() {
@@ -94,7 +89,6 @@ public class RdbmsDAOProvider implements Provider<DAO> {
                 .instanceCollector(instanceCollector)
                 .metricsCollector(metricsCollector)
                 .optimisticLockEnabled(optimisticLockEnabled)
-                .markSelectedRangeItems(markSelectedRangeItems)
                 .selectStatementExecutor(selectStatementExecutor)
                 .modifyStatementExecutor(modifyStatementExecutor)
                 .queryFactory(queryFactory)
