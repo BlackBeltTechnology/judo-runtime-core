@@ -398,9 +398,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             if (reference.isMany()) {
                 Collection<Payload> containments = container.getAsCollectionPayload(reference.getName());
                 if (reference.getUpperBound() == -1 || containments == null || containments.size() < reference.getUpperBound()) {
-                    Payload referenced = create(typeOfNewInstance, payload, QueryCustomizer.<ID>builder()
-                            .mask(Collections.emptyMap())
-                            .build());
+                    Payload referenced = create(typeOfNewInstance, payload, queryCustomizer);
                     ID referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
                     addReferencesOfInstance(reference, identifier, Collections.singleton(referencedId));
                     result = referenced;
@@ -411,9 +409,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 if ((container.get(reference.getName()) != null) ||  (!reference.isContainment() && !getNavigationResultAt(identifier, reference).isEmpty())) {
                     throw new IllegalArgumentException("Containment already set");
                 }
-                Payload referenced = create(typeOfNewInstance, payload, QueryCustomizer.<ID>builder()
-                        .mask(Collections.emptyMap())
-                        .build());
+                Payload referenced = create(typeOfNewInstance, payload, queryCustomizer);
                 ID referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
                 addReferencesOfInstance(reference, identifier, Collections.singleton(referencedId));
                 result = referenced;
