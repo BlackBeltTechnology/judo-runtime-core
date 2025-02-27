@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  * #L%
  */
 
+import com.google.common.base.Predicate;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
@@ -92,9 +93,13 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final EClass baseType = query.getBase() != null ? query.getBase().getType() : navigationJoinList.get(0).getType();
         subFrom = rdbmsBuilder.getTableName(baseType);
 
+        Predicate<SubSelect> isStaticQueryWhichReturnsPrimitive = q -> q.getNavigationJoins()
+                .stream()
+                .noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(q.getContainer().getAlias()) && q.getTransferRelation() == null);
+
         if (query.getBase() != null &&
                 !(query.getBase() instanceof Select && !(query.getContainer() instanceof SubSelectJoin) &&
-                        query.getBase().getFeatures().isEmpty() && query.getSelect().isAggregated())) {
+                        query.getBase().getFeatures().isEmpty() && (query.getSelect().isAggregated() && !isStaticQueryWhichReturnsPrimitive.apply(query)))) {
             subFeatures.add(RdbmsColumn.builder()
                     .partnerTable(query.getBase())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
