@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  * #L%
  */
 
+import com.google.common.base.Predicate;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.Node;
@@ -205,6 +206,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 query.getSelect().getAllJoins().stream().flatMap(j -> j.getSubSelects().stream())
         ).collect(Collectors.toList());
 
+        Predicate<SubSelect> isStaticQueryWhichReturnsPrimitive = s -> s.getNavigationJoins()
+                .stream()
+                .noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(s.getContainer().getAlias()) && s.getTransferRelation() == null);
+
         joins.addAll(subSelects.stream()
                 .filter(s -> s.getSelect().isAggregated())
 //                 TODO: https://blackbelt.atlassian.net/browse/JNG-6045
@@ -222,8 +227,10 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                                         .build())
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(s.getContainer()))
-                        .partnerTable(s.getNavigationJoins().isEmpty() ? null : s.getContainer())
-                        .partnerColumnName(s.getNavigationJoins().isEmpty() ? null : StatementExecutor.ID_COLUMN_NAME)
+                        .partnerTable(s.getNavigationJoins().isEmpty() ||
+                                isStaticQueryWhichReturnsPrimitive.apply(s) ? null : s.getContainer())
+                        .partnerColumnName(s.getNavigationJoins().isEmpty() ||
+                                isStaticQueryWhichReturnsPrimitive.apply(s)  ? null : StatementExecutor.ID_COLUMN_NAME)
                         .alias(s.getAlias())
                         .build())
                 .collect(Collectors.toList()));
