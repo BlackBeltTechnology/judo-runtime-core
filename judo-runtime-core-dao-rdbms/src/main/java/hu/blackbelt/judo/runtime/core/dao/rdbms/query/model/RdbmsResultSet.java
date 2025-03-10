@@ -206,9 +206,12 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                 query.getSelect().getAllJoins().stream().flatMap(j -> j.getSubSelects().stream())
         ).collect(Collectors.toList());
 
-        Predicate<SubSelect> isStaticQueryWhichReturnsPrimitive = s -> s.getNavigationJoins()
+        Predicate<SubSelect> isStaticQueryWhichReturnsPrimitive = q -> q.getContainer() == null ||
+                (q.getNavigationJoins()
                 .stream()
-                .noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(s.getContainer().getAlias()) && s.getTransferRelation() == null);
+                .noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(q.getContainer().getAlias()) ||
+                        navigatioJoin.getBase().getType().equals(q.getContainer().getType())) &&
+                q.getTransferRelation() == null);
 
         joins.addAll(subSelects.stream()
                 .filter(s -> s.getSelect().isAggregated())

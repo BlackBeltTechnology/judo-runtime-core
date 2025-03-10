@@ -93,9 +93,12 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final EClass baseType = query.getBase() != null ? query.getBase().getType() : navigationJoinList.get(0).getType();
         subFrom = rdbmsBuilder.getTableName(baseType);
 
-        Predicate<SubSelect> isStaticQueryWhichReturnsPrimitive = q -> q.getNavigationJoins()
+        Predicate<SubSelect> isStaticQueryWhichReturnsPrimitive = q -> q.getContainer() == null ||
+                (q.getNavigationJoins()
                 .stream()
-                .noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(q.getContainer().getAlias()) && q.getTransferRelation() == null);
+                .noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(q.getContainer().getAlias()) ||
+                        navigatioJoin.getBase().getType().equals(q.getContainer().getType())) &&
+                q.getTransferRelation() == null);
 
         if (query.getBase() != null &&
                 !(query.getBase() instanceof Select && !(query.getContainer() instanceof SubSelectJoin) &&
@@ -271,6 +274,24 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .build())
                     .build());
+        }
+        List<Join> tableJoinsWhereTableEqualsWithCurrentTable = this.query.getNavigationJoins().stream().filter(nj -> nj.getType().equals(this.query.getBase().getType())).toList();
+        boolean b = isStaticQueryWhichReturnsPrimitive.apply(query);
+        if (!tableJoinsWhereTableEqualsWithCurrentTable.isEmpty() && b) {
+            for (Join join : tableJoinsWhereTableEqualsWithCurrentTable) {
+                subConditions.add(RdbmsFunction.builder()
+                        .pattern("{0} = {1}")
+                        .parameter(RdbmsColumn.builder()
+                                .partnerTable(query.getBase())
+                                .columnName(StatementExecutor.ID_COLUMN_NAME)
+                                .build())
+                        .parameter(RdbmsColumn.builder()
+                                .partnerTable(join)
+                                .columnName(StatementExecutor.ID_COLUMN_NAME)
+                                .build())
+                        .build());
+            }
+
         }
         aggregatedNavigation = !aggregations.isEmpty();
     }
