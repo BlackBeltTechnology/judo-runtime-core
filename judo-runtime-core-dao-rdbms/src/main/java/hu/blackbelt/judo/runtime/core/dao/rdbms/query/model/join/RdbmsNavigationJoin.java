@@ -20,7 +20,6 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join;
  * #L%
  */
 
-import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
@@ -28,13 +27,14 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.JoinProcessParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
-import hu.blackbelt.mapper.api.Coercer;
-import lombok.*;
-import org.eclipse.emf.common.util.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
+import org.eclipse.emf.common.util.UniqueEList;
 import org.eclipse.emf.ecore.EClass;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -92,9 +92,16 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         final EClass baseType = query.getBase() != null ? query.getBase().getType() : navigationJoinList.get(0).getType();
         subFrom = rdbmsBuilder.getTableName(baseType);
 
+        Predicate<SubSelect> isStaticQueryWhichReturnsPrimitive = q -> q.getContainer() == null ||
+                (q.getNavigationJoins()
+                .stream()
+                .noneMatch(navigatioJoin -> navigatioJoin.getBase().getAlias().equals(q.getContainer().getAlias()) ||
+                        navigatioJoin.getBase().getType().equals(q.getContainer().getType())) &&
+                q.getTransferRelation() == null);
+
         if (query.getBase() != null &&
                 !(query.getBase() instanceof Select && !(query.getContainer() instanceof SubSelectJoin) &&
-                        query.getBase().getFeatures().isEmpty() && query.getSelect().isAggregated())) {
+                        query.getBase().getFeatures().isEmpty() && (query.getSelect().isAggregated() && !isStaticQueryWhichReturnsPrimitive.test(query)))) {
             subFeatures.add(RdbmsColumn.builder()
                     .partnerTable(query.getBase())
                     .columnName(StatementExecutor.ID_COLUMN_NAME)
@@ -266,6 +273,24 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                             .columnName(StatementExecutor.ID_COLUMN_NAME)
                             .build())
                     .build());
+        }
+        List<Join> tableJoinsWhereTableEqualsWithCurrentTable = this.query.getNavigationJoins().stream().filter(nj -> nj.getType().equals(this.query.getBase().getType())).toList();
+        boolean b = isStaticQueryWhichReturnsPrimitive.test(query);
+        if (!tableJoinsWhereTableEqualsWithCurrentTable.isEmpty() && b) {
+            for (Join join : tableJoinsWhereTableEqualsWithCurrentTable) {
+                subConditions.add(RdbmsFunction.builder()
+                        .pattern("{0} = {1}")
+                        .parameter(RdbmsColumn.builder()
+                                .partnerTable(query.getBase())
+                                .columnName(StatementExecutor.ID_COLUMN_NAME)
+                                .build())
+                        .parameter(RdbmsColumn.builder()
+                                .partnerTable(join)
+                                .columnName(StatementExecutor.ID_COLUMN_NAME)
+                                .build())
+                        .build());
+            }
+
         }
         aggregatedNavigation = !aggregations.isEmpty();
     }
