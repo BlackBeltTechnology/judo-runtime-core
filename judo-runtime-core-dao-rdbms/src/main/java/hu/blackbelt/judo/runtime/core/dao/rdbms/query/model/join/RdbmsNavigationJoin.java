@@ -274,10 +274,9 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                             .build())
                     .build());
         }
-        List<Join> tableJoinsWhereTableEqualsWithCurrentTable = this.query.getNavigationJoins().stream().filter(nj -> nj.getType().equals(this.query.getBase().getType())).toList();
-        boolean b = isStaticQueryWhichReturnsPrimitive.test(query);
-        if (!tableJoinsWhereTableEqualsWithCurrentTable.isEmpty() && b) {
-            for (Join join : tableJoinsWhereTableEqualsWithCurrentTable) {
+        List<Join> joinsWhereBaseTableAndJoinedTableAreSame = this.query.getNavigationJoins().stream().filter(nj -> nj.getType().equals(this.query.getBase().getType())).toList();
+        if (!joinsWhereBaseTableAndJoinedTableAreSame.isEmpty() && isStaticQueryWhichReturnsPrimitive.test(query)) {
+            for (Join join : joinsWhereBaseTableAndJoinedTableAreSame) {
                 subConditions.add(RdbmsFunction.builder()
                         .pattern("{0} = {1}")
                         .parameter(RdbmsColumn.builder()
