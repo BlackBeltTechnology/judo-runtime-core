@@ -20,27 +20,31 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.query.model;
  * #L%
  */
 
-import com.google.common.base.Predicate;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
-import hu.blackbelt.judo.meta.query.Node;
 import hu.blackbelt.judo.meta.query.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.StatementExecutor;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
+import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.FilterJoinProcessorParameters;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.processor.JoinProcessParameters;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
-import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.join.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.emf.common.util.*;
+import org.eclipse.emf.common.util.BasicEList;
+import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 
 import java.util.*;
-import java.util.stream.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.AGGREGATE_PREFIX;
@@ -231,9 +235,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                         .outer(true)
                         .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(s.getContainer()))
                         .partnerTable(s.getNavigationJoins().isEmpty() ||
-                                isStaticQueryWhichReturnsPrimitive.apply(s) ? null : s.getContainer())
+                                isStaticQueryWhichReturnsPrimitive.test(s) ? null : s.getContainer())
                         .partnerColumnName(s.getNavigationJoins().isEmpty() ||
-                                isStaticQueryWhichReturnsPrimitive.apply(s)  ? null : StatementExecutor.ID_COLUMN_NAME)
+                                isStaticQueryWhichReturnsPrimitive.test(s)  ? null : StatementExecutor.ID_COLUMN_NAME)
                         .alias(s.getAlias())
                         .build())
                 .collect(Collectors.toList()));
