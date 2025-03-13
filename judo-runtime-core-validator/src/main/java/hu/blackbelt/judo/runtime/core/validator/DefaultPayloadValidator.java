@@ -127,26 +127,26 @@ public class DefaultPayloadValidator implements PayloadValidator {
         final Payload payload = Payload.asPayload(input);
 
         Predicate<EReference> checkReferenceTraversable = (reference -> {
-            boolean validate = (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                    || !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT);
-            if (validate) {
+            if ((Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)) {
                 boolean isDerived = asmUtils.getMappedReference(reference).map(e -> e.isDerived()).orElse(false);
-                boolean isContainment = asmUtils.getMappedReference(reference).map(e -> e.isContainment()).orElse(false);
-                boolean isTransient = asmUtils.getMappedReference(reference).map(e -> e.isTransient()).orElse(false);
-                boolean isIdentifierPresented = payload.containsKey(identifierProvider.getName());
-                boolean isAggregation = reference.isContainment();
-
-                return !isDerived && !isTransient && (isContainment || isAggregation || !isIdentifierPresented);
+                return !isDerived;
             }
-            return false;
-//            return (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-//                    ? asmUtils.getMappedReference(reference).map(e -> !e.isDerived()).orElse(false)
-//                    : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT);
+            return !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT);
+        });
+
+        Predicate<PayloadTraverser.ReferenceItem> referenceItemPredicate = (referenceItem -> {
+            boolean isDerived = asmUtils.getMappedReference(referenceItem.getReference()).map(e -> e.isDerived()).orElse(false);
+            boolean isContainment = asmUtils.getMappedReference(referenceItem.getReference()).map(e -> e.isContainment()).orElse(false);
+            boolean isTransient = asmUtils.getMappedReference(referenceItem.getReference()).map(e -> e.isTransient()).orElse(false);
+            boolean isAggregation = referenceItem.getReference().isContainment();
+            boolean isIdentifierPresented = referenceItem.getValue().containsKey(identifierProvider.getName());
+            return !isDerived && !isTransient && (isContainment || isAggregation || !isIdentifierPresented);
         });
 
         try {
             PayloadTraverser.builder()
                             .predicate(checkReferenceTraversable)
+                            .referenceItemTravesePredicate(referenceItemPredicate)
                             .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext))
                             .build()
                             .traverse(payload, transferObjectType);
