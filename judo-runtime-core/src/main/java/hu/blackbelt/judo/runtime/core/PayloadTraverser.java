@@ -26,8 +26,6 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
-import org.eclipse.emf.ecore.EStructuralFeature;
-import org.eclipse.emf.ecore.ETypedElement;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -46,6 +44,16 @@ public class PayloadTraverser {
 
     @NonNull
     private Predicate<EReference> predicate;
+
+    @Builder.Default
+    private Predicate<ReferenceItem> referenceItemTravesePredicate = (i) -> true;
+
+    @Getter
+    @AllArgsConstructor
+    public static class ReferenceItem {
+        EReference reference;
+        Payload value;
+    }
 
     public Payload traverse(final Payload payload, final EClass transferObjectType) {
         return traverse(payload, PayloadTraverserContext
@@ -70,16 +78,18 @@ public class PayloadTraverser {
                     int idx = 0;
                     for (Iterator<Payload> it = value.iterator(); it.hasNext(); idx++) {
                         final Payload p = it.next();
-                        traverse(p, PayloadTraverserContext.builder()
-                                .type(key.getEReferenceType())
-                                .path(ImmutableList.<PathEntry>builder()
-                                        .addAll(ctx.getPath())
-                                        .add(PathEntry.builder()
-                                                .reference(key)
-                                                .index(idx)
-                                                .build())
-                                        .build())
-                                .build());
+                        if (referenceItemTravesePredicate.test(new ReferenceItem(key, p))) {
+                            traverse(p, PayloadTraverserContext.builder()
+                                    .type(key.getEReferenceType())
+                                    .path(ImmutableList.<PathEntry>builder()
+                                            .addAll(ctx.getPath())
+                                            .add(PathEntry.builder()
+                                                    .reference(key)
+                                                    .index(idx)
+                                                    .build())
+                                            .build())
+                                    .build());
+                        }
                     }
                 });
 
