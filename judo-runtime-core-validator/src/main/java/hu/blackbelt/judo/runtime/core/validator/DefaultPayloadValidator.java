@@ -140,7 +140,7 @@ public class DefaultPayloadValidator implements PayloadValidator {
             boolean isTransient = asmUtils.getMappedReference(referenceItem.getReference()).map(e -> e.isTransient()).orElse(false);
             boolean isAggregation = referenceItem.getReference().isContainment();
             boolean isIdentifierPresented = referenceItem.getValue().containsKey(identifierProvider.getName());
-            return !isDerived && !isTransient && (isContainment || isAggregation || !isIdentifierPresented);
+            return !isDerived && (isTransient || isContainment || isAggregation || !isIdentifierPresented);
         });
 
         try {
