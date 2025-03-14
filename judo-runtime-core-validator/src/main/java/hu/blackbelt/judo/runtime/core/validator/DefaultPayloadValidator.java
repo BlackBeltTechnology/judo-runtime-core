@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import com.google.common.collect.ImmutableMap;
@@ -125,11 +126,27 @@ public class DefaultPayloadValidator implements PayloadValidator {
 
         final Payload payload = Payload.asPayload(input);
 
+        Predicate<EReference> checkReferenceTraversable = (reference -> {
+            if ((Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)) {
+                boolean isDerived = asmUtils.getMappedReference(reference).map(e -> e.isDerived()).orElse(false);
+                return !isDerived;
+            }
+            return !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT);
+        });
+
+        Predicate<PayloadTraverser.ReferenceItem> referenceItemPredicate = (referenceItem -> {
+            boolean isDerived = asmUtils.getMappedReference(referenceItem.getReference()).map(e -> e.isDerived()).orElse(false);
+            boolean isContainment = asmUtils.getMappedReference(referenceItem.getReference()).map(e -> e.isContainment()).orElse(false);
+            boolean isTransient = asmUtils.getMappedReference(referenceItem.getReference()).map(e -> e.isTransient()).orElse(false);
+            boolean isAggregation = referenceItem.getReference().isContainment();
+            boolean isIdentifierPresented = referenceItem.getValue().containsKey(identifierProvider.getName());
+            return !isDerived && (isTransient || isContainment || isAggregation || !isIdentifierPresented);
+        });
+
         try {
             PayloadTraverser.builder()
-                            .predicate((reference) -> (Boolean) validationContext.getOrDefault(VALIDATE_FOR_CREATE_OR_UPDATE_KEY, VALIDATE_FOR_CREATE_OR_UPDATE_DEFAULT)
-                                                      ? asmUtils.getMappedReference(reference).map(e -> !e.isDerived()).orElse(false)
-                                                      : !(Boolean) validationContext.getOrDefault(NO_TRAVERSE_KEY, NO_TRAVERSE_DEFAULT))
+                            .predicate(checkReferenceTraversable)
+                            .referenceItemTravesePredicate(referenceItemPredicate)
                             .processor((instance, ctx) -> processPayload(instance, ctx, validationResults, validationContext))
                             .build()
                             .traverse(payload, transferObjectType);
