@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.runtime.core.SerializableIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.AddReferenceStatement;
 import hu.blackbelt.judo.runtime.core.dao.core.statements.ReferenceStatement;
@@ -33,11 +34,12 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.Getter;
 import lombok.NonNull;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public abstract class StatementExecutor<ID> {
+public abstract class StatementExecutor {
 
     public static final String ID_COLUMN_NAME = "ID";
     public static final String NAME_COLUMN_NAME = "C_NAME";
@@ -78,33 +80,33 @@ public abstract class StatementExecutor<ID> {
     private final TransformationTraceService transformationTraceService;
 
     @Getter
-    private final IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider<Serializable> identifierProvider;
 
     @Getter
     private final Coercer coercer;
 
     @Getter
-    private final RdbmsParameterMapper<ID> rdbmsParameterMapper;
+    private final RdbmsParameterMapper<Serializable> rdbmsParameterMapper;
 
     @Getter
     private final RdbmsResolver rdbmsResolver;
 
     @Getter
-    private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
+    private final RdbmsReferenceUtil<Serializable> rdbmsReferenceUtil;
 
     @SuppressWarnings("unchecked")
     public StatementExecutor(@NonNull AsmModel asmModel,
                              @NonNull RdbmsModel rdbmsModel,
                              @NonNull TransformationTraceService transformationTraceService,
-                             @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+                             @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
                              @NonNull RdbmsResolver rdbmsResolver,
                              @NonNull Coercer coercer,
-                             IdentifierProvider<ID> identifierProvider) {
+                             IdentifierProvider<Serializable> identifierProvider) {
         this.asmModel = asmModel;
         this.rdbmsModel = rdbmsModel;
         this.transformationTraceService = transformationTraceService;
         this.rdbmsParameterMapper =  rdbmsParameterMapper;
-        this.identifierProvider = identifierProvider == null ? (IdentifierProvider<ID>) new UUIDIdentifierProvider() : identifierProvider;
+        this.identifierProvider = identifierProvider == null ? new SerializableIdentifierProvider() : identifierProvider;
         this.coercer = coercer;
         this.rdbmsResolver = rdbmsResolver;
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
@@ -117,12 +119,12 @@ public abstract class StatementExecutor<ID> {
      * @param referenceStatements
      * @return
      */
-    protected Stream<RdbmsReference<ID>> collectRdbmsReferencesReferenceStatements(Collection<ReferenceStatement<ID>> referenceStatements) {
+    protected Stream<RdbmsReference<Serializable>> collectRdbmsReferencesReferenceStatements(Collection<ReferenceStatement<Serializable>> referenceStatements) {
 
         return Stream.concat(referenceStatements.stream()
                 .map(addReferenceStatement ->
                         rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                RdbmsReference.<ID>rdbmsReferenceBuilder()
+                                RdbmsReference.<Serializable>rdbmsReferenceBuilder()
                                         .statement(addReferenceStatement)
                                         .identifier(addReferenceStatement.getIdentifier())
                                         .oppositeIdentifier(addReferenceStatement.getInstance().getIdentifier())
@@ -132,7 +134,7 @@ public abstract class StatementExecutor<ID> {
                 referenceStatements.stream().filter(r -> r.getReference().getEOpposite() != null)
                         .map(addReferenceStatement ->
                                 rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                        RdbmsReference.<ID>rdbmsReferenceBuilder()
+                                        RdbmsReference.<Serializable>rdbmsReferenceBuilder()
                                                 .statement(addReferenceStatement)
                                                 .identifier(addReferenceStatement.getInstance().getIdentifier())
                                                 .oppositeIdentifier(addReferenceStatement.getIdentifier())
@@ -153,14 +155,14 @@ public abstract class StatementExecutor<ID> {
      * @param optional
      * @return
      */
-    protected Map<RdbmsReference<ID>, ID> collectReferenceIdentifiersForGivenIdentifier(
-            ID identifier,
-            Collection<ReferenceStatement<ID>> referenceStatements,
+    protected Map<RdbmsReference<Serializable>, Serializable> collectReferenceIdentifiersForGivenIdentifier(
+            Serializable identifier,
+            Collection<ReferenceStatement<Serializable>> referenceStatements,
             boolean mandatory,
             boolean optional) {
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
-        Map<RdbmsReference<ID>, ID> referenceMap = Maps.<RdbmsReference<ID>, ID>newHashMap();
+        Map<RdbmsReference<Serializable>, Serializable> referenceMap = Maps.newHashMap();
 
         collectRdbmsReferencesReferenceStatements(referenceStatements)
                 .filter(rdbmsReference -> rdbmsReference.getRule().isForeignKey() || rdbmsReference.getRule().isInverseForeignKey())

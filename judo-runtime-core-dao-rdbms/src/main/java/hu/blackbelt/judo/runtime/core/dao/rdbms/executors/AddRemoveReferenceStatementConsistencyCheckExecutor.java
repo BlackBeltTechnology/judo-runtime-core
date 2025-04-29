@@ -34,6 +34,7 @@ import lombok.Builder;
 import lombok.NonNull;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -45,19 +46,18 @@ import static com.google.common.base.Preconditions.checkState;
  * It analyzes where the foreign key are presented and making update in the owner table. If it is a join table
  * record is deleted.
  *
- * @param <ID>
  */
-class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementExecutor<ID> {
+class AddRemoveReferenceStatementConsistencyCheckExecutor extends StatementExecutor {
 
     @Builder
     public AddRemoveReferenceStatementConsistencyCheckExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -68,11 +68,11 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementE
      * @param removeReferencesStatements
      */
     public void checkRemoveReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                               Collection<ReferenceStatement<ID>> removeReferencesStatements,
-                                               Collection<ID> idsToDelete) {
+                                               Collection<ReferenceStatement<Serializable>> removeReferencesStatements,
+                                               Collection<Serializable> idsToDelete) {
 
         // Check all removed instance - (opposite is single and required)
-        Set<ReferenceStatement<ID>> illegalRemoveStatementsSingle = removeReferencesStatements.stream()
+        Set<ReferenceStatement<Serializable>> illegalRemoveStatementsSingle = removeReferencesStatements.stream()
                 .filter(r -> r.getReference().getEOpposite() != null)
                 .filter(r -> !r.getReference().getEOpposite().isMany() && !idsToDelete.contains(r.getIdentifier()) && r.getReference().getEOpposite().isRequired())
                 .collect(Collectors.toSet());
@@ -80,7 +80,7 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementE
         checkState(illegalRemoveStatementsSingle.size() == 0, "There is reference remove which let referrer violate mandatory constraint");
 
         // TODO: Check all removed instance - (opposite is collection and lower constraint violated by removing the given element)
-//        Set<ReferenceStatement<ID>> illegalRemoveStatementsCollection = removeReferencesStatements.stream()
+//        Set<ReferenceStatement<Serializable>> illegalRemoveStatementsCollection = removeReferencesStatements.stream()
 //                .filter(r -> r.getReference().getEOpposite() != null)
 //                .filter(r -> r.getReference().getEOpposite().isMany() && r.getReference().getEOpposite().getLowerBound() <= remainingSize)
 //                .collect(Collectors.toSet());
@@ -95,10 +95,10 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementE
      * @param addReferencesStatements
      */
     public void checkAddReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                            Collection<AddReferenceStatement<ID>> addReferencesStatements) {
+                                            Collection<AddReferenceStatement<Serializable>> addReferencesStatements) {
 
         // Check all added instance - (opposite is single and required)
-        Set<ReferenceStatement<ID>> illegalAddStatementsSingle = addReferencesStatements.stream()
+        Set<ReferenceStatement<Serializable>> illegalAddStatementsSingle = addReferencesStatements.stream()
                 .filter(r -> r.getReference().getEOpposite() != null)
                 .filter(r -> r.getReference().getEOpposite().getLowerBound() == r.getReference().getEOpposite().getUpperBound())
                 .collect(Collectors.toSet());
@@ -106,7 +106,7 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementE
         checkState(illegalAddStatementsSingle.size() == 0, "There is reference add which let referrer violate mandatory constraint");
 
         // Check cardinality of back (opposite) references (already set)
-        Set<ReferenceStatement<ID>> illegalAddStatementsBecauseOfBackReference = addReferencesStatements.stream()
+        Set<ReferenceStatement<Serializable>> illegalAddStatementsBecauseOfBackReference = addReferencesStatements.stream()
                 .filter(r -> r.getReference().getEOpposite() != null && r.getAlreadyReferencingInstances() != null)
                 .filter(r -> r.getReference().getEOpposite().getUpperBound() > -1 && r.getReference().getEOpposite().getUpperBound() <= r.getAlreadyReferencingInstances().size())
                 .collect(Collectors.toSet());
@@ -114,7 +114,7 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor<ID> extends StatementE
         checkState(illegalAddStatementsBecauseOfBackReference.size() == 0, "There is reference add which let back reference violate constraint");
 
         // TODO: Check all added instance - (opposite is collection and lower constraint violated by adding the given element)
-//        Set<ReferenceStatement<ID>> illegalAddStatementsCollection = addReferencesStatements.stream()
+//        Set<ReferenceStatement<Serializable>> illegalAddStatementsCollection = addReferencesStatements.stream()
 //                .filter(r -> r.getReference().getEOpposite() != null)
 //                .filter(r -> r.getReference().getEOpposite().isMany() && r.getReference().getEOpposite().getLowerBound() <= remainingSize)
 //                .collect(Collectors.toSet());

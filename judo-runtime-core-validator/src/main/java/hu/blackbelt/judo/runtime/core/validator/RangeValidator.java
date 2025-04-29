@@ -46,7 +46,7 @@ public class RangeValidator<ID> implements Validator {
     private static final String CONSTRAINT_NAME = "range";
 
     @NonNull
-    private final DAO<ID> dao;
+    private final DAO dao;
 
     @NonNull
     private final IdentifierProvider<ID> identifierProvider;
@@ -73,7 +73,7 @@ public class RangeValidator<ID> implements Validator {
         }
 
         @SuppressWarnings("unchecked")
-        final Collection<Payload> range = dao.getRangeOf((EReference) feature, instance, DAO.QueryCustomizer.<ID>builder()
+        final Collection<Payload> range = dao.getRangeOf((EReference) feature, instance, DAO.QueryCustomizer.builder()
                 .withoutFeatures(true)
                 .build(),
                 false, true);

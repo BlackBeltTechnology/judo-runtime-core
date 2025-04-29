@@ -40,6 +40,7 @@ import org.eclipse.emf.ecore.EReference;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -53,20 +54,19 @@ import static org.jooq.lambda.Unchecked.consumer;
 
 /**
  * Executing {@link AddReferenceStatement} and {@link RemoveReferenceStatement}s with same entity ID as single a single update.
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
+class UpdateReferenceExecutor extends StatementExecutor {
 
     @Builder
     public UpdateReferenceExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            IdentifierProvider<ID> identifierProvider) {
+            IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -78,16 +78,16 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
      * @param updateReferenceStatements
      */
     public void executeReferenceUpdateStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<AddReferenceStatement<ID>> updateReferenceStatements
+                                        Collection<AddReferenceStatement<Serializable>> updateReferenceStatements
                                         ) {
 
 
         updateReferenceStatements.forEach(consumer(updateStatement -> {
 
                     EClass entity = updateStatement.getReference().getEContainingClass();
-                    ID identifier = updateStatement.getIdentifier();
+                    Serializable identifier = updateStatement.getIdentifier();
 
-                    Map<RdbmsReference<ID>, ID> updateReferenceMap =
+                    Map<RdbmsReference<Serializable>, Serializable> updateReferenceMap =
                             collectReferenceIdentifiersForGivenIdentifier(
                                     updateStatement.getIdentifier(),
                                     ImmutableList.copyOf(updateReferenceStatements),
@@ -103,7 +103,7 @@ class UpdateReferenceExecutor<ID> extends StatementExecutor<ID> {
                                 MapSqlParameterSource updateStatementNamedParameters = new MapSqlParameterSource()
                                         .addValue(getIdentifierProvider().getName(), getCoercer().coerce(identifier, getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType());
 
-                                Map<EReference, ID> updateReferenceMapForCurrentStatement = updateReferenceMap.entrySet().stream()
+                                Map<EReference, Serializable> updateReferenceMapForCurrentStatement = updateReferenceMap.entrySet().stream()
                                         .filter(e -> (e.getKey().getReference().eContainer().equals(entityForCurrentStatement)) ||
                                                 (e.getKey().getReference().getEReferenceType().equals(entityForCurrentStatement)))
                                         .collect(toMap(e -> e.getKey().getReference(), Map.Entry::getValue));

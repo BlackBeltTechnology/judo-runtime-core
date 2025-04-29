@@ -40,6 +40,7 @@ import org.jgrapht.traverse.TopologicalOrderIterator;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -55,22 +56,21 @@ import static org.jooq.lambda.Unchecked.consumer;
  * Executing Delete statements. It have use {@link RemoveReferenceStatement} instances too because some of them
  * are embedded in the delete statements directly.
  *
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
+class DeleteStatementExecutor extends StatementExecutor {
 
-    private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
+    private final RdbmsReferenceUtil<Serializable> rdbmsReferenceUtil;
 
     @Builder
     public DeleteStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
     }
@@ -88,18 +88,18 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
      * @throws SQLException
      */
     public void executeDeleteStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<DeleteStatement<ID>> deleteStatements,
-                                        Collection<RemoveReferenceStatement<ID>> removeReferenceStatements) {
+                                        Collection<DeleteStatement<Serializable>> deleteStatements,
+                                        Collection<RemoveReferenceStatement<Serializable>> removeReferenceStatements) {
 
         // Collect all information required to build dependencies between nodes.
-        Set<RdbmsReference<ID>> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
+        Set<RdbmsReference<Serializable>> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
 
         AsmUtils asmUtils = new AsmUtils(getAsmModel().getResourceSet());
         toDependencySortedDeleteStatementStream(deleteStatements, deleteRdbmsReferences)
                 .forEach(consumer(deleteStatement -> {
 
                     EClass entity = deleteStatement.getInstance().getType();
-                    ID identifier = deleteStatement.getInstance().getIdentifier();
+                    Serializable identifier = deleteStatement.getInstance().getIdentifier();
 
                     // Collecting all tables on the inheritance chain to delete.
                     Set<EClass> types = asmUtils.all(EClass.class)
@@ -138,18 +138,18 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param insertRdbmsReference
      * @return
      */
-    private Stream<DeleteStatement<ID>> toDependencySortedDeleteStatementStream(
-                            Collection<DeleteStatement<ID>> deleteStatements,
-                            Collection<RdbmsReference<ID>> insertRdbmsReference) {
+    private Stream<DeleteStatement<Serializable>> toDependencySortedDeleteStatementStream(
+                            Collection<DeleteStatement<Serializable>> deleteStatements,
+                            Collection<RdbmsReference<Serializable>> insertRdbmsReference) {
 
           // Topoligical Sorting over foreign key dependencies
-          Graph<Statement<ID>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+          Graph<Statement<Serializable>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
           deleteStatements.stream().forEach(s -> graph.addVertex(s));
           insertRdbmsReference.stream()
                   .filter(rdbmsReference -> getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory())
                   .forEach(rdbmsReference -> {
 
-                      Statement<ID> oppositeStatement = deleteStatements.stream()
+                      Statement<Serializable> oppositeStatement = deleteStatements.stream()
                               .filter(insertStatement ->
                                       insertStatement
                                               .getInstance()
@@ -167,7 +167,7 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
 
           // Iterate the ordered statement
           @SuppressWarnings({ "rawtypes", "unchecked" })
-          Iterator<DeleteStatement<ID>> iterator = new TopologicalOrderIterator(graph);
+          Iterator<DeleteStatement<Serializable>> iterator = new TopologicalOrderIterator(graph);
           return stream(spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
     }
 
@@ -180,8 +180,8 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param removeReferenceStatements
      * @return
      */
-    private Set<RdbmsReference<ID>> toRdbmsReferences(Collection<DeleteStatement<ID>> deleteStatements,
-                                                      Collection<RemoveReferenceStatement<ID>> removeReferenceStatements) {
+    private Set<RdbmsReference<Serializable>> toRdbmsReferences(Collection<DeleteStatement<Serializable>> deleteStatements,
+                                                      Collection<RemoveReferenceStatement<Serializable>> removeReferenceStatements) {
         return deleteStatements.stream()
                 .flatMap(deleteStatement -> removeReferenceStatements.stream()
                         .filter(removeReferenceStatement ->
@@ -189,8 +189,8 @@ class DeleteStatementExecutor<ID> extends StatementExecutor<ID> {
                         )
                         .map(addReferenceStatement ->
                                 {
-                                    RdbmsReference<ID> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                            RdbmsReference.<ID>rdbmsReferenceBuilder()
+                                    RdbmsReference<Serializable> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
+                                            RdbmsReference.<Serializable>rdbmsReferenceBuilder()
                                                     .statement(deleteStatement)
                                                     .identifier(deleteStatement.getInstance().getIdentifier())
                                                     .oppositeIdentifier(addReferenceStatement.getIdentifier())

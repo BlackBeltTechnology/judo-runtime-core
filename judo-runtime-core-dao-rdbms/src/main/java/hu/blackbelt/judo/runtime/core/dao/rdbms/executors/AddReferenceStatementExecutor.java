@@ -44,6 +44,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Map;
@@ -61,20 +62,19 @@ import static java.util.stream.Stream.*;
  * It analyzes where the foreign key are presented and making update in the owner table. If it is a join table
  * record is created.
  *
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
+class AddReferenceStatementExecutor extends StatementExecutor {
 
     @Builder
     public AddReferenceStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -85,27 +85,27 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
      * @throws SQLException
      */
     public void executeAddReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                              Collection<ReferenceStatement<ID>> statements) {
+                                              Collection<ReferenceStatement<Serializable>> statements) {
 
-        Map<ID, EClass> statementBased = statements.stream()
+        Map<Serializable, EClass> statementBased = statements.stream()
                 .collect(Collectors.toMap(
                         k -> k.getIdentifier(),
                         v -> v.getReference().getEContainingClass(),
                         (v1, v2) -> v1));
 
-        Map<ID, EClass> instanceBased = statements.stream()
+        Map<Serializable, EClass> instanceBased = statements.stream()
                 .collect(Collectors.toMap(
                         k -> k.getInstance().getIdentifier(),
                         v -> v.getInstance().getType(),
                         (v1, v2) -> v1));
 
-        Map<ID, EClass> classById = concat(statementBased.entrySet().stream(), instanceBased.entrySet().stream())
+        Map<Serializable, EClass> classById = concat(statementBased.entrySet().stream(), instanceBased.entrySet().stream())
                 .collect(Collectors.toMap(
                         Map.Entry :: getKey,
                         Map.Entry :: getValue,
                         (v1, v2) -> v1));
 
-        Map<ID, Map<RdbmsReference<ID>, ID>> referenceMap = classById.entrySet().stream()
+        Map<Serializable, Map<RdbmsReference<Serializable>, Serializable>> referenceMap = classById.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry :: getKey,
                         e -> collectReferenceIdentifiersForGivenIdentifier(
@@ -126,8 +126,8 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                         .filter(r -> r.equals(reference.getEReferenceType()) ||
                                 r.equals(reference.getEContainingClass()))
                         .forEach(entityForCurrentStatement -> {
-                            Optional<ID> identifier = Optional.empty();
-                            Optional<ID> referenceIdentifier = Optional.empty();
+                            Optional<Serializable> identifier = Optional.empty();
+                            Optional<Serializable> referenceIdentifier = Optional.empty();
                             Optional<EClass> entity = Optional.empty();
 
                             if (rdbmsReferenceAndOppositeId.getKey().getRule().isForeignKey()) {
@@ -184,15 +184,15 @@ class AddReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                 .filter(r ->
                         r.getRule().isJoinTable() &&
                                 // Just one side required
-                                r.getReference().equals(((ReferenceStatement<ID>) r.getStatement()).getReference())
+                                r.getReference().equals(((ReferenceStatement<Serializable>) r.getStatement()).getReference())
                 )
                 .forEach(r -> {
 
                     RdbmsTable joinTable = getRdbmsResolver().rdbmsJunctionTable(r.getReference());
                     RdbmsField aFk = getRdbmsResolver().rdbmsJunctionOppositeField(r.getReference());
                     RdbmsField bFk = getRdbmsResolver().rdbmsJunctionField(r.getReference());
-                    ID aId = r.getIdentifier();
-                    ID bId = r.getOppositeIdentifier();
+                    Serializable aId = r.getIdentifier();
+                    Serializable bId = r.getOppositeIdentifier();
 
                     SqlParameterSource jointPairNamedParameters = new MapSqlParameterSource()
                             .addValue("id", getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType())

@@ -51,7 +51,7 @@ public class UniqueAttributeValidator<ID> implements Validator {
     public static final String UNIQUE_ATTRIBUTE_VALIDATOR_CONTEXT = "uniqueAttributeValidatorContext";
 
     @NonNull
-    private final DAO<ID> dao;
+    private final DAO dao;
 
     @NonNull
     private final AsmUtils asmUtils;
@@ -62,7 +62,7 @@ public class UniqueAttributeValidator<ID> implements Validator {
     @NonNull
     Context context;
 
-    public UniqueAttributeValidator(@NonNull DAO<ID> dao, @NonNull AsmModel asmModel, @NonNull IdentifierProvider<ID> identifierProvider, @NonNull Context context) {
+    public UniqueAttributeValidator(@NonNull DAO dao, @NonNull AsmModel asmModel, @NonNull IdentifierProvider<ID> identifierProvider, @NonNull Context context) {
         this.dao = dao;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.identifierProvider = identifierProvider;
@@ -121,7 +121,7 @@ public class UniqueAttributeValidator<ID> implements Validator {
 
         // Check in the persisted values
         final String filter = convertFilterToJql(mappedAttribute, value);
-        final List<Payload> queryResult = dao.search(feature.getEContainingClass(), DAO.QueryCustomizer.<ID>builder()
+        final List<Payload> queryResult = dao.search(feature.getEContainingClass(), DAO.QueryCustomizer.builder()
                 .filter(filter)
                 .mask(ImmutableMap.of(mappedAttribute.getName(), true))
                 .seek(DAO.Seek.builder()

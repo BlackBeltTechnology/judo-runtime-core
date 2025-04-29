@@ -38,6 +38,7 @@ import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -51,20 +52,19 @@ import static org.jooq.lambda.Unchecked.consumer;
 
 /**
  * Executing {@link UpdateStatement}s.
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
+class UpdateStatementExecutor extends StatementExecutor {
 
     @Builder
     public UpdateStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            IdentifierProvider<ID> identifierProvider) {
+            IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -79,12 +79,12 @@ class UpdateStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param updateStatements
      */
     public void executeUpdateStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<UpdateStatement<ID>> updateStatements) {
+                                        Collection<UpdateStatement<Serializable>> updateStatements) {
 
         updateStatements.forEach(consumer(updateStatement -> {
 
                     EClass entity = updateStatement.getInstance().getType();
-                    ID identifier = updateStatement.getInstance().getIdentifier();
+                    Serializable identifier = updateStatement.getInstance().getIdentifier();
 
                     // Collect columns
                     Map<EAttribute, Object> attributeMap = updateStatement.getInstance().getAttributes().stream()

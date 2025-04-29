@@ -45,6 +45,7 @@ import org.jgrapht.traverse.TopologicalOrderIterator;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -64,22 +65,21 @@ import static org.jooq.lambda.Unchecked.consumer;
  * Executing {@link InsertStatement}s. It have use {@link AddReferenceStatement} instances too because some of them
  * are embedded the insert statements directly.
  *
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
+class InsertStatementExecutor extends StatementExecutor {
 
-    private final RdbmsReferenceUtil<ID> rdbmsReferenceUtil;
+    private final RdbmsReferenceUtil rdbmsReferenceUtil;
 
     @Builder
     public InsertStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
         rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
     }
@@ -96,11 +96,11 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param addReferenceStatements
      */
     public void executeInsertStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<InsertStatement<ID>> insertStatements,
-                                        Collection<AddReferenceStatement<ID>> addReferenceStatements) {
+                                        Collection<InsertStatement<Serializable>> insertStatements,
+                                        Collection<AddReferenceStatement<Serializable>> addReferenceStatements) {
 
         // Collect all information required to build dependencies between nodes.
-        Set<RdbmsReference<ID>> insertRdbmsReferences = toRdbmsReferences(insertStatements, addReferenceStatements);
+        Set<RdbmsReference<Serializable>> insertRdbmsReferences = toRdbmsReferences(insertStatements, addReferenceStatements);
 
         toDependencySortedInsertStatementStream(insertStatements, insertRdbmsReferences)
                 .forEach(consumer(insertStatement -> {
@@ -110,7 +110,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                     checkState(AsmUtils.isEntityType(entity), "Non-entity types cannot be explicitly instantiated: " + entityFQName);
                     checkState(!entity.isAbstract(), "Abstract types cannot be explicitly instantiated: " + entityFQName);
 
-                    ID identifier = insertStatement.getInstance().getIdentifier();
+                    Serializable identifier = insertStatement.getInstance().getIdentifier();
 
                     // Collect columns
                     Map<EAttribute, Object> attributeMap = insertStatement.getInstance().getAttributes().stream()
@@ -124,7 +124,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                     // referenced element already inserted.
                     // There is some optimalization point that optional fields also can be inserted when
                     // it is not in the inserted statements
-                    Map<RdbmsReference<ID>, ID> mandatoryReferenceMap =
+                    Map<RdbmsReference<Serializable>, Serializable> mandatoryReferenceMap =
                             collectReferenceIdentifiersForGivenIdentifier(
                                     insertStatement.getInstance().getIdentifier(),
                                     ImmutableList.copyOf(addReferenceStatements),
@@ -171,7 +171,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                                         .filter(e -> e.getKey().eContainer().equals(entityForCurrentStatement))
                                         .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-                                Map<EReference, ID> mandatoryReferenceMapForCurrentStatement = mandatoryReferenceMap.entrySet().stream()
+                                Map<EReference, Serializable> mandatoryReferenceMapForCurrentStatement = mandatoryReferenceMap.entrySet().stream()
                                         .filter(e -> (e.getKey().getReference().eContainer().equals(entityForCurrentStatement)) ||
                                                 (e.getKey().getReference().getEReferenceType().equals(entityForCurrentStatement)))
                                         .collect(toMap(e -> e.getKey().getReference(), Map.Entry::getValue));
@@ -254,18 +254,18 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param rdbmsReferences
      * @return
      */
-    private Stream<InsertStatement<ID>> toDependencySortedInsertStatementStream(
-                            Collection<InsertStatement<ID>> insertStatements,
-                            Collection<RdbmsReference<ID>> rdbmsReferences) {
+    private Stream<InsertStatement<Serializable>> toDependencySortedInsertStatementStream(
+                            Collection<InsertStatement<Serializable>> insertStatements,
+                            Collection<RdbmsReference<Serializable>> rdbmsReferences) {
 
           // Topoligical Sorting over foreign key dependencies
-          Graph<Statement<ID>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+          Graph<Statement<Serializable>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
           insertStatements.stream().forEach(s -> graph.addVertex(s));
           rdbmsReferences.stream()
                   .filter(rdbmsReference -> getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory())
                   .forEach(rdbmsReference -> {
 
-                      Statement<ID> oppositeStatement = insertStatements.stream()
+                      Statement<Serializable> oppositeStatement = insertStatements.stream()
                               .filter(insertStatement ->
                                       insertStatement
                                               .getInstance()
@@ -283,7 +283,7 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
 
           // Iterate the ordered statement
           @SuppressWarnings({ "rawtypes", "unchecked" })
-          Iterator<InsertStatement<ID>> iterator = new TopologicalOrderIterator(graph);
+          Iterator<InsertStatement<Serializable>> iterator = new TopologicalOrderIterator(graph);
           return stream(spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
     }
 
@@ -296,8 +296,8 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param addReferenceStatements
      * @return
      */
-    private Set<RdbmsReference<ID>> toRdbmsReferences(Collection<InsertStatement<ID>> insertStatements,
-                                                      Collection<AddReferenceStatement<ID>> addReferenceStatements) {
+    private Set<RdbmsReference<Serializable>> toRdbmsReferences(Collection<InsertStatement<Serializable>> insertStatements,
+                                                      Collection<AddReferenceStatement<Serializable>> addReferenceStatements) {
         return insertStatements.stream()
                 .flatMap(insertStatement -> addReferenceStatements.stream()
                         .filter(addReferenceStatement ->
@@ -305,8 +305,8 @@ class InsertStatementExecutor<ID> extends StatementExecutor<ID> {
                         )
                         .map(addReferenceStatement ->
                                 {
-                                    RdbmsReference<ID> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
-                                            RdbmsReference.<ID>rdbmsReferenceBuilder()
+                                    RdbmsReference<Serializable> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
+                                            RdbmsReference.<Serializable>rdbmsReferenceBuilder()
                                                     .statement(insertStatement)
                                                     .identifier(insertStatement.getInstance().getIdentifier())
                                                     .oppositeIdentifier(addReferenceStatement.getIdentifier())

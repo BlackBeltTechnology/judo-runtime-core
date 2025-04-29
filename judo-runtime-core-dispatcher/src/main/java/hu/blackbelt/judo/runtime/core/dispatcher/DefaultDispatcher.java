@@ -52,6 +52,7 @@ import org.slf4j.MDC;
 import org.springframework.transaction.*;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -107,7 +108,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final ExpressionModel expressionModel;
 
-    private final DAO<ID> dao;
+    private final DAO dao;
 
     private final IdentifierProvider<ID> identifierProvider;
 
@@ -156,7 +157,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private final Locale defaultLocale;
 
     @SuppressWarnings("unchecked")
-    private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel) {
+    private void setupBehaviourCalls(DAO dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel) {
         ServiceContext serviceContext = ServiceContext.<ID>builder()
                 .dao(dao)
                 .identifierProvider(identifierProvider)
@@ -198,7 +199,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public DefaultDispatcher(
             @NonNull AsmModel asmModel,
             @NonNull ExpressionModel expressionModel,
-            @NonNull DAO<ID> dao,
+            @NonNull DAO dao,
             @NonNull IdentifierProvider<ID> identifierProvider,
             @NonNull DispatcherFunctionProvider dispatcherFunctionProvider,
             @NonNull OperationCallInterceptorProvider operationCallInterceptorProvider,
@@ -342,7 +343,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     private Payload getTransferObjectAsBoundType(EClass mappedTransferObjectType, SignedIdentifier signedIdentifier) {
-        final ID id = dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType());
+        final Serializable id = dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType());
         return dao.getByIdentifier(mappedTransferObjectType, id)
                 .orElseThrow(() -> new NotFoundException(ValidationResult.builder()
                         .code(ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND)
