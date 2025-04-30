@@ -105,7 +105,7 @@ class AddReferenceStatementExecutor extends StatementExecutor {
                         Map.Entry :: getValue,
                         (v1, v2) -> v1));
 
-        Map<Serializable, Map<RdbmsReference<Serializable>, Serializable>> referenceMap = classById.entrySet().stream()
+        Map<Serializable, Map<RdbmsReference, Serializable>> referenceMap = classById.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry :: getKey,
                         e -> collectReferenceIdentifiersForGivenIdentifier(

@@ -81,7 +81,7 @@ class InsertStatementExecutor extends StatementExecutor {
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
-        rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
+        rdbmsReferenceUtil = new RdbmsReferenceUtil(asmModel, rdbmsModel, transformationTraceService);
     }
 
     /**
@@ -100,7 +100,7 @@ class InsertStatementExecutor extends StatementExecutor {
                                         Collection<AddReferenceStatement<Serializable>> addReferenceStatements) {
 
         // Collect all information required to build dependencies between nodes.
-        Set<RdbmsReference<Serializable>> insertRdbmsReferences = toRdbmsReferences(insertStatements, addReferenceStatements);
+        Set<RdbmsReference> insertRdbmsReferences = toRdbmsReferences(insertStatements, addReferenceStatements);
 
         toDependencySortedInsertStatementStream(insertStatements, insertRdbmsReferences)
                 .forEach(consumer(insertStatement -> {
@@ -124,7 +124,7 @@ class InsertStatementExecutor extends StatementExecutor {
                     // referenced element already inserted.
                     // There is some optimalization point that optional fields also can be inserted when
                     // it is not in the inserted statements
-                    Map<RdbmsReference<Serializable>, Serializable> mandatoryReferenceMap =
+                    Map<RdbmsReference, Serializable> mandatoryReferenceMap =
                             collectReferenceIdentifiersForGivenIdentifier(
                                     insertStatement.getInstance().getIdentifier(),
                                     ImmutableList.copyOf(addReferenceStatements),
@@ -256,7 +256,7 @@ class InsertStatementExecutor extends StatementExecutor {
      */
     private Stream<InsertStatement<Serializable>> toDependencySortedInsertStatementStream(
                             Collection<InsertStatement<Serializable>> insertStatements,
-                            Collection<RdbmsReference<Serializable>> rdbmsReferences) {
+                            Collection<RdbmsReference> rdbmsReferences) {
 
           // Topoligical Sorting over foreign key dependencies
           Graph<Statement<Serializable>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
@@ -296,7 +296,7 @@ class InsertStatementExecutor extends StatementExecutor {
      * @param addReferenceStatements
      * @return
      */
-    private Set<RdbmsReference<Serializable>> toRdbmsReferences(Collection<InsertStatement<Serializable>> insertStatements,
+    private Set<RdbmsReference> toRdbmsReferences(Collection<InsertStatement<Serializable>> insertStatements,
                                                       Collection<AddReferenceStatement<Serializable>> addReferenceStatements) {
         return insertStatements.stream()
                 .flatMap(insertStatement -> addReferenceStatements.stream()
@@ -305,7 +305,7 @@ class InsertStatementExecutor extends StatementExecutor {
                         )
                         .map(addReferenceStatement ->
                                 {
-                                    RdbmsReference<Serializable> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
+                                    RdbmsReference rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
                                             RdbmsReference.<Serializable>rdbmsReferenceBuilder()
                                                     .statement(insertStatement)
                                                     .identifier(insertStatement.getInstance().getIdentifier())

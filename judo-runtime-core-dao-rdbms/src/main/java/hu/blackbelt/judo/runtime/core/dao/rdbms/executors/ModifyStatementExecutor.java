@@ -65,8 +65,8 @@ public class ModifyStatementExecutor extends StatementExecutor {
     public void executeStatements(NamedParameterJdbcTemplate jdbcTemplate,
                                   Collection<Statement<Serializable>> statements) throws SQLException {
 
-        EntityExistsValidationStatementExecutor<Serializable> entityExistsValidationStatementExecutor =
-                EntityExistsValidationStatementExecutor.<Serializable>builder()
+        EntityExistsValidationStatementExecutor entityExistsValidationStatementExecutor =
+                EntityExistsValidationStatementExecutor.builder()
                         .asmModel(getAsmModel())
                         .rdbmsModel(getRdbmsModel())
                         .rdbmsResolver(getRdbmsResolver())
@@ -78,7 +78,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
                         .build();
 
 
-        InsertStatementExecutor<Serializable> insertStatementExecutor = InsertStatementExecutor.<Serializable>builder()
+        InsertStatementExecutor insertStatementExecutor = InsertStatementExecutor.<Serializable>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -89,7 +89,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        UpdateStatementExecutor<Serializable> updateStatementExecutor = UpdateStatementExecutor.<Serializable>builder()
+        UpdateStatementExecutor updateStatementExecutor = UpdateStatementExecutor.<Serializable>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())

@@ -32,22 +32,23 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
+public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+    final ServiceContext serviceContext;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateCreateCall(Context context, ServiceContext<ID> serviceContext) {
+    public ValidateCreateCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -72,7 +73,7 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
         final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor
                 .build(null, owner.getEReferenceType(), exchange);
 
         ValidateCreateCallPayload inputParameter =
@@ -96,7 +97,7 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
             } else {
                 checkArgument(bound, "Operation must be bound");
                 result = serviceContext.getDao().createNavigationInstanceAt(
-                        (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
+                        (Serializable) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
                         inputParameter.getOwner(),
                         inputParameter.getInput(), queryCustomizer);
             }

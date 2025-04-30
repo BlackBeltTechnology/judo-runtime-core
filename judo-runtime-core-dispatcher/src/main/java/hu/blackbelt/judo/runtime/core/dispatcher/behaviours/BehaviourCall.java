@@ -24,7 +24,7 @@ import org.eclipse.emf.ecore.EOperation;
 
 import java.util.Map;
 
-public interface BehaviourCall<ID> {
+public interface BehaviourCall {
     boolean isSuitableForOperation(EOperation operation);
 
     Object call(final Map<String, Object> exchange,

@@ -36,15 +36,16 @@ import org.eclipse.emf.ecore.EReference;
 
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
+public class UnsetReferenceCall extends TransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
 
-    public UnsetReferenceCall(Context context, ServiceContext<ID> serviceContext) {
+    public UnsetReferenceCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
     }
@@ -73,7 +74,7 @@ public class UnsetReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
         if (callInterceptorUtil.shouldCallOriginal()) {
             @SuppressWarnings("unchecked")
-            final ID instanceId = (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName());
+            final Serializable instanceId = (Serializable) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName());
             serviceContext.getDao().unsetReference(owner, instanceId);
         }
 

@@ -87,7 +87,7 @@ class UpdateReferenceExecutor extends StatementExecutor {
                     EClass entity = updateStatement.getReference().getEContainingClass();
                     Serializable identifier = updateStatement.getIdentifier();
 
-                    Map<RdbmsReference<Serializable>, Serializable> updateReferenceMap =
+                    Map<RdbmsReference, Serializable> updateReferenceMap =
                             collectReferenceIdentifiersForGivenIdentifier(
                                     updateStatement.getIdentifier(),
                                     ImmutableList.copyOf(updateReferenceStatements),

@@ -36,22 +36,23 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
+public class ListCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
 
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
-    public ListCall(Context context, ServiceContext<ID> serviceContext) {
+    public ListCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -67,7 +68,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
     @Override
     public Object callInRollbackTransaction(final Map<String, Object> exchange, final EOperation operation) {
 
-        CallInterceptorUtil<ListCallPayload<ID>, Object> callInterceptorUtil = new CallInterceptorUtil<>(
+        CallInterceptorUtil<ListCallPayload, Object> callInterceptorUtil = new CallInterceptorUtil<>(
                 ListCallPayload.class, Object.class, asmModel, operation, interceptorProvider
         );
 
@@ -80,12 +81,12 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
                 .findFirst()
                 .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
 
-        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor.build(
+        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(
                 queryCustomizerParameter.orElse(null),
                 owner.getEReferenceType(),
                 exchange);
 
-        ListCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(ListCallPayload.<ID>builder()
+        ListCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(ListCallPayload.builder()
                         .instance(Payload.asPayload(exchange))
                         .owner(owner)
                         .queryCustomizer(queryCustomizer)
@@ -112,7 +113,7 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
                     throw new IllegalStateException("Unknown or unsupported actor");
                 }
 
-                final ID id = (ID) actor.get(serviceContext.getIdentifierProvider().getName());
+                final Serializable id = (Serializable) actor.get(serviceContext.getIdentifierProvider().getName());
                 result = extractResult(operation, serviceContext.getDao().searchNavigationResultAt(id, owner, queryCustomizer));
                 if (countRecords) {
                     count = serviceContext.getDao().countNavigationResultAt(id, owner, queryCustomizer);
@@ -145,10 +146,10 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
                     result = resultInThis.get().orElse(null);
                 } else {
                     result = extractResult(operation, serviceContext.getDao().searchNavigationResultAt(
-                            (ID) exchange.get(serviceContext.getIdentifierProvider().getName()), owner, queryCustomizer));
+                            (Serializable) exchange.get(serviceContext.getIdentifierProvider().getName()), owner, queryCustomizer));
                     if (countRecords) {
                         count = serviceContext.getDao().countNavigationResultAt(
-                                (ID) exchange.get(serviceContext.getIdentifierProvider().getName()),
+                                (Serializable) exchange.get(serviceContext.getIdentifierProvider().getName()),
                                 owner,
                                 queryCustomizer);
                     }
@@ -181,14 +182,14 @@ public class ListCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
 
     @Builder
     @Getter
-    public static class ListCallPayload<ID> {
+    public static class ListCallPayload {
         @NonNull
         EReference owner;
 
         @NonNull
         Payload instance;
 
-        DAO.QueryCustomizer<ID> queryCustomizer;
+        DAO.QueryCustomizer queryCustomizer;
 
         @Setter
         @Builder.Default

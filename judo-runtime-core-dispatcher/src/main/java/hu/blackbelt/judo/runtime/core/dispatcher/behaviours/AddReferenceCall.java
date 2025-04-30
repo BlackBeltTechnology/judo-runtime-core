@@ -35,15 +35,18 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
+public class AddReferenceCall extends TransactionalBehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
+    final ServiceContext serviceContext;
 
     public AddReferenceCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
@@ -80,12 +83,12 @@ public class AddReferenceCall<ID> extends TransactionalBehaviourCall<ID> {
 
         if (callInterceptorUtil.shouldCallOriginal()) {
             @SuppressWarnings({"unchecked"})
-            final Collection<ID> referencedIds = inputParameter.getReferences().stream()
-                    .map(p -> (ID) p.get(serviceContext.getIdentifierProvider().getName()))
+            final Collection<Serializable> referencedIds = inputParameter.getReferences().stream()
+                    .map(p -> (Serializable) p.get(serviceContext.getIdentifierProvider().getName()))
                     .collect(Collectors.toList());
 
             @SuppressWarnings({"unchecked"})
-            ID instanceId = (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName());
+            Serializable instanceId = (Serializable) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName());
 
             serviceContext.getDao().addReferences(inputParameter.getOwner(), instanceId, referencedIds);
         }

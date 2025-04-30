@@ -102,7 +102,7 @@ class RemoveReferenceStatementExecutor extends StatementExecutor {
                         Map.Entry :: getValue,
                         (v1, v2) -> v1));
 
-        Map<Serializable, Map<RdbmsReference<Serializable>, Serializable>> referenceMap = classById.entrySet().stream()
+        Map<Serializable, Map<RdbmsReference, Serializable>> referenceMap = classById.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry :: getKey,
                         e -> collectReferenceIdentifiersForGivenIdentifier(
@@ -169,7 +169,7 @@ class RemoveReferenceStatementExecutor extends StatementExecutor {
         });
 
         // Join reference
-        List<RdbmsReference<Serializable>> rdbmsReferenceList = collectRdbmsReferencesReferenceStatements(statements)
+        List<RdbmsReference> rdbmsReferenceList = collectRdbmsReferencesReferenceStatements(statements)
                 .filter(r ->
                         r.getRule().isJoinTable() &&
                                 // Just one side required
@@ -177,9 +177,9 @@ class RemoveReferenceStatementExecutor extends StatementExecutor {
                 )
                 .toList();
 
-        Set<RdbmsReference<Serializable>> filteredRbmsReferences = new HashSet<>();
+        Set<RdbmsReference> filteredRbmsReferences = new HashSet<>();
 
-        for (RdbmsReference<Serializable> rdbmsReference : rdbmsReferenceList) {
+        for (RdbmsReference rdbmsReference : rdbmsReferenceList) {
             boolean isDuplicate = filteredRbmsReferences.stream().anyMatch(filtered -> isTheSameRecord(rdbmsReference, filtered));
             if (!isDuplicate) {
                 filteredRbmsReferences.add(rdbmsReference);
@@ -239,7 +239,7 @@ class RemoveReferenceStatementExecutor extends StatementExecutor {
     }
 
     // Check if two RdbmsReference objects are considered the same table record
-    private boolean isTheSameRecord(RdbmsReference<Serializable> first, RdbmsReference<Serializable> second) {
+    private boolean isTheSameRecord(RdbmsReference first, RdbmsReference second) {
         RdbmsTable joinTableFirst = getRdbmsResolver().rdbmsJunctionTable(first.getReference());
         RdbmsTable joinTableSecond = getRdbmsResolver().rdbmsJunctionTable(second.getReference());
         // same table

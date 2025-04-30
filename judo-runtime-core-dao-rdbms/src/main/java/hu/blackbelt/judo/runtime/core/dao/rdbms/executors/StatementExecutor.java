@@ -92,7 +92,7 @@ public abstract class StatementExecutor {
     private final RdbmsResolver rdbmsResolver;
 
     @Getter
-    private final RdbmsReferenceUtil<Serializable> rdbmsReferenceUtil;
+    private final RdbmsReferenceUtil rdbmsReferenceUtil;
 
     @SuppressWarnings("unchecked")
     public StatementExecutor(@NonNull AsmModel asmModel,
@@ -109,7 +109,7 @@ public abstract class StatementExecutor {
         this.identifierProvider = identifierProvider == null ? new SerializableIdentifierProvider() : identifierProvider;
         this.coercer = coercer;
         this.rdbmsResolver = rdbmsResolver;
-        rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
+        rdbmsReferenceUtil = new RdbmsReferenceUtil(asmModel, rdbmsModel, transformationTraceService);
     }
 
 
@@ -119,7 +119,7 @@ public abstract class StatementExecutor {
      * @param referenceStatements
      * @return
      */
-    protected Stream<RdbmsReference<Serializable>> collectRdbmsReferencesReferenceStatements(Collection<ReferenceStatement<Serializable>> referenceStatements) {
+    protected Stream<RdbmsReference> collectRdbmsReferencesReferenceStatements(Collection<ReferenceStatement<Serializable>> referenceStatements) {
 
         return Stream.concat(referenceStatements.stream()
                 .map(addReferenceStatement ->
@@ -155,14 +155,14 @@ public abstract class StatementExecutor {
      * @param optional
      * @return
      */
-    protected Map<RdbmsReference<Serializable>, Serializable> collectReferenceIdentifiersForGivenIdentifier(
+    protected Map<RdbmsReference, Serializable> collectReferenceIdentifiersForGivenIdentifier(
             Serializable identifier,
             Collection<ReferenceStatement<Serializable>> referenceStatements,
             boolean mandatory,
             boolean optional) {
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
-        Map<RdbmsReference<Serializable>, Serializable> referenceMap = Maps.newHashMap();
+        Map<RdbmsReference, Serializable> referenceMap = Maps.newHashMap();
 
         collectRdbmsReferencesReferenceStatements(referenceStatements)
                 .filter(rdbmsReference -> rdbmsReference.getRule().isForeignKey() || rdbmsReference.getRule().isInverseForeignKey())

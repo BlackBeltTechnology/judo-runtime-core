@@ -60,7 +60,7 @@ import static org.jooq.lambda.Unchecked.consumer;
 @Slf4j(topic = "dao-rdbms")
 class DeleteStatementExecutor extends StatementExecutor {
 
-    private final RdbmsReferenceUtil<Serializable> rdbmsReferenceUtil;
+    private final RdbmsReferenceUtil rdbmsReferenceUtil;
 
     @Builder
     public DeleteStatementExecutor(
@@ -72,7 +72,7 @@ class DeleteStatementExecutor extends StatementExecutor {
             @NonNull Coercer coercer,
             @NonNull IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
-        rdbmsReferenceUtil = new RdbmsReferenceUtil<>(asmModel, rdbmsModel, transformationTraceService);
+        rdbmsReferenceUtil = new RdbmsReferenceUtil(asmModel, rdbmsModel, transformationTraceService);
     }
 
     /**
@@ -92,7 +92,7 @@ class DeleteStatementExecutor extends StatementExecutor {
                                         Collection<RemoveReferenceStatement<Serializable>> removeReferenceStatements) {
 
         // Collect all information required to build dependencies between nodes.
-        Set<RdbmsReference<Serializable>> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
+        Set<RdbmsReference> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
 
         AsmUtils asmUtils = new AsmUtils(getAsmModel().getResourceSet());
         toDependencySortedDeleteStatementStream(deleteStatements, deleteRdbmsReferences)
@@ -140,7 +140,7 @@ class DeleteStatementExecutor extends StatementExecutor {
      */
     private Stream<DeleteStatement<Serializable>> toDependencySortedDeleteStatementStream(
                             Collection<DeleteStatement<Serializable>> deleteStatements,
-                            Collection<RdbmsReference<Serializable>> insertRdbmsReference) {
+                            Collection<RdbmsReference> insertRdbmsReference) {
 
           // Topoligical Sorting over foreign key dependencies
           Graph<Statement<Serializable>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
@@ -180,7 +180,7 @@ class DeleteStatementExecutor extends StatementExecutor {
      * @param removeReferenceStatements
      * @return
      */
-    private Set<RdbmsReference<Serializable>> toRdbmsReferences(Collection<DeleteStatement<Serializable>> deleteStatements,
+    private Set<RdbmsReference> toRdbmsReferences(Collection<DeleteStatement<Serializable>> deleteStatements,
                                                       Collection<RemoveReferenceStatement<Serializable>> removeReferenceStatements) {
         return deleteStatements.stream()
                 .flatMap(deleteStatement -> removeReferenceStatements.stream()
@@ -189,7 +189,7 @@ class DeleteStatementExecutor extends StatementExecutor {
                         )
                         .map(addReferenceStatement ->
                                 {
-                                    RdbmsReference<Serializable> rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
+                                    RdbmsReference rdbmsReference =  rdbmsReferenceUtil.buildRdbmsReferenceForStatement(
                                             RdbmsReference.<Serializable>rdbmsReferenceBuilder()
                                                     .statement(deleteStatement)
                                                     .identifier(deleteStatement.getInstance().getIdentifier())

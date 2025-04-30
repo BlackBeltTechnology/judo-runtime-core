@@ -36,7 +36,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
-public abstract class AlwaysRollbackTransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
+public abstract class AlwaysRollbackTransactionalBehaviourCall implements BehaviourCall {
     public static final String ROLLBACK_KEY = "ROLLBACK";
 
     PlatformTransactionManager transactionManager;
