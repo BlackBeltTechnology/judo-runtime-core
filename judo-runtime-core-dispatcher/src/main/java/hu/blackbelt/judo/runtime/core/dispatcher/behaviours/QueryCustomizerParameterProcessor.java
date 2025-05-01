@@ -36,6 +36,7 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EEnum;
 
+import java.io.Serializable;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -45,7 +46,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 @RequiredArgsConstructor
 @Slf4j
-public class QueryCustomizerParameterProcessor<ID> {
+public class QueryCustomizerParameterProcessor {
 
     public static final String THIS_NAME = "this";
     public static final String IS_UNDEFINED = "!isUndefined()";
@@ -66,7 +67,7 @@ public class QueryCustomizerParameterProcessor<ID> {
     private final Boolean caseInsensitiveLike;
 
     @NonNull
-    private final IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider<Serializable> identifierProvider;
 
     @NonNull
     private final Coercer coercer;
@@ -103,7 +104,7 @@ public class QueryCustomizerParameterProcessor<ID> {
     }
 
     public DAO.QueryCustomizer build(final Map<String, Object> queryCustomizerParameter, final EClass clazz, final Map<String, Object> exchange) {
-        return DAO.QueryCustomizer.<ID>builder()
+        return DAO.QueryCustomizer.builder()
                 .filter(extractFilteringParameter(clazz, queryCustomizerParameter))
                 .orderByList(extractOrderingParameter(clazz, queryCustomizerParameter))
                 .seek(extractSeekParameter(queryCustomizerParameter))
@@ -301,7 +302,7 @@ public class QueryCustomizerParameterProcessor<ID> {
         return null;
     }
 
-    private Collection<ID> getIdentifiers(final Map<String, Object> queryCustomizerParameter) {
+    private Collection<Serializable> getIdentifiers(final Map<String, Object> queryCustomizerParameter) {
         try {
             if (queryCustomizerParameter != null && queryCustomizerParameter.get("_identifier") != null) {
                 final Object id = queryCustomizerParameter.get("_identifier");

@@ -44,6 +44,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -58,20 +59,19 @@ import static java.util.stream.Stream.concat;
  * It analyzes where the foreign key are presented and making update in the owner table. If it is a join table
  * record is deleted.
  *
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
+class RemoveReferenceStatementExecutor extends StatementExecutor {
 
     @Builder
     public RemoveReferenceStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider<Serializable> identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -82,27 +82,27 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
      * @throws SQLException
      */
     public void executeRemoveReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                                 Collection<ReferenceStatement<ID>> statements) throws SQLException {
+                                                 Collection<ReferenceStatement<Serializable>> statements) throws SQLException {
 
-        Map<ID, EClass> statementBased = statements.stream()
+        Map<Serializable, EClass> statementBased = statements.stream()
                 .collect(Collectors.toMap(
                         k -> k.getIdentifier(),
                         v -> v.getReference().getEContainingClass(),
                         (v1, v2) -> v1));
 
-        Map<ID, EClass> instanceBased = statements.stream()
+        Map<Serializable, EClass> instanceBased = statements.stream()
                 .collect(Collectors.toMap(
                         k -> k.getInstance().getIdentifier(),
                         v -> v.getInstance().getType(),
                         (v1, v2) -> v1));
 
-        Map<ID, EClass> classById = concat(statementBased.entrySet().stream(), instanceBased.entrySet().stream())
+        Map<Serializable, EClass> classById = concat(statementBased.entrySet().stream(), instanceBased.entrySet().stream())
                 .collect(Collectors.toMap(
                         Map.Entry :: getKey,
                         Map.Entry :: getValue,
                         (v1, v2) -> v1));
 
-        Map<ID, Map<RdbmsReference<ID>, ID>> referenceMap = classById.entrySet().stream()
+        Map<Serializable, Map<RdbmsReference, Serializable>> referenceMap = classById.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry :: getKey,
                         e -> collectReferenceIdentifiersForGivenIdentifier(
@@ -124,8 +124,8 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                         .filter(r -> r.equals(reference.getEReferenceType()) ||
                                 r.equals(reference.getEContainingClass()))
                         .forEach(entityForCurrentStatement -> {
-                            Optional<ID> identifier = Optional.empty();
-                            Optional<ID> referenceIdentifier = Optional.empty();
+                            Optional<Serializable> identifier = Optional.empty();
+                            Optional<Serializable> referenceIdentifier = Optional.empty();
                             Optional<EClass> entity = Optional.empty();
 
                             if (rdbmsReferenceAndOppositeId.getKey().getRule().isForeignKey()) {
@@ -169,17 +169,17 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
         });
 
         // Join reference
-        List<RdbmsReference<ID>> rdbmsReferenceList = collectRdbmsReferencesReferenceStatements(statements)
+        List<RdbmsReference> rdbmsReferenceList = collectRdbmsReferencesReferenceStatements(statements)
                 .filter(r ->
                         r.getRule().isJoinTable() &&
                                 // Just one side required
-                                r.getReference().equals(((ReferenceStatement<ID>) r.getStatement()).getReference())
+                                r.getReference().equals(((ReferenceStatement<Serializable>) r.getStatement()).getReference())
                 )
                 .toList();
 
-        Set<RdbmsReference<ID>> filteredRbmsReferences = new HashSet<>();
+        Set<RdbmsReference> filteredRbmsReferences = new HashSet<>();
 
-        for (RdbmsReference<ID> rdbmsReference : rdbmsReferenceList) {
+        for (RdbmsReference rdbmsReference : rdbmsReferenceList) {
             boolean isDuplicate = filteredRbmsReferences.stream().anyMatch(filtered -> isTheSameRecord(rdbmsReference, filtered));
             if (!isDuplicate) {
                 filteredRbmsReferences.add(rdbmsReference);
@@ -192,8 +192,8 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
                     RdbmsTable joinTable = getRdbmsResolver().rdbmsJunctionTable(r.getReference());
                     RdbmsField aFk = getRdbmsResolver().rdbmsJunctionOppositeField(r.getReference());
                     RdbmsField bFk = getRdbmsResolver().rdbmsJunctionField(r.getReference());
-                    ID aId = r.getIdentifier();
-                    ID bId = r.getOppositeIdentifier();
+                    Serializable aId = r.getIdentifier();
+                    Serializable bId = r.getOppositeIdentifier();
 
                     SqlParameterSource jointPairNamedParameters = new MapSqlParameterSource()
                             .addValue("id", getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName()), getRdbmsParameterMapper().getIdSqlType())
@@ -239,7 +239,7 @@ class RemoveReferenceStatementExecutor<ID> extends StatementExecutor<ID> {
     }
 
     // Check if two RdbmsReference objects are considered the same table record
-    private boolean isTheSameRecord(RdbmsReference<ID> first, RdbmsReference<ID> second) {
+    private boolean isTheSameRecord(RdbmsReference first, RdbmsReference second) {
         RdbmsTable joinTableFirst = getRdbmsResolver().rdbmsJunctionTable(first.getReference());
         RdbmsTable joinTableSecond = getRdbmsResolver().rdbmsJunctionTable(second.getReference());
         // same table

@@ -26,15 +26,17 @@ import lombok.Getter;
 import lombok.ToString;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
+
 @ToString
 @Getter
-public class RdbmsReference<ID> {
+public class RdbmsReference {
 
-    private Statement<ID> statement;
+    private Statement<Serializable> statement;
 
-    private ID identifier;
+    private Serializable identifier;
 
-    private ID oppositeIdentifier;
+    private Serializable oppositeIdentifier;
 
     private EReference reference;
 
@@ -44,7 +46,7 @@ public class RdbmsReference<ID> {
 
     private Rule oppositeRule;
 
-    RdbmsReference(Statement<ID> statement, ID identifier, ID oppositeIdentifier, EReference reference, Rule rule, EReference oppositeReference, Rule oppositeRule) {
+    RdbmsReference(Statement<Serializable> statement, Serializable identifier, Serializable oppositeIdentifier, EReference reference, Rule rule, EReference oppositeReference, Rule oppositeRule) {
         this.statement = statement;
         this.identifier = identifier;
         this.oppositeIdentifier = oppositeIdentifier;
@@ -54,8 +56,8 @@ public class RdbmsReference<ID> {
         this.oppositeRule = oppositeRule;
     }
 
-    public static <ID> RdbmsReferenceBuilder<ID> rdbmsReferenceBuilder() {
-        return new RdbmsReferenceBuilder<ID>();
+    public static RdbmsReferenceBuilder rdbmsReferenceBuilder() {
+        return new RdbmsReferenceBuilder();
     }
 
     public boolean isSwapped() {
@@ -65,10 +67,10 @@ public class RdbmsReference<ID> {
         return false;
     }
 
-    public static class RdbmsReferenceBuilder<ID> {
-        private Statement<ID> statement;
-        private ID identifier;
-        private ID oppositeIdentifier;
+    public static class RdbmsReferenceBuilder {
+        private Statement<Serializable> statement;
+        private Serializable identifier;
+        private Serializable oppositeIdentifier;
         private EReference reference;
         private Rule rule;
         private EReference oppositeReference;
@@ -77,43 +79,43 @@ public class RdbmsReference<ID> {
         RdbmsReferenceBuilder() {
         }
 
-        public RdbmsReferenceBuilder<ID> statement(Statement<ID> statement) {
+        public RdbmsReferenceBuilder statement(Statement<Serializable> statement) {
             this.statement = statement;
             return this;
         }
 
-        public RdbmsReferenceBuilder<ID> identifier(ID identifier) {
+        public RdbmsReferenceBuilder identifier(Serializable identifier) {
             this.identifier = identifier;
             return this;
         }
 
-        public RdbmsReferenceBuilder<ID> oppositeIdentifier(ID oppositeIdentifier) {
+        public RdbmsReferenceBuilder oppositeIdentifier(Serializable oppositeIdentifier) {
             this.oppositeIdentifier = oppositeIdentifier;
             return this;
         }
 
-        public RdbmsReferenceBuilder<ID> reference(EReference reference) {
+        public RdbmsReferenceBuilder reference(EReference reference) {
             this.reference = reference;
             return this;
         }
 
-        public RdbmsReferenceBuilder<ID> rule(Rule rule) {
+        public RdbmsReferenceBuilder rule(Rule rule) {
             this.rule = rule;
             return this;
         }
 
-        public RdbmsReferenceBuilder<ID> oppositeReference(EReference oppositeReference) {
+        public RdbmsReferenceBuilder oppositeReference(EReference oppositeReference) {
             this.oppositeReference = oppositeReference;
             return this;
         }
 
-        public RdbmsReferenceBuilder<ID> oppositeRule(Rule oppositeRule) {
+        public RdbmsReferenceBuilder oppositeRule(Rule oppositeRule) {
             this.oppositeRule = oppositeRule;
             return this;
         }
 
-        public RdbmsReference<ID> build() {
-            return new RdbmsReference<ID>(statement, identifier, oppositeIdentifier, reference, rule, oppositeReference, oppositeRule);
+        public RdbmsReference build() {
+            return new RdbmsReference(statement, identifier, oppositeIdentifier, reference, rule, oppositeReference, oppositeRule);
         }
 
         public String toString() {

@@ -32,21 +32,22 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
+public class RefreshCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
 
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
-    public RefreshCall(Context context, ServiceContext<ID> serviceContext) {
+    public RefreshCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -61,7 +62,7 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
     @SuppressWarnings("unchecked")
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
-        CallInterceptorUtil<RefreshCallPayload<ID>, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
+        CallInterceptorUtil<RefreshCallPayload, Payload> callInterceptorUtil = new CallInterceptorUtil<>(
                 RefreshCallPayload.class, Payload.class, asmModel, operation, interceptorProvider
         );
 
@@ -76,10 +77,10 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
                 .findFirst()
                 .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
 
-        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor
                 .build(queryCustomizerParameter.orElse(null), owner, exchange);
 
-        RefreshCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(RefreshCallPayload.<ID>builder()
+        RefreshCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(RefreshCallPayload.<Serializable>builder()
                 .owner(owner)
                 .instance(Payload.asPayload(exchange))
                 .queryCustomizer(queryCustomizer)
@@ -89,7 +90,7 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
 
         if (callInterceptorUtil.shouldCallOriginal()) {
             result = serviceContext.getDao().searchByIdentifier(inputParameter.getOwner(),
-                    (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
+                    (Serializable) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
                     inputParameter.getQueryCustomizer());
         }
         return callInterceptorUtil.postCallInterceptors(inputParameter, result.orElse(null));
@@ -97,14 +98,14 @@ public class RefreshCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID
 
     @Builder
     @Getter
-    public static class RefreshCallPayload<ID> {
+    public static class RefreshCallPayload {
         @NonNull
         EClass owner;
 
         @NonNull
         Payload instance;
 
-        DAO.QueryCustomizer<ID> queryCustomizer;
+        DAO.QueryCustomizer queryCustomizer;
     }
 
 }

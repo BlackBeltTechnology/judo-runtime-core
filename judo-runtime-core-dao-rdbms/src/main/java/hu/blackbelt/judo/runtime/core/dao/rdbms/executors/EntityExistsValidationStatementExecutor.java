@@ -40,6 +40,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,35 +50,34 @@ import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Check the given ID exist on the given type. If the record is not presented an {@link IllegalStateException} thrown.
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class EntityExistsValidationStatementExecutor<ID> extends StatementExecutor<ID> {
+class EntityExistsValidationStatementExecutor extends StatementExecutor {
 
     @Builder
     public EntityExistsValidationStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider<Serializable> identifierProvider) {
 
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
     public void executeEntityExistsValidationStatements(
             NamedParameterJdbcTemplate jdbcTemplate,
-            List<Statement<ID>> statements) {
+            List<Statement<Serializable>> statements) {
 
         statements.stream()
                 .filter(InstanceExistsValidationStatement.class :: isInstance)
-                .map(o -> (InstanceExistsValidationStatement<ID>) o)
+                .map(o -> (InstanceExistsValidationStatement<Serializable>) o)
                 .forEach(Unchecked.consumer(statement -> {
 
         String tableName = getRdbmsResolver().rdbmsTable(statement.getInstance().getType()).getSqlName();
-        ID identifier = statement.getInstance().getIdentifier();
+        Serializable identifier = statement.getInstance().getIdentifier();
 
         String sql = "SELECT count(1) FROM " + tableName + " WHERE ID = :" + getIdentifierProvider().getName();
 

@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
+package hu.blackbelt.judo.runtime.core;
 
 /*-
  * #%L
@@ -20,13 +20,25 @@ package hu.blackbelt.judo.runtime.core.dispatcher.behaviours;
  * #L%
  */
 
-import org.eclipse.emf.ecore.EOperation;
+import hu.blackbelt.judo.dao.api.IdentifierProvider;
 
-import java.util.Map;
+import java.io.Serializable;
+import java.util.UUID;
 
-public interface BehaviourCall {
-    boolean isSuitableForOperation(EOperation operation);
+public class SerializableIdentifierProvider implements IdentifierProvider<Serializable> {
 
-    Object call(final Map<String, Object> exchange,
-                final EOperation operation) throws InterceptorCallBusinessException;
+    @Override
+    public Serializable get() {
+        return UUID.randomUUID();
+    }
+
+    @Override
+    public Class<Serializable> getType() {
+        return Serializable.class;
+    }
+
+    @Override
+    public String getName() {
+        return "__identifier";
+    }
 }

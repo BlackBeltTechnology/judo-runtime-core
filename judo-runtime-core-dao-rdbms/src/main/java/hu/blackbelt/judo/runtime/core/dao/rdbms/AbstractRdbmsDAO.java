@@ -35,6 +35,7 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,7 +43,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static com.google.common.base.Preconditions.*;
 
 @Slf4j(topic = "dao-rdbms")
-public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
+public abstract class AbstractRdbmsDAO implements DAO {
 
     private static final String METRICS_DAO_QUERY = "dao-query";
 
@@ -91,7 +92,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
+    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             Collection<Payload> result = readRangeOf(reference, payload, queryCustomizer, stateful, markSelectedRangeItems);
             logResult(result);
@@ -100,7 +101,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public long countRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
+    public long countRangeOf(EReference reference, Payload payload, QueryCustomizer queryCustomizer, boolean stateful) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             long result = calculateNumberRangeOf(reference, payload, queryCustomizer, stateful);
             logResult(result);
@@ -129,7 +130,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public List<Payload> search(EClass eClass, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> search(EClass eClass, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             List<Payload> result = searchByFilter(eClass, queryCustomizer);
             final Map<EClass, Payload> cache = new HashMap<>();
@@ -140,7 +141,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public long count(EClass eClass, QueryCustomizer<ID> queryCustomizer) {
+    public long count(EClass eClass, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             long result = countByFilter(eClass, queryCustomizer);
             logResult(result);
@@ -149,36 +150,36 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Optional<Payload> getByIdentifier(EClass clazz, ID identifier) {
+    public Optional<Payload> getByIdentifier(EClass clazz, Serializable identifier) {
         return searchByIdentifier(clazz, identifier, null);
     }
 
     @Override
-    public Optional<Payload> searchByIdentifier(EClass clazz, ID identifier, QueryCustomizer<ID> queryCustomizer) {
+    public Optional<Payload> searchByIdentifier(EClass clazz, Serializable identifier, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             return readByIdentifier(clazz, identifier, queryCustomizer);
         }
     }
 
     @Override
-    public boolean existsById(EClass clazz, ID identifier) {
+    public boolean existsById(EClass clazz, Serializable identifier) {
         return searchByIdentifier(clazz, identifier, null).isPresent();
     }
 
     @Override
-    public Optional<Payload> getMetadata(EClass clazz, ID identifier) {
+    public Optional<Payload> getMetadata(EClass clazz, Serializable identifier) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             return readMetadataByIdentifier(clazz, identifier);
         }
     }
 
     @Override
-    public List<Payload> getByIdentifiers(EClass clazz, Collection<ID> identifiers) {
+    public List<Payload> getByIdentifiers(EClass clazz, Collection<Serializable> identifiers) {
         return searchByIdentifiers(clazz, identifiers, null);
     }
 
     @Override
-    public List<Payload> searchByIdentifiers(EClass clazz, Collection<ID> identifiers, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> searchByIdentifiers(EClass clazz, Collection<Serializable> identifiers, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             List<Payload> result = ImmutableList.copyOf(readByIdentifiers(clazz, identifiers, queryCustomizer));
             final Map<EClass, Payload> cache = new HashMap<>();
@@ -189,12 +190,12 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Payload create(EClass eClass, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload create(EClass eClass, Payload payload, QueryCustomizer queryCustomizer) {
         return create(eClass, payload, queryCustomizer, true);
     }
 
     @SneakyThrows(SQLException.class)
-    protected Payload create(EClass eClass, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean checkMandatoryFeatures) {
+    protected Payload create(EClass eClass, Payload payload, QueryCustomizer queryCustomizer, boolean checkMandatoryFeatures) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             Payload result = insertPayload(eClass, payload, queryCustomizer, checkMandatoryFeatures);
             addStaticFeaturesToPayload(payload, eClass, new HashMap<>());
@@ -204,7 +205,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public List<Payload> createAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> createAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer queryCustomizer) {
         List resultPayloads = new ArrayList<>();
 
         for (Payload payload : payloads) {
@@ -215,15 +216,15 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Payload update(EClass eClass, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload update(EClass eClass, Payload payload, QueryCustomizer queryCustomizer) {
         return update(eClass, payload, queryCustomizer, true);
     }
 
     @SneakyThrows(SQLException.class)
-    protected Payload update(EClass eClass, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean checkMandatoryFeatures) {
+    protected Payload update(EClass eClass, Payload payload, QueryCustomizer queryCustomizer, boolean checkMandatoryFeatures) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkArgument(payload.containsKey(getIdentifierProvider().getName()), "Identifier not found on payload");
-            Optional<Payload> original = readByIdentifier(eClass, (ID) payload.getAs(getIdentifierProvider().getType(),
+            Optional<Payload> original = readByIdentifier(eClass, (Serializable) payload.getAs(getIdentifierProvider().getType(),
                     getIdentifierProvider().getName()), null);
             checkState(original.isPresent(), "Could not found type: " + AsmUtils.getClassifierFQName(eClass) + " ID: " +
                     payload.get(getIdentifierProvider().getName()));
@@ -236,7 +237,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public List<Payload> updateAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> updateAll(EClass eClass, Iterable<Payload> payloads, QueryCustomizer queryCustomizer) {
         List resultPayloads = new ArrayList<>();
 
         for (Payload payload : payloads) {
@@ -248,7 +249,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void delete(EClass eClass, ID id) {
+    public void delete(EClass eClass, Serializable id) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             deletePayload(eClass, ImmutableSet.of(id));
         }
@@ -256,9 +257,9 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void deleteAll(EClass eClass, Iterable<ID> ids) {
+    public void deleteAll(EClass eClass, Iterable<Serializable> ids) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
-            List<ID> idList = new ArrayList<>();
+            List<Serializable> idList = new ArrayList<>();
             ids.forEach(idList::add);
             deletePayload(eClass, idList);
         }
@@ -266,7 +267,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void setReference(EReference eReference, ID id, Collection<ID> collection) {
+    public void setReference(EReference eReference, Serializable id, Collection<Serializable> collection) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             setReferenceOfInstance(eReference, id, collection);
         }
@@ -274,7 +275,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void unsetReference(EReference eReference, ID id) {
+    public void unsetReference(EReference eReference, Serializable id) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkArgument(!eReference.isMany(), "Reference to unset must be single");
             unsetReferenceOfInstance(eReference, id);
@@ -283,7 +284,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void addReferences(EReference eReference, ID id, Collection<ID> collection) {
+    public void addReferences(EReference eReference, Serializable id, Collection<Serializable> collection) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkArgument(eReference.isMany(), "Reference to add must be many");
 
@@ -293,7 +294,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void removeReferences(EReference eReference, ID id, Collection<ID> collection) {
+    public void removeReferences(EReference eReference, Serializable id, Collection<Serializable> collection) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkArgument(eReference.isMany(), "Reference to remove must be many");
 
@@ -328,7 +329,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public List<Payload> searchReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> searchReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType());
             checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
@@ -342,7 +343,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public long countReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer<ID> queryCustomizer) {
+    public long countReferencedInstancesOf(EReference eReference, EClass eClass, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             checkNotNull(eReference.getEReferenceType());
             checkArgument(Objects.equals(eReference.getEReferenceType(), eClass) || eReference.getEReferenceType().getEAllSuperTypes().contains(eClass));
@@ -354,7 +355,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Payload updateReferencedInstancesOf(EClass eClass, EReference eReference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload updateReferencedInstancesOf(EClass eClass, EReference eReference, Payload payload, QueryCustomizer queryCustomizer) {
         List<Payload> referencedInstances = getAllReferencedInstancesOf(eReference, eClass);
         String identifierKey = getIdentifierProvider().getName();
         checkArgument(referencedInstances.stream().anyMatch(i -> Objects.equals(payload.get(identifierKey), i.get(identifierKey))), "Payload to update is not found in referenced instances");
@@ -369,12 +370,12 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
         String identifierKey = getIdentifierProvider().getName();
         checkArgument(referencedInstances.stream().anyMatch(i -> Objects.equals(payload.get(identifierKey), i.get(identifierKey))), "Payload to delete is not found in referenced instances");
 
-        delete(eClass, (ID) payload.get(identifierKey));
+        delete(eClass, (Serializable) payload.get(identifierKey));
     }
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void setReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void setReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         List<Payload> referencedInstances = getAllReferencedInstancesOf(reference, reference.getEReferenceType());
         String identifierKey = getIdentifierProvider().getName();
         checkArgument(referencedInstances.stream().anyMatch(i -> Objects.equals(instanceId, i.get(identifierKey))), "Payload to update (set reference) is not found in referenced instances");
@@ -384,7 +385,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void unsetReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId) {
+    public void unsetReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId) {
         checkArgument(!referenceToSet.isMany(), "Reference to unset must be single");
         List<Payload> referencedInstances = getAllReferencedInstancesOf(reference, reference.getEReferenceType());
         String identifierKey = getIdentifierProvider().getName();
@@ -395,7 +396,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void addAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void addAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         checkArgument(referenceToSet.isMany(), "Reference to add must be many");
         List<Payload> referencedInstances = getAllReferencedInstancesOf(reference, reference.getEReferenceType());
         String identifierKey = getIdentifierProvider().getName();
@@ -406,7 +407,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void removeAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void removeAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         checkArgument(referenceToSet.isMany(), "Reference to remove must be many");
         List<Payload> referencedInstances = getAllReferencedInstancesOf(reference, reference.getEReferenceType());
         String identifierKey = getIdentifierProvider().getName();
@@ -416,7 +417,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public List<Payload> getNavigationResultAt(ID id, EReference eReference) {
+    public List<Payload> getNavigationResultAt(Serializable id, EReference eReference) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType(), "Invalid reference");
             List<Payload> result = readAllReferences(eReference, Collections.singleton(id));
@@ -428,7 +429,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public long countNavigationResultAt(ID id, EReference eReference) {
+    public long countNavigationResultAt(Serializable id, EReference eReference) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType(), "Invalid reference");
             long result = countAllReferences(eReference, Collections.singleton(id));
@@ -438,7 +439,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public List<Payload> searchNavigationResultAt(ID id, EReference eReference, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> searchNavigationResultAt(Serializable id, EReference eReference, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             checkNotNull(eReference.getEReferenceType(), "Invalid reference");
             List<Payload> result = searchReferences(eReference, Collections.singleton(id), queryCustomizer);
@@ -450,7 +451,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public long countNavigationResultAt(ID id, EReference eReference, QueryCustomizer<ID> queryCustomizer) {
+    public long countNavigationResultAt(Serializable id, EReference eReference, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_COUNT)) {
             checkNotNull(eReference.getEReferenceType(), "Invalid reference");
             long result = countReferences(eReference, Collections.singleton(id), queryCustomizer);
@@ -461,7 +462,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public Payload createNavigationInstanceAt(ID id, EReference eReference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload createNavigationInstanceAt(Serializable id, EReference eReference, Payload payload, QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             Payload result = insertPayloadAndAttach(eReference, id, payload, queryCustomizer);
             addStaticFeaturesToPayload(payload, eReference.getEReferenceType(), new HashMap<>());
@@ -471,7 +472,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    public Payload updateNavigationInstanceAt(ID id, EReference eReference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload updateNavigationInstanceAt(Serializable id, EReference eReference, Payload payload, QueryCustomizer queryCustomizer) {
         List<Payload> referencedInstances = getNavigationResultAt(id, eReference);
         String identifierKey = getIdentifierProvider().getName();
         checkArgument(referencedInstances.stream().anyMatch(i -> Objects.equals(payload.get(identifierKey), i.get(identifierKey))), "Payload to update is not found in referenced instances");
@@ -481,17 +482,17 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void deleteNavigationInstanceAt(ID id, EReference eReference, Payload payload) {
+    public void deleteNavigationInstanceAt(Serializable id, EReference eReference, Payload payload) {
         List<Payload> referencedInstances = getNavigationResultAt(id, eReference);
         String identifierKey = getIdentifierProvider().getName();
         checkArgument(referencedInstances.stream().anyMatch(i -> Objects.equals(payload.get(identifierKey), i.get(identifierKey))), "Payload to delete is not found in referenced instances");
 
-        delete(eReference.getEReferenceType(), (ID) payload.get(identifierKey));
+        delete(eReference.getEReferenceType(), (Serializable) payload.get(identifierKey));
     }
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void setReferencesOfNavigationInstanceAt(ID id, EReference eReference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void setReferencesOfNavigationInstanceAt(Serializable id, EReference eReference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         List<Payload> referencedInstances = getNavigationResultAt(id, eReference);
         String identifierKey = getIdentifierProvider().getName();
         checkArgument(referencedInstances.stream().anyMatch(i -> Objects.equals(instanceId, i.get(identifierKey))), "Payload to update (set reference) is not found in referenced instances");
@@ -501,7 +502,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void unsetReferenceOfNavigationInstanceAt(ID id, EReference eReference, EReference referenceToSet, ID instanceId) {
+    public void unsetReferenceOfNavigationInstanceAt(Serializable id, EReference eReference, EReference referenceToSet, Serializable instanceId) {
         checkArgument(!referenceToSet.isMany(), "Reference to unset must be single");
         List<Payload> referencedInstances = getNavigationResultAt(id, eReference);
         String identifierKey = getIdentifierProvider().getName();
@@ -512,7 +513,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void addAllReferencesOfNavigationInstanceAt(ID id, EReference eReference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void addAllReferencesOfNavigationInstanceAt(Serializable id, EReference eReference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         checkArgument(referenceToSet.isMany(), "Reference to add must be many");
         List<Payload> referencedInstances = getNavigationResultAt(id, eReference);
         String identifierKey = getIdentifierProvider().getName();
@@ -523,7 +524,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Override
     @SneakyThrows(SQLException.class)
-    public void removeAllReferencesOfNavigationInstanceAt(ID id, EReference eReference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void removeAllReferencesOfNavigationInstanceAt(Serializable id, EReference eReference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         checkArgument(referenceToSet.isMany(), "Reference to remove must be many");
         List<Payload> referencedInstances = getNavigationResultAt(id, eReference);
         String identifierKey = getIdentifierProvider().getName();
@@ -590,7 +591,7 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected abstract AsmModel getAsmModel();
 
-    protected abstract IdentifierProvider<ID> getIdentifierProvider();
+    protected abstract IdentifierProvider<Serializable> getIdentifierProvider();
 
     protected abstract Payload readStaticFeatures(EClass clazz);
 
@@ -600,47 +601,47 @@ public abstract class AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     protected abstract long countAll(EClass clazz);
 
-    protected abstract List<Payload> searchByFilter(EClass clazz, QueryCustomizer<ID> queryCustomizer);
+    protected abstract List<Payload> searchByFilter(EClass clazz, QueryCustomizer queryCustomizer);
 
-    protected abstract long countByFilter(EClass clazz, QueryCustomizer<ID> queryCustomizer);
+    protected abstract long countByFilter(EClass clazz, QueryCustomizer queryCustomizer);
 
-    protected abstract List<Payload> readAllReferences(EReference reference, Collection<ID> navigationSourceIdentifiers);
+    protected abstract List<Payload> readAllReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers);
 
-    protected abstract long countAllReferences(EReference reference, Collection<ID> navigationSourceIdentifiers);
+    protected abstract long countAllReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers);
 
-    protected abstract List<Payload> searchReferences(EReference reference, Collection<ID> navigationSourceIdentifiers, QueryCustomizer<ID> queryCustomizer);
+    protected abstract List<Payload> searchReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers, QueryCustomizer queryCustomizer);
 
-    protected abstract long countReferences(EReference reference, Collection<ID> navigationSourceIdentifiers, QueryCustomizer<ID> queryCustomizer);
+    protected abstract long countReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers, QueryCustomizer queryCustomizer);
 
-    protected abstract Collection<Payload> readByIdentifiers(EClass clazz, Collection<ID> identifiers, QueryCustomizer<ID> queryCustomizer);
+    protected abstract Collection<Payload> readByIdentifiers(EClass clazz, Collection<Serializable> identifiers, QueryCustomizer queryCustomizer);
 
-    protected abstract Optional<Payload> readByIdentifier(EClass clazz, ID identifier, QueryCustomizer<ID> queryCustomizer);
+    protected abstract Optional<Payload> readByIdentifier(EClass clazz, Serializable identifier, QueryCustomizer queryCustomizer);
 
-    protected abstract Optional<Payload> readMetadataByIdentifier(EClass clazz, ID identifier);
+    protected abstract Optional<Payload> readMetadataByIdentifier(EClass clazz, Serializable identifier);
 
-    protected abstract Payload insertPayload(EClass clazz, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean checkMandatoryFeatures) throws SQLException;
+    protected abstract Payload insertPayload(EClass clazz, Payload payload, QueryCustomizer queryCustomizer, boolean checkMandatoryFeatures) throws SQLException;
 
-    protected abstract Payload insertPayloadAndAttach(EReference reference, ID identifier, Payload payload, QueryCustomizer<ID> queryCustomizer) throws SQLException;
+    protected abstract Payload insertPayloadAndAttach(EReference reference, Serializable identifier, Payload payload, QueryCustomizer queryCustomizer) throws SQLException;
 
-    protected abstract void deletePayload(EClass clazz, Collection<ID> ids) throws SQLException;
+    protected abstract void deletePayload(EClass clazz, Collection<Serializable> ids) throws SQLException;
 
-    protected abstract Payload updatePayload(EClass clazz, Payload original, Payload updated, QueryCustomizer<ID> queryCustomizer, boolean checkMandatoryFeatures) throws SQLException;
+    protected abstract Payload updatePayload(EClass clazz, Payload original, Payload updated, QueryCustomizer queryCustomizer, boolean checkMandatoryFeatures) throws SQLException;
 
-    protected abstract void setReferenceOfInstance(EReference mappedReference, ID id, Collection<ID> identifiersToSet) throws SQLException;
+    protected abstract void setReferenceOfInstance(EReference mappedReference, Serializable id, Collection<Serializable> identifiersToSet) throws SQLException;
 
-    protected abstract void unsetReferenceOfInstance(EReference mappedReference, ID id) throws SQLException;
+    protected abstract void unsetReferenceOfInstance(EReference mappedReference, Serializable id) throws SQLException;
 
-    protected abstract void addReferencesOfInstance(EReference mappedReference, ID id, Collection<ID> identifiersToAdd) throws SQLException;
+    protected abstract void addReferencesOfInstance(EReference mappedReference, Serializable id, Collection<Serializable> identifiersToAdd) throws SQLException;
 
-    protected abstract void removeReferencesOfInstance(EReference mappedReference, ID id, Collection<ID> identifiersToRemove) throws SQLException;
+    protected abstract void removeReferencesOfInstance(EReference mappedReference, Serializable id, Collection<Serializable> identifiersToRemove) throws SQLException;
 
     protected abstract Payload readDefaultsOf(EClass clazz);
 
     protected abstract void applyDeepDefaultsOf(EClass clazz, Payload payload);
     
-    protected abstract Collection<Payload> readRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful, boolean markSelectedRangeItems);
+    protected abstract Collection<Payload> readRangeOf(EReference reference, Payload payload, QueryCustomizer queryCustomizer, boolean stateful, boolean markSelectedRangeItems);
 
-    protected abstract long calculateNumberRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful);
+    protected abstract long calculateNumberRangeOf(EReference reference, Payload payload, QueryCustomizer queryCustomizer, boolean stateful);
 
     protected abstract MetricsCollector getMetricsCollector();
 }

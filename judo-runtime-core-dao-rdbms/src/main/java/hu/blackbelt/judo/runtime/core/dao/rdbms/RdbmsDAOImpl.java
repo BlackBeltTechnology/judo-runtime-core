@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms;
  * #L%
  */
 
+import java.io.Serializable;
 import java.security.Principal;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -89,7 +90,7 @@ import static java.util.function.Function.identity;
  */
 @Slf4j
 @SuppressWarnings({"rawtypes", "unchecked"})
-public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
+public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
 
     private static final String STATEFUL = "STATEFUL";
     private static final String ROLLBACK = "ROLLBACK";
@@ -98,13 +99,13 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
 
     @Getter private final AsmModel asmModel;
     private final DataSource dataSource;
-    @Getter private final IdentifierProvider<ID> identifierProvider;
-    private final InstanceCollector<ID> instanceCollector;
+    @Getter private final IdentifierProvider<Serializable> identifierProvider;
+    private final InstanceCollector<Serializable> instanceCollector;
     private final QueryFactory queryFactory;
     private final boolean optimisticLockEnabled;
     private final Context context;
     private final MetricsCollector metricsCollector;
-    private final SelectStatementExecutor<ID> selectStatementExecutor;
+    private final SelectStatementExecutor selectStatementExecutor;
     private final ModifyStatementExecutor modifyStatementExecutor;
     private final Map<EClass, Boolean> hasDefaultsMap = new ConcurrentHashMap<>();
 
@@ -112,10 +113,10 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     private RdbmsDAOImpl(
             @NonNull AsmModel asmModel,
             @NonNull DataSource dataSource,
-            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull IdentifierProvider<Serializable> identifierProvider,
             @NonNull Context context,
             @NonNull MetricsCollector metricsCollector,
-            @NonNull InstanceCollector<ID> instanceCollector,
+            @NonNull InstanceCollector<Serializable> instanceCollector,
             @NonNull ModifyStatementExecutor modifyStatementExecutor,
             @NonNull SelectStatementExecutor selectStatementExecutor,
             @NonNull QueryFactory queryFactory,
@@ -182,7 +183,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     protected InsertPayloadDaoProcessor getInsertPayloadProcessor(Metadata metadata) {
-        return new InsertPayloadDaoProcessor<ID>(asmModel.getResourceSet(),
+        return new InsertPayloadDaoProcessor<Serializable>(asmModel.getResourceSet(),
                                                  getIdentifierProvider(),
                                                  queryFactory,
                                                  instanceCollector,
@@ -273,40 +274,40 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected List<Payload> searchByFilter(EClass clazz, QueryCustomizer<ID> queryCustomizer) {
+    protected List<Payload> searchByFilter(EClass clazz, QueryCustomizer queryCustomizer) {
         return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), clazz, null, queryCustomizer)
                 .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
-    protected long countByFilter(EClass clazz, QueryCustomizer<ID> queryCustomizer) {
+    protected long countByFilter(EClass clazz, QueryCustomizer queryCustomizer) {
         return selectStatementExecutor.countSelect(
                         new NamedParameterJdbcTemplate(dataSource), clazz, null, queryCustomizer);
     }
 
     @Override
-    protected List<Payload> readAllReferences(EReference reference, Collection<ID> navigationSourceIdentifiers) {
+    protected List<Payload> readAllReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers) {
         return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, null)
                 .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
-    protected long countAllReferences(EReference reference, Collection<ID> navigationSourceIdentifiers) {
+    protected long countAllReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers) {
         return selectStatementExecutor.countSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, null);
     }
 
     @Override
-    protected List<Payload> readByIdentifiers(EClass clazz, Collection<ID> identifiers, QueryCustomizer<ID> queryCustomizer) {
+    protected List<Payload> readByIdentifiers(EClass clazz, Collection<Serializable> identifiers, QueryCustomizer queryCustomizer) {
         return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), clazz, new HashSet<>(identifiers), queryCustomizer)
                 .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
-    protected Optional<Payload> readByIdentifier(EClass clazz, ID identifier, QueryCustomizer<ID> queryCustomizer) {
+    protected Optional<Payload> readByIdentifier(EClass clazz, Serializable identifier, QueryCustomizer queryCustomizer) {
         return readByIdentifiers(clazz, ImmutableSet.of(identifier), queryCustomizer).stream()
                 .map(Payload::asPayload)
                 .filter(p -> identifier.equals(p.get(identifierProvider.getName())))
@@ -314,37 +315,37 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected List<Payload> searchReferences(EReference reference, Collection<ID> navigationSourceIdentifiers, QueryCustomizer<ID> queryCustomizer) {
+    protected List<Payload> searchReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers, QueryCustomizer queryCustomizer) {
         return selectStatementExecutor.executeSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, queryCustomizer)
                 .stream().map(Payload::asPayload).collect(Collectors.toList());
     }
 
     @Override
-    protected long countReferences(EReference reference, Collection<ID> navigationSourceIdentifiers, QueryCustomizer<ID> queryCustomizer) {
+    protected long countReferences(EReference reference, Collection<Serializable> navigationSourceIdentifiers, QueryCustomizer queryCustomizer) {
         return selectStatementExecutor.countSelect(
                         new NamedParameterJdbcTemplate(dataSource), reference, navigationSourceIdentifiers != null ? new HashSet<>(navigationSourceIdentifiers) : null, queryCustomizer);
     }
 
     @Override
-    protected Payload insertPayload(EClass clazz, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean checkMandatoryFeatures) throws SQLException {
+    protected Payload insertPayload(EClass clazz, Payload payload, QueryCustomizer queryCustomizer, boolean checkMandatoryFeatures) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "INSERT is not supported in stateless operation");
 
         final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
         final Principal principal = context.getAs(Principal.class, Dispatcher.PRINCIPAL_KEY);
-        final Metadata<ID> metadata = Metadata.<ID>buildMetadata()
+        final Metadata<Serializable> metadata = Metadata.<Serializable>buildMetadata()
                 .timestamp(LocalDateTime.now())
                 .userId(actor != null ? actor.getAs(identifierProvider.getType(), identifierProvider.getName()) : null)
                 .username(principal != null ? principal.getName() : null)
                 .build();
-        Collection<Statement<ID>> statements = getInsertPayloadProcessor(metadata)
+        Collection<Statement<Serializable>> statements = getInsertPayloadProcessor(metadata)
                 .insert(clazz, payload, checkMandatoryFeatures);
 
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
 
         // Get the root entity's
-        ID identifier = (ID) statements.stream()
+        Serializable identifier = (Serializable) statements.stream()
                 .filter(InsertStatement.class::isInstance)
                 .map(InsertStatement.class::cast)
                 .filter(i -> i.getContainer().isEmpty())
@@ -354,7 +355,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         checkArgument(result.isPresent(), "Creation of " + AsmUtils.getClassifierFQName(clazz) + " failed");
 
         // Collect clientReferenceId recursively and map back to response
-        Map<ID, Object> clientReferenceMap = new HashMap<>();
+        Map<Serializable, Object> clientReferenceMap = new HashMap<>();
         traversePayload(
                 getCollectPayloadClientReferenceConsumer(clientReferenceMap),
                 PayloadTraverser.builder()
@@ -366,9 +367,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         collectInsertStatementsClientReferenceId(clientReferenceMap, statements);
         Payload ret = result.get();
 
-        Set<ID> insertedIds = statements.stream()
+        Set<Serializable> insertedIds = statements.stream()
                 .filter(st -> st instanceof InsertStatement)
-                .map(st -> (ID) ((InsertStatement) st).getInstance().getIdentifier())
+                .map(st -> (Serializable) ((InsertStatement) st).getInstance().getIdentifier())
                 .collect(Collectors.toSet());
 
         traversePayload(
@@ -383,7 +384,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected Payload insertPayloadAndAttach(EReference reference, ID identifier, Payload payload, QueryCustomizer<ID> queryCustomizer) throws SQLException {
+    protected Payload insertPayloadAndAttach(EReference reference, Serializable identifier, Payload payload, QueryCustomizer queryCustomizer) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "INSERT is not supported in stateless operation");
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
@@ -399,7 +400,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 Collection<Payload> containments = container.getAsCollectionPayload(reference.getName());
                 if (reference.getUpperBound() == -1 || containments == null || containments.size() < reference.getUpperBound()) {
                     Payload referenced = create(typeOfNewInstance, payload, queryCustomizer);
-                    ID referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
+                    Serializable referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
                     addReferencesOfInstance(reference, identifier, Collections.singleton(referencedId));
                     result = referenced;
                 } else {
@@ -410,7 +411,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     throw new IllegalArgumentException("Containment already set");
                 }
                 Payload referenced = create(typeOfNewInstance, payload, queryCustomizer);
-                ID referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
+                Serializable referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
                 addReferencesOfInstance(reference, identifier, Collections.singleton(referencedId));
                 result = referenced;
             }
@@ -450,10 +451,10 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                     });
 
             // opposite is not defined/sent so DAO create and set reference operations must be used to persist new instance
-            final Payload referenced = create(typeOfNewInstance, payload, QueryCustomizer.<ID>builder()
+            final Payload referenced = create(typeOfNewInstance, payload, QueryCustomizer.<Serializable>builder()
                     .mask(Collections.emptyMap())
                     .build());
-            final ID referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
+            final Serializable referencedId = referenced.getAs(identifierProvider.getType(), identifierProvider.getName());
             // do not add reference if relation is derived
             if (!mappedReference.isDerived()) {
                 if (reference.isMany()) {
@@ -472,27 +473,27 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected void deletePayload(EClass clazz, Collection<ID> ids) throws SQLException {
+    protected void deletePayload(EClass clazz, Collection<Serializable> ids) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "DELETE is not supported in stateless operation");
 
-        Collection<Statement<ID>> statements = getDeletePayloadProcessor()
+        Collection<Statement<Serializable>> statements = getDeletePayloadProcessor()
                 .delete(clazz, ids);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
     }
 
     @Override
-    protected Payload updatePayload(EClass clazz, Payload original, Payload updated, QueryCustomizer<ID> queryCustomizer, boolean checkMandatoryFeatures) throws SQLException {
+    protected Payload updatePayload(EClass clazz, Payload original, Payload updated, QueryCustomizer queryCustomizer, boolean checkMandatoryFeatures) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "UPDATE is not supported in stateless operation");
 
         final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
         final Principal principal = context.getAs(Principal.class, Dispatcher.PRINCIPAL_KEY);
-        final Metadata<ID> metadata = Metadata.<ID>buildMetadata()
+        final Metadata<Serializable> metadata = Metadata.<Serializable>buildMetadata()
                 .timestamp(LocalDateTime.now())
                 .userId(actor != null ? actor.getAs(identifierProvider.getType(), identifierProvider.getName()) : null)
                 .username(principal != null ? principal.getName() : null)
                 .build();
-        Collection<Statement<ID>> statements = getUpdatePayloadProcessor(metadata)
+        Collection<Statement<Serializable>> statements = getUpdatePayloadProcessor(metadata)
                 .update(clazz, original, updated, checkMandatoryFeatures);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
@@ -501,7 +502,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         checkArgument(result.isPresent(), "Updating " + AsmUtils.getClassifierFQName(clazz) + " failed");
 
         // Collect clientReferenceId recursively and map back to response
-        Map<ID, Object> clientReferenceMap = new HashMap<>();
+        Map<Serializable, Object> clientReferenceMap = new HashMap<>();
         traversePayload(
                 getCollectPayloadClientReferenceConsumer(clientReferenceMap),
                 PayloadTraverser.builder()
@@ -513,9 +514,9 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         collectInsertStatementsClientReferenceId(clientReferenceMap, statements);
         Payload ret = result.get();
 
-        Set<ID> insertedIds = statements.stream()
+        Set<Serializable> insertedIds = statements.stream()
                 .filter(st -> st instanceof InsertStatement)
-                .map(st -> (ID) ((InsertStatement) st).getInstance().getIdentifier())
+                .map(st -> (Serializable) ((InsertStatement) st).getInstance().getIdentifier())
                 .collect(Collectors.toSet());
 
         traversePayload(
@@ -530,25 +531,25 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return ret;
     }
 
-    private Collection<Statement<ID>> createAddAndRemoveReferenceForPayload(Collection<ID> identifiersExists, EReference mappedReference,
-                                                                            ID id, Collection<ID> identifiersToAdd,
-                                                                            Collection<ID> identifiersToRemove) {
+    private Collection<Statement<Serializable>> createAddAndRemoveReferenceForPayload(Collection<Serializable> identifiersExists, EReference mappedReference,
+                                                                            Serializable id, Collection<Serializable> identifiersToAdd,
+                                                                            Collection<Serializable> identifiersToRemove) {
 
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         // Collect which already added and it contained in the given collection.
-        Collection<ID> identifiersAlreadyExistsInAdded = identifiersExists
+        Collection<Serializable> identifiersAlreadyExistsInAdded = identifiersExists
                 .stream()
                 .filter(identifiersToAdd::contains).collect(Collectors.toSet());
 
 
         // Collect which already added and it contained in the given collection.
-        Collection<ID> identifiersNotExistsInRemoved = identifiersExists
+        Collection<Serializable> identifiersNotExistsInRemoved = identifiersExists
                 .stream()
                 .filter(i -> !identifiersToRemove.contains(i)).collect(Collectors.toSet());
 
 
-        Collection<ID> idsToAdd = new HashSet<>(identifiersToAdd);
+        Collection<Serializable> idsToAdd = new HashSet<>(identifiersToAdd);
         idsToAdd.removeAll(identifiersAlreadyExistsInAdded);
         identifiersExists.removeAll(identifiersNotExistsInRemoved);
 
@@ -557,7 +558,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
                 .getMappedReference(mappedReference)
                 .orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(mappedReference)));
 
-        Collection<Statement<ID>> removeReferenceStatements;
+        Collection<Statement<Serializable>> removeReferenceStatements;
 
         if (entityReference.isContainment()) {
             // Delete phsically
@@ -571,24 +572,24 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
 
         // Add the given collection
-        Collection<Statement<ID>> addReferenceStatements =
+        Collection<Statement<Serializable>> addReferenceStatements =
                 createAddReferencesForPayload(mappedReference, id, idsToAdd);
 
         return Stream.concat(removeReferenceStatements.stream(),
                 addReferenceStatements.stream()).collect(Collectors.toSet());
     }
 
-    public void setReferenceOfInstance(EReference mappedReference, ID id, Collection<ID> identifiersToSet) throws SQLException {
+    public void setReferenceOfInstance(EReference mappedReference, Serializable id, Collection<Serializable> identifiersToSet) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "SET is not supported in stateless operation");
 
         List<Payload> referencedPayloads = readAllReferences(mappedReference, Collections.singleton(id));
 
         // Remove all existence reference
-        Collection<ID> identifiersExists = referencedPayloads.stream().map(p -> (ID) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
-        Collection<ID> identifiersRemove = identifiersExists.stream()
+        Collection<Serializable> identifiersExists = referencedPayloads.stream().map(p -> (Serializable) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
+        Collection<Serializable> identifiersRemove = identifiersExists.stream()
                 .filter(_id -> !identifiersToSet.contains(_id))
                 .collect(Collectors.toSet());
-        Collection<ID> identifiersAdd = identifiersToSet.stream()
+        Collection<Serializable> identifiersAdd = identifiersToSet.stream()
                 .filter(_id -> !identifiersExists.contains(_id))
                 .collect(Collectors.toSet());
 
@@ -599,34 +600,34 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
 
         if (!identifiersAdd.isEmpty() || !identifiersRemove.isEmpty()) {
-            Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, identifiersAdd, identifiersRemove);
+            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, identifiersAdd, identifiersRemove);
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
-    public void unsetReferenceOfInstance(EReference mappedReference, ID id) throws SQLException {
+    public void unsetReferenceOfInstance(EReference mappedReference, Serializable id) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "UNSET is not supported in stateless operation");
 
         checkArgument(mappedReference.getUpperBound() == 1 && mappedReference.getLowerBound() == 0, "This operation can be called on single optional reference only");
 
         List<Payload> referencedPayloads = readAllReferences(mappedReference, Collections.singleton(id));
-        Collection<ID> identifiersExists = referencedPayloads.stream().map(p -> (ID) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
+        Collection<Serializable> identifiersExists = referencedPayloads.stream().map(p -> (Serializable) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
 
         if (!identifiersExists.isEmpty()) {
-            Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(), identifiersExists);
+            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(), identifiersExists);
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
-    public void addReferencesOfInstance(EReference mappedReference, ID id, Collection<ID> identifiersToAdd) throws SQLException {
+    public void addReferencesOfInstance(EReference mappedReference, Serializable id, Collection<Serializable> identifiersToAdd) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "ADD is not supported in stateless operation");
 
         List<Payload> referencedPayloads = readAllReferences(mappedReference, Collections.singleton(id));
 
-        Collection<ID> identifiersExists = referencedPayloads.stream().map(p -> (ID) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
-        Collection<ID> identifiersToAddExistingRemoved = new HashSet<>(identifiersToAdd);
+        Collection<Serializable> identifiersExists = referencedPayloads.stream().map(p -> (Serializable) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
+        Collection<Serializable> identifiersToAddExistingRemoved = new HashSet<>(identifiersToAdd);
         identifiersToAddExistingRemoved.removeAll(identifiersExists);
 
         if (mappedReference.getUpperBound() != -1) {
@@ -634,26 +635,26 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         }
 
         if (!identifiersToAddExistingRemoved.isEmpty()) {
-            Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id,
+            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id,
                     identifiersToAddExistingRemoved, ImmutableSet.of());
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
     }
 
-    public void removeReferencesOfInstance(EReference mappedReference, ID id, Collection<ID> identifiersToRemove) throws SQLException {
+    public void removeReferencesOfInstance(EReference mappedReference, Serializable id, Collection<Serializable> identifiersToRemove) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "REMOVE is not supported in stateless operation");
 
         List<Payload> referencedPayloads = readAllReferences(mappedReference, Collections.singleton(id));
 
-        Collection<ID> identifiersExists = referencedPayloads.stream().map(p -> (ID) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
+        Collection<Serializable> identifiersExists = referencedPayloads.stream().map(p -> (Serializable) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
 
-        Collection<ID> identifiersToRemoveChecked = new HashSet<>(identifiersToRemove);
+        Collection<Serializable> identifiersToRemoveChecked = new HashSet<>(identifiersToRemove);
         identifiersToRemoveChecked.removeIf((missingId) -> !identifiersExists.contains(missingId));
         checkArgument(identifiersExists.size() - identifiersToRemoveChecked.size() >= mappedReference.getLowerBound(), "Lower cardinality violated");
 
         if (!identifiersToRemoveChecked.isEmpty()) {
-            Collection<Statement<ID>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(),
+            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(),
                     identifiersToRemoveChecked);
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
@@ -661,7 +662,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected Optional<Payload> readMetadataByIdentifier(EClass clazz, ID identifier) {
+    protected Optional<Payload> readMetadataByIdentifier(EClass clazz, Serializable identifier) {
         return selectStatementExecutor.selectMetadata(new NamedParameterJdbcTemplate(dataSource), clazz, identifier);
     }
 
@@ -753,24 +754,24 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
+    protected Collection<Payload> readRangeOf(final EReference reference, final Payload payload, QueryCustomizer queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
                         .orElseThrow(() -> new IllegalStateException("Reference not found on containing class: " + rangeTransferRelationName)))
                 .orElseThrow(() -> new IllegalStateException("No range defined"));
 
-        ID instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
-        final BiFunction<Payload, Set<ID>, Payload> markSelected = (p, selected) -> {
-            final ID id = p.getAs(identifierProvider.getType(), identifierProvider.getName());
+        Serializable instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
+        final BiFunction<Payload, Set<Serializable>, Payload> markSelected = (p, selected) -> {
+            final Serializable id = p.getAs(identifierProvider.getType(), identifierProvider.getName());
             if (selected.contains(id)) {
                 p.put(StatementExecutor.SELECTED_ITEM_KEY, Boolean.TRUE);
             }
             return p;
         };
 
-        final Set<ID> currentReferences;
+        final Set<Serializable> currentReferences;
         if (!AsmUtils.annotatedAsTrue(reference, "transient") && markSelectedRangeItems && instanceId != null) {
-            currentReferences = searchNavigationResultAt(instanceId, reference, QueryCustomizer.<ID>builder().withoutFeatures(true).build()).stream()
+            currentReferences = searchNavigationResultAt(instanceId, reference, QueryCustomizer.<Serializable>builder().withoutFeatures(true).build()).stream()
                     .map(p -> p.getAs(identifierProvider.getType(), identifierProvider.getName()))
                     .collect(Collectors.toSet());
         } else {
@@ -785,11 +786,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             if (stateful) {
                 final Payload temporaryInstance;
                 if (instanceId != null) {
-                    temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                    temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<Serializable>builder()
                             .mask(Collections.emptyMap())
                             .build(), false);
                 } else if (payload != null) {
-                    temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                    temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<Serializable>builder()
                             .mask(Collections.emptyMap())
                             .build(), false);
                     instanceId = temporaryInstance.getAs(identifierProvider.getType(), identifierProvider.getName());
@@ -813,14 +814,14 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
     @Override
-    protected long calculateNumberRangeOf(final EReference reference, final Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
+    protected long calculateNumberRangeOf(final EReference reference, final Payload payload, QueryCustomizer queryCustomizer, boolean stateful) {
         final EReference rangeTransferRelation = AsmUtils.getExtensionAnnotationValue(reference, "range", false)
                 .map(rangeTransferRelationName -> reference.getEContainingClass().getEAllReferences().stream().filter(r -> rangeTransferRelationName.equals(r.getName())).findAny()
                         .orElseThrow(() -> new IllegalStateException("Reference: " + rangeTransferRelationName + " not found on containing class: "
                                 + AsmUtils.getClassifierFQName(reference.getEContainingClass()))))
                 .orElseThrow(() -> new IllegalStateException("No range defined"));
 
-        ID instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
+        Serializable instanceId = payload != null ? payload.getAs(identifierProvider.getType(), identifierProvider.getName()) : null;
 
         if (queryFactory.isStaticReference(rangeTransferRelation)) {
             return countReferencedInstancesOf(rangeTransferRelation, rangeTransferRelation.getEReferenceType(), queryCustomizer);
@@ -828,11 +829,11 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
             if (stateful) {
                 final Payload temporaryInstance;
                 if (instanceId != null) {
-                    temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                    temporaryInstance = update(reference.getEContainingClass(), payload, QueryCustomizer.<Serializable>builder()
                             .mask(Collections.emptyMap())
                             .build(), false);
                 } else if (payload != null) {
-                    temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<ID>builder()
+                    temporaryInstance = create(reference.getEContainingClass(), payload, QueryCustomizer.<Serializable>builder()
                             .mask(Collections.emptyMap())
                             .build(), false);
                     instanceId = temporaryInstance.getAs(identifierProvider.getType(), identifierProvider.getName());
@@ -858,7 +859,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return metricsCollector;
     }
 
-    private Collection<Statement<ID>> createAddReferencesForPayload(EReference mappedReference, ID id, Collection<ID> collection) {
+    private Collection<Statement<Serializable>> createAddReferencesForPayload(EReference mappedReference, Serializable id, Collection<Serializable> collection) {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         // Check the reference is mapped
@@ -868,7 +869,7 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
         return getAddReferencePayloadProcessor().addReference(entityReference, collection, id, true);
     }
 
-    private Collection<Statement<ID>> createRemoveReferencesForPayload(EReference mappedReference, ID id, Collection<ID> collection) {
+    private Collection<Statement<Serializable>> createRemoveReferencesForPayload(EReference mappedReference, Serializable id, Collection<Serializable> collection) {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         // Check the reference is mapped
@@ -879,38 +880,38 @@ public class RdbmsDAOImpl<ID> extends AbstractRdbmsDAO<ID> implements DAO<ID> {
     }
 
 
-    private void collectInsertStatementsClientReferenceId(Map<ID, Object> clientReferenceMap, Collection<Statement<ID>> statements) {
+    private void collectInsertStatementsClientReferenceId(Map<Serializable, Object> clientReferenceMap, Collection<Statement<Serializable>> statements) {
 
         clientReferenceMap.putAll(
                 statements.stream()
                         .filter(InsertStatement.class::isInstance)
                         .map(InsertStatement.class::cast)
                         .filter(s -> s.getClientReferenceIdentifier() != null)
-                        .collect(Collectors.toMap(i -> (ID) i.getInstance().getIdentifier(), InsertStatement::getClientReferenceIdentifier)));
+                        .collect(Collectors.toMap(i -> (Serializable) i.getInstance().getIdentifier(), InsertStatement::getClientReferenceIdentifier)));
     }
 
-    private Consumer<PayloadTraverser> getCollectPayloadClientReferenceConsumer(final Map<ID, Object> clientReferenceMap) {
+    private Consumer<PayloadTraverser> getCollectPayloadClientReferenceConsumer(final Map<Serializable, Object> clientReferenceMap) {
         return context -> {
             if (context.getPayload().containsKey(PayloadDaoProcessor.REFERENCE_ID)
                     && context.getPayload().containsKey(identifierProvider.getName())) {
-                clientReferenceMap.put((ID) context.getPayload().get(identifierProvider.getName()),
+                clientReferenceMap.put((Serializable) context.getPayload().get(identifierProvider.getName()),
                         context.getPayload().get(PayloadDaoProcessor.REFERENCE_ID));
             }
         };
     }
 
-    private Consumer<PayloadTraverser> getApplyClientReferenceIdConsumer(final Map<ID, Object> clientReferenceMap) {
+    private Consumer<PayloadTraverser> getApplyClientReferenceIdConsumer(final Map<Serializable, Object> clientReferenceMap) {
         return context -> {
-            if (clientReferenceMap.containsKey((ID) context.getPayload().get(identifierProvider.getName()))) {
+            if (clientReferenceMap.containsKey((Serializable) context.getPayload().get(identifierProvider.getName()))) {
                 context.getPayload().put(PayloadDaoProcessor.REFERENCE_ID,
-                        clientReferenceMap.get((ID) context.getPayload().get(identifierProvider.getName())));
+                        clientReferenceMap.get((Serializable) context.getPayload().get(identifierProvider.getName())));
             }
         };
     }
 
-    private Consumer<PayloadTraverser> getMarkInsertedPayloadsConsumer(final Set<ID> insertedIds) {
+    private Consumer<PayloadTraverser> getMarkInsertedPayloadsConsumer(final Set<Serializable> insertedIds) {
         return context -> {
-            if (insertedIds.contains((ID) context.getPayload().get(identifierProvider.getName()))) {
+            if (insertedIds.contains((Serializable) context.getPayload().get(identifierProvider.getName()))) {
                 context.getPayload().put(CREATED, true);
             }
         };

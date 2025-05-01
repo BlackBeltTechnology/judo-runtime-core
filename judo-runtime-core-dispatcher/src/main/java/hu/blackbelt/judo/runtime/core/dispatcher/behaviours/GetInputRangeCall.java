@@ -33,15 +33,16 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
+public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
 
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
     final ExpressionModelResourceSupport expressionModelResourceSupport;
     private final MarkedIdRemover<ID> markedIdRemover;
@@ -56,7 +57,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
                              ExpressionModel expressionModel) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -77,7 +78,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
 
     @Override
     public Object callInRollbackTransaction(Map<String, Object> exchange, EOperation operation) {
-        CallInterceptorUtil<GetInputRangeCallPayload<ID>, Collection<Payload>> callInterceptorUtil = new CallInterceptorUtil<>(
+        CallInterceptorUtil<GetInputRangeCallPayload, Collection<Payload>> callInterceptorUtil = new CallInterceptorUtil<>(
                 GetInputRangeCallPayload.class, Collection.class, asmModel, operation, interceptorProvider);
 
         final EOperation owner = (EOperation) serviceContext.getAsmUtils().getOwnerOfOperationWithDefaultBehaviour(operation)
@@ -101,10 +102,10 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
                 .orElse(null);
 
 
-        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor.build(
+        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor.build(
                 queryCustomizerData, inputRangeReference.getEReferenceType(), exchange);
 
-        GetInputRangeCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(
+        GetInputRangeCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
                         GetInputRangeCallPayload.<ID>builder()
                                 .reference(inputRangeReference)
                                 .ownerPayload(ownerPayload)
@@ -150,13 +151,13 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
 
     @Builder
     @Getter
-    public static class GetInputRangeCallPayload<ID> {
+    public static class GetInputRangeCallPayload {
         @NonNull
         EReference reference;
 
         Payload ownerPayload;
 
-        DAO.QueryCustomizer<ID> queryCustomizer;
+        DAO.QueryCustomizer queryCustomizer;
 
         @Setter
         @Builder.Default

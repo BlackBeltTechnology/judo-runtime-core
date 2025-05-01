@@ -37,22 +37,24 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.io.Serializable;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
+public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+    final ServiceContext serviceContext;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
     private final MarkedIdRemover<ID> markedIdRemover;
 
-    public ValidateUpdateCall(Context context, ServiceContext<ID> serviceContext) {
+    public ValidateUpdateCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -79,7 +81,7 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
         final boolean bound = AsmUtils.isBound(operation);
         checkArgument(bound, "Operation must be bound");
 
-        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor
                 .build(null, owner, exchange);
 
         @SuppressWarnings("unchecked")

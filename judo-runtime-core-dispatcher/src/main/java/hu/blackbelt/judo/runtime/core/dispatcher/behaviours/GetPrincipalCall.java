@@ -43,9 +43,9 @@ import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class GetPrincipalCall<ID> implements BehaviourCall<ID> {
+public class GetPrincipalCall implements BehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
+    final ServiceContext serviceContext;
 
     public GetPrincipalCall(ServiceContext serviceContext) {
         this.serviceContext = serviceContext;

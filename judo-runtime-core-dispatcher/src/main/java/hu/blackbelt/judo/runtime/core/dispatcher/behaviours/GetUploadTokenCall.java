@@ -38,16 +38,16 @@ import org.eclipse.emf.ecore.EOperation;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class GetUploadTokenCall<ID> implements BehaviourCall<ID> {
+public class GetUploadTokenCall implements BehaviourCall {
 
     private static final String TOKEN_KEY = "token";
     public static final String ATTRIBUTE_KEY = "attribute";
 
-    final ServiceContext<ID> serviceContext;
+    final ServiceContext serviceContext;
 
     private final TokenIssuer tokenIssuer;
 
-    public GetUploadTokenCall(ServiceContext<ID> serviceContext, final TokenIssuer tokenIssuer) {
+    public GetUploadTokenCall(ServiceContext serviceContext, final TokenIssuer tokenIssuer) {
         this.serviceContext = serviceContext;
         this.tokenIssuer = tokenIssuer;
     }
