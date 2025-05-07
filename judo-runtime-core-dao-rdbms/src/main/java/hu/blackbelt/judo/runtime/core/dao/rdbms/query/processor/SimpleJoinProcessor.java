@@ -50,7 +50,7 @@ import java.util.stream.Collectors;
 
 @Builder
 @Slf4j
-public class SimpleJoinProcessor<ID> {
+public class SimpleJoinProcessor {
 
     @NonNull
     private final RdbmsResolver rdbmsResolver;
@@ -191,7 +191,7 @@ public class SimpleJoinProcessor<ID> {
                     .map(f -> RdbmsFunction.builder()
                             .pattern("EXISTS ({0})")
                             .parameter(
-                                    RdbmsNavigationFilter.<ID>builder()
+                                    RdbmsNavigationFilter.builder()
                                             .builderContext(builderContext)
                                             .filter(f)
                                             .build())

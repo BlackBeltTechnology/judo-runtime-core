@@ -25,16 +25,17 @@ import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 
 @RequiredArgsConstructor
-public class CollectedIdRemover<ID> {
+public class CollectedIdRemover {
 
     @NonNull
     private final String key;
 
-    public void removeIdentifiers(final Payload payload, final Collection<ID> ids) {
+    public void removeIdentifiers(final Payload payload, final Collection<Serializable> ids) {
         final Object id = payload.get(key);
         if (id != null && ids.contains(id)) {
             payload.remove("__$created");
@@ -47,7 +48,7 @@ public class CollectedIdRemover<ID> {
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
-    private void processRemoval(final Object o, final Collection<ID> ids) {
+    private void processRemoval(final Object o, final Collection<Serializable> ids) {
         if (o instanceof Payload) {
             removeIdentifiers((Payload) o, ids);
         } else if (o instanceof Map) {

@@ -37,13 +37,15 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall {
+public class UpdateInstanceCall extends TransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
     private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
@@ -89,10 +91,8 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall {
                     serviceContext.getCoercer().coerce(exchange.get(serviceContext.getIdentifierProvider().getName()),
                             serviceContext.getIdentifierProvider().getType()));
 
-            @SuppressWarnings("unchecked")
-            final ID idInPayload = (ID) payload.get(serviceContext.getIdentifierProvider().getName());
-            @SuppressWarnings("unchecked")
-            final ID idOfSubject = (ID) exchange.get(serviceContext.getIdentifierProvider().getName());
+            final Serializable idInPayload = (Serializable) payload.get(serviceContext.getIdentifierProvider().getName());
+            final Serializable idOfSubject = (Serializable) exchange.get(serviceContext.getIdentifierProvider().getName());
 
             if (!Objects.equals(idInPayload, idOfSubject)) {
                 throw new IllegalArgumentException("Identifier in payload must match operation subject");

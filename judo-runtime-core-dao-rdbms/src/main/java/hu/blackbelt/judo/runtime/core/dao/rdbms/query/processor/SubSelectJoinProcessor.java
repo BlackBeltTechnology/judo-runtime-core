@@ -42,7 +42,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 @Builder
 @Slf4j
-public class SubSelectJoinProcessor<ID> {
+public class SubSelectJoinProcessor {
     @NonNull
     private final RdbmsResolver rdbmsResolver;
 
@@ -66,7 +66,7 @@ public class SubSelectJoinProcessor<ID> {
                 : null;
 
         final RdbmsResultSet resultSetHandler =
-                RdbmsResultSet.<ID>builder()
+                RdbmsResultSet.builder()
                         .query(subSelect)
                         .builderContext(builderContext)
                         .withoutFeatures(withoutFeatures)
@@ -83,7 +83,7 @@ public class SubSelectJoinProcessor<ID> {
                     .build());
         }
 
-        joins.add(RdbmsQueryJoin.<ID>builder()
+        joins.add(RdbmsQueryJoin.builder()
                 .resultSet(resultSetHandler)
                 .outer(true)
                 .columnName(RdbmsAliasUtil.getOptionalParentIdColumnAlias(subSelect.getContainer()))

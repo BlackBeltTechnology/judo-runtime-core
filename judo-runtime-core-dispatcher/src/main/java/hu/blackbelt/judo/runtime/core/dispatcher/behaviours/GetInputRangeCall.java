@@ -38,15 +38,15 @@ import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
+public class GetInputRangeCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
 
     private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
     final ExpressionModelResourceSupport expressionModelResourceSupport;
-    private final MarkedIdRemover<ID> markedIdRemover;
-    private final CollectedIdRemover<ID> collectedIdRemover;
+    private final MarkedIdRemover markedIdRemover;
+    private final CollectedIdRemover collectedIdRemover;
 
     private static final String OWNER_KEY = "owner";
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
@@ -63,8 +63,8 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
                 serviceContext.getIdentifierProvider(),
                 serviceContext.getCoercer());
 
-        this.markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
-        this.collectedIdRemover = new CollectedIdRemover<>(serviceContext.getIdentifierProvider().getName());
+        this.markedIdRemover = new MarkedIdRemover(serviceContext.getIdentifierProvider().getName());
+        this.collectedIdRemover = new CollectedIdRemover(serviceContext.getIdentifierProvider().getName());
 
         this.expressionModelResourceSupport = ExpressionModelResourceSupport.expressionModelResourceSupportBuilder()
                 .resourceSet(expressionModel.getResourceSet())
@@ -106,7 +106,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
                 queryCustomizerData, inputRangeReference.getEReferenceType(), exchange);
 
         GetInputRangeCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(
-                        GetInputRangeCallPayload.<ID>builder()
+                        GetInputRangeCallPayload.builder()
                                 .reference(inputRangeReference)
                                 .ownerPayload(ownerPayload)
                                 .queryCustomizer(queryCustomizer)
@@ -118,7 +118,7 @@ public class GetInputRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourC
             final boolean bound = AsmUtils.isBound(operation);
             checkArgument(!bound, "Operation must be unbound");
 
-            final Collection<ID> idsToRemove = new HashSet<>();
+            final Collection<Serializable> idsToRemove = new HashSet<>();
             final boolean markSelectedRangeItems = Boolean.TRUE.equals(exchange.get(DefaultDispatcher.MARK_SELECTED_RANGE_ITEMS_KEY));
 
             result = serviceContext.getDao().getRangeOf(

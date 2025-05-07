@@ -70,7 +70,7 @@ public class ExportCall extends AlwaysRollbackTransactionalBehaviourCall {
     @Override
     public Object callInRollbackTransaction(final Map<String, Object> exchange, final EOperation operation) {
 
-        CallInterceptorUtil<ExportCallPayload<Serializable>, Object> callInterceptorUtil = new CallInterceptorUtil<>(
+        CallInterceptorUtil<ExportCallPayload, Object> callInterceptorUtil = new CallInterceptorUtil<>(
                 ExportCallPayload.class, Object.class, asmModel, operation, interceptorProvider
         );
 
@@ -91,7 +91,7 @@ public class ExportCall extends AlwaysRollbackTransactionalBehaviourCall {
                         owner.getEReferenceType(),
                         exchange);
 
-        ExportCallPayload<Serializable> inputParameter = callInterceptorUtil.preCallInterceptors(ExportCallPayload.<Serializable>builder()
+        ExportCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(ExportCallPayload.builder()
                         .instance(Payload.asPayload(exchange))
                         .owner(owner)
                         .queryCustomizer(queryCustomizer)
@@ -174,7 +174,7 @@ public class ExportCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     @Builder
     @Getter
-    public static class ExportCallPayload<ID> {
+    public static class ExportCallPayload {
         @NonNull
         EReference owner;
 

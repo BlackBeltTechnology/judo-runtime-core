@@ -39,14 +39,14 @@ import java.util.*;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isBound;
 
-public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
+public class GetReferenceRangeCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
     private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
     final ExpressionModelResourceSupport expressionModelResourceSupport;
-    private final MarkedIdRemover<ID> markedIdRemover;
-    private final CollectedIdRemover<ID> collectedIdRemover;
+    private final MarkedIdRemover markedIdRemover;
+    private final CollectedIdRemover collectedIdRemover;
 
     private static final String OWNER_KEY = "owner";
     private static final String QUERY_CUSTOMIZER_KEY = "queryCustomizer";
@@ -62,8 +62,8 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
                 serviceContext.getIdentifierProvider(),
                 serviceContext.getCoercer());
 
-        this.markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
-        this.collectedIdRemover = new CollectedIdRemover<>(serviceContext.getIdentifierProvider().getName());
+        this.markedIdRemover = new MarkedIdRemover(serviceContext.getIdentifierProvider().getName());
+        this.collectedIdRemover = new CollectedIdRemover(serviceContext.getIdentifierProvider().getName());
 
         this.expressionModelResourceSupport = ExpressionModelResourceSupport.expressionModelResourceSupportBuilder()
                 .resourceSet(expressionModel.getResourceSet())
@@ -118,7 +118,7 @@ public class GetReferenceRangeCall<ID> extends AlwaysRollbackTransactionalBehavi
             final boolean bound = isBound(operation);
             checkArgument(!bound, "Operation must be unbound");
 
-            final Collection<ID> idsToRemove = new HashSet<>();
+            final Collection<Serializable> idsToRemove = new HashSet<>();
 
             result = serviceContext.getDao().getRangeOf(inputParameter.getOwner(),
                     inputParameter.getOwnerPayload(),

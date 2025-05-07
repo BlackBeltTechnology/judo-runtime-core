@@ -38,12 +38,12 @@ import java.util.Map;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
+public class ValidateCreateCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
     private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
-    private final MarkedIdRemover<ID> markedIdRemover;
+    private final MarkedIdRemover markedIdRemover;
 
     public ValidateCreateCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
@@ -53,7 +53,7 @@ public class ValidateCreateCall<ID> extends AlwaysRollbackTransactionalBehaviour
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
                 serviceContext.getCoercer());
-        markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
+        markedIdRemover = new MarkedIdRemover(serviceContext.getIdentifierProvider().getName());
     }
 
     @Override

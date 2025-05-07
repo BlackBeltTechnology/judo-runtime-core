@@ -69,7 +69,7 @@ import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 import static java.util.Optional.ofNullable;
 
 @Slf4j
-public class DefaultDispatcher<ID> implements Dispatcher {
+public class DefaultDispatcher implements Dispatcher {
 
     public static final String UPDATEABLE_KEY = "__updateable";
     public static final String DELETEABLE_KEY = "__deleteable";
@@ -175,18 +175,18 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                         new ExportCall(context, serviceContext, exporter),
                         new ListCall(context, serviceContext),
                         new CreateInstanceCall(context, serviceContext),
-                        new ValidateCreateCall<>(context, serviceContext),
+                        new ValidateCreateCall(context, serviceContext),
                         new RefreshCall(context, serviceContext),
-                        new UpdateInstanceCall<>(context, serviceContext),
-                        new ValidateUpdateCall<>(context, serviceContext),
+                        new UpdateInstanceCall(context, serviceContext),
+                        new ValidateUpdateCall(context, serviceContext),
                         new DeleteInstanceCall(context, serviceContext),
                         new SetReferenceCall(context, serviceContext),
                         new UnsetReferenceCall(context, serviceContext),
                         new AddReferenceCall(context, serviceContext),
                         new RemoveReferenceCall(context, serviceContext),
-                        new GetReferenceRangeCall<>(context, serviceContext, expressionModel),
-                        new GetInputRangeCall<>(context, serviceContext, expressionModel),
-                        new ValidateOperationInputCall<>(context, serviceContext),
+                        new GetReferenceRangeCall(context, serviceContext, expressionModel),
+                        new GetInputRangeCall(context, serviceContext, expressionModel),
+                        new ValidateOperationInputCall(context, serviceContext),
                         new GetPrincipalCall(serviceContext),
                         new GetTemplateCall(serviceContext),
                         new GetMetadataCall(serviceContext, () -> openIdConfigurationProvider),

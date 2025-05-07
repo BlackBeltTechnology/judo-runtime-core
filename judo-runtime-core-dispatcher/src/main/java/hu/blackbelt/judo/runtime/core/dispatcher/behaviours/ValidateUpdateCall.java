@@ -44,12 +44,12 @@ import java.util.*;
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviourCall {
+public class ValidateUpdateCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
     private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
-    private final MarkedIdRemover<ID> markedIdRemover;
+    private final MarkedIdRemover markedIdRemover;
 
     public ValidateUpdateCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
@@ -59,7 +59,7 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
                 serviceContext.getCoercer());
-        markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
+        markedIdRemover = new MarkedIdRemover(serviceContext.getIdentifierProvider().getName());
     }
 
     @Override
@@ -93,10 +93,8 @@ public class ValidateUpdateCall<ID> extends AlwaysRollbackTransactionalBehaviour
                     serviceContext.getCoercer().coerce(exchange.get(serviceContext.getIdentifierProvider().getName()),
                             serviceContext.getIdentifierProvider().getType()));
 
-            @SuppressWarnings("unchecked")
-            final ID idInPayload = (ID) payload.get(serviceContext.getIdentifierProvider().getName());
-            @SuppressWarnings("unchecked")
-            final ID idOfSubject = (ID) exchange.get(serviceContext.getIdentifierProvider().getName());
+            final Serializable idInPayload = (Serializable) payload.get(serviceContext.getIdentifierProvider().getName());
+            final Serializable idOfSubject = (Serializable) exchange.get(serviceContext.getIdentifierProvider().getName());
 
             if (!Objects.equals(idInPayload, idOfSubject)) {
                 throw new IllegalArgumentException("Identifier in payload must match operation subject");
