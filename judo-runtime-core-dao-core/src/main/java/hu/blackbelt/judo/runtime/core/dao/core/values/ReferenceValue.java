@@ -32,19 +32,19 @@ import java.util.Collection;
 
 @Builder(builderMethodName = "referenceValueBuilder")
 @Getter
-public class ReferenceValue<ID> {
+public class ReferenceValue {
 
     @NonNull
     EClass type;
 
     @NonNull
-    ID identifier;
+    ReferenceValue identifier;
 
     @NonNull
     EReference reference;
 
     @Builder.Default
-    Collection<ID> oppositeIdentifiers = ImmutableList.of();
+    Collection<ReferenceValue> oppositeIdentifiers = ImmutableList.of();
 
 
     public String toString() {

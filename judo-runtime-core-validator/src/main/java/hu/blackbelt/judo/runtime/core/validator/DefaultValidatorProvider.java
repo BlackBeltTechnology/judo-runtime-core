@@ -34,11 +34,11 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-public class DefaultValidatorProvider<ID> implements ValidatorProvider {
+public class DefaultValidatorProvider implements ValidatorProvider {
 
     final DAO dao;
 
-    final IdentifierProvider<ID> identifierProvider;
+    final IdentifierProvider identifierProvider;
 
     final Context context;
 
@@ -58,9 +58,9 @@ public class DefaultValidatorProvider<ID> implements ValidatorProvider {
         this.asmModel = asmModel;
         validators = new CopyOnWriteArrayList<>(Arrays.asList(new MaxLengthValidator(), new MinLengthValidator(), new PrecisionValidator(), new PatternValidator()));
         if (dao != null && identifierProvider != null && context != null) {
-            validators.add(new RangeValidator<ID>(dao, identifierProvider, context, asmModel));
+            validators.add(new RangeValidator(dao, identifierProvider, context, asmModel));
             if (asmModel != null) {
-                validators.add(new UniqueAttributeValidator<>(dao, asmModel, identifierProvider, context));
+                validators.add(new UniqueAttributeValidator(dao, asmModel, identifierProvider, context));
             }
         }
     }

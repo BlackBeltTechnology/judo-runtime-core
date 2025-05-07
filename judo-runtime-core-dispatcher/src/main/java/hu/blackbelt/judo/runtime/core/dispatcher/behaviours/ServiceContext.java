@@ -21,7 +21,7 @@ public class ServiceContext {
     final PlatformTransactionManager transactionManager;
     final OperationCallInterceptorProvider interceptorProvider;
     final DAO dao;
-    final IdentifierProvider<Serializable> identifierProvider;
+    final IdentifierProvider identifierProvider;
     final AsmModel asmModel;
     final AsmUtils asmUtils;
     final Coercer coercer;

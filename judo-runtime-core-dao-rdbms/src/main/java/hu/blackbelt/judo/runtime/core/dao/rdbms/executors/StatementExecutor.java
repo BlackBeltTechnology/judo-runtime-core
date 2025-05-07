@@ -80,13 +80,13 @@ public abstract class StatementExecutor {
     private final TransformationTraceService transformationTraceService;
 
     @Getter
-    private final IdentifierProvider<Serializable> identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     @Getter
     private final Coercer coercer;
 
     @Getter
-    private final RdbmsParameterMapper<Serializable> rdbmsParameterMapper;
+    private final RdbmsParameterMapper rdbmsParameterMapper;
 
     @Getter
     private final RdbmsResolver rdbmsResolver;
@@ -98,10 +98,10 @@ public abstract class StatementExecutor {
     public StatementExecutor(@NonNull AsmModel asmModel,
                              @NonNull RdbmsModel rdbmsModel,
                              @NonNull TransformationTraceService transformationTraceService,
-                             @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+                             @NonNull RdbmsParameterMapper rdbmsParameterMapper,
                              @NonNull RdbmsResolver rdbmsResolver,
                              @NonNull Coercer coercer,
-                             IdentifierProvider<Serializable> identifierProvider) {
+                             IdentifierProvider identifierProvider) {
         this.asmModel = asmModel;
         this.rdbmsModel = rdbmsModel;
         this.transformationTraceService = transformationTraceService;
@@ -119,7 +119,7 @@ public abstract class StatementExecutor {
      * @param referenceStatements
      * @return
      */
-    protected Stream<RdbmsReference> collectRdbmsReferencesReferenceStatements(Collection<ReferenceStatement<Serializable>> referenceStatements) {
+    protected Stream<RdbmsReference> collectRdbmsReferencesReferenceStatements(Collection<ReferenceStatement> referenceStatements) {
 
         return Stream.concat(referenceStatements.stream()
                 .map(addReferenceStatement ->
@@ -157,7 +157,7 @@ public abstract class StatementExecutor {
      */
     protected Map<RdbmsReference, Serializable> collectReferenceIdentifiersForGivenIdentifier(
             Serializable identifier,
-            Collection<ReferenceStatement<Serializable>> referenceStatements,
+            Collection<ReferenceStatement> referenceStatements,
             boolean mandatory,
             boolean optional) {
 

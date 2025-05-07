@@ -68,10 +68,10 @@ class RemoveReferenceStatementExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<Serializable> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -82,7 +82,7 @@ class RemoveReferenceStatementExecutor extends StatementExecutor {
      * @throws SQLException
      */
     public void executeRemoveReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                                 Collection<ReferenceStatement<Serializable>> statements) throws SQLException {
+                                                 Collection<ReferenceStatement> statements) throws SQLException {
 
         Map<Serializable, EClass> statementBased = statements.stream()
                 .collect(Collectors.toMap(
@@ -173,7 +173,7 @@ class RemoveReferenceStatementExecutor extends StatementExecutor {
                 .filter(r ->
                         r.getRule().isJoinTable() &&
                                 // Just one side required
-                                r.getReference().equals(((ReferenceStatement<Serializable>) r.getStatement()).getReference())
+                                r.getReference().equals(((ReferenceStatement) r.getStatement()).getReference())
                 )
                 .toList();
 

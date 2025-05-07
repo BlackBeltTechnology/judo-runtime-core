@@ -63,10 +63,10 @@ class UpdateReferenceExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            IdentifierProvider<Serializable> identifierProvider) {
+            IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -78,7 +78,7 @@ class UpdateReferenceExecutor extends StatementExecutor {
      * @param updateReferenceStatements
      */
     public void executeReferenceUpdateStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<AddReferenceStatement<Serializable>> updateReferenceStatements
+                                        Collection<AddReferenceStatement> updateReferenceStatements
                                         ) {
 
 

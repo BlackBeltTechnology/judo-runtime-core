@@ -62,10 +62,10 @@ class CheckUniqueAttributeStatementExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            IdentifierProvider<Serializable> identifierProvider) {
+            IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -78,10 +78,10 @@ class CheckUniqueAttributeStatementExecutor extends StatementExecutor {
      * @param checkUniqueAttributeStatements
      */
     public void executeUniqueAttributeStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                                 Collection<CheckUniqueAttributeStatement<Serializable>> checkUniqueAttributeStatements) {
+                                                 Collection<CheckUniqueAttributeStatement> checkUniqueAttributeStatements) {
 
         // Search for duplication
-        Map<Serializable, CheckUniqueAttributeStatement<Serializable>> checkUniqueAttributeStatementsCompacted = new HashMap<Serializable, CheckUniqueAttributeStatement<Serializable>>();
+        Map<Serializable, CheckUniqueAttributeStatement> checkUniqueAttributeStatementsCompacted = new HashMap<Serializable, CheckUniqueAttributeStatement>();
 
         checkUniqueAttributeStatements.forEach(item -> {
             Serializable identifier = item.getInstance().getIdentifier();

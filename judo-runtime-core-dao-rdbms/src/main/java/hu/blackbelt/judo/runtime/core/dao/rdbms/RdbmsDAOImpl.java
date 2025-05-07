@@ -99,8 +99,8 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
 
     @Getter private final AsmModel asmModel;
     private final DataSource dataSource;
-    @Getter private final IdentifierProvider<Serializable> identifierProvider;
-    private final InstanceCollector<Serializable> instanceCollector;
+    @Getter private final IdentifierProvider identifierProvider;
+    private final InstanceCollector instanceCollector;
     private final QueryFactory queryFactory;
     private final boolean optimisticLockEnabled;
     private final Context context;
@@ -113,10 +113,10 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
     private RdbmsDAOImpl(
             @NonNull AsmModel asmModel,
             @NonNull DataSource dataSource,
-            @NonNull IdentifierProvider<Serializable> identifierProvider,
+            @NonNull IdentifierProvider identifierProvider,
             @NonNull Context context,
             @NonNull MetricsCollector metricsCollector,
-            @NonNull InstanceCollector<Serializable> instanceCollector,
+            @NonNull InstanceCollector instanceCollector,
             @NonNull ModifyStatementExecutor modifyStatementExecutor,
             @NonNull SelectStatementExecutor selectStatementExecutor,
             @NonNull QueryFactory queryFactory,
@@ -183,7 +183,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
     }
 
     protected InsertPayloadDaoProcessor getInsertPayloadProcessor(Metadata metadata) {
-        return new InsertPayloadDaoProcessor<Serializable>(asmModel.getResourceSet(),
+        return new InsertPayloadDaoProcessor(asmModel.getResourceSet(),
                                                  getIdentifierProvider(),
                                                  queryFactory,
                                                  instanceCollector,
@@ -333,12 +333,12 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
 
         final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
         final Principal principal = context.getAs(Principal.class, Dispatcher.PRINCIPAL_KEY);
-        final Metadata<Serializable> metadata = Metadata.<Serializable>buildMetadata()
+        final Metadata metadata = Metadata.<Serializable>buildMetadata()
                 .timestamp(LocalDateTime.now())
                 .userId(actor != null ? actor.getAs(identifierProvider.getType(), identifierProvider.getName()) : null)
                 .username(principal != null ? principal.getName() : null)
                 .build();
-        Collection<Statement<Serializable>> statements = getInsertPayloadProcessor(metadata)
+        Collection<Statement> statements = getInsertPayloadProcessor(metadata)
                 .insert(clazz, payload, checkMandatoryFeatures);
 
 
@@ -476,7 +476,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
     protected void deletePayload(EClass clazz, Collection<Serializable> ids) throws SQLException {
         checkState(!Boolean.FALSE.equals(context.getAs(Boolean.class, STATEFUL)) || Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK)), "DELETE is not supported in stateless operation");
 
-        Collection<Statement<Serializable>> statements = getDeletePayloadProcessor()
+        Collection<Statement> statements = getDeletePayloadProcessor()
                 .delete(clazz, ids);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
@@ -488,12 +488,12 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
 
         final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
         final Principal principal = context.getAs(Principal.class, Dispatcher.PRINCIPAL_KEY);
-        final Metadata<Serializable> metadata = Metadata.<Serializable>buildMetadata()
+        final Metadata metadata = Metadata.<Serializable>buildMetadata()
                 .timestamp(LocalDateTime.now())
                 .userId(actor != null ? actor.getAs(identifierProvider.getType(), identifierProvider.getName()) : null)
                 .username(principal != null ? principal.getName() : null)
                 .build();
-        Collection<Statement<Serializable>> statements = getUpdatePayloadProcessor(metadata)
+        Collection<Statement> statements = getUpdatePayloadProcessor(metadata)
                 .update(clazz, original, updated, checkMandatoryFeatures);
 
         modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
@@ -531,7 +531,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         return ret;
     }
 
-    private Collection<Statement<Serializable>> createAddAndRemoveReferenceForPayload(Collection<Serializable> identifiersExists, EReference mappedReference,
+    private Collection<Statement> createAddAndRemoveReferenceForPayload(Collection<Serializable> identifiersExists, EReference mappedReference,
                                                                             Serializable id, Collection<Serializable> identifiersToAdd,
                                                                             Collection<Serializable> identifiersToRemove) {
 
@@ -558,7 +558,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
                 .getMappedReference(mappedReference)
                 .orElseThrow(() -> new IllegalStateException("Mapped reference not found: " + AsmUtils.getReferenceFQName(mappedReference)));
 
-        Collection<Statement<Serializable>> removeReferenceStatements;
+        Collection<Statement> removeReferenceStatements;
 
         if (entityReference.isContainment()) {
             // Delete phsically
@@ -572,7 +572,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         }
 
         // Add the given collection
-        Collection<Statement<Serializable>> addReferenceStatements =
+        Collection<Statement> addReferenceStatements =
                 createAddReferencesForPayload(mappedReference, id, idsToAdd);
 
         return Stream.concat(removeReferenceStatements.stream(),
@@ -600,7 +600,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         }
 
         if (!identifiersAdd.isEmpty() || !identifiersRemove.isEmpty()) {
-            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, identifiersAdd, identifiersRemove);
+            Collection<Statement> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, identifiersAdd, identifiersRemove);
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
@@ -615,7 +615,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         Collection<Serializable> identifiersExists = referencedPayloads.stream().map(p -> (Serializable) p.get(getIdentifierProvider().getName())).collect(Collectors.toSet());
 
         if (!identifiersExists.isEmpty()) {
-            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(), identifiersExists);
+            Collection<Statement> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(), identifiersExists);
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
         }
@@ -635,7 +635,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         }
 
         if (!identifiersToAddExistingRemoved.isEmpty()) {
-            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id,
+            Collection<Statement> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id,
                     identifiersToAddExistingRemoved, ImmutableSet.of());
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
@@ -654,7 +654,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         checkArgument(identifiersExists.size() - identifiersToRemoveChecked.size() >= mappedReference.getLowerBound(), "Lower cardinality violated");
 
         if (!identifiersToRemoveChecked.isEmpty()) {
-            Collection<Statement<Serializable>> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(),
+            Collection<Statement> statements = createAddAndRemoveReferenceForPayload(identifiersExists, mappedReference, id, ImmutableSet.of(),
                     identifiersToRemoveChecked);
 
             modifyStatementExecutor.executeStatements(new NamedParameterJdbcTemplate(dataSource), statements);
@@ -771,7 +771,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
 
         final Set<Serializable> currentReferences;
         if (!AsmUtils.annotatedAsTrue(reference, "transient") && markSelectedRangeItems && instanceId != null) {
-            currentReferences = searchNavigationResultAt(instanceId, reference, QueryCustomizer.<Serializable>builder().withoutFeatures(true).build()).stream()
+            currentReferences = searchNavigationResultAt(instanceId, reference, QueryCustomizer.builder().withoutFeatures(true).build()).stream()
                     .map(p -> p.getAs(identifierProvider.getType(), identifierProvider.getName()))
                     .collect(Collectors.toSet());
         } else {
@@ -859,7 +859,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         return metricsCollector;
     }
 
-    private Collection<Statement<Serializable>> createAddReferencesForPayload(EReference mappedReference, Serializable id, Collection<Serializable> collection) {
+    private Collection<Statement> createAddReferencesForPayload(EReference mappedReference, Serializable id, Collection<Serializable> collection) {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         // Check the reference is mapped
@@ -869,7 +869,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         return getAddReferencePayloadProcessor().addReference(entityReference, collection, id, true);
     }
 
-    private Collection<Statement<Serializable>> createRemoveReferencesForPayload(EReference mappedReference, Serializable id, Collection<Serializable> collection) {
+    private Collection<Statement> createRemoveReferencesForPayload(EReference mappedReference, Serializable id, Collection<Serializable> collection) {
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
         // Check the reference is mapped
@@ -880,7 +880,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
     }
 
 
-    private void collectInsertStatementsClientReferenceId(Map<Serializable, Object> clientReferenceMap, Collection<Statement<Serializable>> statements) {
+    private void collectInsertStatementsClientReferenceId(Map<Serializable, Object> clientReferenceMap, Collection<Statement> statements) {
 
         clientReferenceMap.putAll(
                 statements.stream()

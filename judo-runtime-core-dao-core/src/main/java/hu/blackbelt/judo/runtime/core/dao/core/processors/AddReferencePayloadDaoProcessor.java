@@ -32,6 +32,7 @@ import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -44,25 +45,25 @@ import static com.google.common.base.Preconditions.checkArgument;
 /**
  * Creating statement for updating a single reference.
  */
-public class AddReferencePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
+public class AddReferencePayloadDaoProcessor extends PayloadDaoProcessor {
 
     public AddReferencePayloadDaoProcessor(
             ResourceSet resourceSet,
-            IdentifierProvider<ID> idIdentifierProvider, QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
+            IdentifierProvider idIdentifierProvider, QueryFactory queryFactory, InstanceCollector instanceCollector) {
 
         super(resourceSet, idIdentifierProvider, queryFactory, instanceCollector);
     }
 
-    public Collection<Statement<ID>> addReference(
+    public Collection<Statement> addReference(
             EReference reference,
-            Collection<ID> identifiers,
-            ID parentIdentifier,
+            Collection<Serializable> identifiers,
+            Serializable parentIdentifier,
             boolean existenceCheck) {
 
         checkArgument(reference != null, "Type is mandatory");
         checkArgument(identifiers != null, "Identifiers is mandatory");
 
-        Collection<Statement<ID>> statements = Sets.newHashSet();
+        Collection<Statement> statements = Sets.newHashSet();
 
         /*
         TODO: Add relation will unset existing relations
@@ -74,7 +75,7 @@ public class AddReferencePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID>
         */
 
         // collect already referencing instances of bidirectional relation
-        Map<ID, Collection<ID>> alreadyReferencingInstances;
+        Map<Serializable, Collection<Serializable>> alreadyReferencingInstances;
         if (reference.getEOpposite() != null) {
             alreadyReferencingInstances = getInstanceCollector().collectGraph(reference.getEReferenceType(), identifiers).entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getBackReferences().stream()
@@ -87,13 +88,13 @@ public class AddReferencePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID>
 
         identifiers.stream().forEach(identifier -> {
             if (existenceCheck) {
-                statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                         .type(reference.getEReferenceType())
                         .identifier(identifier)
                         .build());
             }
 
-            statements.add(AddReferenceStatement.<ID>buildAddReferenceStatement()
+            statements.add(AddReferenceStatement.<Serializable>buildAddReferenceStatement()
                     .type(reference.getEReferenceType())
                     .reference(reference)
                     .referenceIdentifier(identifier)

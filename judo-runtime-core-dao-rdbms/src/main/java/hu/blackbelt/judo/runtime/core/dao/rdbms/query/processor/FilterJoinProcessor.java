@@ -54,7 +54,7 @@ import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUti
 public class FilterJoinProcessor {
 
     public <ID> void process(final FilterJoinProcessorParameters params, final RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<ID> rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = (RdbmsBuilder) builderContext.getRdbmsBuilder();
         final List<RdbmsJoin> joins = params.getJoins();
         final Filter filter = params.getFilter();
         final SubSelect query = params.getQuery();
@@ -112,10 +112,10 @@ public class FilterJoinProcessor {
                       .filter(f -> joins.stream().noneMatch(j -> Objects.equals(f.getSubSelect().getAlias(), j.getAlias())))
                       .toList();
 
-        List<RdbmsQueryJoin<ID>> subSelectFilterFeaturesQueryJoins =
+        List<RdbmsQueryJoin> subSelectFilterFeaturesQueryJoins =
                 subSelectFilterFeaturesNotProcessed.stream()
-                                                   .map(f -> RdbmsQueryJoin.<ID>builder()
-                                                                           .resultSet(RdbmsResultSet.<ID>builder()
+                                                   .map(f -> RdbmsQueryJoin.builder()
+                                                                           .resultSet(RdbmsResultSet.builder()
                                                                                                     .query(f.getSubSelect())
                                                                                                     .builderContext(builderContext)
                                                                                                     .withoutFeatures(true)
@@ -155,7 +155,7 @@ public class FilterJoinProcessor {
         return joins;
     }
 
-    private static <ID> void processJoinTreeForFilter(RdbmsBuilderContext builderContext, Join join, List<Join> processedNodesForJoins, Filter filter, List<RdbmsJoin> joins, RdbmsBuilder<ID> rdbmsBuilder) {
+    private static <ID> void processJoinTreeForFilter(RdbmsBuilderContext builderContext, Join join, List<Join> processedNodesForJoins, Filter filter, List<RdbmsJoin> joins, RdbmsBuilder rdbmsBuilder) {
         Stack<Join> joinStack = new Stack<>();
         Node currentNode = join;
         while (currentNode instanceof Join currentJoin) {
@@ -178,7 +178,7 @@ public class FilterJoinProcessor {
         }
     }
 
-    private static <ID> void processExistingJoinTree(RdbmsBuilderContext builderContext, Join join, List<Join> processedNodesForJoins, List<RdbmsJoin> joins, RdbmsBuilder<ID> rdbmsBuilder) {
+    private static <ID> void processExistingJoinTree(RdbmsBuilderContext builderContext, Join join, List<Join> processedNodesForJoins, List<RdbmsJoin> joins, RdbmsBuilder rdbmsBuilder) {
         Stack<Join> joinStack = new Stack<>();
         Node currentNode = join;
         while (currentNode instanceof Join currentJoin) {
@@ -193,7 +193,7 @@ public class FilterJoinProcessor {
         }
     }
 
-    private static <ID> void addJoin(RdbmsBuilderContext builderContext, List<RdbmsJoin> joins, RdbmsBuilder<ID> rdbmsBuilder, Join join) {
+    private static <ID> void addJoin(RdbmsBuilderContext builderContext, List<RdbmsJoin> joins, RdbmsBuilder rdbmsBuilder, Join join) {
         joins.addAll(rdbmsBuilder.processJoin(
                 JoinProcessParameters.builder()
                                      .builderContext(builderContext)

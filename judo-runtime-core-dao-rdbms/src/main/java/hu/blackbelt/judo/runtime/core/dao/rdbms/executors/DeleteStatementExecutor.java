@@ -67,10 +67,10 @@ class DeleteStatementExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<Serializable> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
         rdbmsReferenceUtil = new RdbmsReferenceUtil(asmModel, rdbmsModel, transformationTraceService);
     }
@@ -88,8 +88,8 @@ class DeleteStatementExecutor extends StatementExecutor {
      * @throws SQLException
      */
     public void executeDeleteStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<DeleteStatement<Serializable>> deleteStatements,
-                                        Collection<RemoveReferenceStatement<Serializable>> removeReferenceStatements) {
+                                        Collection<DeleteStatement> deleteStatements,
+                                        Collection<RemoveReferenceStatement> removeReferenceStatements) {
 
         // Collect all information required to build dependencies between nodes.
         Set<RdbmsReference> deleteRdbmsReferences = toRdbmsReferences(deleteStatements, removeReferenceStatements);
@@ -138,18 +138,18 @@ class DeleteStatementExecutor extends StatementExecutor {
      * @param insertRdbmsReference
      * @return
      */
-    private Stream<DeleteStatement<Serializable>> toDependencySortedDeleteStatementStream(
-                            Collection<DeleteStatement<Serializable>> deleteStatements,
+    private Stream<DeleteStatement> toDependencySortedDeleteStatementStream(
+                            Collection<DeleteStatement> deleteStatements,
                             Collection<RdbmsReference> insertRdbmsReference) {
 
           // Topoligical Sorting over foreign key dependencies
-          Graph<Statement<Serializable>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+          Graph<Statement, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
           deleteStatements.stream().forEach(s -> graph.addVertex(s));
           insertRdbmsReference.stream()
                   .filter(rdbmsReference -> getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory())
                   .forEach(rdbmsReference -> {
 
-                      Statement<Serializable> oppositeStatement = deleteStatements.stream()
+                      Statement oppositeStatement = deleteStatements.stream()
                               .filter(insertStatement ->
                                       insertStatement
                                               .getInstance()
@@ -167,7 +167,7 @@ class DeleteStatementExecutor extends StatementExecutor {
 
           // Iterate the ordered statement
           @SuppressWarnings({ "rawtypes", "unchecked" })
-          Iterator<DeleteStatement<Serializable>> iterator = new TopologicalOrderIterator(graph);
+          Iterator<DeleteStatement> iterator = new TopologicalOrderIterator(graph);
           return stream(spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
     }
 
@@ -180,8 +180,8 @@ class DeleteStatementExecutor extends StatementExecutor {
      * @param removeReferenceStatements
      * @return
      */
-    private Set<RdbmsReference> toRdbmsReferences(Collection<DeleteStatement<Serializable>> deleteStatements,
-                                                      Collection<RemoveReferenceStatement<Serializable>> removeReferenceStatements) {
+    private Set<RdbmsReference> toRdbmsReferences(Collection<DeleteStatement> deleteStatements,
+                                                      Collection<RemoveReferenceStatement> removeReferenceStatements) {
         return deleteStatements.stream()
                 .flatMap(deleteStatement -> removeReferenceStatements.stream()
                         .filter(removeReferenceStatement ->

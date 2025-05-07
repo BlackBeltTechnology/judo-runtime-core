@@ -37,21 +37,22 @@ import lombok.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.*;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 @Slf4j
-public class RdbmsBuilder<ID> {
+public class RdbmsBuilder {
 
     @Getter
     private final RdbmsResolver rdbmsResolver;
 
     @Getter
-    private final RdbmsParameterMapper<ID> parameterMapper;
+    private final RdbmsParameterMapper parameterMapper;
 
     @Getter
-    private final IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     @Getter
     private final Coercer coercer;
@@ -95,15 +96,15 @@ public class RdbmsBuilder<ID> {
     @Builder
     public RdbmsBuilder(
             @NonNull RdbmsResolver rdbmsResolver,
-            @NonNull RdbmsParameterMapper<ID> parameterMapper,
-            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull RdbmsParameterMapper parameterMapper,
+            @NonNull IdentifierProvider identifierProvider,
             @NonNull Coercer coercer,
             @NonNull AncestorNameFactory ancestorNameFactory,
             @NonNull DescendantNameFactory descendantNameFactory,
             @NonNull VariableResolver variableResolver,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull AsmModel asmModel,
-            @NonNull MapperFactory<ID> mapperFactory,
+            @NonNull MapperFactory mapperFactory,
             @NonNull Dialect dialect) {
         this.rdbmsResolver = rdbmsResolver;
         this.parameterMapper = parameterMapper;

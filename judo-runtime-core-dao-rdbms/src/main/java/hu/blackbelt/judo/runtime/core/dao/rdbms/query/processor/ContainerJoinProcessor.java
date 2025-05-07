@@ -48,7 +48,7 @@ public class ContainerJoinProcessor {
     private final RdbmsResolver rdbmsResolver;
 
     public List<RdbmsJoin> process(ContainerJoin join, RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         final EClass targetType = join.getType();
         final Node node = join.getPartner();

@@ -25,15 +25,17 @@ import lombok.*;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
+
 @Getter
-public class RemoveReferenceStatement<ID> extends ReferenceStatement<ID> {
+public class RemoveReferenceStatement extends ReferenceStatement {
 
     @Builder(builderMethodName = "buildRemoveReferenceStatement")
     public RemoveReferenceStatement(
             EClass type,
             EReference reference,
-            ID identifier,
-            ID referenceIdentifier) {
+            Serializable identifier,
+            Serializable referenceIdentifier) {
         super(type, reference, identifier, referenceIdentifier);
     }
 

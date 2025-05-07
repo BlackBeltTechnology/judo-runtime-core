@@ -76,10 +76,10 @@ class InsertStatementExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<Serializable> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
         rdbmsReferenceUtil = new RdbmsReferenceUtil(asmModel, rdbmsModel, transformationTraceService);
     }
@@ -96,8 +96,8 @@ class InsertStatementExecutor extends StatementExecutor {
      * @param addReferenceStatements
      */
     public void executeInsertStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<InsertStatement<Serializable>> insertStatements,
-                                        Collection<AddReferenceStatement<Serializable>> addReferenceStatements) {
+                                        Collection<InsertStatement> insertStatements,
+                                        Collection<AddReferenceStatement> addReferenceStatements) {
 
         // Collect all information required to build dependencies between nodes.
         Set<RdbmsReference> insertRdbmsReferences = toRdbmsReferences(insertStatements, addReferenceStatements);
@@ -254,18 +254,18 @@ class InsertStatementExecutor extends StatementExecutor {
      * @param rdbmsReferences
      * @return
      */
-    private Stream<InsertStatement<Serializable>> toDependencySortedInsertStatementStream(
-                            Collection<InsertStatement<Serializable>> insertStatements,
+    private Stream<InsertStatement> toDependencySortedInsertStatementStream(
+                            Collection<InsertStatement> insertStatements,
                             Collection<RdbmsReference> rdbmsReferences) {
 
           // Topoligical Sorting over foreign key dependencies
-          Graph<Statement<Serializable>, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+          Graph<Statement, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
           insertStatements.stream().forEach(s -> graph.addVertex(s));
           rdbmsReferences.stream()
                   .filter(rdbmsReference -> getRdbmsResolver().rdbmsField(rdbmsReference.getReference()).isMandatory())
                   .forEach(rdbmsReference -> {
 
-                      Statement<Serializable> oppositeStatement = insertStatements.stream()
+                      Statement oppositeStatement = insertStatements.stream()
                               .filter(insertStatement ->
                                       insertStatement
                                               .getInstance()
@@ -283,7 +283,7 @@ class InsertStatementExecutor extends StatementExecutor {
 
           // Iterate the ordered statement
           @SuppressWarnings({ "rawtypes", "unchecked" })
-          Iterator<InsertStatement<Serializable>> iterator = new TopologicalOrderIterator(graph);
+          Iterator<InsertStatement> iterator = new TopologicalOrderIterator(graph);
           return stream(spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
     }
 
@@ -296,8 +296,8 @@ class InsertStatementExecutor extends StatementExecutor {
      * @param addReferenceStatements
      * @return
      */
-    private Set<RdbmsReference> toRdbmsReferences(Collection<InsertStatement<Serializable>> insertStatements,
-                                                      Collection<AddReferenceStatement<Serializable>> addReferenceStatements) {
+    private Set<RdbmsReference> toRdbmsReferences(Collection<InsertStatement> insertStatements,
+                                                      Collection<AddReferenceStatement> addReferenceStatements) {
         return insertStatements.stream()
                 .flatMap(insertStatement -> addReferenceStatements.stream()
                         .filter(addReferenceStatement ->

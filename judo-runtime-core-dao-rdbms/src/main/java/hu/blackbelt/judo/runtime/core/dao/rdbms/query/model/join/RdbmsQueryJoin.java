@@ -26,10 +26,10 @@ import lombok.NonNull;
 import lombok.experimental.SuperBuilder;
 
 @SuperBuilder
-public class RdbmsQueryJoin<ID> extends RdbmsJoin {
+public class RdbmsQueryJoin extends RdbmsJoin {
 
     @NonNull
-    private final RdbmsResultSet<ID> resultSet;
+    private final RdbmsResultSet resultSet;
 
     @Override
     protected String getTableNameOrSubQuery(SqlConverterContext converterContext) {

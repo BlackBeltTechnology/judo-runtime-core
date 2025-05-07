@@ -26,19 +26,20 @@ import lombok.Getter;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 @Getter
-public class AddReferenceStatement<ID> extends ReferenceStatement<ID> {
+public class AddReferenceStatement extends ReferenceStatement {
 
-    Collection<ID> alreadyReferencingInstances;
+    Collection<Serializable> alreadyReferencingInstances;
 
     @Builder(builderMethodName = "buildAddReferenceStatement")
     public AddReferenceStatement(EClass type,
                                  EReference reference,
-                                 ID identifier,
-                                 ID referenceIdentifier,
-                                 Collection<ID> alreadyReferencingInstances) {
+                                 Serializable identifier,
+                                 Serializable referenceIdentifier,
+                                 Collection<Serializable> alreadyReferencingInstances) {
         super(type, reference, identifier, referenceIdentifier);
         this.alreadyReferencingInstances = alreadyReferencingInstances;
     }

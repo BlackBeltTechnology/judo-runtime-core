@@ -32,7 +32,7 @@ import java.io.Serializable;
 @Getter
 public class RdbmsReference {
 
-    private Statement<Serializable> statement;
+    private Statement statement;
 
     private Serializable identifier;
 
@@ -46,7 +46,7 @@ public class RdbmsReference {
 
     private Rule oppositeRule;
 
-    RdbmsReference(Statement<Serializable> statement, Serializable identifier, Serializable oppositeIdentifier, EReference reference, Rule rule, EReference oppositeReference, Rule oppositeRule) {
+    RdbmsReference(Statement statement, Serializable identifier, Serializable oppositeIdentifier, EReference reference, Rule rule, EReference oppositeReference, Rule oppositeRule) {
         this.statement = statement;
         this.identifier = identifier;
         this.oppositeIdentifier = oppositeIdentifier;
@@ -68,7 +68,7 @@ public class RdbmsReference {
     }
 
     public static class RdbmsReferenceBuilder {
-        private Statement<Serializable> statement;
+        private Statement statement;
         private Serializable identifier;
         private Serializable oppositeIdentifier;
         private EReference reference;
@@ -79,7 +79,7 @@ public class RdbmsReference {
         RdbmsReferenceBuilder() {
         }
 
-        public RdbmsReferenceBuilder statement(Statement<Serializable> statement) {
+        public RdbmsReferenceBuilder statement(Statement statement) {
             this.statement = statement;
             return this;
         }

@@ -48,10 +48,10 @@ public class ModifyStatementExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<Serializable> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -63,7 +63,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
      * @throws SQLException
      */
     public void executeStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                  Collection<Statement<Serializable>> statements) throws SQLException {
+                                  Collection<Statement> statements) throws SQLException {
 
         EntityExistsValidationStatementExecutor entityExistsValidationStatementExecutor =
                 EntityExistsValidationStatementExecutor.builder()
@@ -78,7 +78,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
                         .build();
 
 
-        InsertStatementExecutor insertStatementExecutor = InsertStatementExecutor.<Serializable>builder()
+        InsertStatementExecutor insertStatementExecutor = InsertStatementExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -171,7 +171,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(InstanceExistsValidationStatement.class :: isInstance)
-                        .map(o -> (InstanceExistsValidationStatement<Serializable>) o)
+                        .map(o -> (InstanceExistsValidationStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -180,11 +180,11 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(RemoveReferenceStatement.class :: isInstance)
-                        .map(o -> (RemoveReferenceStatement<Serializable>) o)
+                        .map(o -> (RemoveReferenceStatement) o)
                         .collect(Collectors.toList()),
                 statements.stream()
                         .filter(DeleteStatement.class :: isInstance)
-                        .map(o -> ((DeleteStatement<Serializable>) o).getInstance().getIdentifier())
+                        .map(o -> ((DeleteStatement) o).getInstance().getIdentifier())
                         .collect(Collectors.toList())
         );
 
@@ -193,7 +193,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<Serializable>) o)
+                        .map(o -> (AddReferenceStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -202,7 +202,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(RemoveReferenceStatement.class :: isInstance)
-                        .map(o -> (RemoveReferenceStatement<Serializable>) o)
+                        .map(o -> (RemoveReferenceStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -211,12 +211,12 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(DeleteStatement.class :: isInstance)
-                        .map(o -> (DeleteStatement<Serializable>) o)
+                        .map(o -> (DeleteStatement) o)
                         .collect(Collectors.toList()),
 
                 statements.stream()
                         .filter(RemoveReferenceStatement.class :: isInstance)
-                        .map(o -> (RemoveReferenceStatement<Serializable>) o)
+                        .map(o -> (RemoveReferenceStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -238,12 +238,12 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(InsertStatement.class :: isInstance)
-                        .map(o -> (InsertStatement<Serializable>) o)
+                        .map(o -> (InsertStatement) o)
                         .collect(Collectors.toList()),
 
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<Serializable>) o)
+                        .map(o -> (AddReferenceStatement) o)
                         .collect(Collectors.toList()));
 
         // Update existing entities
@@ -251,18 +251,18 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(UpdateStatement.class :: isInstance)
-                        .map(o -> (UpdateStatement<Serializable>) o)
+                        .map(o -> (UpdateStatement) o)
                         .collect(Collectors.toList())
                 );
 
         // Those addReferences which has removeReferences too - which means update
-        Collection<AddReferenceStatement<Serializable>> addReferenceStatementsExistsInRemoveReferenceStatements =
+        Collection<AddReferenceStatement> addReferenceStatementsExistsInRemoveReferenceStatements =
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<Serializable>) o)
+                        .map(o -> (AddReferenceStatement) o)
                         .filter(r -> statements.stream()
                                 .filter(RemoveReferenceStatement.class :: isInstance)
-                                .map(o -> (RemoveReferenceStatement<Serializable>) o).filter(
+                                .map(o -> (RemoveReferenceStatement) o).filter(
                                 r2 -> r2.getIdentifier().equals(r.getIdentifier()) && r2.getReference().equals(r.getReference())
                         ).findFirst().isPresent())
                         .collect(Collectors.toSet());
@@ -279,7 +279,7 @@ public class ModifyStatementExecutor extends StatementExecutor {
                 jdbcTemplate,
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<Serializable>) o)
+                        .map(o -> (AddReferenceStatement) o)
 //                        .filter(o -> !addReferenceStatementsExistsInRemoveReferenceStatements.contains(o))
                         .collect(Collectors.toList())
         );

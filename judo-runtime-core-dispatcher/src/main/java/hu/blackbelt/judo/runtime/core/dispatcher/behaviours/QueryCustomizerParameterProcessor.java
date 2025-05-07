@@ -67,7 +67,7 @@ public class QueryCustomizerParameterProcessor {
     private final Boolean caseInsensitiveLike;
 
     @NonNull
-    private final IdentifierProvider<Serializable> identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     @NonNull
     private final Coercer coercer;

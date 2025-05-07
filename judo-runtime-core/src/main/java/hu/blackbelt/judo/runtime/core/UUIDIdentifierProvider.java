@@ -24,7 +24,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 
 import java.util.UUID;
 
-public class UUIDIdentifierProvider implements IdentifierProvider<UUID> {
+public class UUIDIdentifierProvider implements IdentifierProvider {
 
     @Override
     public UUID get() {

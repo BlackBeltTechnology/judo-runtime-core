@@ -25,7 +25,7 @@ import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import java.io.Serializable;
 import java.util.UUID;
 
-public class SerializableIdentifierProvider implements IdentifierProvider<Serializable> {
+public class SerializableIdentifierProvider implements IdentifierProvider {
 
     @Override
     public Serializable get() {

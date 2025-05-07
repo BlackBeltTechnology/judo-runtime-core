@@ -27,28 +27,29 @@ import lombok.Builder;
 import lombok.Getter;
 import org.eclipse.emf.ecore.EClass;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Getter
-public class CheckUniqueAttributeStatement<ID> extends Statement<ID> {
+public class CheckUniqueAttributeStatement extends Statement {
 
     @Builder(builderMethodName = "buildCheckIdentifierStatement")
     public CheckUniqueAttributeStatement(
             EClass type,
-            ID identifier
+            Serializable identifier
     ) {
 
         super(InstanceValue
-                        .<ID>buildInstanceValue()
+                        .buildInstanceValue()
                             .type(type)
                             .identifier(identifier)
                             .build());
     }
 
-    public static <ID> CheckUniqueAttributeStatement<ID> fromStatement(Statement<ID> statement) {
-        CheckUniqueAttributeStatement uniqueStatement = CheckUniqueAttributeStatement.<ID>buildCheckIdentifierStatement()
+    public static CheckUniqueAttributeStatement fromStatement(Statement statement) {
+        CheckUniqueAttributeStatement uniqueStatement = CheckUniqueAttributeStatement.buildCheckIdentifierStatement()
                 .identifier(statement.getInstance().getIdentifier())
                 .type(statement.getInstance().getType())
                 .build();
@@ -57,7 +58,7 @@ public class CheckUniqueAttributeStatement<ID> extends Statement<ID> {
         return uniqueStatement;
     }
 
-    public CheckUniqueAttributeStatement mergeAttributes(Statement<ID> statement) {
+    public CheckUniqueAttributeStatement mergeAttributes(Statement statement) {
         List<AttributeValue<Object>> updatedAttributes = new ArrayList<>(this.getInstance().getAttributes());
         List<AttributeValue> attributeToRemove = updatedAttributes.stream()
                 .filter(e -> AsmUtils.isIdentifier(e.getAttribute()))
@@ -66,7 +67,7 @@ public class CheckUniqueAttributeStatement<ID> extends Statement<ID> {
         updatedAttributes.removeAll(attributeToRemove);
         updatedAttributes.addAll(statement.getInstance().getAttributes());
 
-        CheckUniqueAttributeStatement uniqueStatement = CheckUniqueAttributeStatement.<ID>buildCheckIdentifierStatement()
+        CheckUniqueAttributeStatement uniqueStatement = CheckUniqueAttributeStatement.buildCheckIdentifierStatement()
                 .identifier(statement.getInstance().getIdentifier())
                 .type(statement.getInstance().getType())
                 .build();

@@ -37,7 +37,7 @@ import java.util.Map;
 @ToString
 public class RdbmsBuilderContext {
     @NonNull
-    private RdbmsBuilder<?> rdbmsBuilder;
+    private RdbmsBuilder rdbmsBuilder;
 
     @Builder.Default
     private Map<Node, List<EClass>> ancestors = new HashMap<>();

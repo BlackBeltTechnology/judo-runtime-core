@@ -110,7 +110,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final DAO dao;
 
-    private final IdentifierProvider<Serializable> identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     private final DispatcherFunctionProvider dispatcherFunctionProvider;
 
@@ -157,7 +157,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private final Locale defaultLocale;
 
     @SuppressWarnings("unchecked")
-    private void setupBehaviourCalls(DAO dao, IdentifierProvider<Serializable> identifierProvider, AsmModel asmModel) {
+    private void setupBehaviourCalls(DAO dao, IdentifierProvider identifierProvider, AsmModel asmModel) {
         ServiceContext serviceContext = ServiceContext.builder()
                 .dao(dao)
                 .identifierProvider(identifierProvider)
@@ -200,7 +200,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             @NonNull AsmModel asmModel,
             @NonNull ExpressionModel expressionModel,
             @NonNull DAO dao,
-            @NonNull IdentifierProvider<Serializable> identifierProvider,
+            @NonNull IdentifierProvider identifierProvider,
             @NonNull DispatcherFunctionProvider dispatcherFunctionProvider,
             @NonNull OperationCallInterceptorProvider operationCallInterceptorProvider,
             @NonNull DataTypeManager dataTypeManager,
@@ -238,7 +238,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.metricsCollector = metricsCollector;
         this.payloadValidator = payloadValidator;
         this.exporter = exporter;
-        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider<>(dao, identifierProvider, asmModel, context));
+        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider(dao, identifierProvider, asmModel, context));
 
         if (enableValidation != null && !enableValidation) {
             validatorProvider.getValidators().clear();
@@ -324,8 +324,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             }
         } else {
             checkArgument(exchange.containsKey(identifierProvider.getName()), "Bound operation must have an identifier");
-            @SuppressWarnings("unchecked")
-            final ID id = (ID) exchange.get(identifierProvider.getName());
+            final Serializable id = (Serializable) exchange.get(identifierProvider.getName());
             final String entityType = (String) exchange.get(ENTITY_TYPE_MAP_KEY);
             return Optional.of(SignedIdentifier.builder()
                     .identifier(dataTypeManager.getCoercer().coerce(id, String.class))

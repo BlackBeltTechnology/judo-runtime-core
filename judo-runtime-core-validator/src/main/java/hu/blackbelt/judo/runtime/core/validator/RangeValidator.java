@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,7 +42,7 @@ import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.*
 
 @RequiredArgsConstructor
 @Slf4j
-public class RangeValidator<ID> implements Validator {
+public class RangeValidator implements Validator {
 
     private static final String CONSTRAINT_NAME = "range";
 
@@ -49,7 +50,7 @@ public class RangeValidator<ID> implements Validator {
     private final DAO dao;
 
     @NonNull
-    private final IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     @NonNull
     Context context;
@@ -78,7 +79,7 @@ public class RangeValidator<ID> implements Validator {
                 .build(),
                 false, true);
 
-        final Collection<ID> validIds = range.stream()
+        final Collection<Serializable> validIds = range.stream()
                 .map(ri -> ri.getAs(identifierProvider.getType(), identifierProvider.getName()))
                 .collect(Collectors.toSet());
 
@@ -88,7 +89,7 @@ public class RangeValidator<ID> implements Validator {
 
         Optional<EReference> entityReference = asmUtils.getMappedReference((EReference) feature);
 
-        final ID id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
+        final Serializable id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
         if ((id == null && entityReference.isEmpty()) || (id == null && entityReference.isPresent() && entityReference.get().isContainment()) || (id != null && !validIds.contains(id))) {
             Validator.addValidationError(ImmutableMap.of(
                             identifierProvider.getName(), id,

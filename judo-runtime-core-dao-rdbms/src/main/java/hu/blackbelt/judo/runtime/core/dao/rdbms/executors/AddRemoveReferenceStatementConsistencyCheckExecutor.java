@@ -54,10 +54,10 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor extends StatementExecu
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<Serializable> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -68,11 +68,11 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor extends StatementExecu
      * @param removeReferencesStatements
      */
     public void checkRemoveReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                               Collection<ReferenceStatement<Serializable>> removeReferencesStatements,
+                                               Collection<ReferenceStatement> removeReferencesStatements,
                                                Collection<Serializable> idsToDelete) {
 
         // Check all removed instance - (opposite is single and required)
-        Set<ReferenceStatement<Serializable>> illegalRemoveStatementsSingle = removeReferencesStatements.stream()
+        Set<ReferenceStatement> illegalRemoveStatementsSingle = removeReferencesStatements.stream()
                 .filter(r -> r.getReference().getEOpposite() != null)
                 .filter(r -> !r.getReference().getEOpposite().isMany() && !idsToDelete.contains(r.getIdentifier()) && r.getReference().getEOpposite().isRequired())
                 .collect(Collectors.toSet());
@@ -95,10 +95,10 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor extends StatementExecu
      * @param addReferencesStatements
      */
     public void checkAddReferenceStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                            Collection<AddReferenceStatement<Serializable>> addReferencesStatements) {
+                                            Collection<AddReferenceStatement> addReferencesStatements) {
 
         // Check all added instance - (opposite is single and required)
-        Set<ReferenceStatement<Serializable>> illegalAddStatementsSingle = addReferencesStatements.stream()
+        Set<ReferenceStatement> illegalAddStatementsSingle = addReferencesStatements.stream()
                 .filter(r -> r.getReference().getEOpposite() != null)
                 .filter(r -> r.getReference().getEOpposite().getLowerBound() == r.getReference().getEOpposite().getUpperBound())
                 .collect(Collectors.toSet());
@@ -106,7 +106,7 @@ class AddRemoveReferenceStatementConsistencyCheckExecutor extends StatementExecu
         checkState(illegalAddStatementsSingle.size() == 0, "There is reference add which let referrer violate mandatory constraint");
 
         // Check cardinality of back (opposite) references (already set)
-        Set<ReferenceStatement<Serializable>> illegalAddStatementsBecauseOfBackReference = addReferencesStatements.stream()
+        Set<ReferenceStatement> illegalAddStatementsBecauseOfBackReference = addReferencesStatements.stream()
                 .filter(r -> r.getReference().getEOpposite() != null && r.getAlreadyReferencingInstances() != null)
                 .filter(r -> r.getReference().getEOpposite().getUpperBound() > -1 && r.getReference().getEOpposite().getUpperBound() <= r.getAlreadyReferencingInstances().size())
                 .collect(Collectors.toSet());

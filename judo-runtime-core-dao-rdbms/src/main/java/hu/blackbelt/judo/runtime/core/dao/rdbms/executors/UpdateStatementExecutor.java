@@ -61,10 +61,10 @@ class UpdateStatementExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            IdentifierProvider<Serializable> identifierProvider) {
+            IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -79,7 +79,7 @@ class UpdateStatementExecutor extends StatementExecutor {
      * @param updateStatements
      */
     public void executeUpdateStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                        Collection<UpdateStatement<Serializable>> updateStatements) {
+                                        Collection<UpdateStatement> updateStatements) {
 
         updateStatements.forEach(consumer(updateStatement -> {
 

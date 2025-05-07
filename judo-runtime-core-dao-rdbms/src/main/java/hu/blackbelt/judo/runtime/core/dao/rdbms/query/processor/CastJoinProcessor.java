@@ -56,7 +56,7 @@ public class CastJoinProcessor<ID> {
             log.trace(builderContext.toString());
         }
 
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         EClass castTargetType = join.getType();
         Set<EClass> typeSet = new HashSet<>(castTargetType.getEAllSuperTypes());

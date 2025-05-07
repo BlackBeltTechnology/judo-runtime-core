@@ -31,11 +31,11 @@ import java.util.Collections;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
-public class EntityTypeNameMapper<ID> extends RdbmsMapper<EntityTypeName> {
+public class EntityTypeNameMapper extends RdbmsMapper<EntityTypeName> {
 
     @Override
     public Stream<? extends RdbmsField> map(final EntityTypeName entityTypeName, RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         return Collections.singleton(RdbmsEntityTypeName.builder()
                 .tableName(rdbmsBuilder.getTableName(entityTypeName.getType()))

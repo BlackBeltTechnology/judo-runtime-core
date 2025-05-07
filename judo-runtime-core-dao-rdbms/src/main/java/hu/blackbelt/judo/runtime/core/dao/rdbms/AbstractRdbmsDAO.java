@@ -591,7 +591,7 @@ public abstract class AbstractRdbmsDAO implements DAO {
 
     protected abstract AsmModel getAsmModel();
 
-    protected abstract IdentifierProvider<Serializable> getIdentifierProvider();
+    protected abstract IdentifierProvider getIdentifierProvider();
 
     protected abstract Payload readStaticFeatures(EClass clazz);
 

@@ -24,14 +24,15 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
 @Builder(builderMethodName = "buildMetadata")
 @ToString
-public class Metadata<ID> {
+public class Metadata {
 
-    ID userId;
+    Serializable userId;
     String username;
     LocalDateTime timestamp;
 }

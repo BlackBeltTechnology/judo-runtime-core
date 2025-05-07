@@ -59,21 +59,21 @@ class EntityExistsValidationStatementExecutor extends StatementExecutor {
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<Serializable> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
 
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
     public void executeEntityExistsValidationStatements(
             NamedParameterJdbcTemplate jdbcTemplate,
-            List<Statement<Serializable>> statements) {
+            List<Statement> statements) {
 
         statements.stream()
                 .filter(InstanceExistsValidationStatement.class :: isInstance)
-                .map(o -> (InstanceExistsValidationStatement<Serializable>) o)
+                .map(o -> (InstanceExistsValidationStatement) o)
                 .forEach(Unchecked.consumer(statement -> {
 
         String tableName = getRdbmsResolver().rdbmsTable(statement.getInstance().getType()).getSqlName();

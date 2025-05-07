@@ -40,7 +40,7 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RdbmsNavigationFilter<ID> extends RdbmsField {
+public class RdbmsNavigationFilter extends RdbmsField {
 
     private final Filter filter;
 
@@ -51,14 +51,14 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
 
     @Builder
     private RdbmsNavigationFilter(final @NonNull Filter filter, final @NonNull RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         this.filter = filter;
         this.from = rdbmsBuilder.getTableName(filter.getType());
 
         joins.addAll(filter.getJoins().stream()
                 .flatMap(subJoin -> subJoin.getAllJoins().stream()
-                        .flatMap(j -> (Stream<RdbmsJoin>) rdbmsBuilder.processJoin(JoinProcessParameters.builder()
+                        .flatMap(j -> rdbmsBuilder.processJoin(JoinProcessParameters.builder()
                                         .join(j)
                                         .builderContext(builderContext)
                                         .withoutFeatures(true)
@@ -93,9 +93,9 @@ public class RdbmsNavigationFilter<ID> extends RdbmsField {
                         group = false;
                     }
 
-                    final RdbmsQueryJoin<ID> queryJoin = RdbmsQueryJoin.<ID>builder()
+                    final RdbmsQueryJoin queryJoin = RdbmsQueryJoin.builder()
                             .resultSet(
-                                    RdbmsResultSet.<ID>builder()
+                                    RdbmsResultSet.builder()
                                             .query(subSelect)
                                             .builderContext(builderContext)
                                             .withoutFeatures(true)

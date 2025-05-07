@@ -65,7 +65,7 @@ public class SubSelectJoinProcessor<ID> {
                 ? (Map<String, Object>) mask.get(subSelect.getTransferRelation().getName())
                 : null;
 
-        final RdbmsResultSet<ID> resultSetHandler =
+        final RdbmsResultSet resultSetHandler =
                 RdbmsResultSet.<ID>builder()
                         .query(subSelect)
                         .builderContext(builderContext)

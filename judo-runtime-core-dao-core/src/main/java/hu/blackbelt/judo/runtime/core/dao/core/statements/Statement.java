@@ -25,9 +25,9 @@ import lombok.*;
 
 @Getter
 @AllArgsConstructor
-public abstract class Statement<ID> {
+public abstract class Statement {
 
     @NonNull
-    InstanceValue<ID> instance;
+    InstanceValue instance;
 
 }

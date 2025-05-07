@@ -49,7 +49,7 @@ public class UserManagedWrappedDao implements DAO {
     @Setter
     private volatile UserManager<String> userManager;
 
-    private IdentifierProvider<Serializable> identifierProvider;
+    private IdentifierProvider identifierProvider;
 
     private Boolean userManagerEnabled = true;
 
@@ -58,7 +58,7 @@ public class UserManagedWrappedDao implements DAO {
             @NonNull DAO delegatee,
             UserManager<String> userManager,
             @NonNull Context context,
-            @NonNull IdentifierProvider<Serializable> identifierProvider,
+            @NonNull IdentifierProvider identifierProvider,
             Boolean userManagerEnabled) {
         this.delegatee = delegatee;
         this.userManager = userManager;

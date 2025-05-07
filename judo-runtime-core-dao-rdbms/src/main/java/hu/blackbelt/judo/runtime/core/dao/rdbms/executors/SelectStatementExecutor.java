@@ -170,7 +170,7 @@ public class SelectStatementExecutor extends StatementExecutor {
 
     private final Translator translator = new Translator();
     private final MetricsCollector metricsCollector;
-    private final RdbmsBuilder<Serializable> rdbmsBuilder;
+    private final RdbmsBuilder rdbmsBuilder;
     private final QueryFactory queryFactory;
     private final DataTypeManager dataTypeManager;
     private final int chunkSize;
@@ -182,11 +182,11 @@ public class SelectStatementExecutor extends StatementExecutor {
                                    @NonNull final RdbmsModel rdbmsModel,
                                    @NonNull final TransformationTraceService transformationTraceService,
                                    @NonNull final QueryFactory queryFactory,
-                                   @NonNull final RdbmsParameterMapper<Serializable> rdbmsParameterMapper,
+                                   @NonNull final RdbmsParameterMapper rdbmsParameterMapper,
                                    @NonNull final RdbmsResolver rdbmsResolver,
                                    @NonNull final DataTypeManager dataTypeManager,
-                                   @NonNull final IdentifierProvider<Serializable> identifierProvider,
-                                   @NonNull final RdbmsBuilder<Serializable> rdbmsBuilder,
+                                   @NonNull final IdentifierProvider identifierProvider,
+                                   @NonNull final RdbmsBuilder rdbmsBuilder,
                                    @NonNull final MetricsCollector metricsCollector,
                                    @NonNull final Integer chunkSize,
                                    @NonNull final Integer maximumRecursionCount) {
@@ -792,7 +792,7 @@ public class SelectStatementExecutor extends StatementExecutor {
         }
 
 
-        final RdbmsResultSet<Serializable> resultSetHandler = RdbmsResultSet.<Serializable>builder()
+        final RdbmsResultSet resultSetHandler = RdbmsResultSet.builder()
                 .query(query)
                 .builderContext(RdbmsBuilderContext.builder()
                         .parentIdFilterQuery(parentIds != null ? query : null)

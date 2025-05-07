@@ -35,6 +35,7 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -56,37 +57,37 @@ import static java.util.stream.Collectors.toList;
  *    - Any entities which have ID attached relations are ignored.
  *    - Any entities which hae no ID are inserted recursively - does not matter it is containment or association
  */
-public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
+public class InsertPayloadDaoProcessor extends PayloadDaoProcessor {
 
-    private final AddReferencePayloadDaoProcessor<ID> addReferenceProcessor;
+    private final AddReferencePayloadDaoProcessor addReferenceProcessor;
 
     private final BiConsumer<EClass, Payload> defaultValuesApplier;
 
-    Metadata<ID> metadata;
+    Metadata metadata;
 
-    public InsertPayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
-                                     QueryFactory queryFactory, InstanceCollector<ID> instanceCollector,
+    public InsertPayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider identifierProvider,
+                                     QueryFactory queryFactory, InstanceCollector instanceCollector,
                                      BiConsumer<EClass, Payload> defaultValuesApplier,
-                                     Metadata<ID> metadata) {
+                                     Metadata metadata) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
         addReferenceProcessor =
-                new AddReferencePayloadDaoProcessor<ID>(resourceSet, identifierProvider, queryFactory, instanceCollector);
+                new AddReferencePayloadDaoProcessor(resourceSet, identifierProvider, queryFactory, instanceCollector);
         this.defaultValuesApplier = defaultValuesApplier;
         this.metadata = metadata;
     }
 
-    public Collection<Statement<ID>> insert(EClass type,
+    public Collection<Statement> insert(EClass type,
                                   Payload payload,
                                   boolean checkMandatoryFeatures) {
-        Collection<Statement<ID>> statements = newHashSet();
+        Collection<Statement> statements = newHashSet();
         collectStatements(type, payload, null, statements, checkMandatoryFeatures);
         return statements;
     }
 
     @SuppressWarnings("unchecked")
-    Collection<Statement<ID>> collectStatements(EClass mappedTransferObjectType,
+    Collection<Statement> collectStatements(EClass mappedTransferObjectType,
                                             Payload payload,
-                                            EReference container, Collection<Statement<ID>> statements,
+                                            EReference container, Collection<Statement> statements,
                                             boolean checkMandatoryFeatures) {
 
         checkArgument(mappedTransferObjectType != null, "Type is mandatory");
@@ -96,8 +97,8 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         defaultValuesApplier.accept(mappedTransferObjectType, payload);
 
-        InsertStatement.InsertStatementBuilder<ID> currentStatementBuilder =
-                InsertStatement.<ID>buildInsertStatement()
+        InsertStatement.InsertStatementBuilder currentStatementBuilder =
+                InsertStatement.buildInsertStatement()
                         .identifier(getIdentifierProvider().get())
                         .clientReferenceIdentifier(payload.get(REFERENCE_ID))
                         .container(container)
@@ -134,8 +135,8 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                 .and(r -> getAsmUtils().getMappedReference(r).isPresent()))
                 .collect(toList());
 
-        Collection<Statement<ID>> currentStatements = newArrayList();
-        InsertStatement<ID> currentStatement = currentStatementBuilder.build();
+        Collection<Statement> currentStatements = newArrayList();
+        InsertStatement currentStatement = currentStatementBuilder.build();
 
         currentStatements.add(currentStatement);
 
@@ -206,7 +207,7 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 .forEach(entry -> entry.getValue().stream()
                         .forEach(
                                 p -> {
-                                    Collection<Statement<ID>> embeddedStatements = collectStatements(entry.getKey().getEReferenceType(),
+                                    Collection<Statement> embeddedStatements = collectStatements(entry.getKey().getEReferenceType(),
                                             p,
                                             entry.getKey(), statements,
                                             checkMandatoryFeatures);
@@ -216,13 +217,13 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                     @SuppressWarnings("rawtypes")
                                     Set containmentReferences = embeddedStatements.stream()
                                             .filter(InsertStatement.class :: isInstance)
-                                            .map(o -> (InsertStatement<ID>) o)
+                                            .map(o -> (InsertStatement) o)
                                             .filter(i -> i.getContainer().isPresent()
                                                     && i.getContainer().get().equals(entry.getKey()))
                                             .flatMap(i -> addReferenceProcessor.addReference(
                                                                     getAsmUtils().getMappedReference(entry.getKey())
                                                                             .orElseGet(() -> entry.getKey()),
-                                                                    ImmutableSet.of((ID) i.getInstance().getIdentifier()),
+                                                                    ImmutableSet.of(i.getInstance().getIdentifier()),
                                                                     currentStatement.getInstance().getIdentifier(),
                                                                     false
                                                             ).stream().map(AddReferenceStatement.class::cast)
@@ -246,7 +247,7 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                                         addReferenceProcessor.addReference(
                                             getAsmUtils().getMappedReference(entry.getKey())
                                                         .orElseGet(() -> entry.getKey()),
-                                            ImmutableSet.<ID>of((ID) payloadStm.get(getIdentifierProvider().getName())),
+                                            ImmutableSet.of((Serializable) payloadStm.get(getIdentifierProvider().getName())),
                                             currentStatement.getInstance().getIdentifier(),
                                             true
                                         )
@@ -264,7 +265,7 @@ public class InsertPayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 EReference dtoReference = e.getKey();
                 EReference mappedReference = e.getValue();
                 if (mappedTransferObjectType.getEAllReferences().stream().noneMatch(tr -> AsmUtils.equals(mappedReference, getAsmUtils().getMappedReference(tr).orElse(null)))) {
-                    Set<ID> ids;
+                    Set<Serializable> ids;
                     if (dtoReference.isMany()) {
                         ids = entityDefaults.getAsCollectionPayload(dtoReference.getName()).stream()
                                             .map(p -> p.getAs(getIdentifierProvider().getType(), getIdentifierProvider().getName()))
