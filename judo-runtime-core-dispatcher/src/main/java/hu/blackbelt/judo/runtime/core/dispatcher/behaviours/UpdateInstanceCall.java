@@ -37,21 +37,23 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Objects;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
+public class UpdateInstanceCall extends TransactionalBehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+    final ServiceContext serviceContext;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
-    public UpdateInstanceCall(Context context, ServiceContext<ID> serviceContext) {
+    public UpdateInstanceCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -74,7 +76,7 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
         final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor
                 .build(null, owner, exchange);
 
         final boolean bound = AsmUtils.isBound(operation);
@@ -89,10 +91,8 @@ public class UpdateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
                     serviceContext.getCoercer().coerce(exchange.get(serviceContext.getIdentifierProvider().getName()),
                             serviceContext.getIdentifierProvider().getType()));
 
-            @SuppressWarnings("unchecked")
-            final ID idInPayload = (ID) payload.get(serviceContext.getIdentifierProvider().getName());
-            @SuppressWarnings("unchecked")
-            final ID idOfSubject = (ID) exchange.get(serviceContext.getIdentifierProvider().getName());
+            final Serializable idInPayload = (Serializable) payload.get(serviceContext.getIdentifierProvider().getName());
+            final Serializable idOfSubject = (Serializable) exchange.get(serviceContext.getIdentifierProvider().getName());
 
             if (!Objects.equals(idInPayload, idOfSubject)) {
                 throw new IllegalArgumentException("Identifier in payload must match operation subject");

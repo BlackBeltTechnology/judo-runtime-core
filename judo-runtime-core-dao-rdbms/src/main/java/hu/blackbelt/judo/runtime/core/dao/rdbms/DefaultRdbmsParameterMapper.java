@@ -35,6 +35,7 @@ import org.eclipse.emf.ecore.EEnum;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Time;
@@ -48,7 +49,7 @@ import java.util.stream.StreamSupport;
 
 import static java.lang.Math.max;
 
-public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
+public abstract class DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
 
     @NonNull
     private final Coercer coercer;
@@ -58,7 +59,7 @@ public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterM
 
     @NonNull
     @Getter
-    private IdentifierProvider<ID> identifierProvider;
+    private IdentifierProvider identifierProvider;
 
     @Getter
     private Map<Class<?>, Predicate<ValueAndDataType>> typePredicates = new LinkedHashMap<>();
@@ -69,7 +70,7 @@ public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterM
     public DefaultRdbmsParameterMapper(
             @NonNull Coercer coercer,
             @NonNull RdbmsModel rdbmsModel,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
         this.coercer = coercer;
         this.rdbmsModel = rdbmsModel;
         this.identifierProvider = identifierProvider;
@@ -236,7 +237,7 @@ public abstract class DefaultRdbmsParameterMapper<ID> implements RdbmsParameterM
         });
     }
 
-    public void mapReferenceParameters(final MapSqlParameterSource namedParameters, final Map<EReference, ID> referenceMap) {
+    public void mapReferenceParameters(final MapSqlParameterSource namedParameters, final Map<EReference, Serializable> referenceMap) {
         final String targetType = getIdClassName();
         final int sqlType = getIdSqlType();
         referenceMap.entrySet().stream().forEach(e -> {

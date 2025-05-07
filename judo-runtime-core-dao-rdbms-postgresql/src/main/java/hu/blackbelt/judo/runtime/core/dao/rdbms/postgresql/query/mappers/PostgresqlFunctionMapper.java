@@ -28,11 +28,11 @@ import lombok.NonNull;
 
 import java.util.List;
 
-public class PostgresqlFunctionMapper<ID> extends FunctionMapper<ID> {
+public class PostgresqlFunctionMapper extends FunctionMapper {
 
     @SuppressWarnings("unchecked")
     @Builder
-    public PostgresqlFunctionMapper(@NonNull RdbmsBuilder<ID> rdbmsBuilder) {
+    public PostgresqlFunctionMapper(@NonNull RdbmsBuilder rdbmsBuilder) {
         super(rdbmsBuilder);
 
         getFunctionBuilderMap().put(FunctionSignature.MODULO_INTEGER, c ->

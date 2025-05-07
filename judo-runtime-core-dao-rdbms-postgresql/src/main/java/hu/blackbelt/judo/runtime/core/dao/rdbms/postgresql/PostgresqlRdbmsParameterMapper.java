@@ -28,11 +28,11 @@ import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.NonNull;
 
-public class PostgresqlRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
+public class PostgresqlRdbmsParameterMapper extends DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
     @Builder
     private PostgresqlRdbmsParameterMapper(@NonNull Coercer coercer,
                                           @NonNull RdbmsModel rdbmsModel,
-                                          @NonNull IdentifierProvider<ID> identifierProvider) {
+                                          @NonNull IdentifierProvider identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
         getSqlTypes().put(String.class, vd -> "TEXT");

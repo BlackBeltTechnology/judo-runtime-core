@@ -52,6 +52,7 @@ import org.slf4j.MDC;
 import org.springframework.transaction.*;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -68,7 +69,7 @@ import static hu.blackbelt.judo.runtime.core.validator.Validator.*;
 import static java.util.Optional.ofNullable;
 
 @Slf4j
-public class DefaultDispatcher<ID> implements Dispatcher {
+public class DefaultDispatcher implements Dispatcher {
 
     public static final String UPDATEABLE_KEY = "__updateable";
     public static final String DELETEABLE_KEY = "__deleteable";
@@ -107,9 +108,9 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final ExpressionModel expressionModel;
 
-    private final DAO<ID> dao;
+    private final DAO dao;
 
-    private final IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     private final DispatcherFunctionProvider dispatcherFunctionProvider;
 
@@ -145,7 +146,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
 
     private final Boolean caseInsensitiveLike;
 
-    private Set<BehaviourCall<ID>> behaviourCalls;
+    private Set<BehaviourCall> behaviourCalls;
 
     private final AsmUtils asmUtils;
 
@@ -156,8 +157,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     private final Locale defaultLocale;
 
     @SuppressWarnings("unchecked")
-    private void setupBehaviourCalls(DAO<ID> dao, IdentifierProvider<ID> identifierProvider, AsmModel asmModel) {
-        ServiceContext serviceContext = ServiceContext.<ID>builder()
+    private void setupBehaviourCalls(DAO dao, IdentifierProvider identifierProvider, AsmModel asmModel) {
+        ServiceContext serviceContext = ServiceContext.builder()
                 .dao(dao)
                 .identifierProvider(identifierProvider)
                 .asmModel(asmModel)
@@ -169,27 +170,27 @@ public class DefaultDispatcher<ID> implements Dispatcher {
                 .caseInsensitiveLike(caseInsensitiveLike)
                 .build();
 
-        behaviourCalls = ImmutableSet.<BehaviourCall<ID>>builder()
+        behaviourCalls = ImmutableSet.<BehaviourCall>builder()
                 .add(
-                        new ExportCall<>(context, serviceContext, exporter),
-                        new ListCall<>(context, serviceContext),
-                        new CreateInstanceCall<>(context, serviceContext),
-                        new ValidateCreateCall<>(context, serviceContext),
-                        new RefreshCall<>(context, serviceContext),
-                        new UpdateInstanceCall<>(context, serviceContext),
-                        new ValidateUpdateCall<>(context, serviceContext),
-                        new DeleteInstanceCall<>(context, serviceContext),
-                        new SetReferenceCall<>(context, serviceContext),
-                        new UnsetReferenceCall<>(context, serviceContext),
-                        new AddReferenceCall<>(context, serviceContext),
-                        new RemoveReferenceCall<>(context, serviceContext),
-                        new GetReferenceRangeCall<>(context, serviceContext, expressionModel),
-                        new GetInputRangeCall<>(context, serviceContext, expressionModel),
-                        new ValidateOperationInputCall<>(context, serviceContext),
-                        new GetPrincipalCall<>(serviceContext),
-                        new GetTemplateCall<>(serviceContext),
-                        new GetMetadataCall<>(serviceContext, () -> openIdConfigurationProvider),
-                        new GetUploadTokenCall<>(serviceContext, filestoreTokenIssuer)
+                        new ExportCall(context, serviceContext, exporter),
+                        new ListCall(context, serviceContext),
+                        new CreateInstanceCall(context, serviceContext),
+                        new ValidateCreateCall(context, serviceContext),
+                        new RefreshCall(context, serviceContext),
+                        new UpdateInstanceCall(context, serviceContext),
+                        new ValidateUpdateCall(context, serviceContext),
+                        new DeleteInstanceCall(context, serviceContext),
+                        new SetReferenceCall(context, serviceContext),
+                        new UnsetReferenceCall(context, serviceContext),
+                        new AddReferenceCall(context, serviceContext),
+                        new RemoveReferenceCall(context, serviceContext),
+                        new GetReferenceRangeCall(context, serviceContext, expressionModel),
+                        new GetInputRangeCall(context, serviceContext, expressionModel),
+                        new ValidateOperationInputCall(context, serviceContext),
+                        new GetPrincipalCall(serviceContext),
+                        new GetTemplateCall(serviceContext),
+                        new GetMetadataCall(serviceContext, () -> openIdConfigurationProvider),
+                        new GetUploadTokenCall(serviceContext, filestoreTokenIssuer)
                 )
                 .build();
     }
@@ -198,8 +199,8 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     public DefaultDispatcher(
             @NonNull AsmModel asmModel,
             @NonNull ExpressionModel expressionModel,
-            @NonNull DAO<ID> dao,
-            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull DAO dao,
+            @NonNull IdentifierProvider identifierProvider,
             @NonNull DispatcherFunctionProvider dispatcherFunctionProvider,
             @NonNull OperationCallInterceptorProvider operationCallInterceptorProvider,
             @NonNull DataTypeManager dataTypeManager,
@@ -237,7 +238,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         this.metricsCollector = metricsCollector;
         this.payloadValidator = payloadValidator;
         this.exporter = exporter;
-        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider<>(dao, identifierProvider, asmModel, context));
+        this.validatorProvider = Objects.requireNonNullElseGet(validatorProvider, () -> new DefaultValidatorProvider(dao, identifierProvider, asmModel, context));
 
         if (enableValidation != null && !enableValidation) {
             validatorProvider.getValidators().clear();
@@ -323,8 +324,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
             }
         } else {
             checkArgument(exchange.containsKey(identifierProvider.getName()), "Bound operation must have an identifier");
-            @SuppressWarnings("unchecked")
-            final ID id = (ID) exchange.get(identifierProvider.getName());
+            final Serializable id = (Serializable) exchange.get(identifierProvider.getName());
             final String entityType = (String) exchange.get(ENTITY_TYPE_MAP_KEY);
             return Optional.of(SignedIdentifier.builder()
                     .identifier(dataTypeManager.getCoercer().coerce(id, String.class))
@@ -342,7 +342,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
     }
 
     private Payload getTransferObjectAsBoundType(EClass mappedTransferObjectType, SignedIdentifier signedIdentifier) {
-        final ID id = dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType());
+        final Serializable id = dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType());
         return dao.getByIdentifier(mappedTransferObjectType, id)
                 .orElseThrow(() -> new NotFoundException(ValidationResult.builder()
                         .code(ERROR_BOUND_OPERATION_INSTANCE_NOT_FOUND)
@@ -366,7 +366,7 @@ public class DefaultDispatcher<ID> implements Dispatcher {
         }
     }
 
-    private Set<BehaviourCall<ID>> getBehaviourCalls() {
+    private Set<BehaviourCall> getBehaviourCalls() {
         if (behaviourCalls == null) {
             setupBehaviourCalls(dao, identifierProvider, asmModel);
         }

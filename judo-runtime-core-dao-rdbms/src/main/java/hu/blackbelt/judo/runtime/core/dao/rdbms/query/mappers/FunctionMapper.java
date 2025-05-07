@@ -38,9 +38,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
-public abstract class FunctionMapper<ID> extends RdbmsMapper<Function> {
+public abstract class FunctionMapper extends RdbmsMapper<Function> {
 
-    private final RdbmsBuilder<ID> rdbmsBuilder;
+    private final RdbmsBuilder rdbmsBuilder;
 
     @Getter
     private final Map<FunctionSignature, java.util.function.Function<FunctionContext, RdbmsFunction.RdbmsFunctionBuilder>> functionBuilderMap = new LinkedHashMap<>();

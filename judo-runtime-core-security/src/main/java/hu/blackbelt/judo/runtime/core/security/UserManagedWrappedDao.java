@@ -31,33 +31,34 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-public class UserManagedWrappedDao<ID> implements DAO<ID> {
+public class UserManagedWrappedDao implements DAO {
     private static final String ROLLBACK_KEY = "ROLLBACK";
 
     private Context context;
 
 
-    private DAO<ID> delegatee;
+    private DAO delegatee;
 
     @Setter
     private volatile UserManager<String> userManager;
 
-    private IdentifierProvider<ID> identifierProvider;
+    private IdentifierProvider identifierProvider;
 
     private Boolean userManagerEnabled = true;
 
     @Builder
     public UserManagedWrappedDao(
-            @NonNull DAO<ID> delegatee,
+            @NonNull DAO delegatee,
             UserManager<String> userManager,
             @NonNull Context context,
-            @NonNull IdentifierProvider<ID> identifierProvider,
+            @NonNull IdentifierProvider identifierProvider,
             Boolean userManagerEnabled) {
         this.delegatee = delegatee;
         this.userManager = userManager;
@@ -90,12 +91,12 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     }
 
     @Override
-    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
+    public Collection<Payload> getRangeOf(EReference reference, Payload payload, QueryCustomizer queryCustomizer, boolean stateful, boolean markSelectedRangeItems) {
         return delegatee.getRangeOf(reference, payload, queryCustomizer, stateful, markSelectedRangeItems);
     }
 
     @Override
-    public long countRangeOf(EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer, boolean stateful) {
+    public long countRangeOf(EReference reference, Payload payload, QueryCustomizer queryCustomizer, boolean stateful) {
         return delegatee.countRangeOf(reference, payload, queryCustomizer, stateful);
     }
 
@@ -108,44 +109,44 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
         return delegatee.countAllOf(clazz);
     }
 
-    public List<Payload> search(EClass clazz, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> search(EClass clazz, QueryCustomizer queryCustomizer) {
         return delegatee.search(clazz, queryCustomizer);
     }
 
     @Override
-    public long count(EClass clazz, QueryCustomizer<ID> queryCustomizer) {
+    public long count(EClass clazz, QueryCustomizer queryCustomizer) {
         return delegatee.count(clazz, queryCustomizer);
     }
 
-    public Optional<Payload> getByIdentifier(EClass clazz, ID identifier) {
+    public Optional<Payload> getByIdentifier(EClass clazz, Serializable identifier) {
         return delegatee.getByIdentifier(clazz, identifier);
     }
 
     @Override
-    public Optional<Payload> searchByIdentifier(EClass clazz, ID identifier, QueryCustomizer<ID> queryCustomizer) {
+    public Optional<Payload> searchByIdentifier(EClass clazz, Serializable identifier, QueryCustomizer queryCustomizer) {
         return delegatee.searchByIdentifier(clazz, identifier, queryCustomizer);
     }
 
     @Override
-    public boolean existsById(EClass clazz, ID identifier) {
+    public boolean existsById(EClass clazz, Serializable identifier) {
         return delegatee.existsById(clazz, identifier);
     }
 
     @Override
-    public Optional<Payload> getMetadata(EClass clazz, ID identifier) {
+    public Optional<Payload> getMetadata(EClass clazz, Serializable identifier) {
         return delegatee.getMetadata(clazz, identifier);
     }
 
-    public List<Payload> getByIdentifiers(EClass clazz, Collection<ID> identifiers) {
+    public List<Payload> getByIdentifiers(EClass clazz, Collection<Serializable> identifiers) {
         return delegatee.getByIdentifiers(clazz, identifiers);
     }
 
     @Override
-    public List<Payload> searchByIdentifiers(EClass clazz, Collection<ID> identifiers, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> searchByIdentifiers(EClass clazz, Collection<Serializable> identifiers, QueryCustomizer queryCustomizer) {
         return delegatee.searchByIdentifiers(clazz, identifiers, queryCustomizer);
     }
 
-    public Payload create(EClass clazz, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload create(EClass clazz, Payload payload, QueryCustomizer queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
         final Payload result = delegatee.create(clazz, payload, queryCustomizer);
         createUserForActortType(clazz, Arrays.asList(result));
@@ -153,58 +154,58 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
     }
 
     @Override
-    public List<Payload> createAll(EClass clazz, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> createAll(EClass clazz, Iterable<Payload> payloads, QueryCustomizer queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
         final List<Payload> results = delegatee.createAll(clazz, payloads, queryCustomizer);
         createUserForActortType(clazz, results);
         return results;
     }
 
-    public Payload update(EClass clazz, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload update(EClass clazz, Payload payload, QueryCustomizer queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        Map<ID, String> users = getUsers(clazz, Arrays.asList(payload), false);
+        Map<Serializable, String> users = getUsers(clazz, Arrays.asList(payload), false);
         final Payload result = delegatee.update(clazz, payload, queryCustomizer);
         updateUsers(clazz, users);
         return result;
     }
 
     @Override
-    public List<Payload> updateAll(EClass clazz, Iterable<Payload> payloads, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> updateAll(EClass clazz, Iterable<Payload> payloads, QueryCustomizer queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        Map<ID, String> users = getUsers(clazz, payloads, false);
+        Map<Serializable, String> users = getUsers(clazz, payloads, false);
         final List<Payload> results = delegatee.updateAll(clazz, payloads, queryCustomizer);
         updateUsers(clazz, users);
         return results;
     }
 
-    public void delete(EClass clazz, ID id) {
+    public void delete(EClass clazz, Serializable id) {
         checkArgument(userManager != null || !userManagerEnabled, "User manager is not started yet");
-        Map<ID, String> users = getUsers(clazz, Arrays.asList(id), true);
+        Map<Serializable, String> users = getUsers(clazz, Arrays.asList(id), true);
         delegatee.delete(clazz, id);
         deleteUsers(clazz, users);
     }
 
-    public void deleteAll(EClass clazz, Iterable<ID> ids) {
+    public void deleteAll(EClass clazz, Iterable<Serializable> ids) {
         checkArgument(userManager != null || !userManagerEnabled, "User manager is not started yet");
-        Map<ID, String> users = getUsers(clazz, ids, true);
+        Map<Serializable, String> users = getUsers(clazz, ids, true);
         delegatee.deleteAll(clazz, ids);
         deleteUsers(clazz, users);
 
     }
 
-    public void setReference(EReference reference, ID id, Collection<ID> referencedIds) {
+    public void setReference(EReference reference, Serializable id, Collection<Serializable> referencedIds) {
         delegatee.setReference(reference, id, referencedIds);
     }
 
-    public void unsetReference(EReference reference, ID id) {
+    public void unsetReference(EReference reference, Serializable id) {
         delegatee.unsetReference(reference, id);
     }
 
-    public void addReferences(EReference reference, ID id, Collection<ID> referencedIds) {
+    public void addReferences(EReference reference, Serializable id, Collection<Serializable> referencedIds) {
         delegatee.addReferences(reference, id, referencedIds);
     }
 
-    public void removeReferences(EReference reference, ID id, Collection<ID> referencedIds) {
+    public void removeReferences(EReference reference, Serializable id, Collection<Serializable> referencedIds) {
         delegatee.removeReferences(reference, id, referencedIds);
     }
 
@@ -217,18 +218,18 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
         return delegatee.countAllReferencedInstancesOf(reference, clazz);
     }
 
-    public List<Payload> searchReferencedInstancesOf(EReference reference, EClass clazz, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> searchReferencedInstancesOf(EReference reference, EClass clazz, QueryCustomizer queryCustomizer) {
         return delegatee.searchReferencedInstancesOf(reference, clazz, queryCustomizer);
     }
 
     @Override
-    public long countReferencedInstancesOf(EReference reference, EClass clazz, QueryCustomizer<ID> queryCustomizer) {
+    public long countReferencedInstancesOf(EReference reference, EClass clazz, QueryCustomizer queryCustomizer) {
         return delegatee.countReferencedInstancesOf(reference, clazz, queryCustomizer);
     }
 
-    public Payload updateReferencedInstancesOf(EClass clazz, EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload updateReferencedInstancesOf(EClass clazz, EReference reference, Payload payload, QueryCustomizer queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        Map<Serializable, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
         final Payload result = delegatee.updateReferencedInstancesOf(clazz, reference, payload, queryCustomizer);
         updateUsers(reference.getEReferenceType(), users);
         return result;
@@ -237,81 +238,81 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
 
     public void deleteReferencedInstancesOf(EClass clazz, EReference reference, Payload payload) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        Map<Serializable, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
         delegatee.deleteReferencedInstancesOf(clazz, reference, payload);
         deleteUsers(reference.getEReferenceType(), users);
 
     }
 
-    public void setReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void setReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         delegatee.setReferencesOfReferencedInstancesOf(reference, referenceToSet, instanceId, referencedIds);
     }
 
-    public void unsetReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId) {
+    public void unsetReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId) {
         delegatee.unsetReferencesOfReferencedInstancesOf(reference, referenceToSet, instanceId);
     }
 
-    public void addAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void addAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         delegatee.addAllReferencesOfReferencedInstancesOf(reference, referenceToSet, instanceId, referencedIds);
     }
 
-    public void removeAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void removeAllReferencesOfReferencedInstancesOf(EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         delegatee.removeAllReferencesOfReferencedInstancesOf(reference, referenceToSet, instanceId, referencedIds);
     }
 
-    public List<Payload> getNavigationResultAt(ID id, EReference reference) {
+    public List<Payload> getNavigationResultAt(Serializable id, EReference reference) {
         return delegatee.getNavigationResultAt(id, reference);
     }
 
     @Override
-    public long countNavigationResultAt(ID id, EReference reference) {
+    public long countNavigationResultAt(Serializable id, EReference reference) {
         return delegatee.countNavigationResultAt(id, reference);
     }
 
-    public List<Payload> searchNavigationResultAt(ID id, EReference reference, QueryCustomizer<ID> queryCustomizer) {
+    public List<Payload> searchNavigationResultAt(Serializable id, EReference reference, QueryCustomizer queryCustomizer) {
         return delegatee.searchNavigationResultAt(id, reference, queryCustomizer);
     }
 
     @Override
-    public long countNavigationResultAt(ID id, EReference reference, QueryCustomizer<ID> queryCustomizer) {
+    public long countNavigationResultAt(Serializable id, EReference reference, QueryCustomizer queryCustomizer) {
         return delegatee.countNavigationResultAt(id, reference, queryCustomizer);
     }
 
-    public Payload createNavigationInstanceAt(ID id, EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload createNavigationInstanceAt(Serializable id, EReference reference, Payload payload, QueryCustomizer queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
         final Payload result = delegatee.createNavigationInstanceAt(id, reference, payload, queryCustomizer);
         createUserForActortType(reference.getEReferenceType(), Arrays.asList(result));
         return result;
     }
 
-    public Payload updateNavigationInstanceAt(ID id, EReference reference, Payload payload, QueryCustomizer<ID> queryCustomizer) {
+    public Payload updateNavigationInstanceAt(Serializable id, EReference reference, Payload payload, QueryCustomizer queryCustomizer) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        Map<Serializable, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
         final Payload result = delegatee.updateNavigationInstanceAt(id, reference, payload, queryCustomizer);
         updateUsers(reference.getEReferenceType(), users);
         return result;
     }
 
-    public void deleteNavigationInstanceAt(ID id, EReference reference, Payload payload) {
+    public void deleteNavigationInstanceAt(Serializable id, EReference reference, Payload payload) {
         checkArgument(userManager != null || !userManagerEnabled,"User manager is not started yet");
-        Map<ID, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
+        Map<Serializable, String> users = getUsers(reference.getEReferenceType(), Arrays.asList(payload), false);
         delegatee.deleteNavigationInstanceAt(id, reference, payload);
         deleteUsers(reference.getEReferenceType(), users);
     }
 
-    public void setReferencesOfNavigationInstanceAt(ID id, EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void setReferencesOfNavigationInstanceAt(Serializable id, EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         delegatee.setReferencesOfNavigationInstanceAt(id, reference, referenceToSet, instanceId, referencedIds);
     }
 
-    public void unsetReferenceOfNavigationInstanceAt(ID id, EReference reference, EReference referenceToSet, ID instanceId) {
+    public void unsetReferenceOfNavigationInstanceAt(Serializable id, EReference reference, EReference referenceToSet, Serializable instanceId) {
         delegatee.unsetReferenceOfNavigationInstanceAt(id, reference, referenceToSet, instanceId);
     }
 
-    public void addAllReferencesOfNavigationInstanceAt(ID id, EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void addAllReferencesOfNavigationInstanceAt(Serializable id, EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         delegatee.addAllReferencesOfNavigationInstanceAt(id, reference, referenceToSet, instanceId, referencedIds);
     }
 
-    public void removeAllReferencesOfNavigationInstanceAt(ID id, EReference reference, EReference referenceToSet, ID instanceId, Collection<ID> referencedIds) {
+    public void removeAllReferencesOfNavigationInstanceAt(Serializable id, EReference reference, EReference referenceToSet, Serializable instanceId, Collection<Serializable> referencedIds) {
         delegatee.removeAllReferencesOfNavigationInstanceAt(id, reference, referenceToSet, instanceId, referencedIds);
     }
 
@@ -326,7 +327,7 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
             final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
             if (managedActorType.isPresent()) {
                 for (Payload payload : payloads) {
-                    ID identifier = payload.getAs(identifierProvider.getType(), identifierProvider.getName());
+                    Serializable identifier = payload.getAs(identifierProvider.getType(), identifierProvider.getName());
                     Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, identifier);
                     checkArgument(loadedUser.isPresent(), "No user found to update");
                     final Optional<String> username = managedActorType.map(actorType -> userManager.getUsername(clazz, loadedUser.get()).orElse(null));
@@ -337,15 +338,15 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
         }
     }
 
-    private Map<ID, String> getUsers(EClass clazz, Iterable<?> payloads, boolean isIdentifier) {
-        Map<ID, String> userNameById = new HashMap<>();
+    private Map<Serializable, String> getUsers(EClass clazz, Iterable<?> payloads, boolean isIdentifier) {
+        Map<Serializable, String> userNameById = new HashMap<>();
         if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
             final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
             if (managedActorType.isPresent()) {
                 for (Object payload : payloads) {
-                    ID identifier;
+                    Serializable identifier;
                     if (isIdentifier) {
-                        identifier = (ID) payload;
+                        identifier = (Serializable) payload;
                     } else {
                         identifier = ((Payload) payload).getAs(identifierProvider.getType(), identifierProvider.getName());
                     }
@@ -362,12 +363,12 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
         return userNameById;
     }
 
-    private void updateUsers(EClass clazz, Map<ID, String> usersToUpdate) {
+    private void updateUsers(EClass clazz, Map<Serializable, String> usersToUpdate) {
         if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
             final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
             if (managedActorType.isPresent()) {
                 usersToUpdate.entrySet().forEach(entry -> {
-                    ID identifier = entry.getKey();
+                    Serializable identifier = entry.getKey();
                     String username = entry.getValue();
                     Optional<Payload> loadedUser = delegatee.getByIdentifier(clazz, identifier);
                     checkArgument(loadedUser.isPresent(), "No user found to update");
@@ -378,7 +379,7 @@ public class UserManagedWrappedDao<ID> implements DAO<ID> {
         }
     }
 
-    private void deleteUsers(EClass clazz, Map<ID, String> usersToUpdate) {
+    private void deleteUsers(EClass clazz, Map<Serializable, String> usersToUpdate) {
         if (userManager != null && !Boolean.TRUE.equals(context.getAs(Boolean.class, ROLLBACK_KEY))) {
             final Optional<EClass> managedActorType = userManager != null ? userManager.getManagedActorOfPrincipal(clazz) : Optional.empty();
             if (managedActorType.isPresent()) {

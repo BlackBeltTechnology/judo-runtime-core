@@ -30,6 +30,7 @@ import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -39,18 +40,18 @@ import static com.google.common.collect.Sets.newHashSet;
 /**
  * Creating statement for unsetting a references. It will remove and detach all the required data.
  */
-public class RemoveReferencePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
+public class RemoveReferencePayloadDaoProcessor extends PayloadDaoProcessor {
 
-    public RemoveReferencePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> idIdentifierProvider,
-                                              QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
+    public RemoveReferencePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider idIdentifierProvider,
+                                              QueryFactory queryFactory, InstanceCollector instanceCollector) {
         super(resourceSet, idIdentifierProvider, queryFactory, instanceCollector);
     }
 
-    public Collection<Statement<ID>> removeReference(EReference reference, Collection<ID> identifiers, ID parentIdentifier, boolean existenceCheck) {
+    public Collection<Statement> removeReference(EReference reference, Collection<Serializable> identifiers, Serializable parentIdentifier, boolean existenceCheck) {
         checkArgument(reference != null, "Type is mandatory");
         checkArgument(parentIdentifier != null, "Parent identifier is mandatory");
 
-        Collection<Statement<ID>> statements = newHashSet();
+        Collection<Statement> statements = newHashSet();
 
         // If reference madatory it is not allowed
         if (reference.isRequired()) {
@@ -59,13 +60,13 @@ public class RemoveReferencePayloadDaoProcessor<ID> extends PayloadDaoProcessor<
 
         identifiers.stream().forEach(identifier -> {
             if (existenceCheck) {
-                statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                         .type(reference.getEReferenceType())
                         .identifier(identifier)
                         .build());
             }
 
-            statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+            statements.add(RemoveReferenceStatement.buildRemoveReferenceStatement()
                     .type(reference.getEReferenceType())
                     .reference(reference)
                     .identifier(parentIdentifier)

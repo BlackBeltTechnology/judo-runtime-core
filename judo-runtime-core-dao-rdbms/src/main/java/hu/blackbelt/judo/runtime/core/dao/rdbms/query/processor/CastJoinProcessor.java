@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 @Builder
 @Slf4j
-public class CastJoinProcessor<ID> {
+public class CastJoinProcessor {
 
     @NonNull
     private final RdbmsResolver rdbmsResolver;
@@ -56,7 +56,7 @@ public class CastJoinProcessor<ID> {
             log.trace(builderContext.toString());
         }
 
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         EClass castTargetType = join.getType();
         Set<EClass> typeSet = new HashSet<>(castTargetType.getEAllSuperTypes());
@@ -96,7 +96,7 @@ public class CastJoinProcessor<ID> {
                     onConditions = joinFilters.stream()
                             .map(f -> RdbmsFunction.builder()
                                     .pattern("EXISTS ({0})")
-                                    .parameter(RdbmsNavigationFilter.<ID>builder()
+                                    .parameter(RdbmsNavigationFilter.builder()
                                             .builderContext(builderContext)
                                             .filter(f)
                                             .build())

@@ -35,6 +35,7 @@ import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -160,7 +161,7 @@ public class RdbmsResolver {
     }
 
 
-    public <ID> void logReferenceParameters(Map<EReference, ID> referenceMap) {
+    public void logReferenceParameters(Map<EReference, Serializable> referenceMap) {
         if (log.isDebugEnabled()) {
             referenceMap.entrySet().stream().forEach(e -> {
                 log.debug("    Ref: " +

@@ -49,11 +49,11 @@ import java.util.stream.Collectors;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.*;
 
 @Slf4j
-public class DefaultActorResolver<ID> implements ActorResolver {
+public class DefaultActorResolver implements ActorResolver {
 
     DataTypeManager dataTypeManager;
 
-    DAO<ID> dao;
+    DAO dao;
 
     AsmModel asmModel;
 
@@ -67,7 +67,7 @@ public class DefaultActorResolver<ID> implements ActorResolver {
     @Builder
     public DefaultActorResolver(
             @NonNull DataTypeManager dataTypeManager,
-            @NonNull DAO<ID> dao,
+            @NonNull DAO dao,
             @NonNull AsmModel asmModel,
             AuthenticationInterceptorProvider authenticationInterceptorProvider,
             Boolean checkMappedActors) {
@@ -187,7 +187,7 @@ public class DefaultActorResolver<ID> implements ActorResolver {
         } else {
             filter = null;
         }
-        final List<Payload> queryResult = dao.search(actorType, DAO.QueryCustomizer.<ID>builder()
+        final List<Payload> queryResult = dao.search(actorType, DAO.QueryCustomizer.builder()
                 .filter(filter)
                 .seek(DAO.Seek.builder()
                         .limit(1)

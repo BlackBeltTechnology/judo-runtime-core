@@ -45,6 +45,7 @@ import org.jose4j.keys.EllipticCurves;
 import org.jose4j.keys.HmacKey;
 import org.jose4j.lang.JoseException;
 
+import java.io.Serializable;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -58,7 +59,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 @RequiredArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
+public class DefaultIdentifierSigner implements IdentifierSigner {
 
     private static final String ENTITY_CLAIM = "entity";
     private static final String ENTITY_VERSION = "ver";
@@ -75,7 +76,7 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
 
     @NonNull
     @Setter
-    IdentifierProvider<ID> identifierProvider;
+    IdentifierProvider identifierProvider;
 
     @NonNull
     @Setter
@@ -182,7 +183,7 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
             configureKeys();
         }
         if (typedElement.getEType() instanceof EClass) {
-            final ID id = (ID) payload.get(identifierProvider.getName());
+            final Serializable id = (Serializable) payload.get(identifierProvider.getName());
             final String entityType = (String) payload.get(Dispatcher.ENTITY_TYPE_MAP_KEY);
             final Integer version = (Integer) payload.get(VERSION_KEY);
             if (asmUtils.isMappedTransferObjectType((EClass) typedElement.getEType()) && id != null) {
@@ -248,7 +249,7 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
                     checkArgument(Objects.equals(payload.get(VERSION_KEY), signedIdentifier.getVersion()));
                 }
             } else {
-                final ID id = dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType());
+                final Serializable id = dataTypeManager.getCoercer().coerce(signedIdentifier.getIdentifier(), identifierProvider.getType());
                 payload.put(identifierProvider.getName(), id);
                 payload.put(Dispatcher.ENTITY_TYPE_MAP_KEY, signedIdentifier.getEntityType());
                 if (signedIdentifier.getVersion() != null) {
@@ -290,7 +291,7 @@ public class DefaultIdentifierSigner<ID> implements IdentifierSigner {
                 (accessedClassOverride != null && signerClass.getEAllSuperTypes().contains(accessedClassOverride));
     }
 
-    private String sign(final ETypedElement typedElement, final ID id, final String entityType, final Integer version, final Boolean immutable) {
+    private String sign(final ETypedElement typedElement, final Serializable id, final String entityType, final Integer version, final Boolean immutable) {
         final String idAsString = dataTypeManager.getCoercer().coerce(id, String.class);
 
         final JwtClaims claims = new JwtClaims();

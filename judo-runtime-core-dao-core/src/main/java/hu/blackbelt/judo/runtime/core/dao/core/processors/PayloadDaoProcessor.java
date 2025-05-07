@@ -51,7 +51,7 @@ import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 
 @NoArgsConstructor
-public class PayloadDaoProcessor<ID> {
+public class PayloadDaoProcessor {
 
     public static final int MEASURE_CONVERTING_SCALE = 20;
     public static final String REFERENCE_ID = "__referenceId";
@@ -65,7 +65,7 @@ public class PayloadDaoProcessor<ID> {
     @NonNull
     @Getter
     @Setter
-    private IdentifierProvider<ID> identifierProvider;
+    private IdentifierProvider identifierProvider;
 
     @NonNull
     @Getter
@@ -75,7 +75,7 @@ public class PayloadDaoProcessor<ID> {
     @NonNull
     @Getter
     @Setter
-    private InstanceCollector<ID> instanceCollector;
+    private InstanceCollector instanceCollector;
 
     @Getter
     private AsmUtils asmUtils;
@@ -90,9 +90,9 @@ public class PayloadDaoProcessor<ID> {
 
     @Builder
     public PayloadDaoProcessor(@NonNull ResourceSet resourceSet,
-                               @NonNull IdentifierProvider<ID> identifierProvider,
+                               @NonNull IdentifierProvider identifierProvider,
                                @NonNull QueryFactory queryFactory,
-                               @NonNull InstanceCollector<ID> instanceCollector) {
+                               @NonNull InstanceCollector instanceCollector) {
         this.resourceSet = resourceSet;
         this.identifierProvider = identifierProvider;
         this.queryFactory = queryFactory;

@@ -38,6 +38,7 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -56,39 +57,39 @@ import static java.util.stream.Collectors.*;
  * The entities have be transfer objects which are mapped to other entities via aliases.
  */
 @Slf4j(topic = "dao-core")
-public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
-    InsertPayloadDaoProcessor<ID> insertPayloadDaoProcessor;
-    DeletePayloadDaoProcessor<ID> deletePayloadDaoProcessor;
-    AddReferencePayloadDaoProcessor<ID> addReferencePayloadDaoProcessor;
-    RemoveReferencePayloadDaoProcessor<ID> removeReferencePayloadDaoProcessor;
+public class UpdatePayloadDaoProcessor extends PayloadDaoProcessor {
+    InsertPayloadDaoProcessor insertPayloadDaoProcessor;
+    DeletePayloadDaoProcessor deletePayloadDaoProcessor;
+    AddReferencePayloadDaoProcessor addReferencePayloadDaoProcessor;
+    RemoveReferencePayloadDaoProcessor removeReferencePayloadDaoProcessor;
 
-    Metadata<ID> metadata;
+    Metadata metadata;
 
     private final boolean optimisticLockEnabled;
 
-    public UpdatePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
-                                     QueryFactory queryFactory, InstanceCollector<ID> instanceCollector,
+    public UpdatePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider identifierProvider,
+                                     QueryFactory queryFactory, InstanceCollector instanceCollector,
                                      BiConsumer<EClass, Payload> defaultValuesApplier,
-                                     Metadata<ID> metadata,
+                                     Metadata metadata,
                                      boolean optimisticLockEnabled) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
         this.metadata = metadata;
         this.optimisticLockEnabled = optimisticLockEnabled;
-        insertPayloadDaoProcessor = new InsertPayloadDaoProcessor<ID>(resourceSet, identifierProvider,
+        insertPayloadDaoProcessor = new InsertPayloadDaoProcessor(resourceSet, identifierProvider,
                 queryFactory, instanceCollector, defaultValuesApplier, metadata);
-        deletePayloadDaoProcessor = new DeletePayloadDaoProcessor<ID>(resourceSet, identifierProvider,
+        deletePayloadDaoProcessor = new DeletePayloadDaoProcessor(resourceSet, identifierProvider,
                 queryFactory, instanceCollector);
-        addReferencePayloadDaoProcessor = new AddReferencePayloadDaoProcessor<ID>(resourceSet, identifierProvider,
+        addReferencePayloadDaoProcessor = new AddReferencePayloadDaoProcessor(resourceSet, identifierProvider,
                 queryFactory, instanceCollector);
-        removeReferencePayloadDaoProcessor = new RemoveReferencePayloadDaoProcessor<ID>(resourceSet, identifierProvider,
+        removeReferencePayloadDaoProcessor = new RemoveReferencePayloadDaoProcessor(resourceSet, identifierProvider,
                 queryFactory, instanceCollector);
     }
 
-    public Collection<Statement<ID>> update(EClass type,
+    public Collection<Statement> update(EClass type,
                                             Payload originalPayload,
                                             Payload updatedPayload,
                                             boolean checkMandatoryFeatures) {
-        Collection<Statement<ID>> allStatements = newHashSet();
+        Collection<Statement> allStatements = newHashSet();
 
         update(type, originalPayload, updatedPayload, null, allStatements, checkMandatoryFeatures);
         return allStatements;
@@ -97,7 +98,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
     void update(EClass transferObjectType,
                                          Payload originalPayload,
                                          Payload updatePayload,
-                                         EReference container, Collection<Statement<ID>> statements,
+                                         EReference container, Collection<Statement> statements,
                                          boolean checkMandatoryFeatures) {
 
         checkArgument(transferObjectType != null, "Type is mandatory");
@@ -106,27 +107,25 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         checkArgument(getAsmUtils().isMappedTransferObjectType(transferObjectType), "Type have to be mapped transfer object");
 
-        @SuppressWarnings("unchecked")
-        ID originalIdentifier = (ID) originalPayload.get(getIdentifierProvider().getName());
-        @SuppressWarnings("unchecked")
-        ID updatedIdentifier = (ID) updatePayload.get(getIdentifierProvider().getName());
+        Serializable originalIdentifier = (Serializable) originalPayload.get(getIdentifierProvider().getName());
+        Serializable updatedIdentifier = (Serializable) updatePayload.get(getIdentifierProvider().getName());
 
         checkArgument(originalIdentifier.equals(updatedIdentifier), "The original identifier does not match with the original");
 
         EClass entityType = getAsmUtils().getMappedEntityType(transferObjectType).get();
 
-        InstanceGraph<ID> instanceGraph = getInstanceCollector().collectGraph(entityType, updatedIdentifier);
+        InstanceGraph instanceGraph = getInstanceCollector().collectGraph(entityType, updatedIdentifier);
 
         // The elements have to be processed
         collectStatements(transferObjectType, instanceGraph, originalPayload, updatePayload, statements, null, null, checkMandatoryFeatures);
     }
 
     void collectStatements(EClass transferObjectType,
-                                            InstanceGraph<ID> instanceGraph,
+                                            InstanceGraph instanceGraph,
                                             Payload originalPayload,
                                             Payload updatePayload,
-                                            Collection<Statement<ID>> statements,
-                                            InstanceGraph<ID> containerInstanceGraph,
+                                            Collection<Statement> statements,
+                                            InstanceGraph containerInstanceGraph,
                                             EReference container,
                                             boolean checkMandatoryFeatures) {
         EClass entityType;
@@ -139,8 +138,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             log.warn("Entity type is not found in payload");
             entityType = getAsmUtils().getMappedEntityType(transferObjectType).get();
         }
-        @SuppressWarnings("unchecked")
-        ID identifier = (ID) originalPayload.get(getIdentifierProvider().getName());
+        Serializable identifier = (Serializable) originalPayload.get(getIdentifierProvider().getName());
         checkArgument(identifier != null, "Identifier is mandatory: " + originalPayload.toString());
 
         final Integer originalVersion = originalPayload.getAs(Integer.class, VERSION);
@@ -151,8 +149,8 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             }
         }
 
-        UpdateStatement.UpdateStatementBuilder<ID> currentStatementBuilder =
-                UpdateStatement.<ID>buildUpdateStatement()
+        UpdateStatement.UpdateStatementBuilder currentStatementBuilder =
+                UpdateStatement.buildUpdateStatement()
                         .identifier(identifier)
                         .version(optimisticLockEnabled ? originalVersion : null)
                         .userId(metadata.getUserId())
@@ -195,7 +193,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                 )
                 .collect(HashMap::new, (m, v)->m.put(v.getKey(), v.getValue()), HashMap::putAll));
 
-        UpdateStatement<ID> currentStatement = currentStatementBuilder.build();
+        UpdateStatement currentStatement = currentStatementBuilder.build();
 
         // Add attributes (mapped name of attribute resolved here)
         attributes.stream()
@@ -217,7 +215,7 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         );
 
         if (currentStatement.getInstance().getAttributes().size() > 0) {
-            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+            statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                     .type(entityType)
                     .identifier(identifier)
                     .build());
@@ -345,10 +343,10 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
     @SuppressWarnings("unchecked")
     private void mergePayloads(final EReference mappedReference,
-                                                    final InstanceGraph<ID> parentInstanceGraph,
+                                                    final InstanceGraph parentInstanceGraph,
                                                     final Payload originalPayload,
                                                     final Payload updatePayload,
-                                                    final Collection<Statement<ID>> statements,
+                                                    final Collection<Statement> statements,
                                                     final boolean checkMandatoryFeatures) {
 
         checkArgument(getAsmUtils().getMappedReference(mappedReference).isPresent(),
@@ -358,18 +356,18 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         boolean isContainment = entityReference.isContainment();
         boolean isEmbedded = getAsmUtils().isEmbedded(mappedReference);
-        InstanceGraph<ID> instanceGraph = null;
+        InstanceGraph instanceGraph = null;
 
-        final ID originalIdentifier;
+        final Serializable originalIdentifier;
         if (originalPayload != null) {
-            originalIdentifier = (ID) originalPayload.get(getIdentifierProvider().getName());
+            originalIdentifier = (Serializable) originalPayload.get(getIdentifierProvider().getName());
         } else {
             originalIdentifier = null;
         }
 
-        final ID updateIdentifier;
+        final Serializable updateIdentifier;
         if (updatePayload != null) {
-            updateIdentifier = (ID) updatePayload.get(getIdentifierProvider().getName());
+            updateIdentifier = (Serializable) updatePayload.get(getIdentifierProvider().getName());
         } else {
             updateIdentifier = null;
         }
@@ -393,13 +391,13 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                         getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
 
                 // INSERT NEW INSTANCE and mandatory reference add (filter out check existence)
-                Collection<Statement<ID>> insertStatementsWithoutCheckExistence
+                Collection<Statement> insertStatementsWithoutCheckExistence
                         = insertPayloadDaoProcessor.insert(mappedReference.getEReferenceType(), updatePayload, checkMandatoryFeatures).stream()
                         .filter(s -> !(s instanceof InstanceExistsValidationStatement)).collect(toSet());
 
                 EReference insertedEntityReference = getAsmUtils().getMappedReference(mappedReference).get();
 
-                InsertStatement<ID> insertStatement = insertStatementsWithoutCheckExistence.stream()
+                InsertStatement insertStatement = insertStatementsWithoutCheckExistence.stream()
                         .filter(InsertStatement.class::isInstance)
                         .map(InsertStatement.class::cast)
                         .filter(i -> i.getInstance().getType().equals(insertedEntityReference.getEReferenceType()))
@@ -432,13 +430,13 @@ public class UpdatePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                     if (updatePayload != null && updatePayload.entrySet().size() > 0) {
 
                         // INSERT NEW INSTANCE and mandatory reference add (filter out check existence)
-                        Collection<Statement<ID>> insertStatementsWithoutCheckExistence
+                        Collection<Statement> insertStatementsWithoutCheckExistence
                                 = insertPayloadDaoProcessor.insert(mappedReference.getEReferenceType(), updatePayload, checkMandatoryFeatures).stream()
                                 .filter(s -> !(s instanceof InstanceExistsValidationStatement)).collect(toSet());
 
                         EReference insertedEntityReference = getAsmUtils().getMappedReference(mappedReference).get();
 
-                        InsertStatement<ID> insertStatement = insertStatementsWithoutCheckExistence.stream()
+                        InsertStatement insertStatement = insertStatementsWithoutCheckExistence.stream()
                                 .filter(InsertStatement.class::isInstance)
                                 .map(InsertStatement.class::cast)
                                 .filter(i -> i.getInstance().getType().equals(insertedEntityReference.getEReferenceType()))

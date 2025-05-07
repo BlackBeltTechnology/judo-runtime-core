@@ -57,7 +57,7 @@ public class JudoBaseServiceConfiguration {
     }
 
     @Bean
-    public IdentifierProvider<UUID> getIdenfiableProvider() {
+    public IdentifierProvider getIdenfiableProvider() {
         return new UUIDIdentifierProvider();
     }
 

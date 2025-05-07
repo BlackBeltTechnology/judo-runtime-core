@@ -39,6 +39,7 @@ import org.eclipse.emf.ecore.EClass;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -52,20 +53,19 @@ import static org.jooq.lambda.Unchecked.consumer;
 
 /**
  * Executing {@link CheckUniqueAttributeStatement}s.
- * @param <ID>
  */
 @Slf4j(topic = "dao-rdbms")
-class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
+class CheckUniqueAttributeStatementExecutor extends StatementExecutor {
 
     @Builder
     public CheckUniqueAttributeStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            IdentifierProvider<ID> identifierProvider) {
+            IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -78,13 +78,13 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param checkUniqueAttributeStatements
      */
     public void executeUniqueAttributeStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                                 Collection<CheckUniqueAttributeStatement<ID>> checkUniqueAttributeStatements) {
+                                                 Collection<CheckUniqueAttributeStatement> checkUniqueAttributeStatements) {
 
         // Search for duplication
-        Map<ID, CheckUniqueAttributeStatement<ID>> checkUniqueAttributeStatementsCompacted = new HashMap<ID, CheckUniqueAttributeStatement<ID>>();
+        Map<Serializable, CheckUniqueAttributeStatement> checkUniqueAttributeStatementsCompacted = new HashMap<Serializable, CheckUniqueAttributeStatement>();
 
         checkUniqueAttributeStatements.forEach(item -> {
-            ID identifier = item.getInstance().getIdentifier();
+            Serializable identifier = item.getInstance().getIdentifier();
             if (!checkUniqueAttributeStatementsCompacted.containsKey(identifier)) {
                 checkUniqueAttributeStatementsCompacted.put(identifier, item);
             } else {
@@ -125,7 +125,7 @@ class CheckUniqueAttributeStatementExecutor<ID> extends StatementExecutor<ID> {
         checkUniqueAttributeStatementsCompacted.values().forEach(consumer(checkUniqueAttributeStatement -> {
 
                     EClass entity = checkUniqueAttributeStatement.getInstance().getType();
-                    ID identifier = checkUniqueAttributeStatement.getInstance().getIdentifier();
+                    Serializable identifier = checkUniqueAttributeStatement.getInstance().getIdentifier();
 
                     // Collect columns
                     Map<EAttribute, Object> attributeMap = checkUniqueAttributeStatement.getInstance().getAttributes().stream()

@@ -40,11 +40,11 @@ import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
-public class AttributeMapper<ID> extends RdbmsMapper<Attribute> {
+public class AttributeMapper extends RdbmsMapper<Attribute> {
 
     @Override
     public Stream<RdbmsColumn> map(final Attribute attribute, RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
         final Map<Node, List<EClass>> ancestors = builderContext.getAncestors();
 
         final EClass sourceType = attribute.getNode().getType();

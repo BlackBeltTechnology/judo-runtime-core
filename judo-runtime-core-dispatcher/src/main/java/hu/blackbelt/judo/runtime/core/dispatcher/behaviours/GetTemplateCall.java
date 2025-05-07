@@ -31,11 +31,11 @@ import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EOperation;
 
-public class GetTemplateCall<ID> implements BehaviourCall<ID> {
+public class GetTemplateCall implements BehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
+    final ServiceContext serviceContext;
 
-    public GetTemplateCall(ServiceContext<ID> serviceContext) {
+    public GetTemplateCall(ServiceContext serviceContext) {
         this.serviceContext = serviceContext;
     }
 

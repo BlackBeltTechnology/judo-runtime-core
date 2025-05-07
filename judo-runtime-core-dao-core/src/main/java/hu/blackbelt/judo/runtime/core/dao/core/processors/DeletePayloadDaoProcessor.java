@@ -38,6 +38,7 @@ import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
+import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -59,15 +60,15 @@ import static java.util.stream.Collectors.toSet;
  * The API traverse the instances graph with the structural graph which will collects all the statements.
  */
 @Slf4j(topic = "dao-core")
-public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
+public class DeletePayloadDaoProcessor extends PayloadDaoProcessor {
 
-    public DeletePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider<ID> identifierProvider,
-                                     QueryFactory queryFactory, InstanceCollector<ID> instanceCollector) {
+    public DeletePayloadDaoProcessor(ResourceSet resourceSet, IdentifierProvider identifierProvider,
+                                     QueryFactory queryFactory, InstanceCollector instanceCollector) {
         super(resourceSet, identifierProvider, queryFactory, instanceCollector);
     }
 
-    public Collection<Statement<ID>> delete(EClass mappedTransferObjectType,
-                                            Collection<ID> ids) {
+    public Collection<Statement> delete(EClass mappedTransferObjectType,
+                                            Collection<Serializable> ids) {
 
         checkArgument(mappedTransferObjectType != null, "Type is mandatory");
         checkArgument(ids != null, "ID list is mandatory");
@@ -80,20 +81,20 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
 
         EClass entityType = mappedEntity.get();
 
-        Collection<Statement<ID>> statements = Sets.newHashSet();
+        Collection<Statement> statements = Sets.newHashSet();
 
-        Map<ID, InstanceGraph<ID>> instanceGraphMap = getInstanceCollector().collectGraph(entityType, ids);
+        Map<Serializable, InstanceGraph> instanceGraphMap = getInstanceCollector().collectGraph(entityType, ids);
 
         // Just for check all of the given ID's existence are checked
         statements.addAll(ids.stream().map(
-                id -> InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+                id -> InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                         .identifier(id)
                         .type(entityType)
                         .build())
                 .collect(toSet()));
 
         // All of returned instancegraph elements have to be processed
-        for (InstanceGraph<ID> e:  instanceGraphMap.values()) {
+        for (InstanceGraph e:  instanceGraphMap.values()) {
             // Collect contained elements
             collectStatements(entityType, e, statements, null, null);
         }
@@ -102,24 +103,24 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
     }
 
     void collectStatements(EClass entityType,
-                         InstanceGraph<ID> instanceGraph,
-                         Collection<Statement<ID>> statements,
-                         InstanceGraph<ID> containerInstanceGraph,
+                         InstanceGraph instanceGraph,
+                         Collection<Statement> statements,
+                         InstanceGraph containerInstanceGraph,
                          EReference container) {
 
         statementCollector(entityType, instanceGraph, statements, containerInstanceGraph, container);
-        Collection<InstanceValue<ID>> visited = Sets.newHashSet();
-        checkMandatoryBackReferences(entityType, instanceGraph, statements.stream().filter(s -> s instanceof DeleteStatement<ID>).collect(toSet()), container, visited);
+        Collection<InstanceValue> visited = Sets.newHashSet();
+        checkMandatoryBackReferences(entityType, instanceGraph, statements.stream().filter(s -> s instanceof DeleteStatement).collect(toSet()), container, visited);
     }
 
 
     private void statementCollector(EClass entityType,
-                         InstanceGraph<ID> instanceGraph,
-                         Collection<Statement<ID>> statements,
-                         InstanceGraph<ID> containerInstanceGraph,
+                         InstanceGraph instanceGraph,
+                         Collection<Statement> statements,
+                         InstanceGraph containerInstanceGraph,
                          EReference container) {
         // Add current instance graph element as DeleteStatement
-        InstanceValue<ID> instanceValue = (InstanceValue<ID>) InstanceValue.<ID>buildInstanceValue()
+        InstanceValue instanceValue = (InstanceValue) InstanceValue.buildInstanceValue()
                 .type(entityType)
                 .identifier(instanceGraph.getId())
                 .build();
@@ -128,19 +129,19 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             log.debug("Circular delete found, stop collecting statements");
             return;
         }
-        statements.add(new DeleteStatement<ID>(instanceValue));
+        statements.add(new DeleteStatement(instanceValue));
         if (container != null) {
-            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+            statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                     .type(container.getEContainingClass())
                     .identifier(containerInstanceGraph.getId())
                     .build());
 
-            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+            statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                     .type(entityType)
                     .identifier(instanceGraph.getId())
                     .build());
 
-            statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+            statements.add(RemoveReferenceStatement.buildRemoveReferenceStatement()
                     .reference(container)
                     .identifier(containerInstanceGraph.getId())
                     .type(entityType)
@@ -157,21 +158,21 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         // All references have to remove before deleting. It will contain the containment references too.
-        for (InstanceReference<ID> ref :  instanceGraph.getReferences().stream()
+        for (InstanceReference ref :  instanceGraph.getReferences().stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
                 .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite())).toList()) {
 
-            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+            statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                     .type(ref.getReference().getEContainingClass())
                     .identifier(instanceGraph.getId())
                     .build());
 
-            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+            statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                     .type(ref.getReference().getEReferenceType())
                     .identifier(ref.getReferencedElement().getId())
                     .build());
 
-            statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+            statements.add(RemoveReferenceStatement.buildRemoveReferenceStatement()
                     .type(ref.getReference().getEContainingClass())
                     .reference(ref.getReference())
                     .referenceIdentifier(ref.getReferencedElement().getId())
@@ -188,16 +189,16 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         // All back references to remove before deleting. It will contain the containment references too.
-        for (InstanceReference<ID> ref : instanceGraph.getBackReferences().stream()
+        for (InstanceReference ref : instanceGraph.getBackReferences().stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
                 .filter(r -> r.getReference().getEOpposite() == null).toList()) {
 
-            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+            statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                     .type(ref.getReference().getEContainingClass())
                     .identifier(ref.getReferencedElement().getId())
                     .build());
 
-            statements.add(InstanceExistsValidationStatement.<ID>buildInstanceExistsValidationStatement()
+            statements.add(InstanceExistsValidationStatement.buildInstanceExistsValidationStatement()
                     .type(ref.getReference().getEReferenceType())
                     .identifier(instanceGraph.getId())
                     .build());
@@ -209,7 +210,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
                         null,
                         null);
             } else {
-                statements.add(RemoveReferenceStatement.<ID>buildRemoveReferenceStatement()
+                statements.add(RemoveReferenceStatement.buildRemoveReferenceStatement()
                         .type(ref.getReference().getEContainingClass())
                         .reference(ref.getReference())
                         .referenceIdentifier(instanceGraph.getId())
@@ -219,19 +220,19 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         // Make delete for all containment
-        for (InstanceReference<ID> containment : instanceGraph.getContainments()) {
-            InstanceGraph<ID> containedGraph = containment.getReferencedElement();
+        for (InstanceReference containment : instanceGraph.getContainments()) {
+            InstanceGraph containedGraph = containment.getReferencedElement();
             statementCollector(containment.getReference().getEReferenceType(), containedGraph, statements, instanceGraph, containment.getReference());
         }
     }
 
     private void checkMandatoryBackReferences(EClass entityType,
-                         InstanceGraph<ID> instanceGraph,
-                         Collection<Statement<ID>> statements,
+                         InstanceGraph instanceGraph,
+                         Collection<Statement> statements,
                          EReference container,
-                         Collection<InstanceValue<ID>> visited) {
+                         Collection<InstanceValue> visited) {
 
-        InstanceValue<ID> instanceValue = InstanceValue.<ID>buildInstanceValue()
+        InstanceValue instanceValue = InstanceValue.buildInstanceValue()
                 .type(entityType)
                 .identifier(instanceGraph.getId())
                 .build();
@@ -243,7 +244,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         visited.add(instanceValue);
 
         // Check if there is any Remove Reference related to mandatory relation
-        Collection<InstanceReference<ID>> mandatoryReferencesToRemove = instanceGraph.getBackReferences().stream()
+        Collection<InstanceReference> mandatoryReferencesToRemove = instanceGraph.getBackReferences().stream()
                 .filter(r -> r.getReference().getLowerBound() > 0 && !AsmUtils.annotatedAsTrue(r.getReference(), "reverseCascadeDelete")).collect(Collectors.toSet());
         checkState(mandatoryReferencesToRemove.stream()
                         .noneMatch(r -> statements.stream().noneMatch(s -> s instanceof DeleteStatement && Objects.equals(s.getInstance().getIdentifier(), r.getReferencedElement().getId()))),
@@ -262,7 +263,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             }
         }
 
-        for (InstanceReference<ID> ref : instanceGraph.getReferences()
+        for (InstanceReference ref : instanceGraph.getReferences()
                 .stream()
                 .filter(r -> !processedReferences.contains(r.getReference()))
                 .filter(r -> r.getReference().getEOpposite() == null || !processedReferences.contains(r.getReference().getEOpposite()))
@@ -276,7 +277,7 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
             }
         }
 
-        for (InstanceReference<ID> ref : instanceGraph.getBackReferences().stream().filter(r -> !processedReferences.contains(r.getReference())).filter(r -> r.getReference().getEOpposite() == null).toList()) {
+        for (InstanceReference ref : instanceGraph.getBackReferences().stream().filter(r -> !processedReferences.contains(r.getReference())).filter(r -> r.getReference().getEOpposite() == null).toList()) {
             if (AsmUtils.annotatedAsTrue(ref.getReference(), "reverseCascadeDelete")) {
                 checkMandatoryBackReferences(ref.getReference().getEContainingClass(),
                         getInstanceCollector().collectGraph(ref.getReference().getEContainingClass(), ref.getReferencedElement().getId()),
@@ -287,8 +288,8 @@ public class DeletePayloadDaoProcessor<ID> extends PayloadDaoProcessor<ID> {
         }
 
         // Check containments
-        for (InstanceReference<ID> containment : instanceGraph.getContainments()) {
-            InstanceGraph<ID> containedGraph = containment.getReferencedElement();
+        for (InstanceReference containment : instanceGraph.getContainments()) {
+            InstanceGraph containedGraph = containment.getReferencedElement();
             checkMandatoryBackReferences(containment.getReference().getEReferenceType(), containedGraph, statements, containment.getReference(),visited);
         }
 

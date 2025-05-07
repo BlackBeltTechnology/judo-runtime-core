@@ -36,9 +36,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public class GetMetadataCall<ID> implements BehaviourCall<ID> {
+public class GetMetadataCall implements BehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
+    final ServiceContext serviceContext;
     final Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider;
     private static final String SECURITY_KEY = "security";
     private static final String ISSUER = "issuer";
@@ -46,7 +46,7 @@ public class GetMetadataCall<ID> implements BehaviourCall<ID> {
     private static final String TOKEN_ENDPOINT = "token_endpoint";
     private static final String LOGOUT_ENDPOINT = "end_session_endpoint";
 
-    public GetMetadataCall(ServiceContext<ID> serviceContext, Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider) {
+    public GetMetadataCall(ServiceContext serviceContext, Supplier<OpenIdConfigurationProvider> openIdConfigurationProvider) {
         this.serviceContext = serviceContext;
         this.openIdConfigurationProvider = openIdConfigurationProvider;
     }

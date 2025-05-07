@@ -29,11 +29,11 @@ import lombok.NonNull;
 
 import java.util.List;
 
-public class HsqldbFunctionMapper<ID> extends FunctionMapper<ID> {
+public class HsqldbFunctionMapper extends FunctionMapper {
 
     @SuppressWarnings("unchecked")
     @Builder
-    public HsqldbFunctionMapper(@NonNull RdbmsBuilder<ID> rdbmsBuilder) {
+    public HsqldbFunctionMapper(@NonNull RdbmsBuilder rdbmsBuilder) {
         super(rdbmsBuilder);
 
         getFunctionBuilderMap().put(FunctionSignature.LIKE, c ->

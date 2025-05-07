@@ -25,28 +25,29 @@ import lombok.Builder;
 import lombok.Getter;
 import org.eclipse.emf.ecore.EClass;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Getter
-public class UpdateStatement<ID> extends Statement<ID> {
+public class UpdateStatement extends Statement {
 
     private final Integer version;
-    private final ID userId;
+    private final Serializable userId;
     private final String userName;
     private final LocalDateTime timestamp;
 
     @Builder(builderMethodName = "buildUpdateStatement")
     public UpdateStatement(
             EClass type,
-            ID identifier,
+            Serializable identifier,
             Integer version,
-            ID userId,
+            Serializable userId,
             String username,
             LocalDateTime timestamp
     ) {
 
         super(InstanceValue
-                        .<ID>buildInstanceValue()
+                        .buildInstanceValue()
                             .type(type)
                             .identifier(identifier)
                             .build());

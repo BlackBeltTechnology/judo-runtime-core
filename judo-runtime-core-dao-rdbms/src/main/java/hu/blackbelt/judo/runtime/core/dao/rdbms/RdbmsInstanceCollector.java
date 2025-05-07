@@ -42,6 +42,7 @@ import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.util.EcoreUtil;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.text.MessageFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,15 +58,15 @@ import static hu.blackbelt.judo.meta.rdbms.support.RdbmsModelResourceSupport.rdb
 
 
 @Slf4j
-public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
+public class RdbmsInstanceCollector implements InstanceCollector {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final AsmUtils asmUtils;
     private final RdbmsResolver rdbmsResolver;
     private final RdbmsModel rdbmsModel;
     private final Coercer coercer;
-    private final IdentifierProvider<ID> identifierProvider;
-    private RdbmsParameterMapper<ID> rdbmsParameterMapper;
+    private final IdentifierProvider identifierProvider;
+    private RdbmsParameterMapper rdbmsParameterMapper;
 
     private final AtomicReference<RdbmsModelResourceSupport> rdbmsSupport = new AtomicReference<>(null);
 
@@ -84,8 +85,8 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper) {
+            @NonNull IdentifierProvider identifierProvider,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.rdbmsResolver = rdbmsResolver;
@@ -123,28 +124,28 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
     }
 
     @Override
-    public Map<ID, InstanceGraph<ID>> collectGraph(final EClass entityType, final Collection<ID> ids) {
+    public Map<Serializable, InstanceGraph> collectGraph(final EClass entityType, final Collection<Serializable> ids) {
         createSelects();
 
         return collectInstances(selectsByEntityType.get(entityType), ids, rdbmsParameterMapper);
     }
 
     @Override
-    public InstanceGraph<ID> collectGraph(final EClass entityType, final ID id) {
-        Map<ID, InstanceGraph<ID>> graphs = collectGraph(entityType, ImmutableSet.of(id));
+    public InstanceGraph collectGraph(final EClass entityType, final Serializable id) {
+        Map<Serializable, InstanceGraph> graphs = collectGraph(entityType, (Collection<Serializable>) ImmutableSet.of(id));
         checkArgument(graphs.containsKey(id), "Graph could not find " +
                 getClassifierFQName(entityType) + " with ID " + id);
         return graphs.get(id);
     }
 
 
-    private Map<List<EReference>, Map<ID, InstanceGraph<ID>>> processResults(final RdbmsSelect select,
+    private Map<List<EReference>, Map<Serializable, InstanceGraph>> processResults(final RdbmsSelect select,
                                                                              final List<Map<String, Object>> result,
-                                                                             final Map<ID, InstanceGraph<ID>> baseGraphs,
+                                                                             final Map<Serializable, InstanceGraph> baseGraphs,
                                                                              final Optional<String> parentIdName,
                                                                              final List<EReference> referenceChain,
                                                                              final ReferenceType referenceType) {
-        final Map<List<EReference>, Map<ID, InstanceGraph<ID>>> containmentIds = new HashMap<>();
+        final Map<List<EReference>, Map<Serializable, InstanceGraph>> containmentIds = new HashMap<>();
         containmentIds.put(referenceChain, new HashMap<>());
 
         if (!result.isEmpty() && log.isTraceEnabled()) {
@@ -155,25 +156,25 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             if (log.isTraceEnabled()) {
                 log.trace("  - record: {}", record);
             }
-            final Optional<ID> parentId = parentIdName.map(name -> coercer.coerce(record.get(name), identifierProvider.getType()));
-            final ID id = coercer.coerce(record.get(select.getAlias() + "_ID"), identifierProvider.getType());
+            final Optional<Serializable> parentId = parentIdName.map(name -> coercer.coerce(record.get(name), identifierProvider.getType()));
+            final Serializable id = coercer.coerce(record.get(select.getAlias() + "_ID"), identifierProvider.getType());
 
             if (log.isTraceEnabled()) {
                 log.trace("    - ID: {}, parent ID: {}", id, parentId);
             }
 
-            final InstanceGraph<ID> graphOfRecord = InstanceGraph.<ID>builder().id(id).build();
-            final Map<ID, InstanceGraph<ID>> graphs = new ConcurrentHashMap<>();
+            final InstanceGraph graphOfRecord = InstanceGraph.builder().id(id).build();
+            final Map<Serializable, InstanceGraph> graphs = new ConcurrentHashMap<>();
             graphs.put(id, graphOfRecord);
 
             if (parentId.isPresent()) {
                 containmentIds.get(referenceChain).put(id, graphOfRecord);
-                final InstanceReference<ID> instanceReference = InstanceReference.<ID>builder()
+                final InstanceReference instanceReference = InstanceReference.builder()
                         .reference(referenceChain.get(referenceChain.size() - 1))
                         .referencedElement(graphOfRecord)
                         .build();
 
-                final InstanceGraph<ID> container = baseGraphs.get(parentId.get());
+                final InstanceGraph container = baseGraphs.get(parentId.get());
                 if (container != null) {
                     switch (referenceType) {
                         case CONTAINMENT:
@@ -213,20 +214,20 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                 }
 
                 final Object joinedIdObject = record.get(join.getAlias() + "_ID");
-                final ID joinedId = joinedIdObject != null ? coercer.coerce(joinedIdObject, identifierProvider.getType()) : null;
+                final Serializable joinedId = joinedIdObject != null ? coercer.coerce(joinedIdObject, identifierProvider.getType()) : null;
 
                 final Object joinedPartnerIdObject = record.get(join.getPartner().getAlias() + "_ID");
-                final ID joinedPartnerId = joinedPartnerIdObject != null ? coercer.coerce(joinedPartnerIdObject, identifierProvider.getType()) : null;
+                final Serializable joinedPartnerId = joinedPartnerIdObject != null ? coercer.coerce(joinedPartnerIdObject, identifierProvider.getType()) : null;
 
                 if (log.isTraceEnabled()) {
                     log.trace("      - joined ID: {} (partner ID: {}), reference name: {}, type: {}", new Object[]{joinedId, joinedPartnerId, join.getReference() != null ? AsmUtils.getReferenceFQName(join.getReference()) : "-", join.getReferenceType()});
                 }
 
                 if (joinedId != null && join.getReference() != null) {
-                    final InstanceGraph<ID> joinedGraph = InstanceGraph.<ID>builder().id(joinedId).build();
+                    final InstanceGraph joinedGraph = InstanceGraph.builder().id(joinedId).build();
                     graphs.put(joinedId, joinedGraph);
 
-                    final InstanceReference<ID> instanceReference = InstanceReference.<ID>builder()
+                    final InstanceReference instanceReference = InstanceReference.builder()
                             .reference(join.getReference())
                             .referencedElement(joinedGraph)
                             .build();
@@ -259,15 +260,15 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         return containmentIds;
     }
 
-    private Map<ID, InstanceGraph<ID>> collectInstances(final RdbmsSelect select, final Collection<ID> ids, final RdbmsParameterMapper<ID> parameterMapper) {
-        final Map<ID, InstanceGraph<ID>> graphs = new HashMap<>();
+    private Map<Serializable, InstanceGraph> collectInstances(final RdbmsSelect select, final Collection<Serializable> ids, final RdbmsParameterMapper parameterMapper) {
+        final Map<Serializable, InstanceGraph> graphs = new HashMap<>();
 
         final String sql = select.toSql();
         if (log.isDebugEnabled()) {
             log.debug("SQL:\n{}", sql);
         }
 
-        final Map<List<EReference>, Map<ID, InstanceGraph<ID>>> selectContainments;
+        final Map<List<EReference>, Map<Serializable, InstanceGraph>> selectContainments;
         if (ids != null && !ids.isEmpty()) {
             final List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, Collections.singletonMap(IDS, ids.stream().map(id -> coercer.coerce(id, parameterMapper.getIdClassName())).collect(Collectors.toList())));
 
@@ -287,7 +288,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
         for (RdbmsJoin join : containments) {
             for (RdbmsSubSelect subSelect : join.getSubSelects()) {
-                final Map<ID, InstanceGraph<ID>> joinedGraphs = selectContainments.get(join.getAllReferences());
+                final Map<Serializable, InstanceGraph> joinedGraphs = selectContainments.get(join.getAllReferences());
                 if (joinedGraphs != null && !joinedGraphs.isEmpty()) {
                     collectSubSelectInstances(subSelect, joinedGraphs, join.getAllReferences(), parameterMapper);
                 }
@@ -296,7 +297,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
         return graphs;
     }
 
-    private void collectSubSelectInstances(final RdbmsSubSelect subSelect, final Map<ID, InstanceGraph<ID>> graphs, final List<EReference> prevReferenceChain, final RdbmsParameterMapper<ID> parameterMapper) {
+    private void collectSubSelectInstances(final RdbmsSubSelect subSelect, final Map<Serializable, InstanceGraph> graphs, final List<EReference> prevReferenceChain, final RdbmsParameterMapper parameterMapper) {
         final List<EReference> referenceChain = new ArrayList<>();
         referenceChain.addAll(prevReferenceChain);
         referenceChain.add(subSelect.getReference());
@@ -319,7 +320,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
             log.trace("Loop detected: {} in {}", subSelect.getReference().getName(), referenceChain.stream().map(r -> r != null ? r.getName() : "null").collect(Collectors.toList()));
         }
 
-        final Map<List<EReference>, Map<ID, InstanceGraph<ID>>> subSelectContainments;
+        final Map<List<EReference>, Map<Serializable, InstanceGraph>> subSelectContainments;
         if (!graphs.keySet().isEmpty()) {
             final List<Map<String, Object>> subQueryResults = jdbcTemplate.queryForList(subSelectSql, Collections.singletonMap(IDS, graphs.keySet().stream().map(id -> coercer.coerce(id, parameterMapper.getIdClassName())).collect(Collectors.toList())));
 
@@ -336,7 +337,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
 
             List<RdbmsSubSelect> subSubSelects = subSelect.getBase().getSelect().getSubSelects().stream().collect(Collectors.toList());
             for (RdbmsSubSelect subSubSelect : subSubSelects) {
-                final Map<ID, InstanceGraph<ID>> subGraphs = subSelectContainments.entrySet().stream()
+                final Map<Serializable, InstanceGraph> subGraphs = subSelectContainments.entrySet().stream()
                         .filter(e -> !e.getValue().isEmpty())
                         .filter(e -> EcoreUtil.equals(e.getKey(), referenceChain))
                         .flatMap(e -> e.getValue().entrySet().stream())
@@ -354,7 +355,7 @@ public class RdbmsInstanceCollector<ID> implements InstanceCollector<ID> {
                     final List<EReference> nextReferenceChain = new ArrayList<>();
                     nextReferenceChain.addAll(referenceChain);
                     nextReferenceChain.addAll(join.getAllReferences());
-                    final Map<ID, InstanceGraph<ID>> joinedGraphs = subSelectContainments.entrySet().stream()
+                    final Map<Serializable, InstanceGraph> joinedGraphs = subSelectContainments.entrySet().stream()
                             .filter(e -> !e.getValue().isEmpty())
                             .filter(e -> EcoreUtil.equals(e.getKey(), nextReferenceChain))
                             .flatMap(e -> e.getValue().entrySet().stream())

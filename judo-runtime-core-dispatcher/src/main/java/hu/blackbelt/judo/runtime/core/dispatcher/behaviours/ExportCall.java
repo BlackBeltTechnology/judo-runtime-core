@@ -37,23 +37,24 @@ import lombok.Setter;
 import org.eclipse.emf.ecore.*;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
+public class ExportCall extends AlwaysRollbackTransactionalBehaviourCall {
 
     final ServiceContext serviceContext;
 
     final Export exporter;
 
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
     public ExportCall(Context context, ServiceContext serviceContext, final Export exporter) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
         this.exporter = exporter;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -69,7 +70,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
     @Override
     public Object callInRollbackTransaction(final Map<String, Object> exchange, final EOperation operation) {
 
-        CallInterceptorUtil<ExportCallPayload<ID>, Object> callInterceptorUtil = new CallInterceptorUtil<>(
+        CallInterceptorUtil<ExportCallPayload, Object> callInterceptorUtil = new CallInterceptorUtil<>(
                 ExportCallPayload.class, Object.class, asmModel, operation, interceptorProvider
         );
 
@@ -84,13 +85,13 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                 .findFirst()
                 .map(inputParameter -> (Map<String, Object>) exchange.get(inputParameter));
 
-        final DAO.QueryCustomizer<ID> queryCustomizer =
+        final DAO.QueryCustomizer queryCustomizer =
                 queryCustomizerParameterProcessor.build(
                         queryCustomizerParameter.orElse(null),
                         owner.getEReferenceType(),
                         exchange);
 
-        ExportCallPayload<ID> inputParameter = callInterceptorUtil.preCallInterceptors(ExportCallPayload.<ID>builder()
+        ExportCallPayload inputParameter = callInterceptorUtil.preCallInterceptors(ExportCallPayload.builder()
                         .instance(Payload.asPayload(exchange))
                         .owner(owner)
                         .queryCustomizer(queryCustomizer)
@@ -115,7 +116,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                     throw new IllegalStateException("Unknown or unsupported actor");
                 }
 
-                final ID id = (ID) actor.get(serviceContext.getIdentifierProvider().getName());
+                final Serializable id = (Serializable) actor.get(serviceContext.getIdentifierProvider().getName());
 
                 operationResultPayload = serviceContext.getDao().searchNavigationResultAt(id, owner, queryCustomizer);
 
@@ -141,7 +142,7 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
                         operationResultPayload = List.of((Payload) res);
                     }
                 } else {
-                    operationResultPayload = serviceContext.getDao().searchNavigationResultAt((ID) exchange.get(serviceContext.getIdentifierProvider().getName()), owner, queryCustomizer);
+                    operationResultPayload = serviceContext.getDao().searchNavigationResultAt((Serializable) exchange.get(serviceContext.getIdentifierProvider().getName()), owner, queryCustomizer);
                 }
             }
             if (operationResultPayload != null) {
@@ -173,14 +174,14 @@ public class ExportCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID>
 
     @Builder
     @Getter
-    public static class ExportCallPayload<ID> {
+    public static class ExportCallPayload {
         @NonNull
         EReference owner;
 
         @NonNull
         Payload instance;
 
-        DAO.QueryCustomizer<ID> queryCustomizer;
+        DAO.QueryCustomizer queryCustomizer;
 
         @Setter
         @Builder.Default

@@ -36,13 +36,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
-public class VariableMapper<ID> extends RdbmsMapper<Variable> {
+public class VariableMapper extends RdbmsMapper<Variable> {
 
     public static final String PARAMETER_VARIABLE_KEY = "PARAMETER";
 
     @Override
     public Stream<? extends RdbmsField> map(final Variable variable, RdbmsBuilderContext builderContext) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
 
         final String id = EcoreUtil.getIdentification(variable);
         if (id != null) {
@@ -61,7 +61,7 @@ public class VariableMapper<ID> extends RdbmsMapper<Variable> {
     }
 
     private Stream<? extends RdbmsField> getFields(final RdbmsBuilderContext builderContext, final Variable variable) {
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
         final Map<String, Object> queryParameters = builderContext.getQueryParameters();
 
         boolean isParameter = PARAMETER_VARIABLE_KEY.equals(variable.getCategory());

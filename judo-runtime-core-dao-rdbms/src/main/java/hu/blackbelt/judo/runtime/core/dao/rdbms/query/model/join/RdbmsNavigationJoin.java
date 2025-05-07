@@ -40,7 +40,7 @@ import java.util.stream.Stream;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
+public class RdbmsNavigationJoin extends RdbmsJoin {
 
     private final Map<Node, List<EClass>> subAncestors = new HashMap<>();
 
@@ -65,7 +65,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
                                 final RdbmsBuilderContext builderContext,
                                 final boolean withoutFeatures) {
         super();
-        final RdbmsBuilder<?> rdbmsBuilder = builderContext.getRdbmsBuilder();
+        final RdbmsBuilder rdbmsBuilder = builderContext.getRdbmsBuilder();
         final SubSelect parentIdFilterQuery = builderContext.getParentIdFilterQuery();
 
         this.query = query;
@@ -184,9 +184,9 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         }
 
         subJoins.addAll(aggregations.stream()
-                .map(subSelect -> RdbmsQueryJoin.<ID>builder()
+                .map(subSelect -> RdbmsQueryJoin.builder()
                         .resultSet(
-                                RdbmsResultSet.<ID>builder()
+                                RdbmsResultSet.builder()
                                         .query(subSelect)
                                         .builderContext(navigationBuilderContext)
                                         .withoutFeatures(withoutFeatures)
@@ -225,7 +225,7 @@ public class RdbmsNavigationJoin<ID> extends RdbmsJoin {
         subConditions.addAll(query.getNavigationJoins().stream()
                 .flatMap(join -> join.getFilters().stream().map(f -> RdbmsFunction.builder()
                         .pattern("EXISTS ({0})")
-                        .parameter(RdbmsNavigationFilter.<ID>builder()
+                        .parameter(RdbmsNavigationFilter.builder()
                                 .filter(f)
                                 .builderContext(navigationBuilderContext)
                                 .build())

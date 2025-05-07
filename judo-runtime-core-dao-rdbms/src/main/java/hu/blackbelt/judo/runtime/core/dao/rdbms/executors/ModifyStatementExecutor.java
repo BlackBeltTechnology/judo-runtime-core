@@ -33,25 +33,25 @@ import lombok.Builder;
 import lombok.NonNull;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
 /**
  * Executes banch of statements and making proper execution order for the given statements.
- * @param <ID>
  */
-public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
+public class ModifyStatementExecutor extends StatementExecutor {
 
     @Builder
     public ModifyStatementExecutor(
             @NonNull AsmModel asmModel,
             @NonNull RdbmsModel rdbmsModel,
             @NonNull TransformationTraceService transformationTraceService,
-            @NonNull RdbmsParameterMapper<ID> rdbmsParameterMapper,
+            @NonNull RdbmsParameterMapper rdbmsParameterMapper,
             @NonNull RdbmsResolver rdbmsResolver,
             @NonNull Coercer coercer,
-            @NonNull IdentifierProvider<ID> identifierProvider) {
+            @NonNull IdentifierProvider identifierProvider) {
         super(asmModel, rdbmsModel, transformationTraceService, rdbmsParameterMapper, rdbmsResolver, coercer, identifierProvider);
     }
 
@@ -63,10 +63,10 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
      * @throws SQLException
      */
     public void executeStatements(NamedParameterJdbcTemplate jdbcTemplate,
-                                  Collection<Statement<ID>> statements) throws SQLException {
+                                  Collection<Statement> statements) throws SQLException {
 
-        EntityExistsValidationStatementExecutor<ID> entityExistsValidationStatementExecutor =
-                EntityExistsValidationStatementExecutor.<ID>builder()
+        EntityExistsValidationStatementExecutor entityExistsValidationStatementExecutor =
+                EntityExistsValidationStatementExecutor.builder()
                         .asmModel(getAsmModel())
                         .rdbmsModel(getRdbmsModel())
                         .rdbmsResolver(getRdbmsResolver())
@@ -78,7 +78,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                         .build();
 
 
-        InsertStatementExecutor<ID> insertStatementExecutor = InsertStatementExecutor.<ID>builder()
+        InsertStatementExecutor insertStatementExecutor = InsertStatementExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -89,7 +89,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        UpdateStatementExecutor<ID> updateStatementExecutor = UpdateStatementExecutor.<ID>builder()
+        UpdateStatementExecutor updateStatementExecutor = UpdateStatementExecutor.<Serializable>builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -100,7 +100,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        CheckUniqueAttributeStatementExecutor<ID> checkUniqueAttributeStatementExecutor = CheckUniqueAttributeStatementExecutor.<ID>builder()
+        CheckUniqueAttributeStatementExecutor checkUniqueAttributeStatementExecutor = CheckUniqueAttributeStatementExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -111,7 +111,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        UpdateReferenceExecutor<ID> updateReferenceExecutor = UpdateReferenceExecutor.<ID>builder()
+        UpdateReferenceExecutor updateReferenceExecutor = UpdateReferenceExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -122,7 +122,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        DeleteStatementExecutor<ID> deleteStatementExecutor = DeleteStatementExecutor.<ID>builder()
+        DeleteStatementExecutor deleteStatementExecutor = DeleteStatementExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -133,7 +133,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        AddReferenceStatementExecutor<ID> addReferenceStatementExecutor = AddReferenceStatementExecutor.<ID>builder()
+        AddReferenceStatementExecutor addReferenceStatementExecutor = AddReferenceStatementExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -144,7 +144,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        RemoveReferenceStatementExecutor<ID> removeReferenceStatementExecutor = RemoveReferenceStatementExecutor.<ID>builder()
+        RemoveReferenceStatementExecutor removeReferenceStatementExecutor = RemoveReferenceStatementExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -155,7 +155,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 .identifierProvider(getIdentifierProvider())
                 .build();
 
-        AddRemoveReferenceStatementConsistencyCheckExecutor<ID> addRemoveReferenceStatementConsistencyCheckExecutor = AddRemoveReferenceStatementConsistencyCheckExecutor.<ID>builder()
+        AddRemoveReferenceStatementConsistencyCheckExecutor addRemoveReferenceStatementConsistencyCheckExecutor = AddRemoveReferenceStatementConsistencyCheckExecutor.builder()
                 .asmModel(getAsmModel())
                 .rdbmsModel(getRdbmsModel())
                 .rdbmsResolver(getRdbmsResolver())
@@ -171,7 +171,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(InstanceExistsValidationStatement.class :: isInstance)
-                        .map(o -> (InstanceExistsValidationStatement<ID>) o)
+                        .map(o -> (InstanceExistsValidationStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -180,11 +180,11 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(RemoveReferenceStatement.class :: isInstance)
-                        .map(o -> (RemoveReferenceStatement<ID>) o)
+                        .map(o -> (RemoveReferenceStatement) o)
                         .collect(Collectors.toList()),
                 statements.stream()
                         .filter(DeleteStatement.class :: isInstance)
-                        .map(o -> ((DeleteStatement<ID>) o).getInstance().getIdentifier())
+                        .map(o -> ((DeleteStatement) o).getInstance().getIdentifier())
                         .collect(Collectors.toList())
         );
 
@@ -193,7 +193,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<ID>) o)
+                        .map(o -> (AddReferenceStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -202,7 +202,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(RemoveReferenceStatement.class :: isInstance)
-                        .map(o -> (RemoveReferenceStatement<ID>) o)
+                        .map(o -> (RemoveReferenceStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -211,12 +211,12 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(DeleteStatement.class :: isInstance)
-                        .map(o -> (DeleteStatement<ID>) o)
+                        .map(o -> (DeleteStatement) o)
                         .collect(Collectors.toList()),
 
                 statements.stream()
                         .filter(RemoveReferenceStatement.class :: isInstance)
-                        .map(o -> (RemoveReferenceStatement<ID>) o)
+                        .map(o -> (RemoveReferenceStatement) o)
                         .collect(Collectors.toList())
         );
 
@@ -238,12 +238,12 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(InsertStatement.class :: isInstance)
-                        .map(o -> (InsertStatement<ID>) o)
+                        .map(o -> (InsertStatement) o)
                         .collect(Collectors.toList()),
 
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<ID>) o)
+                        .map(o -> (AddReferenceStatement) o)
                         .collect(Collectors.toList()));
 
         // Update existing entities
@@ -251,18 +251,18 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(UpdateStatement.class :: isInstance)
-                        .map(o -> (UpdateStatement<ID>) o)
+                        .map(o -> (UpdateStatement) o)
                         .collect(Collectors.toList())
                 );
 
         // Those addReferences which has removeReferences too - which means update
-        Collection<AddReferenceStatement<ID>> addReferenceStatementsExistsInRemoveReferenceStatements =
+        Collection<AddReferenceStatement> addReferenceStatementsExistsInRemoveReferenceStatements =
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<ID>) o)
+                        .map(o -> (AddReferenceStatement) o)
                         .filter(r -> statements.stream()
                                 .filter(RemoveReferenceStatement.class :: isInstance)
-                                .map(o -> (RemoveReferenceStatement<ID>) o).filter(
+                                .map(o -> (RemoveReferenceStatement) o).filter(
                                 r2 -> r2.getIdentifier().equals(r.getIdentifier()) && r2.getReference().equals(r.getReference())
                         ).findFirst().isPresent())
                         .collect(Collectors.toSet());
@@ -279,7 +279,7 @@ public class ModifyStatementExecutor<ID> extends StatementExecutor<ID> {
                 jdbcTemplate,
                 statements.stream()
                         .filter(AddReferenceStatement.class :: isInstance)
-                        .map(o -> (AddReferenceStatement<ID>) o)
+                        .map(o -> (AddReferenceStatement) o)
 //                        .filter(o -> !addReferenceStatementsExistsInRemoveReferenceStatements.contains(o))
                         .collect(Collectors.toList())
         );

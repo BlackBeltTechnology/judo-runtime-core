@@ -33,7 +33,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 
 import java.util.Map;
 
-public abstract class TransactionalBehaviourCall<ID> implements BehaviourCall<ID> {
+public abstract class TransactionalBehaviourCall implements BehaviourCall {
 
     PlatformTransactionManager transactionManager;
 

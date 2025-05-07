@@ -35,7 +35,7 @@ import java.util.Optional;
 import static hu.blackbelt.judo.runtime.core.dao.core.processors.PayloadDaoProcessor.hasOpposite;
 import static hu.blackbelt.judo.runtime.core.dao.core.processors.PayloadDaoProcessor.isMandatory;
 
-public class RdbmsReferenceUtil<ID> {
+public class RdbmsReferenceUtil {
 
     @NonNull
     private final AsmModel asmModel;
@@ -62,10 +62,10 @@ public class RdbmsReferenceUtil<ID> {
                 .orElseThrow(() -> new IllegalArgumentException("Rules not found in RDBMS model"));
     }
 
-    public RdbmsReference<ID> buildRdbmsReferenceForStatement(
-                                    RdbmsReference.RdbmsReferenceBuilder<ID> rdbmsReferenceBuilder) {
+    public RdbmsReference buildRdbmsReferenceForStatement(
+                                    RdbmsReference.RdbmsReferenceBuilder rdbmsReferenceBuilder) {
 
-        RdbmsReference<ID> rdbmsReference = rdbmsReferenceBuilder.build();
+        RdbmsReference rdbmsReference = rdbmsReferenceBuilder.build();
         rdbmsReferenceBuilder.rule(rules.getRuleFromReference(rdbmsReference.getReference()));
 
 
@@ -84,7 +84,7 @@ public class RdbmsReferenceUtil<ID> {
         return rdbmsReferenceBuilder.build();
     }
 
-    public String toString(RdbmsReference<ID> rdbmsReference) {
+    public String toString(RdbmsReference rdbmsReference) {
         // InverseForeign:   table(reference.getEReferenceType()) + column(reference)
         // ForeignKey:       table(reference.getEReferenceType()) + column(reference)
 

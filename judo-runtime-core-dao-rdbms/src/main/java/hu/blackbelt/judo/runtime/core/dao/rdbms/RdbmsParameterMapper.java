@@ -26,9 +26,10 @@ import org.eclipse.emf.ecore.EDataType;
 import org.eclipse.emf.ecore.EReference;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public interface RdbmsParameterMapper<ID> {
+public interface RdbmsParameterMapper {
 
     String getIdClassName();
 
@@ -40,7 +41,7 @@ public interface RdbmsParameterMapper<ID> {
 
     void mapAttributeParameters(final MapSqlParameterSource namedParameters, final Map<EAttribute, Object> attributeMap);
 
-    void mapReferenceParameters(final MapSqlParameterSource namedParameters, final Map<EReference, ID> referenceMap);
+    void mapReferenceParameters(final MapSqlParameterSource namedParameters, final Map<EReference, Serializable> referenceMap);
 
     int getSqlType(final String targetType);
 

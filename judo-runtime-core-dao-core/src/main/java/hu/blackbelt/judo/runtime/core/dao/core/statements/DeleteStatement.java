@@ -22,9 +22,9 @@ package hu.blackbelt.judo.runtime.core.dao.core.statements;
 
 import hu.blackbelt.judo.runtime.core.dao.core.values.InstanceValue;
 
-public class DeleteStatement<ID> extends Statement<ID> {
+public class DeleteStatement extends Statement {
 
-    public DeleteStatement(InstanceValue<ID> instance) {
+    public DeleteStatement(InstanceValue instance) {
         super(instance);
     }
 

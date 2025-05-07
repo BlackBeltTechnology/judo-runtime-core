@@ -25,11 +25,12 @@ import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 
 @RequiredArgsConstructor
-public class MarkedIdRemover<ID> {
+public class MarkedIdRemover {
 
     @NonNull
     private final String key;
@@ -42,17 +43,17 @@ public class MarkedIdRemover<ID> {
         processAndCollect(payload, null, true);
     }
 
-    public void processAndCollect(final Payload payload, Collection<ID> collected) {
+    public void processAndCollect(final Payload payload, Collection<Serializable> collected) {
         processAndCollect(payload, collected, false);
     }
 
-    private void processAndCollect(final Payload payload, Collection<ID> collected, boolean markerOnly) {
+    private void processAndCollect(final Payload payload, Collection<Serializable> collected, boolean markerOnly) {
         if (payload.containsKey("__$created")) {
             payload.remove("__$created");
 
             if (!markerOnly) {
                 @SuppressWarnings("unchecked")
-                ID removed = (ID) payload.remove(key);
+                Serializable removed = (Serializable) payload.remove(key);
                 payload.remove(DefaultDispatcher.UPDATEABLE_KEY);
                 payload.remove(DefaultDispatcher.DELETEABLE_KEY);
                 if (collected != null) {
@@ -65,7 +66,7 @@ public class MarkedIdRemover<ID> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    private void processRemoval(final Object o, Collection<ID> collected) {
+    private void processRemoval(final Object o, Collection<Serializable> collected) {
         if (o instanceof Payload) {
             processAndCollect((Payload) o, collected);
         } else if (o instanceof Map) {
