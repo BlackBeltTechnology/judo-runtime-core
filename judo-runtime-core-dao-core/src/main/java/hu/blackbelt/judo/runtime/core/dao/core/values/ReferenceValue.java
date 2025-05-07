@@ -28,6 +28,7 @@ import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.Collection;
 
 @Builder(builderMethodName = "referenceValueBuilder")
@@ -38,13 +39,13 @@ public class ReferenceValue {
     EClass type;
 
     @NonNull
-    ReferenceValue identifier;
+    Serializable identifier;
 
     @NonNull
     EReference reference;
 
     @Builder.Default
-    Collection<ReferenceValue> oppositeIdentifiers = ImmutableList.of();
+    Collection<Serializable> oppositeIdentifiers = ImmutableList.of();
 
 
     public String toString() {
