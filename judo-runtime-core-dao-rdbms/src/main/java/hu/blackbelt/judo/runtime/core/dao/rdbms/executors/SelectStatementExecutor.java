@@ -739,7 +739,7 @@ public class SelectStatementExecutor extends StatementExecutor {
 
     @Builder
     @Getter
-    private static class QueryResult<Serializable> {
+    private static class QueryResult {
         Map<Target, Map<Serializable, Payload>> resultSet;
         Integer count;
     }
@@ -762,7 +762,7 @@ public class SelectStatementExecutor extends StatementExecutor {
      * @param skipParents     skip parent IDs from result
      * @return result set
      */
-    private QueryResult<Serializable> runQuery(
+    private QueryResult runQuery(
             final NamedParameterJdbcTemplate jdbcTemplate,
             final SubSelect query,
             final boolean count,
@@ -883,7 +883,7 @@ public class SelectStatementExecutor extends StatementExecutor {
             }
         }
 
-        return QueryResult.<Serializable>builder()
+        return QueryResult.builder()
                 .count(recordNumber.intValue())
                 .resultSet(results).build();
     }
