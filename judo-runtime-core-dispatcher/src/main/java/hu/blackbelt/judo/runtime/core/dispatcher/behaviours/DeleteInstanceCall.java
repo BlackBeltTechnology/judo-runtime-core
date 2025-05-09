@@ -36,15 +36,16 @@ import org.eclipse.emf.ecore.EOperation;
 
 import org.springframework.transaction.PlatformTransactionManager;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.isBound;
 
-public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
+public class DeleteInstanceCall extends TransactionalBehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
-    public DeleteInstanceCall(Context context, ServiceContext<ID> serviceContext) {
+    final ServiceContext serviceContext;
+    public DeleteInstanceCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
     }
@@ -74,7 +75,7 @@ public class DeleteInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
 
         if (callInterceptorUtil.shouldCallOriginal()) {
             serviceContext.getDao().delete(deleteInstanceCallPayload.getOwner(),
-                    (ID) deleteInstanceCallPayload.getInstance().get(serviceContext.getIdentifierProvider().getName()));
+                    (Serializable) deleteInstanceCallPayload.getInstance().get(serviceContext.getIdentifierProvider().getName()));
         }
 
         return callInterceptorUtil.postCallInterceptors(deleteInstanceCallPayload, null);

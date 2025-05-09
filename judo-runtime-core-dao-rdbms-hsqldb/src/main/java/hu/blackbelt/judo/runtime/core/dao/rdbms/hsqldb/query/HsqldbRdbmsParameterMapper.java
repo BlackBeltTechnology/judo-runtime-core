@@ -30,11 +30,11 @@ import lombok.NonNull;
 
 import java.sql.Time;
 
-public class HsqldbRdbmsParameterMapper<ID> extends DefaultRdbmsParameterMapper<ID> implements RdbmsParameterMapper<ID> {
+public class HsqldbRdbmsParameterMapper extends DefaultRdbmsParameterMapper implements RdbmsParameterMapper {
     @Builder
     public HsqldbRdbmsParameterMapper(@NonNull Coercer coercer,
                                       @NonNull RdbmsModel rdbmsModel,
-                                      @NonNull IdentifierProvider<ID> identifierProvider) {
+                                      @NonNull IdentifierProvider identifierProvider) {
         super(coercer, rdbmsModel, identifierProvider);
 
         getSqlTypes().put(Time.class, vd -> "TIMESTAMP");

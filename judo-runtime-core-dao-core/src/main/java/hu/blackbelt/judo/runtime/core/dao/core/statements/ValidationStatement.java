@@ -25,13 +25,15 @@ import lombok.Builder;
 import lombok.Getter;
 import org.eclipse.emf.ecore.EClass;
 
+import java.io.Serializable;
+
 @Getter
-public class ValidationStatement<ID> extends Statement<ID> {
+public class ValidationStatement extends Statement {
 
     @Builder(builderMethodName = "buildValidationStatement")
-    public ValidationStatement(EClass type, ID identifier) {
+    public ValidationStatement(EClass type, Serializable identifier) {
         super(InstanceValue
-                .<ID>buildInstanceValue()
+                .buildInstanceValue()
                     .type(type)
                     .identifier(identifier)
                     .build());

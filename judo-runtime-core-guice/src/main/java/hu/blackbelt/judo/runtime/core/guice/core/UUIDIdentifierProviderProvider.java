@@ -26,9 +26,9 @@ import hu.blackbelt.judo.runtime.core.UUIDIdentifierProvider;
 
 import java.util.UUID;
 
-public class UUIDIdentifierProviderProvider implements Provider<IdentifierProvider<UUID>> {
+public class UUIDIdentifierProviderProvider implements Provider<IdentifierProvider> {
     @Override
-    public IdentifierProvider<UUID> get() {
+    public IdentifierProvider get() {
         return new UUIDIdentifierProvider();
     }
 }

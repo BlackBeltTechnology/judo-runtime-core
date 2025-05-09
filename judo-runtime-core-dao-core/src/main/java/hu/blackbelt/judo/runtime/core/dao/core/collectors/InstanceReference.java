@@ -25,13 +25,13 @@ import org.eclipse.emf.ecore.EReference;
 
 @lombok.Getter
 @lombok.Builder
-public class InstanceReference<ID> {
+public class InstanceReference {
 
     @NonNull
     private EReference reference;
 
     @NonNull
-    private final InstanceGraph<ID> referencedElement;
+    private final InstanceGraph referencedElement;
 
     @Override
     public String toString() {

@@ -27,11 +27,11 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.mappers.RdbmsMapper;
 
 import java.util.Map;
 
-public class HsqldbMapperFactory<ID> extends DefaultMapperFactory<ID>  {
+public class HsqldbMapperFactory extends DefaultMapperFactory  {
     @Override
-    public Map<Class<?>, RdbmsMapper<?>> getMappers(RdbmsBuilder<ID> rdbmsBuilder) {
+    public Map<Class<?>, RdbmsMapper<?>> getMappers(RdbmsBuilder rdbmsBuilder) {
         Map<Class<?>, RdbmsMapper<?>> mappers = super.getMappers(rdbmsBuilder);
-        mappers.put(Function.class, new HsqldbFunctionMapper<ID>(rdbmsBuilder));
+        mappers.put(Function.class, new HsqldbFunctionMapper(rdbmsBuilder));
         return mappers;
     }
 }

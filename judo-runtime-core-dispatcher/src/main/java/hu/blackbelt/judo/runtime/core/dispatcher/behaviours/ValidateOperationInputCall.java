@@ -33,15 +33,15 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 
 
-public class ValidateOperationInputCall<ID> extends AlwaysRollbackTransactionalBehaviourCall<ID> {
+public class ValidateOperationInputCall extends AlwaysRollbackTransactionalBehaviourCall {
 
-    final ServiceContext<ID> serviceContext;
-    private final MarkedIdRemover<ID> markedIdRemover;
+    final ServiceContext serviceContext;
+    private final MarkedIdRemover markedIdRemover;
 
-    public ValidateOperationInputCall(Context context, ServiceContext<ID> serviceContext) {
+    public ValidateOperationInputCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        markedIdRemover = new MarkedIdRemover<>(serviceContext.getIdentifierProvider().getName());
+        markedIdRemover = new MarkedIdRemover(serviceContext.getIdentifierProvider().getName());
     }
 
     @Override

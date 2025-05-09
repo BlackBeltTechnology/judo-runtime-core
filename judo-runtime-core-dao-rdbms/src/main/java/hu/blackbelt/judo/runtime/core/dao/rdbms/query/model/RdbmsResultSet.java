@@ -51,7 +51,7 @@ import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUti
 import static hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil.getParentIdColumnAlias;
 
 @Slf4j
-public class RdbmsResultSet<ID> extends RdbmsField {
+public class RdbmsResultSet extends RdbmsField {
 
     private SubSelect query;
 
@@ -74,7 +74,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 
     private final List<Join> processedNodesForJoins = new ArrayList<>();
 
-    private final RdbmsBuilder<ID> rdbmsBuilder;
+    private final RdbmsBuilder rdbmsBuilder;
 
     @Getter
     private final Set<String> joinConditionTableAliases = new HashSet<>();
@@ -92,7 +92,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
         this.query = query;
         this.skipParents = skipParents;
         this.count = count;
-        this.rdbmsBuilder = (RdbmsBuilder<ID>) builderContext.getRdbmsBuilder();
+        this.rdbmsBuilder = (RdbmsBuilder) builderContext.getRdbmsBuilder();
 
         if (log.isTraceEnabled()) {
             log.trace("Query:              " + query.toString());
@@ -225,9 +225,9 @@ public class RdbmsResultSet<ID> extends RdbmsField {
 //                        query.getSelect().getFeatures().stream().anyMatch(f ->
 //                                f.getNodes().stream().anyMatch(n ->
 //                                        Objects.equals(n, s.getSelect()) || s.getSelect().getJoins().contains(n))))
-                .map(s -> RdbmsQueryJoin.<ID>builder()
+                .map(s -> RdbmsQueryJoin.builder()
                         .resultSet(
-                                RdbmsResultSet.<ID>builder()
+                                RdbmsResultSet.builder()
                                         .query(s)
                                         .builderContext(resultSetBuilderContext)
                                         .withoutFeatures(withoutFeatures)
@@ -275,8 +275,8 @@ public class RdbmsResultSet<ID> extends RdbmsField {
                     .build());
         }
 
-        final RdbmsNavigationJoin<ID> navigationJoin =
-                RdbmsNavigationJoin.<ID>builder()
+        final RdbmsNavigationJoin navigationJoin =
+                RdbmsNavigationJoin.builder()
                         .builderContext(builderContext)
                         .query(query)
                         .withoutFeatures(withoutFeatures)
@@ -558,7 +558,7 @@ public class RdbmsResultSet<ID> extends RdbmsField {
     }
 
     private Object getLastItemValue(
-            final RdbmsBuilder<ID> rdbmsBuilder,
+            final RdbmsBuilder rdbmsBuilder,
             final EClass type,
             final DAO.Seek seek,
             final OrderBy orderBy) {

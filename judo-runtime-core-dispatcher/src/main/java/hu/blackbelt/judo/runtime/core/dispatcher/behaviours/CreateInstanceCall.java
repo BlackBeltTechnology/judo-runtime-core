@@ -32,19 +32,20 @@ import org.eclipse.emf.ecore.ENamedElement;
 import org.eclipse.emf.ecore.EOperation;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static hu.blackbelt.judo.dao.api.Payload.asPayload;
 
-public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
-    final ServiceContext<ID> serviceContext;
-    private final QueryCustomizerParameterProcessor<ID> queryCustomizerParameterProcessor;
+public class CreateInstanceCall extends TransactionalBehaviourCall {
+    final ServiceContext serviceContext;
+    private final QueryCustomizerParameterProcessor queryCustomizerParameterProcessor;
 
     public CreateInstanceCall(Context context, ServiceContext serviceContext) {
         super(context, serviceContext.getTransactionManager(), serviceContext.getInterceptorProvider(), serviceContext.getAsmModel());
         this.serviceContext = serviceContext;
-        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor<>(
+        queryCustomizerParameterProcessor = new QueryCustomizerParameterProcessor(
                 serviceContext.getAsmUtils(),
                 serviceContext.isCaseInsensitiveLike(),
                 serviceContext.getIdentifierProvider(),
@@ -69,7 +70,7 @@ public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
         final String inputParameterName = operation.getEParameters().stream().map(ENamedElement::getName).findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Input parameter name must be defined"));
 
-        final DAO.QueryCustomizer<ID> queryCustomizer = queryCustomizerParameterProcessor
+        final DAO.QueryCustomizer queryCustomizer = queryCustomizerParameterProcessor
                 .build(null, owner.getEReferenceType(), exchange);
 
         CreateInstanceCallPayload inputParameter =
@@ -93,7 +94,7 @@ public class CreateInstanceCall<ID> extends TransactionalBehaviourCall<ID> {
             } else {
                 checkArgument(bound, "Operation must be bound");
                 ret = serviceContext.getDao().createNavigationInstanceAt(
-                        (ID) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
+                        (Serializable) inputParameter.getInstance().get(serviceContext.getIdentifierProvider().getName()),
                         inputParameter.getOwner(),
                         inputParameter.getInput(), queryCustomizer);
             }

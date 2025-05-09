@@ -28,6 +28,7 @@ import lombok.NonNull;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 
+import java.io.Serializable;
 import java.util.List;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -35,24 +36,23 @@ import static com.google.common.collect.Lists.newArrayList;
 /**
  * Represents a statement instance. It can contain attributes and references. All statement have minimum one instance
  * to work with.
- * @param <ID>
  */
 @Builder(builderMethodName = "buildInstanceValue")
 @Getter
 @EqualsAndHashCode
-public class InstanceValue<ID> {
+public class InstanceValue {
     @NonNull
     EClass type;
 
     @NonNull
-    ID identifier;
+    Serializable identifier;
 
     @Builder.Default
     List<AttributeValue<Object>> attributes = newArrayList();
 
     public void addAttributeValue(EAttribute attribute, Object value) {
         attributes.add(AttributeValue
-                .<Object>attributeValueBuilder()
+                .attributeValueBuilder()
                     .attribute(attribute)
                     .value(value)
                     .build());

@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dao.rdbms.executors;
  * #L%
  */
 
+import java.io.Serializable;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -157,7 +158,7 @@ import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newOrderBy
 import static hu.blackbelt.judo.meta.query.util.builder.QueryBuilders.newSubSelectBuilder;
 
 @Slf4j
-public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
+public class SelectStatementExecutor extends StatementExecutor {
 
     private static final String METRICS_SELECT_PREPARE = "select-prepare";
     private static final String METRICS_SELECT_PROCESSING = "select-processing";
@@ -169,7 +170,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     private final Translator translator = new Translator();
     private final MetricsCollector metricsCollector;
-    private final RdbmsBuilder<ID> rdbmsBuilder;
+    private final RdbmsBuilder rdbmsBuilder;
     private final QueryFactory queryFactory;
     private final DataTypeManager dataTypeManager;
     private final int chunkSize;
@@ -181,11 +182,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                    @NonNull final RdbmsModel rdbmsModel,
                                    @NonNull final TransformationTraceService transformationTraceService,
                                    @NonNull final QueryFactory queryFactory,
-                                   @NonNull final RdbmsParameterMapper<ID> rdbmsParameterMapper,
+                                   @NonNull final RdbmsParameterMapper rdbmsParameterMapper,
                                    @NonNull final RdbmsResolver rdbmsResolver,
                                    @NonNull final DataTypeManager dataTypeManager,
-                                   @NonNull final IdentifierProvider<ID> identifierProvider,
-                                   @NonNull final RdbmsBuilder<ID> rdbmsBuilder,
+                                   @NonNull final IdentifierProvider identifierProvider,
+                                   @NonNull final RdbmsBuilder rdbmsBuilder,
                                    @NonNull final MetricsCollector metricsCollector,
                                    @NonNull final Integer chunkSize,
                                    @NonNull final Integer maximumRecursionCount) {
@@ -230,7 +231,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         translator.getTranslators().put(DecimalOppositeExpression.class, DecimalOppositeTranslator.builder().translator(translator).build());
     }
 
-    public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final ID id) {
+    public Optional<Payload> selectMetadata(final NamedParameterJdbcTemplate jdbcTemplate, final EClass mappedTransferObjectType, final Serializable id) {
         rdbmsBuilder.getConstantFields().set(new HashMap<>());
 
         EClass entityType;
@@ -312,8 +313,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      */
     public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate,
                                              final EClass mappedTransferObjectType,
-                                             Collection<ID> ids,
-                                             final DAO.QueryCustomizer<ID> queryCustomizer) {
+                                             Collection<Serializable> ids,
+                                             final DAO.QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final Select _select = queryFactory.getQuery(mappedTransferObjectType)
@@ -346,7 +347,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 ids = queryCustomizer.getInstanceIds();
             }
 
-            final Map<Target, Map<ID, Payload>> result =
+            final Map<Target, Map<Serializable, Payload>> result =
                     runQuery(jdbcTemplate, query,false, ids, null, Collections.emptyList(),
                             queryCustomizer != null ? queryCustomizer.getSeek() : null,
                             queryCustomizer != null && queryCustomizer.isWithoutFeatures(),
@@ -382,8 +383,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      */
     public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate,
                             final EClass mappedTransferObjectType,
-                            Collection<ID> ids,
-                            final DAO.QueryCustomizer<ID> queryCustomizer) {
+                            Collection<Serializable> ids,
+                            final DAO.QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_COUNT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final Select _select = queryFactory.getQuery(mappedTransferObjectType)
@@ -425,7 +426,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final SubSelect subSelect = queryFactory.getDataQuery(attribute)
                     .orElseThrow(() -> new IllegalStateException("Query for static data not prepared yet"));
 
-            final Map<Target, Map<ID, Payload>> results =
+            final Map<Target, Map<Serializable, Payload>> results =
                     runQuery(jdbcTemplate, subSelect, false,null, null, Collections.emptyList(), null,
                             false, Collections.singletonMap(attribute.getName(), true), parameters, true, new Stack<>()).getResultSet();
 
@@ -450,8 +451,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      */
     public Collection<Payload> executeSelect(final NamedParameterJdbcTemplate jdbcTemplate,
                                              final EReference reference,
-                                             final Collection<ID> ids,
-                                             final DAO.QueryCustomizer<ID> queryCustomizer) {
+                                             final Collection<Serializable> ids,
+                                             final DAO.QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_SELECT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final EClass referenceHolder = reference.getEContainingClass();
@@ -497,8 +498,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             applyQueryCustomizer(query, queryCustomizer, false);
 
-            Collection<ID> instanceIds;
-            final Collection<ID> parentIds;
+            Collection<Serializable> instanceIds;
+            final Collection<Serializable> parentIds;
             final boolean useIdsAsParents = !(query.getNavigationJoins().isEmpty() && !queryFactory.isStaticReference(reference));
 
             if (useIdsAsParents) {
@@ -514,7 +515,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 instanceIds = queryCustomizer.getInstanceIds();
             }
 
-            final Map<Target, Map<ID, Payload>> subQueryResults =
+            final Map<Target, Map<Serializable, Payload>> subQueryResults =
                     runQuery(jdbcTemplate, query, false, instanceIds, parentIds,
                             Collections.singletonList(reference),
                             queryCustomizer != null ? queryCustomizer.getSeek() : null,
@@ -566,8 +567,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      */
     public long countSelect(final NamedParameterJdbcTemplate jdbcTemplate,
                             final EReference reference,
-                            final Collection<ID> ids,
-                            final DAO.QueryCustomizer<ID> queryCustomizer) {
+                            final Collection<Serializable> ids,
+                            final DAO.QueryCustomizer queryCustomizer) {
         try (MetricsCancelToken ignored = metricsCollector.start(METRICS_COUNT_PREPARE)) {
             rdbmsBuilder.getConstantFields().set(new HashMap<>());
             final EClass referenceHolder = reference.getEContainingClass();
@@ -610,8 +611,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
             applyQueryCustomizer(query, queryCustomizer, true);
 
-            Collection<ID> instanceIds;
-            final Collection<ID> parentIds;
+            Collection<Serializable> instanceIds;
+            final Collection<Serializable> parentIds;
             final boolean useIdsAsParents = !(query.getNavigationJoins().isEmpty() && !queryFactory.isStaticReference(reference));
             if (useIdsAsParents) {
                 instanceIds = null;
@@ -637,7 +638,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     }
 
     private void applyQueryCustomizer(final SubSelect query,
-                                      final DAO.QueryCustomizer<ID> queryCustomizer,
+                                      final DAO.QueryCustomizer queryCustomizer,
                                       boolean applyFilterOnly) {
         final EClass mainTarget = query.getSelect().getMainTarget().getType();
 
@@ -738,8 +739,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
     @Getter
-    private static class QueryResult<ID> {
-        Map<Target, Map<ID, Payload>> resultSet;
+    private static class QueryResult {
+        Map<Target, Map<Serializable, Payload>> resultSet;
         Integer count;
     }
 
@@ -761,12 +762,12 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
      * @param skipParents     skip parent IDs from result
      * @return result set
      */
-    private QueryResult<ID> runQuery(
+    private QueryResult runQuery(
             final NamedParameterJdbcTemplate jdbcTemplate,
             final SubSelect query,
             final boolean count,
-            final Collection<ID> instanceIds,
-            final Collection<ID> parentIds,
+            final Collection<Serializable> instanceIds,
+            final Collection<Serializable> parentIds,
             final List<EReference> referenceChain,
             final DAO.Seek seek,
             final boolean withoutFeatures,
@@ -791,7 +792,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
 
 
-        final RdbmsResultSet<ID> resultSetHandler = RdbmsResultSet.<ID>builder()
+        final RdbmsResultSet resultSetHandler = RdbmsResultSet.builder()
                 .query(query)
                 .builderContext(RdbmsBuilderContext.builder()
                         .parentIdFilterQuery(parentIds != null ? query : null)
@@ -806,38 +807,38 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .skipParents(skipParents)
                 .build();
 
-        final List<Chunk<ID>> chunks = new ArrayList<>();
+        final List<Chunk> chunks = new ArrayList<>();
         if (parentIds != null) {
-            final List<List<ID>> _parentIds = parentIds.isEmpty() ?
+            final List<List<Serializable>> _parentIds = parentIds.isEmpty() ?
                     Collections.singletonList(Collections.emptyList()) :
                     Lists.partition(new ArrayList<>(parentIds), chunkSize);
-            for (List<ID> p : _parentIds) {
+            for (List<Serializable> p : _parentIds) {
                 if (instanceIds != null) {
-                    final List<List<ID>> _instanceIds = instanceIds.isEmpty() ?
+                    final List<List<Serializable>> _instanceIds = instanceIds.isEmpty() ?
                             Collections.singletonList(Collections.emptyList()) :
                             Lists.partition(new ArrayList<>(instanceIds), chunkSize);
                     chunks.addAll(_instanceIds.stream()
-                            .map(i -> Chunk.<ID>builder().parentIds(p).instanceIds(i).build())
+                            .map(i -> Chunk.<Serializable>builder().parentIds(p).instanceIds(i).build())
                             .toList());
                 } else {
-                    chunks.add(Chunk.<ID>builder().parentIds(p).build());
+                    chunks.add(Chunk.<Serializable>builder().parentIds(p).build());
                 }
             }
         } else if (instanceIds != null) {
-            final List<List<ID>> _instanceIds = instanceIds.isEmpty() ?
+            final List<List<Serializable>> _instanceIds = instanceIds.isEmpty() ?
                     Collections.singletonList(Collections.emptyList()) :
                     Lists.partition(new ArrayList<>(instanceIds), chunkSize);
-            chunks.addAll(_instanceIds.stream().map(i -> Chunk.<ID>builder().instanceIds(i).build()).toList());
+            chunks.addAll(_instanceIds.stream().map(i -> Chunk.<Serializable>builder().instanceIds(i).build()).toList());
         } else {
-            chunks.add(Chunk.<ID>builder().build());
+            chunks.add(Chunk.<Serializable>builder().build());
         }
 
         // the map that will store results
-        final Map<Target, Map<ID, Payload>> results = query.getSelect().getTargets().stream()
+        final Map<Target, Map<Serializable, Payload>> results = query.getSelect().getTargets().stream()
                 .collect(Collectors.toMap(target -> target, target -> new LinkedHashMap<>()));
         AtomicLong recordNumber = new AtomicLong(0);
 
-        for (SelectStatementExecutor.Chunk<ID> chunk : chunks) {
+        for (SelectStatementExecutor.Chunk chunk : chunks) {
             if (log.isDebugEnabled()) {
                 log.debug("Running chunk: {}", chunk);
             }
@@ -882,16 +883,16 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             }
         }
 
-        return QueryResult.<ID>builder()
+        return QueryResult.builder()
                 .count(recordNumber.intValue())
                 .resultSet(results).build();
     }
 
-    private void mapResults(final Map<Target, Map<ID, Payload>> results,
+    private void mapResults(final Map<Target, Map<Serializable, Payload>> results,
                             final NamedParameterJdbcTemplate jdbcTemplate,
                             final SubSelect query,
                             final List<Map<String, Object>> resultSet,
-                            final SelectStatementExecutor.Chunk<ID> chunk,
+                            final SelectStatementExecutor.Chunk chunk,
                             final Map<String, Object> mask,
                             final List<EReference> referenceChain,
                             final boolean withoutFeatures,
@@ -911,7 +912,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             // map containing records by target (extracted from current JDBC record)
             final Map<Target, Payload> recordsByTarget = new HashMap<>();
             // IDs of current JDBC record by targets
-            final Map<Target, ID> idsByTarget = new HashMap<>();
+            final Map<Target, Serializable> idsByTarget = new HashMap<>();
             // Unset (NULL) target references in database
             final List<Target> nullTargets = new ArrayList<>();
 
@@ -945,7 +946,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                             if (log.isTraceEnabled()) {
                                 log.trace("    - id target: {}", target);
                             }
-                            final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
+                            final Serializable id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                             recordsByTarget.get(target).put(getIdentifierProvider().getName(), id);
 
                             idsByTarget.put(target, id);
@@ -993,7 +994,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                         }
                     }
                 } else if (chunk.parentIds != null && parentKey != null && parentKey.equalsIgnoreCase(field.getKey())) {
-                    final ID id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
+                    final Serializable id = getCoercer().coerce(field.getValue(), getIdentifierProvider().getType());
                     if (log.isTraceEnabled()) {
                         log.trace("    - parent key: {}", parentKey);
                     }
@@ -1055,7 +1056,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
                 // set all results of targets in result
                 if (idsByTarget.containsKey(target) && idsByTarget.get(target) != null) {
-                    final ID targetID = idsByTarget.get(target);
+                    final Serializable targetID = idsByTarget.get(target);
 
                     if (parentKey != null &&
                             results.get(target).containsKey(targetID) &&
@@ -1063,11 +1064,11 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                         if (log.isDebugEnabled()) {
                             log.debug("Record already added, add new parentId only");
                         }
-                        final Collection<ID> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
+                        final Collection<Serializable> currentParentIds = results.get(target).get(targetID).getAs(Collection.class, parentKey);
                         if (log.isTraceEnabled()) {
                             log.trace("Current  parent IDs: {}", currentParentIds);
                         }
-                        final Collection<ID> newParentIds = recordsByTarget.get(target).getAs(Collection.class, parentKey);
+                        final Collection<Serializable> newParentIds = recordsByTarget.get(target).getAs(Collection.class, parentKey);
                         if (log.isTraceEnabled()) {
                             log.trace("New parent IDs: {}", newParentIds);
                         }
@@ -1076,7 +1077,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                         results.get(target).put(idsByTarget.get(target), recordsByTarget.get(target));
                     }
                 } else if (idsByTarget.isEmpty() && Objects.equals(query.getSelect().getMainTarget(), target)) {
-                    final ID tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
+                    final Serializable tmpId = getCoercer().coerce(UUID.randomUUID(), getRdbmsParameterMapper().getIdClassName());
                     results.get(target).put(tmpId, recordsByTarget.get(target));
                 }
             }
@@ -1189,8 +1190,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
     private long countQuery(
             final NamedParameterJdbcTemplate jdbcTemplate,
             final SubSelect query,
-            final Collection<ID> instanceIds,
-            final Collection<ID> parentIds,
+            final Collection<Serializable> instanceIds,
+            final Collection<Serializable> parentIds,
             final Map<String, Object> queryParameters) {
 
         return runQuery(jdbcTemplate,
@@ -1210,7 +1211,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                              final SubSelect query,
                              final SubSelect subSelect,
                              final List<EReference> referenceChain,
-                             final Map<Target, Map<ID, Payload>> results,
+                             final Map<Target, Map<Serializable, Payload>> results,
                              final Map<String, Object> mask,
                              final Map<String, Object> queryParameters,
                              final Stack<SubSelect> subSelectStack) {
@@ -1232,7 +1233,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 .filter(t -> Objects.equals(t.getNode(), subSelect.getContainer()))
                 .findAny();
         if (subTarget.isPresent()) {
-            final Set<ID> ids = results.get(subTarget.get()).keySet();
+            final Set<Serializable> ids = results.get(subTarget.get()).keySet();
             if (!ids.isEmpty()) {
                 if (ids.size() == 1 ||
                         (Objects.equals(subSelect.getBase(), query.getSelect()) ||
@@ -1240,7 +1241,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                 subSelect.getLimit() == null) {
                     executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, ids, mask, queryParameters, subSelectStack);
                 } else {
-                    for (ID id : ids) {
+                    for (Serializable id : ids) {
                         executeSubQuery(jdbcTemplate, query, subSelect, newReferenceChain, results, Collections.singleton(id), mask, queryParameters, subSelectStack);
                     }
                 }
@@ -1255,8 +1256,8 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                                  final SubSelect query,
                                  final SubSelect subSelect,
                                  final List<EReference> newReferenceChain,
-                                 final Map<Target, Map<ID, Payload>> results,
-                                 final Collection<ID> ids,
+                                 final Map<Target, Map<Serializable, Payload>> results,
+                                 final Collection<Serializable> ids,
                                  final Map<String, Object> mask,
                                  final Map<String, Object> queryParameters,
                                  final Stack<SubSelect> subSelectStack) {
@@ -1265,7 +1266,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
 
         // map storing subquery results, it will be filled by recursive call
-        final Map<Target, Map<ID, Payload>> subQueryResults =
+        final Map<Target, Map<Serializable, Payload>> subQueryResults =
                  runQuery(jdbcTemplate, subSelect, false, null, ids, newReferenceChain, null, false, mask, queryParameters, false, subSelectStack)
                         .getResultSet();
 
@@ -1283,7 +1284,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
         }
 
         for (Payload subQueryRecord : subQueryResults.get(subQueryTarget).values()) {
-            final Collection<ID> parentIds = (Collection<ID>) subQueryRecord.get(subParentKey);
+            final Collection<Serializable> parentIds = (Collection<Serializable>) subQueryRecord.get(subParentKey);
             if (log.isTraceEnabled()) {
                 log.trace("    - parent IDs: {}", parentIds);
             }
@@ -1292,7 +1293,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
             final Collection<Payload> containers = new ArrayList<>();
             if (parentIds.isEmpty()) {
                 checkArgument(ids.size() == 1, "Parent IDs must be single");
-                final ID id = ids.iterator().next();
+                final Serializable id = ids.iterator().next();
                 if (log.isTraceEnabled()) {
                     log.trace("      - (parent) ID: {}", id);
                 }
@@ -1302,7 +1303,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                 }
                 checkArgument(results.containsKey(target), "No target found in results");
 
-                final Map<ID, Payload> targetResult = results.get(target);
+                final Map<Serializable, Payload> targetResult = results.get(target);
                 if (targetResult.containsKey(id)) {
                     containers.add(targetResult.get(id));
                 } else {
@@ -1318,7 +1319,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                     }
                 }
             } else {
-                for (ID parentId : parentIds) {
+                for (Serializable parentId : parentIds) {
                     if (log.isTraceEnabled()) {
                         log.trace("      - parent ID: {}", parentId);
                     }
@@ -1328,7 +1329,7 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
                         }
                         checkArgument(results.containsKey(target), "No target found in results");
 
-                        final Map<ID, Payload> targetResult = results.get(target);
+                        final Map<Serializable, Payload> targetResult = results.get(target);
                         String classifierFQName = AsmUtils.getClassifierFQName(target.getType());
                         if (targetResult.containsKey(parentId)) {
                             Payload payload = targetResult.get(parentId);
@@ -1392,10 +1393,10 @@ public class SelectStatementExecutor<ID> extends StatementExecutor<ID> {
 
     @Builder
     @ToString
-    private static class Chunk<ID> {
+    private static class Chunk {
 
-        Collection<ID> parentIds;
+        Collection<Serializable> parentIds;
 
-        Collection<ID> instanceIds;
+        Collection<Serializable> instanceIds;
     }
 }

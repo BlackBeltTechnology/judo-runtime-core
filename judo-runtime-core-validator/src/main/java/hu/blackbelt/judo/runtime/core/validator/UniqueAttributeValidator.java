@@ -35,6 +35,7 @@ import org.eclipse.emf.ecore.EEnum;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EStructuralFeature;
 
+import java.io.Serializable;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -45,24 +46,24 @@ import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.G
 import static hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator.LOCATION_KEY;
 
 @Slf4j
-public class UniqueAttributeValidator<ID> implements Validator {
+public class UniqueAttributeValidator implements Validator {
 
     public static final String THIS_NAME = "this";
     public static final String UNIQUE_ATTRIBUTE_VALIDATOR_CONTEXT = "uniqueAttributeValidatorContext";
 
     @NonNull
-    private final DAO<ID> dao;
+    private final DAO dao;
 
     @NonNull
     private final AsmUtils asmUtils;
 
     @NonNull
-    private final IdentifierProvider<ID> identifierProvider;
+    private final IdentifierProvider identifierProvider;
 
     @NonNull
     Context context;
 
-    public UniqueAttributeValidator(@NonNull DAO<ID> dao, @NonNull AsmModel asmModel, @NonNull IdentifierProvider<ID> identifierProvider, @NonNull Context context) {
+    public UniqueAttributeValidator(@NonNull DAO dao, @NonNull AsmModel asmModel, @NonNull IdentifierProvider identifierProvider, @NonNull Context context) {
         this.dao = dao;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.identifierProvider = identifierProvider;
@@ -98,7 +99,7 @@ public class UniqueAttributeValidator<ID> implements Validator {
         }
 
         final EAttribute mappedAttribute = asmUtils.getMappedAttribute((EAttribute) feature).get();
-        final ID originalId = instance.getAs(identifierProvider.getType(), identifierProvider.getName());
+        final Serializable originalId = instance.getAs(identifierProvider.getType(), identifierProvider.getName());
 
         // When the attribute have to be inserted, heck the current value already presented in the insertable values
         // If not present, insert it.
@@ -121,7 +122,7 @@ public class UniqueAttributeValidator<ID> implements Validator {
 
         // Check in the persisted values
         final String filter = convertFilterToJql(mappedAttribute, value);
-        final List<Payload> queryResult = dao.search(feature.getEContainingClass(), DAO.QueryCustomizer.<ID>builder()
+        final List<Payload> queryResult = dao.search(feature.getEContainingClass(), DAO.QueryCustomizer.builder()
                 .filter(filter)
                 .mask(ImmutableMap.of(mappedAttribute.getName(), true))
                 .seek(DAO.Seek.builder()
@@ -130,7 +131,7 @@ public class UniqueAttributeValidator<ID> implements Validator {
                 .build());
 
         if (queryResult.size() > 0) {
-            Set<ID> sameValuesIds = queryResult.stream()
+            Set<Serializable> sameValuesIds = queryResult.stream()
                     .map(i -> i.getAs(identifierProvider.getType(), identifierProvider.getName()))
                     .collect(Collectors.toSet());
 

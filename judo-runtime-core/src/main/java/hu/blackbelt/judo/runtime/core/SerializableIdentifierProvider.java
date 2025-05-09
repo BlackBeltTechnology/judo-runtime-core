@@ -1,4 +1,4 @@
-package hu.blackbelt.judo.runtime.core.dao.core.values;
+package hu.blackbelt.judo.runtime.core;
 
 /*-
  * #%L
@@ -20,19 +20,25 @@ package hu.blackbelt.judo.runtime.core.dao.core.values;
  * #L%
  */
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.ToString;
+import hu.blackbelt.judo.dao.api.IdentifierProvider;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.UUID;
 
-@Getter
-@Builder(builderMethodName = "buildMetadata")
-@ToString
-public class Metadata {
+public class SerializableIdentifierProvider implements IdentifierProvider {
 
-    Serializable userId;
-    String username;
-    LocalDateTime timestamp;
+    @Override
+    public Serializable get() {
+        return UUID.randomUUID();
+    }
+
+    @Override
+    public Class<Serializable> getType() {
+        return Serializable.class;
+    }
+
+    @Override
+    public String getName() {
+        return "__identifier";
+    }
 }

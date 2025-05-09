@@ -22,21 +22,22 @@ package hu.blackbelt.judo.runtime.core.dao.core.collectors;
 
 import lombok.NonNull;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 
 @lombok.Getter
 @lombok.Builder
-public class InstanceGraph<ID> {
+public class InstanceGraph {
 
     @NonNull
-    private ID id;
+    private Serializable id;
 
-    private final Collection<InstanceReference<ID>> containments = new ArrayList<>();
+    private final Collection<InstanceReference> containments = new ArrayList<>();
 
-    private final Collection<InstanceReference<ID>> references = new ArrayList<>();
+    private final Collection<InstanceReference> references = new ArrayList<>();
 
-    private final Collection<InstanceReference<ID>> backReferences = new ArrayList<>();
+    private final Collection<InstanceReference> backReferences = new ArrayList<>();
 
     @Override
     public String toString() {

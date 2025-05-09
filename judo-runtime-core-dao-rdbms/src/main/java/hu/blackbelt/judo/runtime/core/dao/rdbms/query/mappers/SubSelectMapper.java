@@ -33,14 +33,14 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 @RequiredArgsConstructor
-public class SubSelectMapper<ID> extends RdbmsMapper<SubSelect> {
+public class SubSelectMapper extends RdbmsMapper<SubSelect> {
 
     @Override
-    public Stream<RdbmsResultSet<ID>> map(final SubSelect subSelect, RdbmsBuilderContext builderContext) {
+    public Stream<RdbmsResultSet> map(final SubSelect subSelect, RdbmsBuilderContext builderContext) {
         final Object container = subSelect.eContainer();
         final boolean withoutFeatures = container instanceof Filter || container instanceof OrderBy || subSelect.getSelect().isAggregated();
         return Collections.singleton(
-                RdbmsResultSet.<ID>builder()
+                RdbmsResultSet.builder()
                         .query(subSelect)
                         .builderContext(builderContext)
                         .withoutFeatures(withoutFeatures)

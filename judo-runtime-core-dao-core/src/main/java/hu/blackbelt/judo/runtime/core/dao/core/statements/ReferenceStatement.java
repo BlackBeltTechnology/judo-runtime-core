@@ -27,18 +27,20 @@ import lombok.NonNull;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
 
+import java.io.Serializable;
+
 @Getter
-public abstract class ReferenceStatement<ID> extends Statement<ID> {
+public abstract class ReferenceStatement extends Statement {
 
     @NonNull
-    ID identifier;
+    Serializable identifier;
 
     @NonNull
     EReference reference;
 
-    public ReferenceStatement(EClass type, EReference reference, ID identifier, ID referenceIdentifier) {
+    public ReferenceStatement(EClass type, EReference reference, Serializable identifier, Serializable referenceIdentifier) {
         super(InstanceValue
-                        .<ID>buildInstanceValue()
+                        .buildInstanceValue()
                             .type(type)
                             .identifier(referenceIdentifier)
                             .build());
