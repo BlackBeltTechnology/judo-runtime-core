@@ -84,6 +84,15 @@ public abstract class AbstractRdbmsDAO implements DAO {
     }
 
     @Override
+    public Payload getDefaultsOf(EClass clazz, boolean includeNonEmbeddedAssociations) {
+        try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
+            Payload result = readDefaultsOf(clazz, includeNonEmbeddedAssociations);
+            logResult(result);
+            return result;
+        }
+    }
+
+    @Override
     public void applyDefaultsOf(EClass clazz, Payload payload) {
         try (MetricsCancelToken ct = getMetricsCollector().start(METRICS_DAO_QUERY)) {
             applyDeepDefaultsOf(clazz, payload);
@@ -636,6 +645,8 @@ public abstract class AbstractRdbmsDAO implements DAO {
     protected abstract void removeReferencesOfInstance(EReference mappedReference, Serializable id, Collection<Serializable> identifiersToRemove) throws SQLException;
 
     protected abstract Payload readDefaultsOf(EClass clazz);
+
+    protected abstract Payload readDefaultsOf(EClass clazz, boolean includeNonEmbeddedAssociations);
 
     protected abstract void applyDeepDefaultsOf(EClass clazz, Payload payload);
     

@@ -668,6 +668,11 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
 
     @Override
     protected Payload readDefaultsOf(EClass clazz) {
+        return readDefaultsOf(clazz, true);
+    }
+
+    @Override
+    protected Payload readDefaultsOf(EClass clazz, boolean includeNonEmbeddedAssociations) {
         Payload template = Payload.empty();
         AsmUtils asmUtils = new AsmUtils(asmModel.getResourceSet());
 
@@ -684,7 +689,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
         }
 
         // in case a composition has default value, it might cause problems
-        List<EReference> references = clazz.getEAllReferences().stream().filter(r -> r.isChangeable() && !r.isDerived()).toList();
+        List<EReference> references = clazz.getEAllReferences().stream().filter(r -> includeNonEmbeddedAssociations || AsmUtils.isEmbedded(r)).filter(r -> r.isChangeable() && !r.isDerived()).toList();
         for (EReference reference : references) {
             String defaultReferenceName = AsmUtils.getExtensionAnnotationValue(reference, "default", false).orElse(null);
             if (defaultReferenceName != null) {
@@ -720,10 +725,10 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
                                  .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
                                  .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
             template.putAll(clazz.getEAllReferences().stream()
-                                 .filter(r -> !template.containsKey(r.getName()) && asmUtils.getMappedReference(r).isPresent())
-                                 .collect(Collectors.toMap(identity(), r -> asmUtils.getMappedReference(r).get())).entrySet().stream()
-                                 .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
-                                 .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
+                    .filter(r -> !template.containsKey(r.getName()) && asmUtils.getMappedReference(r).isPresent() && (includeNonEmbeddedAssociations || AsmUtils.isEmbedded(r)))
+                    .collect(Collectors.toMap(identity(), r -> asmUtils.getMappedReference(r).get())).entrySet().stream()
+                    .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
+                    .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
         }
 
         return template;
