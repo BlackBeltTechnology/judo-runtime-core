@@ -86,6 +86,11 @@ public class UserManagedWrappedDao implements DAO {
     }
 
     @Override
+    public Payload getDefaultsOf(EClass clazz, boolean includeNonEmbeddedAssociations) {
+        return delegatee.getDefaultsOf(clazz, includeNonEmbeddedAssociations);
+    }
+
+    @Override
     public void applyDefaultsOf(EClass clazz, Payload payload) {
         delegatee.applyDefaultsOf(clazz, payload);
     }

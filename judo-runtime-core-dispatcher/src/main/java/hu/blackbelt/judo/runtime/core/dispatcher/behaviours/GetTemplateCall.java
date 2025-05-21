@@ -58,8 +58,7 @@ public class GetTemplateCall implements BehaviourCall {
 
         Payload result;
         if (callInterceptorUtil.shouldCallOriginal()) {
-            result = Payload.empty();
-            serviceContext.getDao().applyDefaultsOf(inputParameter.getOwner(), result);
+            result = serviceContext.getDao().getDefaultsOf(inputParameter.getOwner(), false);
         } else {
             result = null;
         }
