@@ -720,10 +720,10 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
             // and add them to the template if they are not already present
             Payload entityTypeDefaults = readDefaultsOf(defaultTransferObjectType.get());
             template.putAll(clazz.getEAllAttributes().stream()
-                                 .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
-                                 .collect(Collectors.toMap(identity(), a -> asmUtils.getMappedAttribute(a).get())).entrySet().stream()
-                                 .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
-                                 .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
+                    .filter(a -> !template.containsKey(a.getName()) && asmUtils.getMappedAttribute(a).isPresent())
+                    .collect(Collectors.toMap(identity(), a -> asmUtils.getMappedAttribute(a).get())).entrySet().stream()
+                    .filter(e -> entityTypeDefaults.get(e.getValue().getName()) != null && !AsmUtils.annotatedAsTrue(e.getValue(), "unmappedDefaultOnly"))
+                    .collect(Collectors.toMap(e -> e.getKey().getName(), e -> entityTypeDefaults.get(e.getValue().getName()))));
             template.putAll(clazz.getEAllReferences().stream()
                     .filter(r -> !template.containsKey(r.getName()) && asmUtils.getMappedReference(r).isPresent() && (includeNonEmbeddedAssociations || AsmUtils.isEmbedded(r)))
                     .collect(Collectors.toMap(identity(), r -> asmUtils.getMappedReference(r).get())).entrySet().stream()
