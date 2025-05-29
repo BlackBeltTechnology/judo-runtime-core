@@ -41,8 +41,10 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
+import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.getReferenceFQName;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 
@@ -159,22 +161,15 @@ public class InsertPayloadDaoProcessor extends PayloadDaoProcessor {
                                 getTransferObjectValueAsEntityValueFromPayload(payload, a.getKey(), a.getValue()))
         );
 
+        // check compositions has no identifier in their payload ()
         references.stream()
                 .filter(r -> getAsmUtils().getMappedReference(r).isPresent()
-                        && getAsmUtils().getMappedReference(r).orElseThrow().isContainment()
+                        && getAsmUtils().getMappedReference(r).get().isContainment()
                         && payload.containsKey(r.getName())
                         && payload.get(r.getName()) != null)
                 .collect(toReferencePayloadMapOfPayloadCollection(payload))
-                .entrySet().stream()
-                .forEach(entry -> entry.getValue().stream()
-                        .forEach( payloadStm -> {
-                                    if (payloadStm.get(getIdentifierProvider().getName()) != null) {
-                                        payloadStm.remove(getIdentifierProvider().getName());
-                                        payloadStm.remove(ENTITY_TYPE_KEY);
-                                        payloadStm.remove(VERSION);
-                                    }
-                                }
-                        )
+                .forEach((key, value) -> value.forEach(p ->
+                        checkState(p.get(getIdentifierProvider().getName()) == null, "Identifier cannot be set on new composition reference element: %s Payload: %s", getReferenceFQName(key), p))
                 );
 
         // Get default values of entity type
