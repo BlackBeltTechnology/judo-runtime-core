@@ -223,37 +223,6 @@ public class UpdatePayloadDaoProcessor extends PayloadDaoProcessor {
         }
 
         references.stream().forEach(currentReference -> {
-                if (updatePayloadCleaned.get(currentReference.getName()) != null
-                        && getAsmUtils().getMappedReference(currentReference).isPresent()
-                        && getAsmUtils().getMappedReference(currentReference).orElseThrow().isContainment()) {
-                    Collection<Payload> originalContainmentPayload = new ArrayList<>();
-                    Collection<Payload> updateContainmentPayload = new ArrayList<>();
-
-                    if (isCollection.test(currentReference)) {
-                        if (originalPayload.get(currentReference.getName()) != null) {
-                            originalContainmentPayload = originalPayload.getAsCollectionPayload(currentReference.getName());
-                        }
-                        updateContainmentPayload = updatePayloadCleaned.getAsCollectionPayload(currentReference.getName());
-                    } else {
-                        if (originalPayload.get(currentReference.getName()) != null) {
-                            originalContainmentPayload = ImmutableList.of(originalPayload.getAsPayload(currentReference.getName()));
-                        }
-                        updateContainmentPayload = ImmutableList.of(updatePayloadCleaned.getAsPayload(currentReference.getName()));
-                    }
-
-                    if (originalContainmentPayload.stream().allMatch(p -> p.get(getIdentifierProvider().getName()) == null)
-                    && updateContainmentPayload.stream().anyMatch(p -> p.get(getIdentifierProvider().getName()) != null)) {
-                        updateContainmentPayload.stream()
-                                .forEach(p -> {
-                                    if (p.get(getIdentifierProvider().getName()) != null) {
-                                        p.remove(getIdentifierProvider().getName());
-                                        p.remove(ENTITY_TYPE_KEY);
-                                        p.remove(VERSION);
-                                    }
-                                });
-                    }
-                }
-
                 if (currentReference.getUpperBound() == 1) {
                             mergePayloads(currentReference,
                                     instanceGraph,
@@ -411,8 +380,7 @@ public class UpdatePayloadDaoProcessor extends PayloadDaoProcessor {
                                 parentInstanceGraph.getId(), false
                         ));
             } else if (updateIdentifier != null && originalIdentifier == null) {
-                checkState(!isContainment, "Identifier cannot be set on new composition reference element: " +
-                        getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
+                checkState(!isContainment, "Existing reference element cannot be set as a composition: " + getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
                 // ADD NEW REFERENCE
                 statements.addAll(
                         addReferencePayloadDaoProcessor.addReference(
