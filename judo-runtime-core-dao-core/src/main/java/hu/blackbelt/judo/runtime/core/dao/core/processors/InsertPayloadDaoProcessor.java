@@ -169,7 +169,7 @@ public class InsertPayloadDaoProcessor extends PayloadDaoProcessor {
                         && payload.get(r.getName()) != null)
                 .collect(toReferencePayloadMapOfPayloadCollection(payload))
                 .forEach((key, value) -> value.forEach(p ->
-                        checkState(p.get(getIdentifierProvider().getName()) == null, "Identifier cannot be set on new composition reference element: %s Payload: %s", getReferenceFQName(key), p))
+                        checkState(p.get(getIdentifierProvider().getName()) == null, "Existing reference element cannot be set as a composition: %s Payload: %s", getReferenceFQName(key), p))
                 );
 
         // Get default values of entity type

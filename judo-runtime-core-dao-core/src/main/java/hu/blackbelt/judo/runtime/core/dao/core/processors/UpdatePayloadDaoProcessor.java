@@ -380,7 +380,7 @@ public class UpdatePayloadDaoProcessor extends PayloadDaoProcessor {
                                 parentInstanceGraph.getId(), false
                         ));
             } else if (updateIdentifier != null && originalIdentifier == null) {
-                checkState(!isContainment, "Identifier cannot be set on new composition reference element: " + getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
+                checkState(!isContainment, "Existing reference element cannot be set as a composition: " + getReferenceFQName(mappedReference) + " Payload: " + updatePayload);
                 // ADD NEW REFERENCE
                 statements.addAll(
                         addReferencePayloadDaoProcessor.addReference(
