@@ -51,28 +51,28 @@
         <resilience4j-version>2.0.2</resilience4j-version>
         <antlr4-version>4.5.1-1</antlr4-version>
 
-        <epsilon-runtime-version>2.8.0.20250601_204925_56fd7ee5_feature_JNG_6310_UpdateEpsilon</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.4.20250601_205245_92329438_feature_JNG_6310_UpdateEpsilon</judo-tatami-core-version>
+        <epsilon-runtime-version>2.8.0.20250604_120800_93ab722e_feature_JNG_6310_UpdateEpsilon</epsilon-runtime-version>
+        <judo-tatami-core-version>1.1.4.20250604_124343_c00f0575_feature_JNG_6310_UpdateEpsilon</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.2.20250602_090735_ecef9ef1_feature_JNG_6310_UpdateEpsilon</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.4.20250602_090702_148f6b2e_feature_JNG_6310_UpdateEpsilon</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20250602_091457_09e1d468_feature_JNG_6310_UpdateEpsilon</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.5.20250602_091833_c7498b26_feature_JNG_6310_UpdateEpsilon</judo-meta-expression-asm-version>
-        <judo-meta-measure-version>1.0.2.20250602_090652_b12c43f7_feature_JNG_6310_UpdateEpsilon</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20250602_090720_32838559_feature_JNG_6310_UpdateEpsilon</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.3.20250602_090658_14c2909f_feature_JNG_6310_UpdateEpsilon</judo-meta-query-version>
-        <judo-meta-keycloak-version>1.0.1.20250602_091119_f87c1ee1_feature_JNG_6310_UpdateEpsilon</judo-meta-keycloak-version>
+        <judo-meta-rdbms-version>1.0.2.20250604_124550_44715f68_feature_JNG_6310_UpdateEpsilon</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.4.20250604_124537_4f9b0b09_feature_JNG_6310_UpdateEpsilon</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5.20250604_124912_e331eaf4_feature_JNG_6310_UpdateEpsilon</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.5.20250604_125217_fb271861_feature_JNG_6310_UpdateEpsilon</judo-meta-expression-asm-version>
+        <judo-meta-measure-version>1.0.2.20250604_124622_fab5952e_feature_JNG_6310_UpdateEpsilon</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2.20250604_124544_6f8ca331_feature_JNG_6310_UpdateEpsilon</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.3.20250604_124543_8721cd57_feature_JNG_6310_UpdateEpsilon</judo-meta-query-version>
+        <judo-meta-keycloak-version>1.0.1.20250604_133809_03e01f88_feature_JNG_6310_UpdateEpsilon</judo-meta-keycloak-version>
 
-        <judo-dao-api-version>1.0.4.20250601_195940_6f6f2f06_feature_JNG_6310_UpdateEpsilon</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20250602_091354_e9089c56_feature_JNG_6310_UpdateEpsilon</judo-sdk-common-version>
-        <judo-dispatcher-api-version>1.0.3.20250601_195954_884c8770_feature_JNG_6310_UpdateEpsilon</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.3.20250602_091349_470a5ac0_feature_JNG_6310_UpdateEpsilon</judo-operation-utils-version>
+        <judo-dao-api-version>1.0.4.20250604_005315_768f80d4_feature_JNG_6310_UpdateEpsilon</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4.20250604_125035_76fe3499_feature_JNG_6310_UpdateEpsilon</judo-sdk-common-version>
+        <judo-dispatcher-api-version>1.0.3.20250604_005327_6d1e7640_feature_JNG_6310_UpdateEpsilon</judo-dispatcher-api-version>
+        <judo-operation-utils-version>1.1.3.20250604_125037_50df9c88_feature_JNG_6310_UpdateEpsilon</judo-operation-utils-version>
 
-        <judo-tatami-base-version>1.1.6.20250602_113350_f8965406_feature_JNG_6310_UpdateEpsilon</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20250604_134650_0e063e43_feature_JNG_6310_UpdateEpsilon</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20250601_200104_3c6205ff_feature_JNG_6310_UpdateEpsilon</mapper-version>
-        <osgi-filestore-version>1.3.1.20250601_215702_40b1c29c_feature_JNG_6310_UpdateEpsilon</osgi-filestore-version>
+        <osgi-filestore-version>1.3.1.20250604_081358_b1d783de_feature_JNG_6310_UpdateEpsilon</osgi-filestore-version>
 
         <!-- Code Quality-->
         <sonar-maven-plugin-version>3.9.1.2184</sonar-maven-plugin-version>
@@ -450,7 +450,7 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers</artifactId>
-                <version>1.20.4</version>
+                <version>1.21.1</version>
                 <scope>test</scope>
             </dependency>
 
@@ -464,14 +464,14 @@
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>junit-jupiter</artifactId>
-                <version>1.20.4</version>
+                <version>1.21.1</version>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>1.20.4</version>
+                <version>1.21.1</version>
                 <scope>test</scope>
             </dependency>
 
@@ -836,7 +836,7 @@
                     <plugin>
                         <groupId>org.simplify4u.plugins</groupId>
                         <artifactId>sign-maven-plugin</artifactId>
-                        <version>1.0.1</version>
+                        <version>1.1.0</version>
                         <executions>
                             <execution>
                                 <goals>
