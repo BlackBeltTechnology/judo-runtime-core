@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql;
 
+import com.google.inject.BindingAnnotation;
 import com.google.inject.name.Names;
 
 import javax.inject.Qualifier;
@@ -13,26 +14,31 @@ public class PostgresqlConfiguration {
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface PostgresqlPort {}
 
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface PostgresqlHost {}
 
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface PostgresqlUser {}
 
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface PostgresqlPassword {}
 
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface PostgresqlDatabaseName {}
 
 }
