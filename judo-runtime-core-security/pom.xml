@@ -42,7 +42,6 @@
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.asm.model</artifactId>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo</groupId>

@@ -21,14 +21,14 @@
         <maven.build.timestamp.format>yyyyMMddHHmmss</maven.build.timestamp.format>
         <src.dir>src/main</src.dir>
 
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <surefire-version>3.5.1</surefire-version>
         <slf4j-version>2.0.16</slf4j-version>
         <!--suppress UnresolvedMavenProperty -->
         <logback-test-config>${maven.multiModuleProjectDirectory}/logback-test.xml</logback-test-config>
         <logback-version>1.5.12</logback-version>
-        <lombok-version>1.18.34</lombok-version>
+        <lombok-version>1.18.38</lombok-version>
 
         <osgi-default-import>
             org.osgi.framework;version="[1.8,2.0)",
@@ -43,32 +43,36 @@
 
         <jose4j-version>0.7.2</jose4j-version>
         <jackson-version>2.17.2</jackson-version>
-        <spring-version>4.3.12.RELEASE</spring-version>
+        <spring-version>6.2.7</spring-version>
+        <springboot-version>3.5.0</springboot-version>
         <cxf-version>3.6.2</cxf-version>
         <cxf-jetty-version>10.0.24</cxf-jetty-version>
+        <keycloak-adapter-version>17.0.1</keycloak-adapter-version>
+        <resilience4j-version>2.0.2</resilience4j-version>
+        <antlr4-version>4.5.1-1</antlr4-version>
 
-        <epsilon-runtime-version>1.5.1.20250220_144839_7dae83fe_develop</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.4.20250221_041410_af676eb7_develop</judo-tatami-core-version>
+        <epsilon-runtime-version>2.8.0.20250604_211612_b4253e0f_feature_JNG_6310_UpdateEpsilon</epsilon-runtime-version>
+        <judo-tatami-core-version>1.1.4.20250605_174420_77230eba_feature_JNG_6310_UpdateEpsilon</judo-tatami-core-version>
 
         <!-- Model versions -->
-        <judo-meta-rdbms-version>1.0.2.20250222_040702_8ea8a157_develop</judo-meta-rdbms-version>
-        <judo-meta-asm-version>1.1.4.20250224_090702_f96624c2_develop</judo-meta-asm-version>
-        <judo-meta-expression-version>1.0.5.20250222_041137_c751bf6e_develop</judo-meta-expression-version>
-        <judo-meta-expression-asm-version>1.0.5.20250225_041316_163ba3b5_develop</judo-meta-expression-asm-version>
-        <judo-meta-measure-version>1.0.2.20250222_040644_be0843f8_develop</judo-meta-measure-version>
-        <judo-meta-liquibase-version>1.0.2.20250222_040917_9666758e_develop</judo-meta-liquibase-version>
-        <judo-meta-query-version>1.0.3.20250222_040643_5af3bedb_develop</judo-meta-query-version>
-        <judo-meta-keycloak-version>1.0.1.20250602_042222_8bcc6f26_develop</judo-meta-keycloak-version>
+        <judo-meta-rdbms-version>1.0.2.20250605_174903_11d6023e_feature_JNG_6310_UpdateEpsilon</judo-meta-rdbms-version>
+        <judo-meta-asm-version>1.1.4.20250605_174926_12ee9fa4_feature_JNG_6310_UpdateEpsilon</judo-meta-asm-version>
+        <judo-meta-expression-version>1.0.5.20250605_175521_9e559cd2_feature_JNG_6310_UpdateEpsilon</judo-meta-expression-version>
+        <judo-meta-expression-asm-version>1.0.5.20250605_175940_a61d364b_feature_JNG_6310_UpdateEpsilon</judo-meta-expression-asm-version>
+        <judo-meta-measure-version>1.0.2.20250605_174947_2b53f72d_feature_JNG_6310_UpdateEpsilon</judo-meta-measure-version>
+        <judo-meta-liquibase-version>1.0.2.20250605_174854_fa5988aa_feature_JNG_6310_UpdateEpsilon</judo-meta-liquibase-version>
+        <judo-meta-query-version>1.0.3.20250605_174901_41bcbbd6_feature_JNG_6310_UpdateEpsilon</judo-meta-query-version>
+        <judo-meta-keycloak-version>1.0.1.20250605_175027_f61519cc_feature_JNG_6310_UpdateEpsilon</judo-meta-keycloak-version>
 
-        <judo-dao-api-version>1.0.4.20250521_140838_63edcd65_develop</judo-dao-api-version>
-        <judo-sdk-common-version>1.0.4.20250522_041720_81294039_develop</judo-sdk-common-version>
-        <judo-dispatcher-api-version>1.0.3.20241127_150146_84f2988d_develop</judo-dispatcher-api-version>
-        <judo-operation-utils-version>1.1.3.20250522_041728_58ece43b_develop</judo-operation-utils-version>
+        <judo-dao-api-version>1.0.4.20250604_005315_768f80d4_feature_JNG_6310_UpdateEpsilon</judo-dao-api-version>
+        <judo-sdk-common-version>1.0.4.20250605_175505_e840aacc_feature_JNG_6310_UpdateEpsilon</judo-sdk-common-version>
+        <judo-dispatcher-api-version>1.0.3.20250604_005327_6d1e7640_feature_JNG_6310_UpdateEpsilon</judo-dispatcher-api-version>
+        <judo-operation-utils-version>1.1.3.20250605_175458_03cf9f22_feature_JNG_6310_UpdateEpsilon</judo-operation-utils-version>
 
-        <judo-tatami-base-version>1.1.6.20250602_042615_c1d68575_develop</judo-tatami-base-version>
+        <judo-tatami-base-version>1.1.6.20250605_180213_cef246d0_feature_JNG_6310_UpdateEpsilon</judo-tatami-base-version>
 
-        <mapper-version>1.0.4.20250222_004041_d68cebb5_develop</mapper-version>
-        <osgi-filestore-version>1.3.1.20250222_040635_e3680135_develop</osgi-filestore-version>
+        <mapper-version>1.0.4.20250604_152109_83ff9835_feature_JNG_6310_UpdateEpsilon</mapper-version>
+        <osgi-filestore-version>1.3.1.20250605_174416_14322f80_feature_JNG_6310_UpdateEpsilon</osgi-filestore-version>
 
         <!-- Code Quality-->
         <sonar-maven-plugin-version>3.9.1.2184</sonar-maven-plugin-version>
@@ -393,23 +397,338 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson.jaxrs</groupId>
+                <artifactId>jackson-jaxrs-json-provider</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-jaxb-annotations</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr310</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.module</groupId>
+                <artifactId>jackson-module-parameter-names</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jdk8</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-guava</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-joda</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.datatype</groupId>
+                <artifactId>jackson-datatype-jsr353</artifactId>
+                <version>${jackson-version}</version>
+                <optional>true</optional>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>1.21.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.github.dasniko</groupId>
+                <artifactId>testcontainers-keycloak</artifactId>
+                <version>3.5.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>1.21.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>1.21.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>42.7.4</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.zaxxer</groupId>
+                <artifactId>HikariCP</artifactId>
+                <version>5.0.0</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.atomikos</groupId>
+                <artifactId>transactions-jdbc</artifactId>
+                <version>5.0.9</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-core</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-rt-transports-http</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-rt-frontend-jaxrs</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-rt-rs-client</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-rt-features-logging</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-rt-features-metrics</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <!--JETTY-->
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-server</artifactId>
+                <version>${cxf-jetty-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-webapp</artifactId>
+                <version>${cxf-jetty-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-io</artifactId>
+                <version>${cxf-jetty-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-util</artifactId>
+                <version>${cxf-jetty-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>${cxf-jetty-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-rt-rs-security-cors</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.cxf</groupId>
+                <artifactId>cxf-rt-rs-service-description</artifactId>
+                <version>${cxf-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jool-java-8</artifactId>
+                <version>0.9.13</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.liquibase</groupId>
+                <artifactId>liquibase-core</artifactId>
+                <version>4.9.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hsqldb</groupId>
+                <artifactId>hsqldb</artifactId>
+                <version>2.6.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.transaction</groupId>
+                <artifactId>javax.transaction-api</artifactId>
+                <version>1.2</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>jakarta.ws.rs</groupId>
+                <artifactId>jakarta.ws.rs-api</artifactId>
+                <version>2.1.6</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr4-version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jxls</groupId>
+                <artifactId>jxls</artifactId>
+                <version>2.10.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jxls</groupId>
+                <artifactId>jxls-poi</artifactId>
+                <version>2.10.0</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.reflections</groupId>
+                <artifactId>reflections</artifactId>
+                <version>0.10.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-core</artifactId>
+                <version>${resilience4j-version}</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-retry</artifactId>
+                <version>${resilience4j-version}</version>
+                <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-adapter-core</artifactId>
+                <version>${keycloak-adapter-version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-common</artifactId>
+                <version>${keycloak-adapter-version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.keycloak</groupId>
+                <artifactId>keycloak-core</artifactId>
+                <version>${keycloak-adapter-version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-autoconfigure</artifactId>
+                <version>${springboot-version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-context</artifactId>
+                <version>${spring-version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-context-support</artifactId>
+                <version>${spring-version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-web</artifactId>
+                <version>${spring-version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>4.8.0</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-junit-jupiter</artifactId>
+                <version>4.8.0</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest</artifactId>
+                <version>2.2</version>
+                <scope>test</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
     <dependencies>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j-version}</version>
-            <scope>provided</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.slf4j</groupId>-->
+<!--            <artifactId>slf4j-api</artifactId>-->
+<!--            <version>${slf4j-version}</version>-->
+<!--            <scope>provided</scope>-->
+<!--        </dependency>-->
 
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback-version}</version>
-            <scope>provided</scope>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>ch.qos.logback</groupId>-->
+<!--            <artifactId>logback-classic</artifactId>-->
+<!--            <version>${logback-version}</version>-->
+<!--            <scope>provided</scope>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>com.mattbertolini</groupId>
@@ -417,17 +736,17 @@
             <version>4.1.0</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <version>${slf4j-version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.slf4j</groupId>-->
+<!--            <artifactId>jul-to-slf4j</artifactId>-->
+<!--            <version>${slf4j-version}</version>-->
+<!--        </dependency>-->
 
-        <dependency>
-            <groupId>uk.org.lidalia</groupId>
-            <artifactId>sysout-over-slf4j</artifactId>
-            <version>1.0.2</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>uk.org.lidalia</groupId>-->
+<!--            <artifactId>sysout-over-slf4j</artifactId>-->
+<!--            <version>1.0.2</version>-->
+<!--        </dependency>-->
         
         <dependency>
             <groupId>hu.blackbelt.epsilon</groupId>
@@ -453,22 +772,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
             <groupId>com.jcabi</groupId>
             <artifactId>jcabi-log</artifactId>
             <version>0.22.0</version>
@@ -480,27 +783,6 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>3.1.0</version>
             <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest</artifactId>
-            <version>2.2</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>4.8.0</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <version>4.8.0</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -554,7 +836,7 @@
                     <plugin>
                         <groupId>org.simplify4u.plugins</groupId>
                         <artifactId>sign-maven-plugin</artifactId>
-                        <version>1.0.1</version>
+                        <version>1.1.0</version>
                         <executions>
                             <execution>
                                 <goals>
