@@ -130,8 +130,11 @@ public class KeycloakRealmSynchronizer {
         }
     }
 
+    private synchronized Collection<Realm> getRealms() {
+       return new KeycloakUtils(keycloakModel.getResourceSet()).all(Realm.class).toList();
+    }
     private Runnable synchronizeAllRealmsCall() {
-        return () -> new KeycloakUtils(keycloakModel.getResourceSet()).all(Realm.class).forEach(realm -> synchronizeRealm(realm, keycloakAdminClient.getListOfRealms()));
+        return () -> getRealms().forEach(realm -> synchronizeRealm(realm, keycloakAdminClient.getListOfRealms()));
     }
 
 
