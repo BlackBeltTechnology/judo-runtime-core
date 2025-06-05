@@ -61,8 +61,6 @@
         <dependency>
             <groupId>hu.blackbelt.judo.meta</groupId>
             <artifactId>hu.blackbelt.judo.meta.keycloak.model</artifactId>
-            <version>1.0.1.20231107_041549_6c01dfae_develop</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.runtime</groupId>
@@ -71,8 +69,6 @@
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-core</artifactId>
-            <version>${cxf-version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
@@ -82,20 +78,14 @@
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-adapter-core</artifactId>
-            <version>17.0.1</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-common</artifactId>
-            <version>17.0.1</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-core</artifactId>
-            <version>17.0.1</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

@@ -40,6 +40,8 @@ import org.eclipse.emf.ecore.EClass;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Slf4j
 public class KeycloakRealmSynchronizer {
@@ -67,6 +69,7 @@ public class KeycloakRealmSynchronizer {
 
     private RetryRegistry retryRegistry;
 
+    private ExecutorService customExecutor = Executors.newCachedThreadPool();
 
     @Builder
     public KeycloakRealmSynchronizer(
@@ -110,7 +113,7 @@ public class KeycloakRealmSynchronizer {
         RetryUtil.registerLogEventHandlers(retry);
 
         if (asyncServiceCall) {
-            CompletableFuture.runAsync(task).whenComplete((v, e) -> {
+            CompletableFuture.runAsync(task, customExecutor).whenComplete((v, e) -> {
                 if (e != null) {
                     log.error("Could not synchronize realms", e);
                 } else {
@@ -127,8 +130,11 @@ public class KeycloakRealmSynchronizer {
         }
     }
 
+    private synchronized Collection<Realm> getRealms() {
+       return new KeycloakUtils(keycloakModel.getResourceSet()).all(Realm.class).toList();
+    }
     private Runnable synchronizeAllRealmsCall() {
-        return () -> new KeycloakUtils(keycloakModel.getResourceSet()).all(Realm.class).forEach(realm -> synchronizeRealm(realm, keycloakAdminClient.getListOfRealms()));
+        return () -> getRealms().forEach(realm -> synchronizeRealm(realm, keycloakAdminClient.getListOfRealms()));
     }
 
 

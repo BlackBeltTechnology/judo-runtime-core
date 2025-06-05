@@ -39,8 +39,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.net.ServerSocket;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -94,8 +96,13 @@ class JudeKeycloakModuleTest {
         injector.getInstance(JettyContainer.class).stop();
     }
 
+
     @Test
-    public void test() {
+    public void testIdentityManagerBecomesReadyWithin5Seconds() {
+        Awaitility.await()
+                .atMost(5, TimeUnit.SECONDS)
+                .until(() -> userManager.isIdentityManagerReady());
+
         assertTrue(userManager.isIdentityManagerReady());
     }
 
