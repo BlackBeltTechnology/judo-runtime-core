@@ -77,6 +77,8 @@ public class KeycloakUserManager implements UserManager<String> {
     private Boolean retryExponentialBackoff = true;
     private Long retryWaitDuration = 1000L;
 
+    private ExecutorService customExecutor = Executors.newCachedThreadPool();
+
     private Collection<String> requiredActionsOnUserCreate;
 
     final EMap<EClass, Optional<Realm>> realmsOfActors = ECollections.asEMap(new ConcurrentHashMap<>());
@@ -187,7 +189,7 @@ public class KeycloakUserManager implements UserManager<String> {
                         RetryUtil.registerLogEventHandlers(retry);
 
                         if (asyncServiceCall) {
-                            CompletableFuture.runAsync(task).whenComplete((v, e) -> {
+                            CompletableFuture.runAsync(task, customExecutor).whenComplete((v, e) -> {
                                 if (e != null) {
                                     log.error("Could not create user: {} of realm: {}", username, realmName, e);
                                 }
@@ -232,7 +234,7 @@ public class KeycloakUserManager implements UserManager<String> {
                         RetryUtil.registerLogEventHandlers(retry);
 
                         if (asyncServiceCall) {
-                            CompletableFuture.runAsync(task).whenComplete((v, e) -> {
+                            CompletableFuture.runAsync(task, customExecutor).whenComplete((v, e) -> {
                                 if (e != null) {
                                     log.error("Could not update user: {} of realm: {}", username, realmName, e);
                                 }
@@ -323,7 +325,7 @@ public class KeycloakUserManager implements UserManager<String> {
                         RetryUtil.registerLogEventHandlers(retry);
 
                         if (asyncServiceCall) {
-                            CompletableFuture.runAsync(task).whenComplete((v, e) -> {
+                            CompletableFuture.runAsync(task, customExecutor).whenComplete((v, e) -> {
                                 if (e != null) {
                                     log.error("Could not create user: {} of realm: {}", username, realmName, e);
                                 }
