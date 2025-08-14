@@ -141,7 +141,7 @@ public class DefaultActorResolver implements ActorResolver {
                             && asmUtils.getMappedAttribute(actorAttribute).filter(a -> isIdentifier(a)).isPresent())
                     .sorted((a1, a2) -> AsmUtils.equals(a1, a2) ? 0 : a1.getName().compareTo(a2.getName()))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalStateException("ID attribute in Entity ∂type matching any access token claim not found"));
+                    .orElseThrow(() -> new IllegalStateException("ID attribute in Entity type matching any access token claim not found"));
         }
 
         final Integer operator;
