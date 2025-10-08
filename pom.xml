@@ -1,3 +1,4 @@
+<?xml version='1.0' encoding='utf-8'?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>hu.blackbelt.judo.runtime</groupId>
@@ -50,6 +51,8 @@
         <keycloak-adapter-version>17.0.1</keycloak-adapter-version>
         <resilience4j-version>2.0.2</resilience4j-version>
         <antlr4-version>4.5.1-1</antlr4-version>
+        <mockito-version>5.17.0</mockito-version>
+        <jupiter-version>5.13.4</jupiter-version>
 
         <epsilon-runtime-version>2.8.0.20250820_074004_d018a661_develop</epsilon-runtime-version>
         <judo-tatami-core-version>1.1.4.20250819_223206_e27883c8_develop</judo-tatami-core-version>
@@ -176,7 +179,7 @@
                     <extensions>true</extensions>
                     <configuration>
                         <instructions>
-                            <Export-Package />
+                            <Export-Package/>
                             <Import-Package>
                                 ${osgi-default-import},
                                 *
@@ -220,7 +223,7 @@
                                         </goals>
                                     </pluginExecutionFilter>
                                     <action>
-                                        <ignore />
+                                        <ignore/>
                                     </action>
                                 </pluginExecution>
                             </pluginExecutions>
@@ -694,14 +697,14 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>4.8.0</version>
+                <version>${mockito-version}</version>
                 <scope>test</scope>
             </dependency>
 
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-junit-jupiter</artifactId>
-                <version>4.8.0</version>
+                <version>${mockito-version}</version>
                 <scope>test</scope>
             </dependency>
 
@@ -826,6 +829,7 @@
                 <module>judo-runtime-core-spring</module>
                 <module>judo-runtime-core-spring-hsqldb</module>
                 <module>judo-runtime-core-spring-postgresql</module>
+                <module>judo-runtime-core-guice-testkit</module>
             </modules>
         </profile>
 
@@ -984,7 +988,7 @@
                                         <toc>left</toc>
                                         <icons>font</icons>
                                         <sectanchors>true</sectanchors>
-                                        <idprefix />
+                                        <idprefix/>
                                         <idseparator>-</idseparator>
                                     </attributes>
                                 </configuration>
