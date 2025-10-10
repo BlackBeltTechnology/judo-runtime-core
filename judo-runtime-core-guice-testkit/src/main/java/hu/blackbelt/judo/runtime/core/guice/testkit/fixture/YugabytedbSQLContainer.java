@@ -3,16 +3,14 @@ package hu.blackbelt.judo.runtime.core.guice.testkit.fixture;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 
-public class YugabytedbSQLContainer<
-    SELF extends org.testcontainers.containers.PostgreSQLContainer<SELF>
->
-    extends JdbcDatabaseContainer<SELF> {
+public class YugabytedbSQLContainer<SELF extends org.testcontainers.containers.PostgreSQLContainer<SELF>> extends JdbcDatabaseContainer<SELF> {
 
     public static final String IMAGE = "yugabytedb/yugabyte";
     public static final String DEFAULT_TAG = "2.1.8.2-b1";
@@ -37,22 +35,15 @@ public class YugabytedbSQLContainer<
 
     public YugabytedbSQLContainer(final String dockerImageName) {
         super(DockerImageName.parse(dockerImageName));
-        this.waitStrategy = new LogMessageWaitStrategy()
-            .withRegEx(".*yugabyted started successfully.*")
-            .withTimes(1)
-            .withStartupTimeout(Duration.of(60, SECONDS));
+        this.waitStrategy = new LogMessageWaitStrategy().withRegEx(".*yugabyted started successfully.*").withTimes(1).withStartupTimeout(Duration.of(60, SECONDS));
         //this.setCommand("postgres", "-c", FSYNC_OFF_OPTION);
-        this.setCommand(
-            "/bin/bash",
-            "-c",
-            "bin/yugabyted start --ui=false && tail -f /dev/null"
-        );
+        this.setCommand("/bin/bash", "-c", "bin/yugabyted start --ui=false && tail -f /dev/null");
         addExposedPort(YUGABYTE_PORT);
     }
 
     @Override
     public Set<Integer> getLivenessCheckPortNumbers() {
-        return new HashSet<>(getMappedPort(YUGABYTE_PORT));
+        return new HashSet<>(Collections.singleton(getMappedPort(YUGABYTE_PORT)));
     }
 
     @Override
@@ -71,19 +62,8 @@ public class YugabytedbSQLContainer<
 
     @Override
     public String getJdbcUrl() {
-        String additionalUrlParams = constructUrlParameters(
-            "?",
-            QUERY_PARAM_SEPARATOR
-        );
-        return (
-            "jdbc:postgresql://" +
-            getHost() +
-            ":" +
-            getMappedPort(YUGABYTE_PORT) +
-            "/" +
-            databaseName +
-            additionalUrlParams
-        );
+        String additionalUrlParams = constructUrlParameters("?", QUERY_PARAM_SEPARATOR);
+        return ("jdbc:postgresql://" + getHost() + ":" + getMappedPort(YUGABYTE_PORT) + "/" + databaseName + additionalUrlParams);
     }
 
     @Override

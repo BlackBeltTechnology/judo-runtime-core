@@ -1067,3 +1067,627 @@ The `ReferenceInjector` bridges the gap, allowing OSGi components to be tested w
 - `ReferenceInjectorTest.java` - Complete unit test examples
 - `InterceptorIntegrationTest.java` - Integration test patterns
 - JUDO Runtime Core documentation
+
+## Environment Variables Mocking
+
+The TestKit includes utilities for mocking environment variables during tests, allowing you to test code that depends on environment configuration.
+
+### Overview
+
+The environment variable mocking system consists of two main classes:
+
+- **`EnvironmentVariables`** - High-level API for setting environment variables in tests
+- **`EnvironmentVariableMocker`** - Low-level mocking infrastructure using Mockito
+
+### Why Mock Environment Variables?
+
+Many applications read configuration from environment variables:
+
+```java
+public class AppConfig {
+    private String apiUrl = System.getenv("API_URL");
+    private String apiKey = System.getenv("API_KEY");
+    private int timeout = Integer.parseInt(System.getenv("TIMEOUT"));
+}
+```
+
+Testing this code requires setting environment variables, but:
+- ❌ You can't modify real environment variables in Java
+- ❌ Setting OS-level variables affects all tests
+- ❌ Cleanup between tests is difficult
+
+The mocking utilities solve these problems by temporarily replacing environment variables during test execution.
+
+### Basic Usage with EnvironmentVariables
+
+#### Simple Example
+
+```java
+import hu.blackbelt.judo.runtime.core.guice.testkit.util.EnvironmentVariables;
+import static org.junit.jupiter.api.Assertions.*;
+
+@Test
+void testWithEnvironmentVariable() throws Exception {
+    new EnvironmentVariables("API_URL", "https://test-api.example.com")
+        .execute(() -> {
+            assertEquals("https://test-api.example.com", System.getenv("API_URL"));
+            
+            // Your test code that depends on API_URL
+            AppConfig config = new AppConfig();
+            assertEquals("https://test-api.example.com", config.getApiUrl());
+        });
+    
+    // After execute(), environment is restored
+    assertNull(System.getenv("API_URL"));
+}
+```
+
+#### Multiple Variables
+
+```java
+@Test
+void testWithMultipleVariables() throws Exception {
+    new EnvironmentVariables(
+        "API_URL", "https://test-api.example.com",
+        "API_KEY", "test-key-12345",
+        "TIMEOUT", "5000"
+    ).execute(() -> {
+        assertEquals("https://test-api.example.com", System.getenv("API_URL"));
+        assertEquals("test-key-12345", System.getenv("API_KEY"));
+        assertEquals("5000", System.getenv("TIMEOUT"));
+        
+        // Test your configuration loading
+        AppConfig config = new AppConfig();
+        assertEquals(5000, config.getTimeout());
+    });
+}
+```
+
+#### Fluent API with and()
+
+```java
+@Test
+void testFluentAPI() throws Exception {
+    new EnvironmentVariables("DATABASE_URL", "jdbc:postgresql://localhost/test")
+        .and("DATABASE_USER", "testuser")
+        .and("DATABASE_PASSWORD", "testpass")
+        .and("DATABASE_POOL_SIZE", "5")
+        .execute(() -> {
+            // All variables are set
+            DatabaseConfig dbConfig = new DatabaseConfig();
+            assertEquals("testuser", dbConfig.getUser());
+            assertEquals("testpass", dbConfig.getPassword());
+            assertEquals(5, dbConfig.getPoolSize());
+        });
+}
+```
+
+### Construction Options
+
+#### 1. Default Constructor (Empty)
+
+```java
+EnvironmentVariables envVars = new EnvironmentVariables();
+// Later: envVars.set("VAR", "value");
+```
+
+#### 2. Name-Value Pairs
+
+```java
+EnvironmentVariables envVars = new EnvironmentVariables(
+    "VAR1", "value1",
+    "VAR2", "value2",
+    "VAR3", "value3"
+);
+```
+
+#### 3. From Properties
+
+```java
+Properties props = new Properties();
+props.load(new FileInputStream("test.properties"));
+EnvironmentVariables envVars = new EnvironmentVariables(props);
+```
+
+#### 4. From Map
+
+```java
+Map<String, String> config = new HashMap<>();
+config.put("ENV", "test");
+config.put("DEBUG", "true");
+EnvironmentVariables envVars = new EnvironmentVariables(config);
+```
+
+### Immutable vs Mutable Operations
+
+#### Immutable: and() Creates New Instance
+
+```java
+EnvironmentVariables base = new EnvironmentVariables("VAR1", "value1");
+EnvironmentVariables extended = base.and("VAR2", "value2");
+
+// base is unchanged
+assertEquals(1, base.getVariables().size());
+
+// extended has both variables
+assertEquals(2, extended.getVariables().size());
+```
+
+**Use `and()` when:**
+- Building test fixtures incrementally
+- Creating variations of base configuration
+- Sharing common variables across tests
+
+#### Mutable: set() and remove() Modify Instance
+
+```java
+EnvironmentVariables envVars = new EnvironmentVariables();
+envVars.set("VAR1", "value1");      // Add variable
+envVars.set("VAR1", "new_value");   // Update variable
+envVars.remove("VAR1");              // Remove variable
+```
+
+**Use `set()`/`remove()` when:**
+- Building configuration step by step
+- Modifying variables during test setup
+- Conditional variable configuration
+
+### Advanced Patterns
+
+#### Nested Execution Contexts
+
+```java
+@Test
+void testNestedContexts() throws Exception {
+    new EnvironmentVariables("OUTER", "outer_value")
+        .execute(() -> {
+            assertEquals("outer_value", System.getenv("OUTER"));
+            
+            new EnvironmentVariables("INNER", "inner_value")
+                .execute(() -> {
+                    assertEquals("outer_value", System.getenv("OUTER"));
+                    assertEquals("inner_value", System.getenv("INNER"));
+                });
+            
+            // Inner context cleaned up
+            assertEquals("outer_value", System.getenv("OUTER"));
+            assertNull(System.getenv("INNER"));
+        });
+}
+```
+
+#### Removing Variables (null values)
+
+```java
+@Test
+void testRemovingVariable() throws Exception {
+    // Set a variable to null to remove it from the environment
+    new EnvironmentVariables("REMOVED_VAR", null)
+        .execute(() -> {
+            // Variable is not visible
+            assertNull(System.getenv("REMOVED_VAR"));
+        });
+}
+```
+
+#### Overriding System Variables
+
+```java
+@Test
+void testOverrideSystemVariable() throws Exception {
+    String originalPath = System.getenv("PATH");
+    
+    new EnvironmentVariables("PATH", "/custom/test/path")
+        .execute(() -> {
+            assertEquals("/custom/test/path", System.getenv("PATH"));
+            
+            // Test code that depends on custom PATH
+        });
+    
+    // Original PATH restored
+    assertEquals(originalPath, System.getenv("PATH"));
+}
+```
+
+#### Conditional Variable Setup
+
+```java
+@Test
+void testConditionalSetup() throws Exception {
+    EnvironmentVariables envVars = new EnvironmentVariables("BASE_VAR", "base");
+    
+    if (needsDebugMode()) {
+        envVars.set("DEBUG", "true");
+        envVars.set("LOG_LEVEL", "DEBUG");
+    }
+    
+    if (needsAuthentication()) {
+        envVars.set("AUTH_TOKEN", "test-token");
+    }
+    
+    envVars.execute(() -> {
+        // Test with conditionally configured environment
+    });
+}
+```
+
+### Complete Real-World Examples
+
+#### Example 1: Testing Configuration Loading
+
+```java
+class ConfigurationTest {
+    
+    @Test
+    void testProductionConfig() throws Exception {
+        new EnvironmentVariables(
+            "ENV", "production",
+            "API_URL", "https://api.example.com",
+            "API_KEY", "prod-key-xyz",
+            "CACHE_TTL", "3600",
+            "MAX_CONNECTIONS", "100"
+        ).execute(() -> {
+            AppConfig config = AppConfig.fromEnvironment();
+            
+            assertEquals("production", config.getEnvironment());
+            assertEquals("https://api.example.com", config.getApiUrl());
+            assertTrue(config.isCacheEnabled());
+            assertEquals(3600, config.getCacheTtl());
+            assertEquals(100, config.getMaxConnections());
+        });
+    }
+    
+    @Test
+    void testDevelopmentConfig() throws Exception {
+        new EnvironmentVariables(
+            "ENV", "development",
+            "API_URL", "http://localhost:8080",
+            "DEBUG", "true"
+        ).execute(() -> {
+            AppConfig config = AppConfig.fromEnvironment();
+            
+            assertEquals("development", config.getEnvironment());
+            assertTrue(config.isDebugEnabled());
+        });
+    }
+    
+    @Test
+    void testMissingRequiredVariable() throws Exception {
+        new EnvironmentVariables("ENV", "test")
+            .execute(() -> {
+                // API_URL is required but missing
+                assertThrows(ConfigurationException.class, () -> {
+                    AppConfig.fromEnvironment();
+                });
+            });
+    }
+}
+```
+
+#### Example 2: Testing Feature Flags
+
+```java
+class FeatureFlagTest {
+    
+    @Test
+    void testFeatureEnabled() throws Exception {
+        new EnvironmentVariables(
+            "FEATURE_NEW_UI", "true",
+            "FEATURE_BETA_API", "true"
+        ).execute(() -> {
+            FeatureFlags flags = new FeatureFlags();
+            
+            assertTrue(flags.isNewUiEnabled());
+            assertTrue(flags.isBetaApiEnabled());
+            
+            // Test code path when features are enabled
+            assertNotNull(new NewUIController());
+        });
+    }
+    
+    @Test
+    void testFeatureDisabled() throws Exception {
+        new EnvironmentVariables(
+            "FEATURE_NEW_UI", "false"
+        ).execute(() -> {
+            FeatureFlags flags = new FeatureFlags();
+            
+            assertFalse(flags.isNewUiEnabled());
+            
+            // Test fallback to old UI
+            assertNotNull(new LegacyUIController());
+        });
+    }
+}
+```
+
+#### Example 3: Testing Database Connection
+
+```java
+class DatabaseConnectionTest {
+    
+    @Test
+    void testPostgresConnection() throws Exception {
+        new EnvironmentVariables(
+            "DB_HOST", "localhost",
+            "DB_PORT", "5432",
+            "DB_NAME", "testdb",
+            "DB_USER", "testuser",
+            "DB_PASSWORD", "testpass",
+            "DB_SSL", "false"
+        ).execute(() -> {
+            DatabaseConfig config = DatabaseConfig.fromEnvironment();
+            
+            assertEquals("jdbc:postgresql://localhost:5432/testdb", 
+                config.getJdbcUrl());
+            assertEquals("testuser", config.getUsername());
+            assertFalse(config.isSslEnabled());
+        });
+    }
+    
+    @Test
+    void testConnectionPooling() throws Exception {
+        new EnvironmentVariables(
+            "DB_POOL_SIZE", "10",
+            "DB_POOL_TIMEOUT", "30000",
+            "DB_POOL_MAX_LIFETIME", "1800000"
+        ).execute(() -> {
+            PoolConfig pool = PoolConfig.fromEnvironment();
+            
+            assertEquals(10, pool.getMaxPoolSize());
+            assertEquals(30000, pool.getConnectionTimeout());
+            assertEquals(1800000, pool.getMaxLifetime());
+        });
+    }
+}
+```
+
+#### Example 4: Testing Multi-Environment Setup
+
+```java
+class MultiEnvironmentTest {
+    
+    private EnvironmentVariables baseConfig() {
+        return new EnvironmentVariables(
+            "APP_NAME", "MyApp",
+            "APP_VERSION", "1.0.0"
+        );
+    }
+    
+    @Test
+    void testDevelopmentEnvironment() throws Exception {
+        baseConfig()
+            .and("ENV", "development")
+            .and("DEBUG", "true")
+            .and("LOG_LEVEL", "DEBUG")
+            .execute(() -> {
+                Environment env = Environment.current();
+                assertEquals("development", env.getName());
+                assertTrue(env.isDebugMode());
+            });
+    }
+    
+    @Test
+    void testStagingEnvironment() throws Exception {
+        baseConfig()
+            .and("ENV", "staging")
+            .and("DEBUG", "false")
+            .and("LOG_LEVEL", "INFO")
+            .and("MONITORING", "true")
+            .execute(() -> {
+                Environment env = Environment.current();
+                assertEquals("staging", env.getName());
+                assertFalse(env.isDebugMode());
+                assertTrue(env.isMonitoringEnabled());
+            });
+    }
+    
+    @Test
+    void testProductionEnvironment() throws Exception {
+        baseConfig()
+            .and("ENV", "production")
+            .and("DEBUG", "false")
+            .and("LOG_LEVEL", "WARN")
+            .and("MONITORING", "true")
+            .and("SECURITY", "strict")
+            .execute(() -> {
+                Environment env = Environment.current();
+                assertEquals("production", env.getName());
+                assertFalse(env.isDebugMode());
+                assertEquals("strict", env.getSecurityLevel());
+            });
+    }
+}
+```
+
+### Low-Level API: EnvironmentVariableMocker
+
+For advanced use cases, you can use the `EnvironmentVariableMocker` directly:
+
+```java
+import hu.blackbelt.judo.runtime.core.guice.testkit.util.EnvironmentVariableMocker;
+
+@BeforeAll
+static void setupMocking() {
+    EnvironmentVariableMocker.initMocked();
+}
+
+@AfterAll
+static void teardownMocking() {
+    EnvironmentVariableMocker.deinitMocked();
+}
+
+@Test
+void testWithDirectMocking() {
+    Map<String, String> env = new HashMap<>();
+    env.put("TEST_VAR", "test_value");
+    
+    EnvironmentVariableMocker.connect(env);
+    
+    try {
+        assertEquals("test_value", System.getenv("TEST_VAR"));
+        // Your test code
+    } finally {
+        EnvironmentVariableMocker.pop();
+    }
+}
+```
+
+**Direct Mocker Features:**
+- Stack-based environment management
+- Support for nested contexts
+- Null value handling (removes variables)
+- Thread-safe operation
+- Platform-specific environment block generation
+
+### Best Practices
+
+#### 1. Use EnvironmentVariables for Most Cases
+
+```java
+// ✅ Good: Clear and self-documenting
+new EnvironmentVariables("API_KEY", "test-key").execute(() -> {
+    // test code
+});
+
+// ❌ Avoid: Direct mocker usage unless needed
+EnvironmentVariableMocker.connect(map);
+// ...
+EnvironmentVariableMocker.pop();
+```
+
+#### 2. Keep Variable Scope Minimal
+
+```java
+// ✅ Good: Variables only exist during test
+@Test
+void test() throws Exception {
+    new EnvironmentVariables("VAR", "value").execute(() -> {
+        // test code
+    });
+}
+
+// ❌ Avoid: Class-level variables affect all tests
+```
+
+#### 3. Use Descriptive Variable Names
+
+```java
+// ✅ Good: Clear purpose
+new EnvironmentVariables(
+    "DATABASE_CONNECTION_TIMEOUT_MS", "5000",
+    "API_RETRY_MAX_ATTEMPTS", "3"
+)
+
+// ❌ Avoid: Ambiguous names
+new EnvironmentVariables("TIMEOUT", "5000", "RETRIES", "3")
+```
+
+#### 4. Document Required vs Optional Variables
+
+```java
+@Test
+void testConfiguration() throws Exception {
+    new EnvironmentVariables(
+        // Required variables
+        "API_URL", "https://api.example.com",
+        "API_KEY", "test-key",
+        
+        // Optional variables (with defaults in code)
+        "TIMEOUT", "5000",
+        "DEBUG", "true"
+    ).execute(() -> {
+        // test code
+    });
+}
+```
+
+#### 5. Test Both Presence and Absence
+
+```java
+@Test
+void testWithVariable() throws Exception {
+    new EnvironmentVariables("FEATURE_FLAG", "true")
+        .execute(() -> {
+            assertTrue(Features.isEnabled("FEATURE_FLAG"));
+        });
+}
+
+@Test
+void testWithoutVariable() throws Exception {
+    new EnvironmentVariables()
+        .execute(() -> {
+            // Variable not set - should use default
+            assertFalse(Features.isEnabled("FEATURE_FLAG"));
+        });
+}
+```
+
+### Common Pitfalls and Solutions
+
+#### Pitfall 1: Forgetting to Initialize Mocker
+
+```java
+// ❌ Error: Mocking not initialized
+@Test
+void test() throws Exception {
+    new EnvironmentVariables("VAR", "value").execute(() -> {
+        // This will fail!
+    });
+}
+
+// ✅ Solution: Initialize in @BeforeAll
+@BeforeAll
+static void setup() {
+    EnvironmentVariableMocker.initMocked();
+}
+```
+
+#### Pitfall 2: Variable Persists After Test
+
+```java
+// ❌ Problem: Manual cleanup forgotten
+@Test
+void test() {
+    Map<String, String> env = new HashMap<>();
+    env.put("VAR", "value");
+    EnvironmentVariableMocker.connect(env);
+    // Forgot to call pop()!
+}
+
+// ✅ Solution: Use EnvironmentVariables.execute()
+@Test
+void test() throws Exception {
+    new EnvironmentVariables("VAR", "value")
+        .execute(() -> {
+            // Automatic cleanup
+        });
+}
+```
+
+#### Pitfall 3: Duplicate Variable Names with and()
+
+```java
+// ❌ Error: Throws IllegalArgumentException
+EnvironmentVariables env = new EnvironmentVariables("VAR", "value1");
+env.and("VAR", "value2");  // Exception!
+
+// ✅ Solution: Use set() to overwrite
+EnvironmentVariables env = new EnvironmentVariables("VAR", "value1");
+env.set("VAR", "value2");  // OK - overwrites
+```
+
+### Testing Tips
+
+1. **Isolate Tests**: Each test should set up its own environment variables
+2. **Clean State**: Use `execute()` to ensure cleanup
+3. **Test Defaults**: Verify behavior when variables are missing
+4. **Test Invalid Values**: Check error handling for malformed configuration
+5. **Document Dependencies**: List all environment variables your code expects
+
+### See Also
+
+- **`EnvironmentVariablesTest.java`** - Comprehensive test examples
+- **`EnvironmentVariableMockerTest.java`** - Low-level mocking tests
+- [System Stubs](https://github.com/webcompere/system-stubs) - The underlying mocking library
+

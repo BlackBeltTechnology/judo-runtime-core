@@ -1,5 +1,7 @@
 package hu.blackbelt.judo.runtime.core.guice.testkit.examples;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.google.inject.AbstractModule;
 import hu.blackbelt.judo.runtime.core.guice.testkit.fixture.JudoDatasourceByClassExtension;
 import hu.blackbelt.judo.runtime.core.guice.testkit.fixture.JudoDatasourceFixture;
@@ -7,11 +9,8 @@ import hu.blackbelt.judo.runtime.core.guice.testkit.fixture.JudoDatasourceSingle
 import hu.blackbelt.judo.runtime.core.guice.testkit.fixture.JudoRuntimeExtension;
 import hu.blackbelt.judo.runtime.core.guice.testkit.fixture.JudoRuntimeFixture;
 import hu.blackbelt.judo.runtime.core.guice.testkit.util.ReferenceInjector;
-
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.RegisterExtension;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Comprehensive examples showing all available JUDO test extensions.
@@ -40,8 +39,8 @@ class ExtensionBasedTest {
     class UsingJudoRuntimeExtension {
 
         @RegisterExtension
-        static JudoRuntimeExtension extension = new JudoRuntimeExtension(
-            "example",  // Model name
+        JudoRuntimeExtension extension = new JudoRuntimeExtension(
+            "example", // Model name
             new AbstractModule() {
                 @Override
                 protected void configure() {
@@ -54,47 +53,46 @@ class ExtensionBasedTest {
         @Test
         @DisplayName("Should inject all dependencies automatically")
         void testAutomaticInjection(JudoRuntimeFixture fixture) {
-            // // The fixture is fully initialized and ready to use
-            // assertNotNull(fixture);
-            // assertNotNull(fixture.getInjector());
-
-            // // Create and inject interceptor in one line
+            // The fixture is fully initialized and ready to use
+            assertNotNull(fixture);
+            assertNotNull(fixture.getInjector());
+            // Create and inject interceptor in one line
             // UserCreateInterceptor interceptor = ReferenceInjector.createAndInject(
             //     UserCreateInterceptor.class,
             //     fixture.getInjector()
             // );
-
             // assertNotNull(interceptor);
-            // // Transaction is automatically managed by the extension
+            // Transaction is automatically managed by the extension
         }
 
         @Test
         @DisplayName("Should provide clean database for each test")
         void testDatabaseIsolation(JudoRuntimeFixture fixture) {
-            // // Each test gets a clean database (tables truncated after previous test)
+            // Each test gets a clean database (tables truncated after previous test)
+            assertNotNull(fixture);
+            assertNotNull(fixture.getInjector());
             // PartnerCreateInterceptor interceptor = ReferenceInjector.createAndInject(
             //     PartnerCreateInterceptor.class,
             //     fixture.getInjector()
             // );
-
             // assertNotNull(interceptor);
-            // // Transaction automatically committed and tables truncated after test
+            // Transaction automatically committed and tables truncated after test
         }
 
         @Test
         @DisplayName("Should handle multiple interceptors")
         void testMultipleInterceptors(JudoRuntimeFixture fixture) {
-            // // You can create multiple interceptors in the same test
+            // You can create multiple interceptors in the same test
+            assertNotNull(fixture);
+            assertNotNull(fixture.getInjector());
             // UserCreateInterceptor userInterceptor = ReferenceInjector.createAndInject(
             //     UserCreateInterceptor.class,
             //     fixture.getInjector()
             // );
-
             // PartnerCreateInterceptor partnerInterceptor = ReferenceInjector.createAndInject(
             //     PartnerCreateInterceptor.class,
             //     fixture.getInjector()
             // );
-
             // assertNotNull(userInterceptor);
             // assertNotNull(partnerInterceptor);
         }
@@ -116,8 +114,7 @@ class ExtensionBasedTest {
     class UsingJudoDatasourceByClassExtension {
 
         @RegisterExtension
-        static JudoDatasourceByClassExtension datasourceExtension =
-            new JudoDatasourceByClassExtension();
+        JudoDatasourceByClassExtension datasourceExtension = new JudoDatasourceByClassExtension();
 
         private JudoRuntimeFixture runtimeFixture;
 
@@ -144,14 +141,12 @@ class ExtensionBasedTest {
         @Test
         @DisplayName("Should work with manual runtime setup")
         void testManualRuntimeSetup(JudoDatasourceFixture datasourceFixture) {
-            // assertNotNull(datasourceFixture);
-            // assertNotNull(runtimeFixture);
-
+            assertNotNull(datasourceFixture);
+            assertNotNull(runtimeFixture);
             // UserCreateInterceptor interceptor = ReferenceInjector.createAndInject(
             //     UserCreateInterceptor.class,
             //     runtimeFixture.getInjector()
             // );
-
             // assertNotNull(interceptor);
         }
 
@@ -179,8 +174,7 @@ class ExtensionBasedTest {
     class UsingJudoDatasourceSingletonExtension {
 
         @RegisterExtension
-        static JudoDatasourceSingletonExtension datasourceExtension =
-            new JudoDatasourceSingletonExtension();
+        JudoDatasourceSingletonExtension datasourceExtension = new JudoDatasourceSingletonExtension();
 
         private JudoRuntimeFixture runtimeFixture;
 
@@ -206,14 +200,13 @@ class ExtensionBasedTest {
         @Test
         @DisplayName("Should use singleton datasource")
         void testSingletonDatasource(JudoDatasourceFixture datasourceFixture) {
-            // assertNotNull(datasourceFixture);
-            // // This is the same datasource instance used by all test classes
-
+            assertNotNull(datasourceFixture);
+            assertNotNull(runtimeFixture);
+            // This is the same datasource instance used by all test classes
             // UserCreateInterceptor interceptor = ReferenceInjector.createAndInject(
             //     UserCreateInterceptor.class,
             //     runtimeFixture.getInjector()
             // );
-
             // assertNotNull(interceptor);
         }
 
@@ -236,39 +229,38 @@ class ExtensionBasedTest {
     class CombiningExtensions {
 
         @RegisterExtension
-        static JudoDatasourceSingletonExtension datasourceExtension =
-            new JudoDatasourceSingletonExtension();
+        JudoDatasourceSingletonExtension datasourceExtension = new JudoDatasourceSingletonExtension();
 
         @Test
         @DisplayName("Should work with custom initialization")
         void testCustomSetup(JudoDatasourceFixture datasourceFixture) throws Exception {
-            // // Custom runtime setup for specific test needs
-            // JudoRuntimeFixture fixture = new JudoRuntimeFixture();
-            // fixture.prepare("example", datasourceFixture.getDataSource(), datasourceFixture.getDialect());
-
-            // // Custom Guice module with test-specific bindings
-            // fixture.init(new AbstractModule() {
-            //     @Override
-            //     protected void configure() {
-            //         // Add test-specific bindings
-            //     }
-            // }, this);
-
-            // fixture.beginTransaction();
-
-            // try {
-            //     UserCreateInterceptor interceptor = ReferenceInjector.createAndInject(
-            //         UserCreateInterceptor.class,
-            //         fixture.getInjector()
-            //     );
-
-            //     assertNotNull(interceptor);
-
-            //     fixture.commitTransaction();
-            // } catch (Exception e) {
-            //     fixture.rollbackTransaction();
-            //     throw e;
-            // }
+            // Custom runtime setup for specific test needs
+            assertNotNull(datasourceFixture);
+            JudoRuntimeFixture fixture = new JudoRuntimeFixture();
+            fixture.prepare("example", datasourceFixture.getDataSource(), datasourceFixture.getDialect());
+            // Custom Guice module with test-specific bindings
+            fixture.init(
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        // Add test-specific bindings
+                    }
+                },
+                this
+            );
+            fixture.beginTransaction();
+            try {
+                assertNotNull(fixture.getInjector());
+                // UserCreateInterceptor interceptor = ReferenceInjector.createAndInject(
+                //     UserCreateInterceptor.class,
+                //     fixture.getInjector()
+                // );
+                // assertNotNull(interceptor);
+                fixture.commitTransaction();
+            } catch (Exception e) {
+                fixture.rollbackTransaction();
+                throw e;
+            }
         }
     }
 

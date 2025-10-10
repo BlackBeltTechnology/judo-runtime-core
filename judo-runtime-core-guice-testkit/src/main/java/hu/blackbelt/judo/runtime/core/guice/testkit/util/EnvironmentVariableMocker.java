@@ -16,14 +16,9 @@ import org.mockito.invocation.InvocationOnMock;
  */
 public class EnvironmentVariableMocker {
 
-    private static final Stack<Map<String, String>> REPLACEMENT_ENV =
-        new Stack<>();
+    private static final Stack<Map<String, String>> REPLACEMENT_ENV = new Stack<>();
 
-    private static final Set<String> MOCKED_METHODS = Stream.of(
-        "getenv",
-        "environment",
-        "toEnvironmentBlock"
-    ).collect(toSet());
+    private static final Set<String> MOCKED_METHODS = Stream.of("getenv", "environment", "toEnvironmentBlock").collect(toSet());
 
     private static volatile MockedStatic mocked = null;
 
@@ -35,24 +30,13 @@ public class EnvironmentVariableMocker {
                 return;
             }
             try {
-                Class<?> typeToMock = Class.forName(
-                    "java.lang.ProcessEnvironment"
-                );
+                Class<?> typeToMock = Class.forName("java.lang.ProcessEnvironment");
                 mocked = Mockito.mockStatic(typeToMock, invocationOnMock -> {
-                    if (
-                        REPLACEMENT_ENV.empty() ||
-                        !MOCKED_METHODS.contains(
-                            invocationOnMock.getMethod().getName()
-                        )
-                    ) {
+                    if (REPLACEMENT_ENV.empty() || !MOCKED_METHODS.contains(invocationOnMock.getMethod().getName())) {
                         return invocationOnMock.callRealMethod();
                     }
 
-                    if (
-                        "toEnvironmentBlock".equals(
-                            invocationOnMock.getMethod().getName()
-                        )
-                    ) {
+                    if ("toEnvironmentBlock".equals(invocationOnMock.getMethod().getName())) {
                         return simulateToEnvironmentBlock(invocationOnMock);
                     }
 
@@ -60,18 +44,10 @@ public class EnvironmentVariableMocker {
                     if (invocationOnMock.getMethod().getParameterCount() == 0) {
                         return filterNulls(currentMockedEnvironment);
                     }
-                    return currentMockedEnvironment.get(
-                        invocationOnMock.getArgument(0, String.class)
-                    );
+                    return currentMockedEnvironment.get(invocationOnMock.getArgument(0, String.class));
                 });
             } catch (Throwable e) {
-                throw new IllegalStateException(
-                    "Cannot set up environment mocking: " +
-                        e.getMessage() +
-                        ". This may be a result of not having the right mockito-inline installed, " +
-                        "or may be down to a Java internals change.",
-                    e
-                );
+                throw new IllegalStateException("Cannot set up environment mocking: " + e.getMessage() + ". This may be a result of not having the right mockito-inline installed, " + "or may be down to a Java internals change.", e);
             }
         }
     }
@@ -101,16 +77,11 @@ public class EnvironmentVariableMocker {
      * @param invocationOnMock the call to the mocked <code>ProcessEnvironment</code>
      * @return the environment serialized for the platform
      */
-    private static Object simulateToEnvironmentBlock(
-        InvocationOnMock invocationOnMock
-    ) {
+    private static Object simulateToEnvironmentBlock(InvocationOnMock invocationOnMock) {
         if (invocationOnMock.getArguments().length == 1) {
             return toEnvironmentBlockWindows(invocationOnMock.getArgument(0));
         } else {
-            return toEnvironmentBlockNix(
-                invocationOnMock.getArgument(0),
-                invocationOnMock.getArgument(1, int[].class)
-            );
+            return toEnvironmentBlockNix(invocationOnMock.getArgument(0), invocationOnMock.getArgument(1, int[].class));
         }
     }
 
@@ -122,9 +93,7 @@ public class EnvironmentVariableMocker {
     private static String toEnvironmentBlockWindows(Map<String, String> m) {
         // Sort Unicode-case-insensitively by name
         List<Map.Entry<String, String>> list = new ArrayList<>(m.entrySet());
-        Collections.sort(list, (e1, e2) ->
-            NameComparator.compareNames(e1.getKey(), e2.getKey())
-        );
+        Collections.sort(list, (e1, e2) -> NameComparator.compareNames(e1.getKey(), e2.getKey()));
 
         StringBuilder sb = new StringBuilder(m.size() * 30);
         int cmp = -1;
@@ -137,10 +106,11 @@ public class EnvironmentVariableMocker {
         for (Map.Entry<String, String> e : list) {
             String key = e.getKey();
             String value = e.getValue();
-            if (
-                cmp < 0 &&
-                (cmp = NameComparator.compareNames(key, systemRoot)) > 0
-            ) {
+            // Skip entries with null values (these represent removed variables)
+            if (value == null) {
+                continue;
+            }
+            if (cmp < 0 && (cmp = NameComparator.compareNames(key, systemRoot)) > 0) {
                 // Not set, so add it here
                 addToEnvIfSet(sb, systemRoot);
             }
@@ -160,23 +130,31 @@ public class EnvironmentVariableMocker {
     }
 
     // code taken from the original in ProcessEnvironment
-    private static byte[] toEnvironmentBlockNix(
-        Map<String, String> m,
-        int[] envc
-    ) {
+    private static byte[] toEnvironmentBlockNix(Map<String, String> m, int[] envc) {
         if (m == null) {
             return null;
         }
-        int count = m.size() * 2; // For added '=' and NUL
+        // Count only non-null entries (null values represent removed variables)
+        int count = 0;
+        int nonNullEntries = 0;
         for (Map.Entry<String, String> entry : m.entrySet()) {
-            count += entry.getKey().getBytes().length;
-            count += entry.getValue().getBytes().length;
+            if (entry.getValue() != null) {
+                count += entry.getKey().getBytes().length;
+                count += entry.getValue().getBytes().length;
+                count += 2; // For added '=' and NUL
+                nonNullEntries++;
+            }
         }
 
         byte[] block = new byte[count];
 
         int i = 0;
+        int entryCount = 0;
         for (Map.Entry<String, String> entry : m.entrySet()) {
+            // Skip entries with null values
+            if (entry.getValue() == null) {
+                continue;
+            }
             final byte[] key = entry.getKey().getBytes();
             final byte[] value = entry.getValue().getBytes();
             System.arraycopy(key, 0, block, i, key.length);
@@ -186,14 +164,13 @@ public class EnvironmentVariableMocker {
             i += value.length + 1;
             // No need to write NUL byte explicitly
             //block[i++] = (byte) '\u0000';
+            entryCount++;
         }
-        envc[0] = m.size();
+        envc[0] = entryCount;
         return block;
     }
 
-    private static Map<String, String> filterNulls(
-        Map<String, String> currentMockedEnvironment
-    ) {
+    private static Map<String, String> filterNulls(Map<String, String> currentMockedEnvironment) {
         return currentMockedEnvironment
             .entrySet()
             .stream()
@@ -213,12 +190,8 @@ public class EnvironmentVariableMocker {
         System.getenv()
             .entrySet()
             .stream()
-            .filter(entry ->
-                !newEnvironmentVariables.containsKey(entry.getKey())
-            )
-            .forEach(entry ->
-                newEnvironmentVariables.put(entry.getKey(), entry.getValue())
-            );
+            .filter(entry -> !newEnvironmentVariables.containsKey(entry.getKey()))
+            .forEach(entry -> newEnvironmentVariables.put(entry.getKey(), entry.getValue()));
         REPLACEMENT_ENV.push(newEnvironmentVariables);
     }
 

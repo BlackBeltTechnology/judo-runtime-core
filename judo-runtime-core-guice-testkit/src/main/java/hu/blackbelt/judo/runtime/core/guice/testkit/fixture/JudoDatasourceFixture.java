@@ -29,9 +29,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 public class JudoDatasourceFixture {
 
-    private static final Logger log = LoggerFactory.getLogger(
-        JudoDatasourceFixture.class
-    );
+    private static final Logger log = LoggerFactory.getLogger(JudoDatasourceFixture.class);
 
     //    static {
     //        System.setProperty("user.timezone", "UTC");
@@ -45,19 +43,11 @@ public class JudoDatasourceFixture {
 
     public static final String DIALECT_HSQLDB = "hsqldb";
     public static final String DIALECT_POSTGRESQL = "postgresql";
-    public static final Map<String, String> STATMENT_TEMPLATE = ImmutableMap.of(
-        DIALECT_POSTGRESQL,
-        "TRUNCATE TABLE %s RESTART IDENTITY CASCADE;",
-        DIALECT_HSQLDB,
-        "TRUNCATE TABLE %s RESTART IDENTITY AND COMMIT NO CHECK"
-    );
+    public static final Map<String, String> STATMENT_TEMPLATE = ImmutableMap.of(DIALECT_POSTGRESQL, "TRUNCATE TABLE %s RESTART IDENTITY CASCADE;", DIALECT_HSQLDB, "TRUNCATE TABLE %s RESTART IDENTITY AND COMMIT NO CHECK");
 
     protected String dialect = System.getProperty("dialect", DIALECT_HSQLDB);
 
-    protected String container = System.getProperty(
-        "container",
-        CONTAINER_NONE
-    );
+    protected String container = System.getProperty("container", CONTAINER_NONE);
 
     protected String timezone = System.getProperty("tz", "GMT");
 
@@ -105,22 +95,10 @@ public class JudoDatasourceFixture {
 
     public void setupDatabase() {
         if (dialect.equals(DIALECT_POSTGRESQL)) {
-            if (
-                container.equals(CONTAINER_NONE) ||
-                container.equals(CONTAINER_POSTGRESQL)
-            ) {
-                sqlContainer = (PostgreSQLContainer) new PostgreSQLContainer(
-                    "postgres:latest"
-                )
-                    .withStartupTimeout(Duration.ofSeconds(600))
-                    .withEnv("TZ", timezone)
-                    .withEnv("PGTZ", timezone);
+            if (container.equals(CONTAINER_NONE) || container.equals(CONTAINER_POSTGRESQL)) {
+                sqlContainer = (PostgreSQLContainer) new PostgreSQLContainer("postgres:latest").withStartupTimeout(Duration.ofSeconds(600)).withEnv("TZ", timezone).withEnv("PGTZ", timezone);
             } else if (container.equals(CONTAINER_YUGABYTEDB)) {
-                sqlContainer =
-                    (YugabytedbSQLContainer) new YugabytedbSQLContainer()
-                        .withStartupTimeout(Duration.ofSeconds(600))
-                        .withEnv("TZ", timezone)
-                        .withEnv("PGTZ", timezone);
+                sqlContainer = (YugabytedbSQLContainer) new YugabytedbSQLContainer().withStartupTimeout(Duration.ofSeconds(600)).withEnv("TZ", timezone).withEnv("PGTZ", timezone);
             }
         }
     }
@@ -133,24 +111,10 @@ public class JudoDatasourceFixture {
 
     public void truncateTables(RdbmsModel rdbmsModel) {
         RdbmsUtils rdbmsUtils = new RdbmsUtils(rdbmsModel.getResourceSet());
-        try (
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement()
-        ) {
-            for (RdbmsTable rdbmsTable : rdbmsUtils
-                .getRdbmsTables()
-                .orElse(new BasicEList<>())) {
-                log.debug(
-                    "Truncating table: %s (%s)".formatted(
-                        rdbmsTable.getName(),
-                        rdbmsTable.getSqlName()
-                    )
-                );
-                statement.execute(
-                    STATMENT_TEMPLATE.get(dialect).formatted(
-                        rdbmsTable.getSqlName()
-                    )
-                );
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+            for (RdbmsTable rdbmsTable : rdbmsUtils.getRdbmsTables().orElse(new BasicEList<>())) {
+                log.debug("Truncating table: %s (%s)".formatted(rdbmsTable.getName(), rdbmsTable.getSqlName()));
+                statement.execute(STATMENT_TEMPLATE.get(dialect).formatted(rdbmsTable.getSqlName()));
             }
         } catch (SQLException throwables) {
             throw new RuntimeException("Could not truncate tables", throwables);
@@ -159,22 +123,10 @@ public class JudoDatasourceFixture {
 
     public void dropTables(RdbmsModel rdbmsModel) {
         RdbmsUtils rdbmsUtils = new RdbmsUtils(rdbmsModel.getResourceSet());
-        try (
-            Connection connection = dataSource.getConnection();
-            Statement statement = connection.createStatement()
-        ) {
-            for (RdbmsTable rdbmsTable : rdbmsUtils
-                .getRdbmsTables()
-                .orElse(new BasicEList<>())) {
-                log.debug(
-                    "Drop table: %s (%s)".formatted(
-                        rdbmsTable.getName(),
-                        rdbmsTable.getSqlName()
-                    )
-                );
-                statement.execute(
-                    "DROP TABLE %s CASCADE;".formatted(rdbmsTable.getSqlName())
-                );
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+            for (RdbmsTable rdbmsTable : rdbmsUtils.getRdbmsTables().orElse(new BasicEList<>())) {
+                log.debug("Drop table: %s (%s)".formatted(rdbmsTable.getName(), rdbmsTable.getSqlName()));
+                statement.execute("DROP TABLE %s CASCADE;".formatted(rdbmsTable.getSqlName()));
             }
         } catch (SQLException throwables) {
             throw new RuntimeException("Could not drop tables", throwables);
@@ -203,45 +155,38 @@ public class JudoDatasourceFixture {
         transactionManager = new DataSourceTransactionManager(dataSource);
     }
 
-    public <T extends Throwable> T assertThrowsInTransaction(
-        final Class<T> expectedType,
-        final Executable executable
-    ) {
+    public <T extends Throwable> T assertThrowsInTransaction(final Class<T> expectedType, final Executable executable) {
         return Assertions.assertThrows(expectedType, () -> {
-            TransactionStatus transactionStatus =
-                getTransactionManager().getTransaction(
-                    new DefaultTransactionDefinition()
-                );
+            TransactionStatus transactionStatus = getTransactionManager().getTransaction(new DefaultTransactionDefinition());
             try {
                 executable.execute();
-            } catch (Exception e) {
-                if (!transactionStatus.isCompleted()) {
-                    getTransactionManager().rollback(transactionStatus);
-                }
-            } finally {
+                // Only commit if execution succeeded without exception
                 if (!transactionStatus.isCompleted()) {
                     getTransactionManager().commit(transactionStatus);
                 }
+            } catch (Throwable e) {
+                if (!transactionStatus.isCompleted()) {
+                    getTransactionManager().rollback(transactionStatus);
+                }
+                throw e; // Rethrow so Assertions.assertThrows can see it
             }
         });
     }
 
     public <R> R runInTransaction(Supplier<R> executable) {
-        TransactionStatus transactionStatus =
-            getTransactionManager().getTransaction(
-                new DefaultTransactionDefinition()
-            );
+        TransactionStatus transactionStatus = getTransactionManager().getTransaction(new DefaultTransactionDefinition());
         try {
-            return executable.get();
+            R result = executable.get();
+            // Only commit if execution succeeded without exception
+            if (!transactionStatus.isCompleted()) {
+                getTransactionManager().commit(transactionStatus);
+            }
+            return result;
         } catch (Exception e) {
             if (!transactionStatus.isCompleted()) {
                 getTransactionManager().rollback(transactionStatus);
             }
-        } finally {
-            if (!transactionStatus.isCompleted()) {
-                getTransactionManager().commit(transactionStatus);
-            }
+            throw e; // Rethrow to propagate the exception
         }
-        return null;
     }
 }

@@ -1,8 +1,8 @@
 package hu.blackbelt.judo.runtime.core.guice.testkit.util;
 
-import com.google.inject.Injector;
 import com.google.inject.ConfigurationException;
-
+import com.google.inject.Injector;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -12,10 +12,10 @@ import java.util.List;
 /**
  * Utility class for automatically injecting dependencies into custom implementations in test scenarios.
  * This allows custom implementations (interceptors, operations, etc.) to be tested easily without OSGi container.
- * 
+ *
  * Note: OSGi's @Reference annotation has CLASS retention (not RUNTIME), so it's not available via reflection.
  * Instead, this utility injects all non-static, non-final fields that have matching types in the Guice injector.
- * 
+ *
  * Usage:
  * <pre>
  * {@code
@@ -27,13 +27,13 @@ public class ReferenceInjector {
 
     /**
      * Injects all injectable fields and setters in the target object using the provided Guice injector.
-     * 
+     *
      * For fields: Injects all non-static, non-final, package/protected/public fields where the type
      * is available in the injector.
-     * 
+     *
      * For setters: Injects via setter methods named "set*" with a single parameter where the type
      * is available in the injector.
-     * 
+     *
      * @param target The object to inject references into (e.g., interceptor, custom operation)
      * @param injector The Guice injector containing the dependencies
      * @throws IllegalStateException if injection fails
@@ -61,24 +61,20 @@ public class ReferenceInjector {
      */
     private static void injectFields(Object target, Class<?> targetClass, Injector injector) {
         List<Field> injectableFields = findInjectableFields(targetClass);
-        
+
         for (Field field : injectableFields) {
             try {
                 field.setAccessible(true);
                 Class<?> fieldType = field.getType();
-                
+
                 // Try to get instance from Guice injector
                 Object dependency = getInstanceIfAvailable(injector, fieldType);
-                
+
                 if (dependency != null) {
                     field.set(target, dependency);
                 }
-                
             } catch (Exception e) {
-                throw new IllegalStateException(
-                    "Failed to inject field: " + field.getName() + 
-                    " in class: " + targetClass.getName(), e
-                );
+                throw new IllegalStateException("Failed to inject field: " + field.getName() + " in class: " + targetClass.getName(), e);
             }
         }
     }
@@ -90,30 +86,26 @@ public class ReferenceInjector {
      */
     private static void injectSetters(Object target, Class<?> targetClass, Injector injector) {
         List<Method> injectableSetters = findInjectableSetters(targetClass);
-        
+
         for (Method setter : injectableSetters) {
             try {
                 setter.setAccessible(true);
-                
+
                 // Setter should have exactly one parameter
                 if (setter.getParameterCount() != 1) {
                     continue;
                 }
-                
+
                 Class<?> parameterType = setter.getParameterTypes()[0];
-                
+
                 // Try to get instance from Guice injector
                 Object dependency = getInstanceIfAvailable(injector, parameterType);
-                
+
                 if (dependency != null) {
                     setter.invoke(target, dependency);
                 }
-                
             } catch (Exception e) {
-                throw new IllegalStateException(
-                    "Failed to inject via setter: " + setter.getName() + 
-                    " in class: " + targetClass.getName(), e
-                );
+                throw new IllegalStateException("Failed to inject via setter: " + setter.getName() + " in class: " + targetClass.getName(), e);
             }
         }
     }
@@ -124,30 +116,30 @@ public class ReferenceInjector {
      */
     private static List<Field> findInjectableFields(Class<?> clazz) {
         List<Field> injectableFields = new ArrayList<>();
-        
+
         Class<?> currentClass = clazz;
         while (currentClass != null && currentClass != Object.class) {
             Field[] declaredFields = currentClass.getDeclaredFields();
-            
+
             for (Field field : declaredFields) {
                 int modifiers = field.getModifiers();
-                
+
                 // Skip static and final fields
                 if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers)) {
                     continue;
                 }
-                
+
                 // Skip primitive types
                 if (field.getType().isPrimitive()) {
                     continue;
                 }
-                
+
                 injectableFields.add(field);
             }
-            
+
             currentClass = currentClass.getSuperclass();
         }
-        
+
         return injectableFields;
     }
 
@@ -157,38 +149,38 @@ public class ReferenceInjector {
      */
     private static List<Method> findInjectableSetters(Class<?> clazz) {
         List<Method> injectableSetters = new ArrayList<>();
-        
+
         Class<?> currentClass = clazz;
         while (currentClass != null && currentClass != Object.class) {
             Method[] declaredMethods = currentClass.getDeclaredMethods();
-            
+
             for (Method method : declaredMethods) {
                 // Must be a setter (starts with "set")
                 if (!method.getName().startsWith("set")) {
                     continue;
                 }
-                
+
                 // Must not be static
                 if (Modifier.isStatic(method.getModifiers())) {
                     continue;
                 }
-                
+
                 // Must have exactly one parameter
                 if (method.getParameterCount() != 1) {
                     continue;
                 }
-                
+
                 // Skip primitive parameters
                 if (method.getParameterTypes()[0].isPrimitive()) {
                     continue;
                 }
-                
+
                 injectableSetters.add(method);
             }
-            
+
             currentClass = currentClass.getSuperclass();
         }
-        
+
         return injectableSetters;
     }
 
@@ -206,7 +198,7 @@ public class ReferenceInjector {
 
     /**
      * Convenience method to create and inject references into a new instance of the target class.
-     * 
+     *
      * @param targetClass The class to instantiate
      * @param injector The Guice injector containing the dependencies
      * @param <T> The type of the target class
@@ -215,13 +207,13 @@ public class ReferenceInjector {
      */
     public static <T> T createAndInject(Class<T> targetClass, Injector injector) {
         try {
-            T instance = targetClass.getDeclaredConstructor().newInstance();
+            Constructor<T> ctor = targetClass.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            T instance = ctor.newInstance();
             injectReferences(instance, injector);
             return instance;
         } catch (Exception e) {
-            throw new IllegalStateException(
-                "Failed to create and inject instance of: " + targetClass.getName(), e
-            );
+            throw new IllegalStateException("Failed to create and inject instance of: " + targetClass.getName(), e);
         }
     }
 }

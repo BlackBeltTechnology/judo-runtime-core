@@ -37,9 +37,7 @@ import uk.org.lidalia.sysoutslf4j.context.SysOutOverSLF4J;
 
 public class JudoRuntimeFixture {
 
-    private static final Logger log = LoggerFactory.getLogger(
-        JudoRuntimeFixture.class
-    );
+    private static final Logger log = LoggerFactory.getLogger(JudoRuntimeFixture.class);
 
     static {
         SLF4JBridgeHandler.install();
@@ -54,8 +52,7 @@ public class JudoRuntimeFixture {
 
     public JudoRuntimeFixture() {}
 
-    public static final String MODEL_SOURCES =
-        "target/generated-test-sources/model";
+    public static final String MODEL_SOURCES = "target/generated-test-sources/model";
 
     public static final String DIALECT_HSQLDB = "hsqldb";
     public static final String DIALECT_POSTGRESQL = "postgresql";
@@ -82,8 +79,7 @@ public class JudoRuntimeFixture {
     private void initQueryFactory() {
         coercer = new DefaultCoercer();
 
-        JqlExpressionBuilderConfig jqlExpressionBuilderConfig =
-            new JqlExpressionBuilderConfig();
+        JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
         jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
 
         final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(
@@ -93,63 +89,36 @@ public class JudoRuntimeFixture {
             jqlExpressionBuilderConfig
         );
 
-        queryFactory = new QueryFactory(
-            modelHolder.getAsmModel().getResourceSet(),
-            modelHolder.getMeasureModel().getResourceSet(),
-            asmJqlExtractor.extractExpressions(),
-            coercer,
-            requireNonNullElse(null, new ConcurrentHashMap<>())
-        );
+        queryFactory = new QueryFactory(modelHolder.getAsmModel().getResourceSet(), modelHolder.getMeasureModel().getResourceSet(), asmJqlExtractor.extractExpressions(), coercer, requireNonNullElse(null, new ConcurrentHashMap<>()));
     }
 
     private void initModules(DataSource datasource, Dialect dialect) {
         RdbmsInit init = null;
         simpleLiquibaseExecutor = new SimpleLiquibaseExecutor();
         if (dialect instanceof HsqldbDialect) {
-            init = HsqldbRdbmsInit.builder()
-                .liquibaseExecutor(simpleLiquibaseExecutor)
-                .liquibaseModel(modelHolder.getLiquibaseModel())
-                .build();
-            databaseModule = JudoHsqldbModule.builder().build();
+            init = HsqldbRdbmsInit.builder().liquibaseExecutor(simpleLiquibaseExecutor).liquibaseModel(modelHolder.getLiquibaseModel()).build();
+            databaseModule = JudoHsqldbModule.builder().dataSource(datasource).build();
         }
         if (dialect instanceof PostgresqlDialect) {
-            init = PostgresqlRdbmsInit.builder()
-                .liquibaseExecutor(simpleLiquibaseExecutor)
-                .liquibaseModel(modelHolder.getLiquibaseModel())
-                .build();
-            databaseModule = JudoPostgresqlModule.builder()
-                .dataSource(datasource)
-                .build();
+            init = PostgresqlRdbmsInit.builder().liquibaseExecutor(simpleLiquibaseExecutor).liquibaseModel(modelHolder.getLiquibaseModel()).build();
+            databaseModule = JudoPostgresqlModule.builder().dataSource(datasource).build();
         }
         init.execute(datasource);
 
-        judoDefaultModuleBuilder = JudoDefaultModule.builder().judoModelLoader(
-            modelHolder
-        );
+        judoDefaultModuleBuilder = JudoDefaultModule.builder().judoModelLoader(modelHolder);
     }
 
-    public void prepare(
-        String modelName,
-        DataSource datasource,
-        String dialectName
-    ) throws Exception {
+    public void prepare(String modelName, DataSource datasource, String dialectName) throws Exception {
         prepare(modelName, datasource, dialectName, JudoTest.ModelSource.AUTO);
     }
 
-    public void prepare(
-        String modelName,
-        DataSource datasource,
-        String dialectName,
-        JudoTest.ModelSource modelSource
-    ) throws Exception {
+    public void prepare(String modelName, DataSource datasource, String dialectName, JudoTest.ModelSource modelSource) throws Exception {
         if (DIALECT_POSTGRESQL.equals(dialectName)) {
             dialect = new PostgresqlDialect();
         } else if (DIALECT_HSQLDB.equals(dialectName)) {
             dialect = new HsqldbDialect();
         } else {
-            throw new IllegalArgumentException(
-                "Unsupported dialect: " + dialectName
-            );
+            throw new IllegalArgumentException("Unsupported dialect: " + dialectName);
         }
 
         switch (modelSource) {
@@ -165,30 +134,12 @@ public class JudoRuntimeFixture {
                 try {
                     loadModelFromFilesystem(modelName);
                 } catch (Exception e) {
-                    log.warn(
-                        "Failed to load model '{}' from filesystem ({}), " +
-                            "attempting to load from classpath",
-                        modelName,
-                        e.getMessage()
-                    );
+                    log.warn("Failed to load model '{}' from filesystem ({}), " + "attempting to load from classpath", modelName, e.getMessage());
                     try {
                         loadModelFromClasspath(modelName);
                     } catch (Exception e2) {
-                        log.error(
-                            "Failed to load model '{}' from both filesystem and classpath",
-                            modelName
-                        );
-                        throw new IllegalArgumentException(
-                            "Could not load model '" +
-                                modelName +
-                                "'. " +
-                                "Filesystem error: " +
-                                e.getMessage() +
-                                ". " +
-                                "Classpath error: " +
-                                e2.getMessage(),
-                            e2
-                        );
+                        log.error("Failed to load model '{}' from both filesystem and classpath", modelName);
+                        throw new IllegalArgumentException("Could not load model '" + modelName + "'. " + "Filesystem error: " + e.getMessage() + ". " + "Classpath error: " + e2.getMessage(), e2);
                     }
                 }
                 break;
@@ -199,45 +150,21 @@ public class JudoRuntimeFixture {
     }
 
     private void loadModelFromFilesystem(String modelName) throws Exception {
-        log.debug(
-            "Attempting to load model '{}' from filesystem: {}",
-            modelName,
-            MODEL_SOURCES
-        );
-        modelHolder = JudoModelLoader.loadFromDirectory(
-            modelName,
-            new File(MODEL_SOURCES),
-            dialect,
-            true,
-            false
-        );
+        log.debug("Attempting to load model '{}' from filesystem: {}", modelName, MODEL_SOURCES);
+        modelHolder = JudoModelLoader.loadFromDirectory(modelName, new File(MODEL_SOURCES), dialect, true, false);
         log.info("Successfully loaded model '{}' from filesystem", modelName);
     }
 
     private void loadModelFromClasspath(String modelName) throws Exception {
         log.debug("Attempting to load model '{}' from classpath", modelName);
-        modelHolder = JudoModelLoader.loadFromClassloader(
-            modelName,
-            Thread.currentThread().getContextClassLoader(),
-            dialect,
-            true,
-            false
-        );
+        modelHolder = JudoModelLoader.loadFromClassloader(modelName, Thread.currentThread().getContextClassLoader(), dialect, true, false);
         log.info("Successfully loaded model '{}' from classpath", modelName);
     }
 
     public void init(Module module, Object injectModulesTo) {
-        judoDefaultModuleBuilder = judoDefaultModuleBuilder
-            .injectModulesTo(injectModulesTo)
-            .judoModelLoader(modelHolder)
-            .extendableCoercer(coercer)
-            .queryFactory(queryFactory);
+        judoDefaultModuleBuilder = judoDefaultModuleBuilder.injectModulesTo(injectModulesTo).judoModelLoader(modelHolder).extendableCoercer(coercer).queryFactory(queryFactory);
 
-        Module modules = Modules.combine(
-            module,
-            judoDefaultModuleBuilder.build(),
-            databaseModule
-        );
+        Module modules = Modules.combine(module, judoDefaultModuleBuilder.build(), databaseModule);
         injector = Guice.createInjector(modules);
     }
 
@@ -250,22 +177,16 @@ public class JudoRuntimeFixture {
 
     private PlatformTransactionManager getTransactionManager() {
         if (transactionManager == null) {
-            transactionManager = injector.getInstance(
-                PlatformTransactionManager.class
-            );
+            transactionManager = injector.getInstance(PlatformTransactionManager.class);
         }
         return transactionManager;
     }
 
     public void beginTransaction() {
         if (transactionStatus != null && !transactionStatus.isCompleted()) {
-            throw new IllegalStateException(
-                "Previous transaction was not completed"
-            );
+            throw new IllegalStateException("Previous transaction was not completed");
         }
-        transactionStatus = getTransactionManager().getTransaction(
-            new DefaultTransactionDefinition()
-        );
+        transactionStatus = getTransactionManager().getTransaction(new DefaultTransactionDefinition());
     }
 
     public void commitTransaction() {
@@ -293,9 +214,7 @@ public class JudoRuntimeFixture {
             throw new IllegalStateException("TransactionStatus is null");
         }
         if (transactionStatus.isCompleted()) {
-            throw new IllegalStateException(
-                "Transaction was already completed"
-            );
+            throw new IllegalStateException("Transaction was already completed");
         }
     }
 
@@ -308,9 +227,7 @@ public class JudoRuntimeFixture {
      */
     public Injector getInjector() {
         if (injector == null) {
-            throw new IllegalStateException(
-                "Injector has not been initialized. Call init() first."
-            );
+            throw new IllegalStateException("Injector has not been initialized. Call init() first.");
         }
         return injector;
     }
