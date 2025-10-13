@@ -107,12 +107,21 @@ class EnvironmentVariableMockerTest {
             env2.put("VAR2", "value2");
 
             EnvironmentVariableMocker.connect(env1);
-            assertFalse(EnvironmentVariableMocker.pop(), "Stack should not be empty");
+            assertTrue(
+                EnvironmentVariableMocker.pop(),
+                "Stack should be empty after single pop"
+            );
 
             EnvironmentVariableMocker.connect(env1);
             EnvironmentVariableMocker.connect(env2);
-            assertFalse(EnvironmentVariableMocker.pop(), "Stack should not be empty after first pop");
-            assertTrue(EnvironmentVariableMocker.pop(), "Stack should be empty after second pop");
+            assertFalse(
+                EnvironmentVariableMocker.pop(),
+                "Stack should not be empty after first pop"
+            );
+            assertTrue(
+                EnvironmentVariableMocker.pop(),
+                "Stack should be empty after second pop"
+            );
         }
 
         @Test
@@ -232,7 +241,10 @@ class EnvironmentVariableMockerTest {
 
             // Null values should be filtered out
             assertNotNull(result.get("VAR1"));
-            assertFalse(result.containsKey("VAR2"), "VAR2 with null value should not be in map");
+            assertFalse(
+                result.containsKey("VAR2"),
+                "VAR2 with null value should not be in map"
+            );
             assertNotNull(result.get("VAR3"));
 
             EnvironmentVariableMocker.pop();
@@ -542,7 +554,10 @@ class EnvironmentVariableMockerTest {
             assertEquals("mixed_value", System.getenv("MixedCase"));
 
             // These should be different variables
-            assertNotEquals(System.getenv("lowercase"), System.getenv("LOWERCASE"));
+            assertNotEquals(
+                System.getenv("lowercase"),
+                System.getenv("LOWERCASE")
+            );
 
             EnvironmentVariableMocker.pop();
         }
