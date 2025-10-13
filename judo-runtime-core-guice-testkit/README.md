@@ -1191,10 +1191,14 @@ The mocking utilities solve these problems by temporarily replacing environment 
 
 ```java
 import hu.blackbelt.judo.runtime.core.guice.testkit.util.EnvironmentVariables;
+import hu.blackbelt.judo.runtime.core.guice.testkit.util.EnvironmentVariableMocker;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Test
 void testWithEnvironmentVariable() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables("API_URL", "https://test-api.example.com")
         .execute(() -> {
             assertEquals("https://test-api.example.com", System.getenv("API_URL"));
@@ -1214,6 +1218,9 @@ void testWithEnvironmentVariable() throws Exception {
 ```java
 @Test
 void testWithMultipleVariables() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables(
         "API_URL", "https://test-api.example.com",
         "API_KEY", "test-key-12345",
@@ -1235,6 +1242,9 @@ void testWithMultipleVariables() throws Exception {
 ```java
 @Test
 void testFluentAPI() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables("DATABASE_URL", "jdbc:postgresql://localhost/test")
         .and("DATABASE_USER", "testuser")
         .and("DATABASE_PASSWORD", "testpass")
@@ -1326,6 +1336,9 @@ envVars.remove("VAR1");              // Remove variable
 ```java
 @Test
 void testNestedContexts() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables("OUTER", "outer_value")
         .execute(() -> {
             assertEquals("outer_value", System.getenv("OUTER"));
@@ -1348,6 +1361,9 @@ void testNestedContexts() throws Exception {
 ```java
 @Test
 void testRemovingVariable() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     // Set a variable to null to remove it from the environment
     new EnvironmentVariables("REMOVED_VAR", null)
         .execute(() -> {
@@ -1362,6 +1378,9 @@ void testRemovingVariable() throws Exception {
 ```java
 @Test
 void testOverrideSystemVariable() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     String originalPath = System.getenv("PATH");
     
     new EnvironmentVariables("PATH", "/custom/test/path")
@@ -1381,6 +1400,9 @@ void testOverrideSystemVariable() throws Exception {
 ```java
 @Test
 void testConditionalSetup() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     EnvironmentVariables envVars = new EnvironmentVariables("BASE_VAR", "base");
     
     if (needsDebugMode()) {
@@ -1407,6 +1429,9 @@ class ConfigurationTest {
     
     @Test
     void testProductionConfig() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         new EnvironmentVariables(
             "ENV", "production",
             "API_URL", "https://api.example.com",
@@ -1426,6 +1451,9 @@ class ConfigurationTest {
     
     @Test
     void testDevelopmentConfig() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         new EnvironmentVariables(
             "ENV", "development",
             "API_URL", "http://localhost:8080",
@@ -1440,6 +1468,9 @@ class ConfigurationTest {
     
     @Test
     void testMissingRequiredVariable() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         new EnvironmentVariables("ENV", "test")
             .execute(() -> {
                 // API_URL is required but missing
@@ -1458,6 +1489,9 @@ class FeatureFlagTest {
     
     @Test
     void testFeatureEnabled() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         new EnvironmentVariables(
             "FEATURE_NEW_UI", "true",
             "FEATURE_BETA_API", "true"
@@ -1474,6 +1508,9 @@ class FeatureFlagTest {
     
     @Test
     void testFeatureDisabled() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         new EnvironmentVariables(
             "FEATURE_NEW_UI", "false"
         ).execute(() -> {
@@ -1495,6 +1532,9 @@ class DatabaseConnectionTest {
     
     @Test
     void testPostgresConnection() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         new EnvironmentVariables(
             "DB_HOST", "localhost",
             "DB_PORT", "5432",
@@ -1514,6 +1554,9 @@ class DatabaseConnectionTest {
     
     @Test
     void testConnectionPooling() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         new EnvironmentVariables(
             "DB_POOL_SIZE", "10",
             "DB_POOL_TIMEOUT", "30000",
@@ -1543,6 +1586,9 @@ class MultiEnvironmentTest {
     
     @Test
     void testDevelopmentEnvironment() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         baseConfig()
             .and("ENV", "development")
             .and("DEBUG", "true")
@@ -1556,6 +1602,9 @@ class MultiEnvironmentTest {
     
     @Test
     void testStagingEnvironment() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         baseConfig()
             .and("ENV", "staging")
             .and("DEBUG", "false")
@@ -1571,6 +1620,9 @@ class MultiEnvironmentTest {
     
     @Test
     void testProductionEnvironment() throws Exception {
+        // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+        EnvironmentVariableMocker.initMocked();
+        
         baseConfig()
             .and("ENV", "production")
             .and("DEBUG", "false")
@@ -1649,6 +1701,9 @@ EnvironmentVariableMocker.pop();
 // ✅ Good: Variables only exist during test
 @Test
 void test() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables("VAR", "value").execute(() -> {
         // test code
     });
@@ -1675,6 +1730,9 @@ new EnvironmentVariables("TIMEOUT", "5000", "RETRIES", "3")
 ```java
 @Test
 void testConfiguration() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables(
         // Required variables
         "API_URL", "https://api.example.com",
@@ -1694,6 +1752,9 @@ void testConfiguration() throws Exception {
 ```java
 @Test
 void testWithVariable() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables("FEATURE_FLAG", "true")
         .execute(() -> {
             assertTrue(Features.isEnabled("FEATURE_FLAG"));
@@ -1702,6 +1763,9 @@ void testWithVariable() throws Exception {
 
 @Test
 void testWithoutVariable() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables()
         .execute(() -> {
             // Variable not set - should use default
@@ -1745,6 +1809,9 @@ void test() {
 // ✅ Solution: Use EnvironmentVariables.execute()
 @Test
 void test() throws Exception {
+    // Initialize the mocker once before first use (typically in @BeforeEach or @BeforeAll)
+    EnvironmentVariableMocker.initMocked();
+    
     new EnvironmentVariables("VAR", "value")
         .execute(() -> {
             // Automatic cleanup
