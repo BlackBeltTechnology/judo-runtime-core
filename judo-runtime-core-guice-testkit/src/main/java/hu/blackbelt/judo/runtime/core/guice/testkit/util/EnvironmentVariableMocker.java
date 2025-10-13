@@ -3,6 +3,7 @@ package hu.blackbelt.judo.runtime.core.guice.testkit.util;
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Stream;
 import org.mockito.MockedStatic;
@@ -177,8 +178,11 @@ public class EnvironmentVariableMocker {
         int nonNullEntries = 0;
         for (Map.Entry<String, String> entry : m.entrySet()) {
             if (entry.getValue() != null) {
-                count += entry.getKey().getBytes().length;
-                count += entry.getValue().getBytes().length;
+                count += entry.getKey().getBytes(StandardCharsets.UTF_8).length;
+                count += entry
+                    .getValue()
+                    .getBytes(StandardCharsets.UTF_8)
+                    .length;
                 count += 2; // For added '=' and NUL
                 nonNullEntries++;
             }
@@ -193,8 +197,10 @@ public class EnvironmentVariableMocker {
             if (entry.getValue() == null) {
                 continue;
             }
-            final byte[] key = entry.getKey().getBytes();
-            final byte[] value = entry.getValue().getBytes();
+            final byte[] key = entry.getKey().getBytes(StandardCharsets.UTF_8);
+            final byte[] value = entry
+                .getValue()
+                .getBytes(StandardCharsets.UTF_8);
             System.arraycopy(key, 0, block, i, key.length);
             i += key.length;
             block[i++] = (byte) '=';
