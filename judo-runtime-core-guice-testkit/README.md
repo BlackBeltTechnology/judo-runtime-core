@@ -253,6 +253,93 @@ By default, tests use an in-memory HSQLDB database. You can configure the databa
 - `JUDO_TEST_DIALECT` - Database dialect ("hsqldb", "postgresql")
 - `JUDO_TEST_CONTAINER` - Container type ("none", "postgresql", "yugabytedb")
 
+**Database-Specific Environment Variables:**
+
+Each database container has its own set of configuration environment variables that are automatically set by the testkit. Understanding these variables is important if you need to troubleshoot container startup or debug database connection issues.
+
+**PostgreSQL Container (Testcontainers):**
+- Container uses standard `POSTGRES_*` environment variables
+- `POSTGRES_DB` - Database name (default: "test")
+- `POSTGRES_USER` - Username (default: "test")
+- `POSTGRES_PASSWORD` - Password (default: "test")
+- Managed automatically by Testcontainers
+- Port: Automatically allocated by Testcontainers (typically 5432 inside container)
+
+**YugabyteDB Container:**
+- Container uses `YSQL_*` environment variables (**not** `POSTGRES_*`)
+- `YSQL_DB` - Database name (default: "yugabyte")
+- `YSQL_USER` - Username (default: "yugabyte")
+- `YSQL_PASSWORD` - Password (default: "yugabyte")
+- Port: 5433 (YugabyteDB YSQL default port)
+- **Important**: YugabyteDB uses Yugabyted process which ignores `POSTGRES_*` variables
+
+**HSQLDB (In-Memory):**
+- No container required
+- No environment variables needed
+- Fully in-memory, created per test
+- Fastest option for local development
+
+**Why Different Environment Variables?**
+
+YugabyteDB uses a different process architecture than standard PostgreSQL:
+- **PostgreSQL**: Uses the `postgres` binary and reads `POSTGRES_*` environment variables
+- **YugabyteDB**: Uses the `yugabyted` binary which manages the YSQL (Yugabyte SQL) layer
+- The `yugabyted` process expects `YSQL_*` environment variables to configure the YSQL API
+- Using `POSTGRES_*` variables with YugabyteDB will result in the variables being ignored
+
+**Debugging Container Issues:**
+
+If you experience issues with database containers:
+
+```java
+// Enable container logging to see what environment variables are set
+@JudoTest(container = "yugabytedb")
+void debugContainerSetup(JudoRuntimeFixture fixture) {
+    // The fixture provides access to datasource configuration
+    // You can inspect the JDBC URL and connection properties
+    System.out.println("JDBC URL: " + fixture.getJdbcUrl());
+    System.out.println("Username: " + fixture.getUsername());
+    
+    // For detailed container logs, enable testcontainers logging:
+    // - Add to logback-test.xml:
+    //   <logger name="org.testcontainers" level="DEBUG"/>
+}
+```
+
+**Common Mistakes:**
+
+1. ❌ **Wrong**: Trying to configure YugabyteDB with `POSTGRES_DB` environment variable
+   ```java
+   // This won't work - YugabyteDB ignores POSTGRES_* variables
+   container.addEnv("POSTGRES_DB", "mydb");  // Ignored!
+   ```
+
+2. ✅ **Correct**: Use `YSQL_*` variables for YugabyteDB
+   ```java
+   // This works - YugabyteDB reads YSQL_* variables
+   container.addEnv("YSQL_DB", "mydb");  // Works!
+   ```
+
+3. ❌ **Wrong**: Using YSQL variables with PostgreSQL
+   ```java
+   // PostgreSQL doesn't recognize YSQL_* variables
+   postgresContainer.addEnv("YSQL_DB", "mydb");  // Ignored!
+   ```
+
+4. ✅ **Correct**: Use `POSTGRES_*` variables for PostgreSQL
+   ```java
+   // PostgreSQL reads POSTGRES_* variables
+   postgresContainer.addEnv("POSTGRES_DB", "mydb");  // Works!
+   ```
+
+**Quick Reference Table:**
+
+| Database | Container Type | Env Variable Prefix | Database Name Var | User Var | Password Var | Default Port |
+|----------|---------------|---------------------|-------------------|----------|--------------|--------------|
+| **HSQLDB** | None (in-memory) | N/A | N/A | N/A | N/A | N/A |
+| **PostgreSQL** | Testcontainers | `POSTGRES_*` | `POSTGRES_DB` | `POSTGRES_USER` | `POSTGRES_PASSWORD` | 5432 |
+| **YugabyteDB** | Custom container | `YSQL_*` | `YSQL_DB` | `YSQL_USER` | `YSQL_PASSWORD` | 5433 |
+
 ```bash
 # Run all tests with PostgreSQL container
 export JUDO_TEST_DIALECT=postgresql

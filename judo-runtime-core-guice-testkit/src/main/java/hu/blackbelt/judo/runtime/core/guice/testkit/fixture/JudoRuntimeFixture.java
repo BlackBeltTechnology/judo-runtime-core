@@ -40,8 +40,10 @@ public class JudoRuntimeFixture {
     private static final Logger log = LoggerFactory.getLogger(JudoRuntimeFixture.class);
 
     static {
-        SLF4JBridgeHandler.install();
-        SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
+        if (Boolean.getBoolean("judo.testkit.configureLogging")) {
+            SLF4JBridgeHandler.install();
+            SysOutOverSLF4J.sendSystemOutAndErrToSLF4J();
+        }
     }
 
     public JudoRuntimeFixture(Map<String, Object> context) {

@@ -3,14 +3,40 @@ package hu.blackbelt.judo.runtime.core.guice.testkit.fixture;
 import static java.time.temporal.ChronoUnit.SECONDS;
 
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import org.testcontainers.containers.JdbcDatabaseContainer;
 import org.testcontainers.containers.wait.strategy.LogMessageWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 
-public class YugabytedbSQLContainer<SELF extends org.testcontainers.containers.PostgreSQLContainer<SELF>> extends JdbcDatabaseContainer<SELF> {
+/**
+ * Testcontainers implementation for YugabyteDB.
+ * <p>
+ * YugabyteDB is a distributed SQL database that is PostgreSQL-compatible.
+ * This container uses the Yugabyted single-node cluster process and exposes
+ * the YSQL (Yugabyte SQL) API on port 5433.
+ * </p>
+ * <p>
+ * Configuration is done via YSQL_* environment variables (not POSTGRES_* variables):
+ * <ul>
+ *   <li>YSQL_DB - database name</li>
+ *   <li>YSQL_USER - username</li>
+ *   <li>YSQL_PASSWORD - password</li>
+ * </ul>
+ * </p>
+ * <p>
+ * Example usage:
+ * <pre>
+ * YugabytedbSQLContainer container = new YugabytedbSQLContainer()
+ *     .withDatabaseName("testdb")
+ *     .withUsername("testuser")
+ *     .withPassword("testpass");
+ * container.start();
+ * </pre>
+ * </p>
+ */
+public class YugabytedbSQLContainer
+    extends JdbcDatabaseContainer<YugabytedbSQLContainer> {
 
     public static final String IMAGE = "yugabytedb/yugabyte";
     public static final String DEFAULT_TAG = "2.1.8.2-b1";
@@ -35,24 +61,32 @@ public class YugabytedbSQLContainer<SELF extends org.testcontainers.containers.P
 
     public YugabytedbSQLContainer(final String dockerImageName) {
         super(DockerImageName.parse(dockerImageName));
-        this.waitStrategy = new LogMessageWaitStrategy().withRegEx(".*yugabyted started successfully.*").withTimes(1).withStartupTimeout(Duration.of(60, SECONDS));
+        this.waitStrategy = new LogMessageWaitStrategy()
+            .withRegEx(".*yugabyted started successfully.*")
+            .withTimes(1)
+            .withStartupTimeout(Duration.of(60, SECONDS));
         //this.setCommand("postgres", "-c", FSYNC_OFF_OPTION);
-        this.setCommand("/bin/bash", "-c", "bin/yugabyted start --ui=false && tail -f /dev/null");
+        this.setCommand(
+            "/bin/bash",
+            "-c",
+            "bin/yugabyted start --ui=false && tail -f /dev/null"
+        );
         addExposedPort(YUGABYTE_PORT);
     }
 
     @Override
     public Set<Integer> getLivenessCheckPortNumbers() {
-        return new HashSet<>(Collections.singleton(getMappedPort(YUGABYTE_PORT)));
+        return new HashSet<>(getMappedPort(YUGABYTE_PORT));
     }
 
     @Override
     protected void configure() {
         // Disable Postgres driver use of java.util.logging to reduce noise at startup time
         withUrlParam("loggerLevel", "OFF");
-        addEnv("POSTGRES_DB", databaseName);
-        addEnv("POSTGRES_USER", username);
-        addEnv("POSTGRES_PASSWORD", password);
+        // Configure Yugabyted YSQL (Yugabyte SQL) environment variables
+        addEnv("YSQL_DB", databaseName);
+        addEnv("YSQL_USER", username);
+        addEnv("YSQL_PASSWORD", password);
     }
 
     @Override
@@ -62,8 +96,19 @@ public class YugabytedbSQLContainer<SELF extends org.testcontainers.containers.P
 
     @Override
     public String getJdbcUrl() {
-        String additionalUrlParams = constructUrlParameters("?", QUERY_PARAM_SEPARATOR);
-        return ("jdbc:postgresql://" + getHost() + ":" + getMappedPort(YUGABYTE_PORT) + "/" + databaseName + additionalUrlParams);
+        String additionalUrlParams = constructUrlParameters(
+            "?",
+            QUERY_PARAM_SEPARATOR
+        );
+        return (
+            "jdbc:postgresql://" +
+            getHost() +
+            ":" +
+            getMappedPort(YUGABYTE_PORT) +
+            "/" +
+            databaseName +
+            additionalUrlParams
+        );
     }
 
     @Override
@@ -87,19 +132,19 @@ public class YugabytedbSQLContainer<SELF extends org.testcontainers.containers.P
     }
 
     @Override
-    public SELF withDatabaseName(final String databaseName) {
+    public YugabytedbSQLContainer withDatabaseName(final String databaseName) {
         this.databaseName = databaseName;
         return self();
     }
 
     @Override
-    public SELF withUsername(final String username) {
+    public YugabytedbSQLContainer withUsername(final String username) {
         this.username = username;
         return self();
     }
 
     @Override
-    public SELF withPassword(final String password) {
+    public YugabytedbSQLContainer withPassword(final String password) {
         this.password = password;
         return self();
     }
