@@ -1069,4 +1069,16 @@
             </build>
         </profile>
     </profiles>
-<repositories><repository><id>judong</id><url>https://repository.judo.technology/repository/maven-judong/</url><releases><enabled>true</enabled></releases><snapshots><enabled>false</enabled></snapshots></repository></repositories></project>
+    <repositories>
+        <repository>
+            <id>judong</id>
+            <url>https://repository.judo.technology/repository/maven-judong/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+</project>

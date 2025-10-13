@@ -19,9 +19,7 @@ jobs:
       SIGN_KEY: ${{ secrets.GPG_SECRET_KEYS }}
     outputs:
       version: ${{ steps.version.outputs.version }}
-      message: ${{ steps.success_message.outputs.message }}${{ 
-        steps.failure_message.outputs.message }}${{ 
-        steps.cancel_message.outputs.message }}
+      message: ${{ steps.success_message.outputs.message }}${{ steps.failure_message.outputs.message }}${{ steps.cancel_message.outputs.message }}
 
     steps:
     - name: ⬇️ Checkout repository
@@ -108,15 +106,12 @@ jobs:
       uses: peter-evans/create-pull-request@v3
       with:
         token: ${{ secrets.OSS_PAT }}
-        commit-message: '[BUMP VERSION] Increase version to ${{ steps.next_version.outputs.version
-          }}'
+        commit-message: '[BUMP VERSION] Increase version to ${{ steps.next_version.outputs.version }}'
         branch: increment/v${{ steps.next_version.outputs.version }}
         delete-branch: true
         branch-suffix: short-commit-hash
-        title: '[BUMP VERSION] Set develop version to: ${{ steps.next_version.outputs.version
-          }}'
+        title: '[BUMP VERSION] Set develop version to: ${{ steps.next_version.outputs.version }}'
         body: >
-          This PR is auto-generated. Increasing development version and creates a
-          pull request to develop.
+          This PR is auto-generated. Increasing development version and creates a pull request to develop.
         labels: release, automated pr
 

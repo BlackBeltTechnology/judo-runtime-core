@@ -19,9 +19,7 @@ jobs:
       SIGN_KEY: ${{ secrets.GPG_SECRET_KEYS }}
     outputs:
       version: ${{ steps.version.outputs.version }}
-      message: ${{ steps.success_message.outputs.message }}${{ 
-        steps.failure_message.outputs.message }}${{ 
-        steps.cancel_message.outputs.message }}
+      message: ${{ steps.success_message.outputs.message }}${{ steps.failure_message.outputs.message }}${{ steps.cancel_message.outputs.message }}
 
     steps:
     - name: ⬇️ Checkout repository
@@ -103,15 +101,12 @@ jobs:
       uses: peter-evans/create-pull-request@v3
       with:
         token: ${{ secrets.OSS_PAT }}
-        commit-message: '[RELEASE] Release version: ${{ steps.version.outputs.base-version
-          }}'
+        commit-message: '[RELEASE] Release version: ${{ steps.version.outputs.base-version }}'
         branch: release/v${{ steps.version.outputs.base-version }}
         delete-branch: true
-        title: '[RELEASE] Release version: ${{ steps.version.outputs.base-version
-          }} to master'
+        title: '[RELEASE] Release version: ${{ steps.version.outputs.base-version }} to master'
         body: >
-          This PR is auto-generated. Creates pull request to master which contains
-          the coresponding release's source code.
+          This PR is auto-generated. Creates pull request to master which contains the coresponding release's source code.
         labels: release, automated pr
 
     - name: ⬇️ Checkout develop repository
@@ -150,15 +145,12 @@ jobs:
       uses: peter-evans/create-pull-request@v3
       with:
         token: ${{ secrets.OSS_PAT }}
-        commit-message: '[RELEASE] Increase version to ${{ steps.next_version.outputs.version
-          }}'
+        commit-message: '[RELEASE] Increase version to ${{ steps.next_version.outputs.version }}'
         branch: increment/v${{ steps.next_version.outputs.version }}
         delete-branch: true
         branch-suffix: short-commit-hash
-        title: '[RELEASE] Set develop version to: ${{ steps.next_version.outputs.version
-          }}'
+        title: '[RELEASE] Set develop version to: ${{ steps.next_version.outputs.version }}'
         body: >
-          This PR is auto-generated. Increasing development version and creates a
-          pull request to develop.
+          This PR is auto-generated. Increasing development version and creates a pull request to develop.
         labels: release, automated pr
 
