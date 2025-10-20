@@ -22,7 +22,6 @@ package hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr353.JSR353Module;
@@ -37,7 +36,6 @@ public class ExtendedObjectMapperProvider implements Provider<ObjectMapper> {
                 .registerModule(new ParameterNamesModule())
                 .registerModule(new Jdk8Module())
                 .registerModule(new JavaTimeModule())
-                .registerModule(new GuavaModule())
                 .registerModule(new JSR353Module())
                 .setSerializationInclusion(JsonInclude.Include.NON_NULL);
     }
