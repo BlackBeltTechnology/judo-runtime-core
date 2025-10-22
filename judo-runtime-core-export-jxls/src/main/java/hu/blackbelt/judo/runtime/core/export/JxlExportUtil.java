@@ -14,6 +14,7 @@ import org.jxls.area.XlsArea;
 import org.jxls.command.EachCommand;
 import org.jxls.common.CellRef;
 import org.jxls.common.Context;
+import org.jxls.common.ContextImpl;
 import org.jxls.transform.poi.SelectSheetsForStreamingPoiTransformer;
 
 import java.io.*;
@@ -142,7 +143,7 @@ public class JxlExportUtil {
 
                 Collection<Map<String, Object>> transformedPayloadList = transformPayloadList(new AsmUtils(asmModel.getResourceSet()), list, targetTypes);
                 if (transformedPayloadList != null && transformedPayloadList.size() != 0) {
-                    Context context = new Context();
+                    Context context = new ContextImpl();
                     context.putVar("list", transformedPayloadList);
                     // To debug use: headerArea.applyAt(new CellRef(RESULT_SHEET_NAME + "!A1"), context)
                     headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
@@ -177,7 +178,7 @@ public class JxlExportUtil {
 
             Collection<Map<String, Object>> transformedPayloadList = transformPayloadList(new AsmUtils(asmModel.getResourceSet()), list, targetTypes);
             if (transformedPayloadList != null && transformedPayloadList.size() != 0) {
-                Context context = new Context();
+                Context context = new ContextImpl();
                 context.putVar("list", transformedPayloadList);
                 // To debug use: headerArea.applyAt(new CellRef(RESULT_SHEET_NAME + "!A1"), context)
                 headerArea.applyAt(new CellRef(sheetName + "!A1"), context);
