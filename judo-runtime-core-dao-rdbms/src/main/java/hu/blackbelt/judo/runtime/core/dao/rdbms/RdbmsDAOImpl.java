@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -774,19 +775,28 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
             return p;
         };
 
-        final Set<Serializable> currentReferences;
-        if (!AsmUtils.annotatedAsTrue(reference, "transient") && markSelectedRangeItems && instanceId != null) {
-            currentReferences = searchNavigationResultAt(instanceId, reference, QueryCustomizer.builder().withoutFeatures(true).build()).stream()
-                    .map(p -> p.getAs(identifierProvider.getType(), identifierProvider.getName()))
-                    .collect(Collectors.toSet());
-        } else {
-            currentReferences = Collections.emptySet();
-        }
+        final BiFunction<List<Payload>, Serializable, List<Payload>> markAttachedInstances = (List<Payload> toMark, Serializable id) -> {
+            if (toMark.size() == 0) {
+                return toMark;
+            }
+            final Set<Serializable> currentReferences;
+            if (!AsmUtils.annotatedAsTrue(reference, "transient") && markSelectedRangeItems && id != null) {
+                currentReferences = searchNavigationResultAt(id, reference,
+                        QueryCustomizer.builder()
+                                .withoutFeatures(true)
+                                .instanceIds(toMark.stream().map(p -> p.getAs(identifierProvider.getType(), identifierProvider.getName())).collect(Collectors.toSet()))
+                                .build()).stream()
+                        .map(p -> p.getAs(identifierProvider.getType(), identifierProvider.getName()))
+                        .collect(Collectors.toSet());
+            } else {
+                currentReferences = Collections.emptySet();
+            }
+            toMark.stream().forEach(p -> markSelected.apply(p, currentReferences));
+            return toMark;
+        };
 
         if (queryFactory.isStaticReference(rangeTransferRelation)) {
-            return searchReferencedInstancesOf(rangeTransferRelation, rangeTransferRelation.getEReferenceType(), queryCustomizer).stream()
-                    .map(p -> markSelected.apply(p, currentReferences))
-                    .collect(Collectors.toList());
+            return markAttachedInstances.apply(searchReferencedInstancesOf(rangeTransferRelation, rangeTransferRelation.getEReferenceType(), queryCustomizer), instanceId);
         } else {
             if (stateful) {
                 final Payload temporaryInstance;
@@ -812,9 +822,7 @@ public class RdbmsDAOImpl extends AbstractRdbmsDAO implements DAO {
                 }
             }
 
-            return searchNavigationResultAt(instanceId, rangeTransferRelation, queryCustomizer).stream()
-                    .map(p -> markSelected.apply(p, currentReferences))
-                    .collect(Collectors.toList());
+            return markAttachedInstances.apply(searchNavigationResultAt(instanceId, rangeTransferRelation, queryCustomizer), instanceId);
         }
     }
 
