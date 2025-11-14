@@ -74,23 +74,29 @@ public class RangeValidator implements Validator {
         }
 
         @SuppressWarnings("unchecked")
-        final Collection<Payload> range = dao.getRangeOf((EReference) feature, instance, DAO.QueryCustomizer.builder()
+        final long rangeCount = dao.countRangeOf((EReference) feature, instance, DAO.QueryCustomizer.builder()
                 .withoutFeatures(true)
                 .build(),
-                false, true);
+                false);
 
-        final Collection<Serializable> validIds = range.stream()
-                .map(ri -> ri.getAs(identifierProvider.getType(), identifierProvider.getName()))
-                .collect(Collectors.toSet());
-
-        if (validIds.isEmpty()) {
+        if (rangeCount < 1) {
             log.warn("Range of {} contains no items", AsmUtils.getReferenceFQName((EReference) feature));
         }
 
         Optional<EReference> entityReference = asmUtils.getMappedReference((EReference) feature);
-
         final Serializable id = ((Payload) value).getAs(identifierProvider.getType(), identifierProvider.getName());
-        if ((id == null && entityReference.isEmpty()) || (id == null && entityReference.isPresent() && entityReference.get().isContainment()) || (id != null && !validIds.contains(id))) {
+
+        boolean containsId = false;
+        if (id != null) {
+            containsId = dao.getRangeOf((EReference) feature, instance, DAO.QueryCustomizer.builder()
+                            .withoutFeatures(true)
+                            .mask(null)
+                            .instanceIds(Arrays.asList(id))
+                            .build(),
+                    false, true).size() > 0;
+        }
+
+        if ((id == null && entityReference.isEmpty()) || (id == null && entityReference.isPresent() && entityReference.get().isContainment()) || (id != null && !containsId)) {
             Validator.addValidationError(ImmutableMap.of(
                             identifierProvider.getName(), id,
                             SIGNED_IDENTIFIER_KEY, Optional.ofNullable(((Payload) value).get(SIGNED_IDENTIFIER_KEY)),
