@@ -1,6 +1,7 @@
 package hu.blackbelt.judo.runtime.core.guice.testkit.fixture;
 
 import com.google.inject.AbstractModule;
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor;
 import org.junit.jupiter.api.extension.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,9 +195,17 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         JudoRuntimeFixture runtimeFixture = new JudoRuntimeFixture();
         runtimeFixture.prepare(annotation.modelName(), datasourceFixture.getDataSource(), datasourceFixture.getDialect(), annotation.modelSource());
 
+        // Register interceptor classes from annotation
+        Class<? extends OperationCallInterceptor>[] interceptorClasses = annotation.interceptors();
+        for (Class<? extends OperationCallInterceptor> interceptorClass : interceptorClasses) {
+            runtimeFixture.addInterceptor(interceptorClass);
+            log.debug("Registered interceptor class from annotation: {}", interceptorClass.getName());
+        }
+
         // Instantiate custom modules from annotation
         com.google.inject.Module customModule = createCustomModule(annotation);
 
+        // init() will handle interceptor instantiation, registration, and dependency injection
         runtimeFixture.init(customModule, context.getTestInstance().orElse(null));
 
         // Handle transaction based on strategy

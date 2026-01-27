@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-dispatcher",
+  "version": "${project.version}",
+  "description": "JUDO Dispatcher - Operation routing, interceptors, and request handling",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-dispatcher",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-dispatcher",
+      "path": "./plugins/judo-dispatcher",
+      "description": "Skills for working with JUDO Dispatcher"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

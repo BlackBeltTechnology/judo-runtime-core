@@ -1,0 +1,18 @@
+{
+  "name": "judo-validator",
+  "version": "${project.version}",
+  "description": "Skills for JUDO Validator - custom validators, validation rules, constraint enforcement",
+  "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-validator",
+  "skills": [
+    {
+      "name": "custom-validators",
+      "path": "./skills/custom-validators",
+      "description": "Create custom validation logic"
+    },
+    {
+      "name": "validation-rules",
+      "path": "./skills/validation-rules",
+      "description": "Configure and debug validation rules"
+    }
+  ]
+}

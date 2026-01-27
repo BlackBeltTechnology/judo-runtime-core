@@ -1,5 +1,6 @@
 package hu.blackbelt.judo.runtime.core.guice.testkit.fixture;
 
+import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -165,6 +166,44 @@ public @interface JudoTest {
      * the datasource is always created per method.
      */
     DataSourceMode dataSourceMode() default DataSourceMode.BY_METHOD;
+
+    /**
+     * Interceptor classes to register for the test.
+     *
+     * <p>Each interceptor will be:
+     * <ol>
+     * <li>Instantiated (must have a public no-arg constructor)</li>
+     * <li>Registered in the {@link hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider}</li>
+     * <li>Have its dependencies (fields/setters) injected via {@link hu.blackbelt.judo.runtime.core.guice.testkit.util.ReferenceInjector}</li>
+     * </ol>
+     *
+     * <p>Interceptors are invoked automatically during dispatcher calls within the test,
+     * enabling integration testing of interceptor behavior.
+     *
+     * <p>Example:
+     * <pre>
+     * {@code
+     * @JudoTest(interceptors = { AuditLogInterceptor.class, ValidationInterceptor.class })
+     * void testOperationWithInterceptors(JudoRuntimeFixture fixture) {
+     *     Dispatcher dispatcher = fixture.getInjector().getInstance(Dispatcher.class);
+     *
+     *     // Interceptors are automatically invoked during this call
+     *     dispatcher.callOperation(...);
+     *
+     *     // Verify interceptor side effects
+     * }
+     * }
+     * </pre>
+     *
+     * <p>For more control over interceptor configuration, use
+     * {@link JudoRuntimeFixture#addInterceptor(OperationCallInterceptor)} to register
+     * pre-configured instances instead.
+     *
+     * @see JudoRuntimeFixture#addInterceptor(Class)
+     * @see JudoRuntimeFixture#addInterceptor(OperationCallInterceptor)
+     * @see hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor
+     */
+    Class<? extends OperationCallInterceptor>[] interceptors() default {};
 
     /**
      * Transaction handling strategies for @JudoTest.

@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-validator",
+  "version": "${project.version}",
+  "description": "JUDO Validator - Data validation framework with pluggable validators and constraint enforcement",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-validator",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-validator",
+      "path": "./plugins/judo-validator",
+      "description": "Skills for working with JUDO Validator"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

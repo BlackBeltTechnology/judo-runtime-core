@@ -1,0 +1,11 @@
+{
+  "name": "judo-runtime-core-marketplace",
+  "description": "Claude Code plugins for JUDO Runtime Core development",
+  "plugins": [
+    {
+      "name": "judo-testkit-helper",
+      "source": "./plugins/judo-testkit-helper",
+      "description": "Skills for testing JUDO applications with judo-runtime-core-guice-testkit"
+    }
+  ]
+}

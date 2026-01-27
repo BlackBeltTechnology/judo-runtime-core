@@ -1,0 +1,12 @@
+{
+  "name": "judo-testkit-helper",
+  "version": "1.0.0",
+  "description": "Skills for testing JUDO applications with judo-runtime-core-guice-testkit",
+  "author": {
+    "name": "BlackBelt Technology",
+    "url": "https://github.com/BlackBeltTechnology"
+  },
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "license": "EPL-2.0",
+  "keywords": ["judo", "testing", "interceptor", "guice", "testkit"]
+}

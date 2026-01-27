@@ -13,6 +13,28 @@
     <name>JUDO Runtime Core :: RDBMS Data Access Objects</name>
 
     <build>
+        <resources>
+            <!-- Standard resources without filtering -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>claude/marketplace.json</exclude>
+                    <exclude>claude/plugins/*/.claude-plugin/plugin.json</exclude>
+                    <exclude>claude/plugins/*/skills/*/SKILL.md</exclude>
+                </excludes>
+            </resource>
+            <!-- Files with version substitution -->
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>claude/marketplace.json</include>
+                    <include>claude/plugins/*/.claude-plugin/plugin.json</include>
+                    <include>claude/plugins/*/skills/*/SKILL.md</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -131,6 +153,18 @@
         <dependency>
             <groupId>com.google.inject</groupId>
             <artifactId>guice</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

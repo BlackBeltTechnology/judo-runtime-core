@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-expression",
+  "version": "${project.version}",
+  "description": "JUDO Expression - Expression binding and collection for derived attributes and computed properties",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-expression",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-expression",
+      "path": "./plugins/judo-expression",
+      "description": "Skills for working with JUDO Expression bindings"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

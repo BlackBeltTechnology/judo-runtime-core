@@ -1,0 +1,23 @@
+{
+  "name": "judo-dispatcher",
+  "version": "${project.version}",
+  "description": "Skills for JUDO Dispatcher - interceptors, operation routing, variable resolution",
+  "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-dispatcher",
+  "skills": [
+    {
+      "name": "create-interceptor",
+      "path": "./skills/create-interceptor",
+      "description": "Create custom operation interceptors"
+    },
+    {
+      "name": "dispatcher-architecture",
+      "path": "./skills/dispatcher-architecture",
+      "description": "Understand dispatcher internals"
+    },
+    {
+      "name": "debug-operations",
+      "path": "./skills/debug-operations",
+      "description": "Troubleshoot operation execution"
+    }
+  ]
+}

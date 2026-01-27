@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-dao-rdbms",
+  "version": "${project.version}",
+  "description": "JUDO DAO RDBMS - Relational database access layer with query translation, statement execution, and type mapping",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-dao-rdbms",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-dao-rdbms",
+      "path": "./plugins/judo-dao-rdbms",
+      "description": "Skills for working with JUDO DAO RDBMS layer"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}
