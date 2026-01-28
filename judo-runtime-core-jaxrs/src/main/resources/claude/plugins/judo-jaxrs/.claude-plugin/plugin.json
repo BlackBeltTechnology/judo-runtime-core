@@ -1,0 +1,13 @@
+{
+  "name": "judo-jaxrs",
+  "version": "${project.version}",
+  "description": "Skills for JUDO JAX-RS - REST endpoint configuration, exception mappers, request filters, and JSON serialization",
+  "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-jaxrs",
+  "skills": [
+    {
+      "name": "judo-runtime:rest-endpoints",
+      "path": "./skills/rest-endpoints",
+      "description": "Configure REST endpoints with JAX-RS providers"
+    }
+  ]
+}

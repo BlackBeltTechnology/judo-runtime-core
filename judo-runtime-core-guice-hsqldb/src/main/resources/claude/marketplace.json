@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-guice-hsqldb",
+  "version": "${project.version}",
+  "description": "JUDO Guice HSQLDB Integration - In-memory database configuration for development and testing",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-guice-hsqldb",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

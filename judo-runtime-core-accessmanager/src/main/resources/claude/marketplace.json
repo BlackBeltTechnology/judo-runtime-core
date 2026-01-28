@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-accessmanager",
+  "version": "${project.version}",
+  "description": "JUDO Access Manager - Access control, authorization, and permission checking for CRUD operations and references",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-accessmanager",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-accessmanager",
+      "path": "./plugins/judo-accessmanager",
+      "description": "Skills for working with JUDO Access Manager framework"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

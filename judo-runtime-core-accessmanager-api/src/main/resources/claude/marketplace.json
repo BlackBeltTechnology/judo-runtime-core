@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-accessmanager-api",
+  "version": "${project.version}",
+  "description": "JUDO Access Manager API - Interfaces for operation authorization, authentication interception, and access control",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-accessmanager-api",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-accessmanager-api",
+      "path": "./plugins/judo-accessmanager-api",
+      "description": "Skills for understanding JUDO Access Manager API interfaces"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-jaxrs-cxf",
+  "version": "${project.version}",
+  "description": "JUDO JAX-RS CXF Integration - Apache CXF interceptors, fault handling, and authorization",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-jaxrs-cxf",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-jaxrs-cxf",
+      "path": "./plugins/judo-jaxrs-cxf",
+      "description": "Skills for working with JUDO CXF JAX-RS integration"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

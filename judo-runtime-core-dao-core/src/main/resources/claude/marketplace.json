@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-dao-core",
+  "version": "${project.version}",
+  "description": "JUDO DAO Core - Core data access abstractions with payload processors, statement patterns, instance collectors, and entity-to-transfer object mapping",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-dao-core",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-dao-core",
+      "path": "./plugins/judo-dao-core",
+      "description": "Skills for working with JUDO DAO Core patterns and entity mapping"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

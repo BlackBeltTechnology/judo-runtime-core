@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-security-keycloak-cxf",
+  "version": "${project.version}",
+  "description": "JUDO Security Keycloak CXF - Apache CXF interceptor for Keycloak JWT token validation and authentication",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-security-keycloak-cxf",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

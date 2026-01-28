@@ -18,7 +18,7 @@
 
 ## Phase 3: Dispatcher Module - Agent Docs
 
-- [x] Create `judo-runtime-core-dispatcher/src/main/resources/agent-docs/` directory
+- [x] Create `judo-runtime-core-dispatcher/agent-docs/` directory (at submodule root)
 - [x] Create `agent-docs/README.md` - module overview
 - [x] Create `agent-docs/architecture.md` - internal architecture with mermaid diagrams
 - [x] Create `agent-docs/extension-points.md` - all extension interfaces
@@ -29,6 +29,7 @@
 - [x] Update `judo-runtime-core-dispatcher/pom.xml` with resource filtering
   - Filter `marketplace.json` and `plugin.json` for version substitution
   - Copy other files without filtering
+  - Add maven-resources-plugin execution to copy agent-docs from submodule root
 
 ## Phase 5: JUnit Tests
 
@@ -63,9 +64,20 @@ graph LR
     P6 --> P7[Phase 7: Templates]
 ```
 
+## Phase 8: Restructure Agent Docs Location
+
+Move agent-docs from `src/main/resources/agent-docs/` to submodule root and update pom.xml files.
+
+- [ ] Move agent-docs to submodule root for all high-value modules (dispatcher, dao-rdbms, expression, validator)
+- [ ] Move agent-docs to submodule root for all medium-value modules (10 modules)
+- [ ] Move agent-docs to submodule root for all low-value modules (15 modules)
+- [ ] Add maven-resources-plugin configuration to each submodule pom.xml
+- [ ] Verify build still works and JAR contains agent-docs
+
 ## Notes
 
 - Start with dispatcher as reference implementation
 - Other modules can follow the same pattern
 - JUnit tests ensure structure stays valid across builds
 - Mermaid diagrams are preferred for all documentation
+- **agent-docs/ lives at submodule root, NOT in src/main/resources**

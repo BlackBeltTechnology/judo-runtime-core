@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-spring-postgresql",
+  "version": "${project.version}",
+  "description": "JUDO Spring Boot + PostgreSQL Integration - Database-specific autoconfiguration",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-spring-postgresql",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

@@ -1,5 +1,5 @@
 ---
-name: dialect-extension
+name: judo-runtime:dialect-extension
 description: Add support for new database dialects in JUDO DAO RDBMS. Use when integrating new databases like MySQL, Oracle, or custom RDBMS systems.
 metadata:
   author: BlackBelt Technology
@@ -193,4 +193,4 @@ void testTypeMapping() {
 ## See Also
 
 - `agent-docs/extension-points.md` - All extension interfaces
-- `/judo-dao-rdbms:query-debugging` - Debug SQL issues
+- `/judo-runtime:query-debugging` - Debug SQL issues

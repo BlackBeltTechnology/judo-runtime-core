@@ -1,0 +1,13 @@
+{
+  "name": "judo-accessmanager-api",
+  "version": "${project.version}",
+  "description": "Skills for JUDO Access Manager API - operation authorization interfaces, authentication interceptors, and access control contracts",
+  "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-accessmanager-api",
+  "skills": [
+    {
+      "name": "judo-runtime:access-api-overview",
+      "path": "./skills/access-api-overview",
+      "description": "API interfaces for access management"
+    }
+  ]
+}

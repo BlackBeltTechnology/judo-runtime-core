@@ -1,0 +1,10 @@
+{
+  "name": "judo-runtime-core-guice-testkit",
+  "version": "${project.version}",
+  "description": "JUDO TestKit - JUnit 5 testing utilities with Guice DI, datasource fixtures, and transaction management",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-guice-testkit",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [],
+  "agentDocs": "./agent-docs"
+}

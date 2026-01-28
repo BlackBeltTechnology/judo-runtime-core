@@ -1,0 +1,5 @@
+{
+  "package": "judo-runtime-core-dao-rdbms-liquibase",
+  "description": "Liquibase integration for JUDO Runtime Core DAO layer - provides schema management, database creation, and changelog execution",
+  "plugins": []
+}

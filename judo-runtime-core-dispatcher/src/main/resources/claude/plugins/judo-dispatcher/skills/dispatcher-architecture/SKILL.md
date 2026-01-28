@@ -1,5 +1,5 @@
 ---
-name: dispatcher-architecture
+name: judo-runtime:dispatcher-architecture
 description: Understanding JUDO Dispatcher internals for advanced customization. Use when learning about operation routing, behaviour handlers, context management, variable providers, or transaction boundaries.
 metadata:
   author: BlackBelt Technology
@@ -230,6 +230,6 @@ The dispatcher manages transactions via Spring's `PlatformTransactionManager`:
 
 ## See Also
 
-- `/judo-dispatcher:create-interceptor` - How to create interceptors
-- `/judo-dispatcher:debug-operations` - Debugging operation issues
+- `/judo-runtime:create-interceptor` - How to create interceptors
+- `/judo-runtime:debug-operations` - Debugging operation issues
 - `agent-docs/extension-points.md` - All extension interfaces

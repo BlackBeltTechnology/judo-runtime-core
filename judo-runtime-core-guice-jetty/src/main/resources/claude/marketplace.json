@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-guice-jetty",
+  "version": "${project.version}",
+  "description": "JUDO Guice Jetty Integration - Embedded HTTP server with servlet container",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-guice-jetty",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

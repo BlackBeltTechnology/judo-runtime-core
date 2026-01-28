@@ -1,5 +1,5 @@
 ---
-name: custom-validators
+name: judo-runtime:custom-validators
 description: Create custom validators in JUDO Validator module. Use when implementing domain-specific validation logic, business rules, or complex constraint checking.
 metadata:
   author: BlackBelt Technology
@@ -217,5 +217,5 @@ public Collection<ValidationResult> validateValue(..., Map<String, Object> conte
 
 ## See Also
 
-- `/judo-validator:validation-rules` - Configure validation rules
+- `/judo-runtime:validation-rules` - Configure validation rules
 - `agent-docs/extension-points.md` - All extension interfaces

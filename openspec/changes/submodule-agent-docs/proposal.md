@@ -35,6 +35,69 @@ With this change:
 - CLI tooling for skill installation (future enhancement)
 - BOM/dependency-only modules (no code to document)
 
+## Directory Structure
+
+### Source Layout (in each submodule)
+```
+judo-runtime-core-<module>/
+├── agent-docs/                    # At submodule root (NOT in src/main/resources)
+│   ├── README.md                  # Module overview and documentation
+│   ├── architecture.md            # (optional) Architecture details
+│   └── ...                        # Additional documentation files
+├── src/main/resources/
+│   └── claude/                    # Skills and marketplace config
+│       ├── marketplace.json       # Package metadata (version filtered)
+│       ├── INSTALL.md             # Installation instructions
+│       └── plugins/<plugin-name>/ # Plugin with skills
+│           ├── .claude-plugin/
+│           │   └── plugin.json    # Plugin metadata (version filtered)
+│           └── skills/<skill>/
+│               └── SKILL.md       # Skill documentation
+└── pom.xml                        # Includes maven-resources-plugin config
+```
+
+### JAR Layout (after build)
+```
+<module>.jar
+├── agent-docs/                    # Copied from submodule root
+│   └── README.md
+├── claude/                        # From src/main/resources
+│   ├── marketplace.json           # Version substituted
+│   ├── INSTALL.md
+│   └── plugins/...
+└── hu/blackbelt/...               # Java classes
+```
+
+### Maven Configuration
+
+Each submodule's pom.xml includes maven-resources-plugin to copy agent-docs from the submodule root:
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-resources-plugin</artifactId>
+    <version>3.3.0</version>
+    <executions>
+        <execution>
+            <id>copy-agent-docs</id>
+            <phase>process-resources</phase>
+            <goals>
+                <goal>copy-resources</goal>
+            </goals>
+            <configuration>
+                <outputDirectory>${project.build.outputDirectory}/agent-docs</outputDirectory>
+                <resources>
+                    <resource>
+                        <directory>${basedir}/agent-docs</directory>
+                        <filtering>false</filtering>
+                    </resource>
+                </resources>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+```
+
 ## Approach
 
 1. **Reference Implementation**: Complete dispatcher module with full skill package
@@ -43,48 +106,56 @@ With this change:
 4. **Testing**: JUnit tests to verify JAR contains expected files
 5. **Full Rollout**: Apply to all applicable modules
 
+## Skill Naming Convention
+
+All skills use the `judo-runtime:` prefix for namespace clarity:
+- `judo-runtime:create-interceptor`
+- `judo-runtime:dispatcher-architecture`
+- `judo-runtime:debug-operations`
+- etc.
+
 ## Target Modules
 
 ### High Value - Full Skills (3-5 skills each)
 | Module | Skills | Status |
 |--------|--------|--------|
-| `dispatcher` | create-interceptor, dispatcher-architecture, debug-operations | Done |
-| `dao-rdbms` | custom-queries, query-debugging, dialect-extension | Done |
-| `expression` | expression-syntax, custom-functions | Done |
-| `validator` | custom-validators, validation-rules | Done |
+| `dispatcher` | judo-runtime:create-interceptor, judo-runtime:dispatcher-architecture, judo-runtime:debug-operations | Done |
+| `dao-rdbms` | judo-runtime:custom-queries, judo-runtime:query-debugging, judo-runtime:dialect-extension | Done |
+| `expression` | judo-runtime:expression-syntax, judo-runtime:custom-functions | Done |
+| `validator` | judo-runtime:custom-validators, judo-runtime:validation-rules | Done |
 
 ### Medium Value - Some Skills (1-2 skills each)
 | Module | Skills | Status |
 |--------|--------|--------|
-| `guice` | module-setup, dependency-injection | Pending |
-| `spring` | autoconfiguration, spring-integration | Pending |
-| `security` | authentication-flow, custom-auth | Pending |
-| `query` | query-translation, query-optimization | Pending |
-| `dao-core` | dao-patterns, entity-mapping | Pending |
-| `accessmanager` | access-control, permission-checking | Pending |
-| `accessmanager-api` | access-api-overview | Pending |
-| `jackson` | serialization-config | Pending |
-| `jaxrs` | rest-endpoints | Pending |
-| `jaxrs-cxf` | cxf-integration | Pending |
+| `guice` | judo-runtime:module-setup, judo-runtime:dependency-injection | Done |
+| `spring` | judo-runtime:autoconfiguration, judo-runtime:spring-integration | Done |
+| `security` | judo-runtime:authentication-flow, judo-runtime:custom-auth | Done |
+| `query` | judo-runtime:query-translation, judo-runtime:query-optimization | Done |
+| `dao-core` | judo-runtime:dao-patterns, judo-runtime:entity-mapping | Done |
+| `accessmanager` | judo-runtime:access-control, judo-runtime:permission-checking | Done |
+| `accessmanager-api` | judo-runtime:access-api-overview | Done |
+| `jackson` | judo-runtime:serialization-config | Done |
+| `jaxrs` | judo-runtime:rest-endpoints | Done |
+| `jaxrs-cxf` | judo-runtime:cxf-integration | Done |
 
 ### Low Value - Agent-Docs Only (no skills)
 | Module | Status |
 |--------|--------|
-| `dao-rdbms-hsqldb` | Pending |
-| `dao-rdbms-postgresql` | Pending |
-| `dao-rdbms-liquibase` | Pending |
-| `guice-hsqldb` | Pending |
-| `guice-postgresql` | Pending |
-| `guice-jetty` | Pending |
-| `guice-cxf` | Pending |
-| `guice-keycloak` | Pending |
-| `guice-testkit` | Pending |
-| `spring-hsqldb` | Pending |
-| `spring-postgresql` | Pending |
-| `security-keycloak` | Pending |
-| `security-keycloak-cxf` | Pending |
-| `jaxrs-cxf-server` | Pending |
-| `export-jxls` | Pending |
+| `dao-rdbms-hsqldb` | Done |
+| `dao-rdbms-postgresql` | Done |
+| `dao-rdbms-liquibase` | Done |
+| `guice-hsqldb` | Done |
+| `guice-postgresql` | Done |
+| `guice-jetty` | Done |
+| `guice-cxf` | Done |
+| `guice-keycloak` | Done |
+| `guice-testkit` | Done |
+| `spring-hsqldb` | Done |
+| `spring-postgresql` | Done |
+| `security-keycloak` | Done |
+| `security-keycloak-cxf` | Done |
+| `jaxrs-cxf-server` | Done |
+| `export-jxls` | Done |
 
 ### No Skills - BOM Only
 | Module | Reason |

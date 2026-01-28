@@ -117,10 +117,10 @@ class JarSkillPackageTest {
     @Test
     void webhookInterceptorExampleShouldBeAccessible() {
         InputStream is = getClass().getResourceAsStream(
-            "/agent-docs/examples/webhook-interceptor.java");
-        assertThat("webhook-interceptor.java example should be accessible", is, notNullValue());
+            "/agent-docs/examples/webhook-interceptor.java.example");
+        assertThat("webhook-interceptor.java.example should be accessible", is, notNullValue());
         
-        String content = readResource("/agent-docs/examples/webhook-interceptor.java");
+        String content = readResource("/agent-docs/examples/webhook-interceptor.java.example");
         assertThat("Example should contain WebhookInterceptor class",
             content, containsString("class WebhookInterceptor"));
     }

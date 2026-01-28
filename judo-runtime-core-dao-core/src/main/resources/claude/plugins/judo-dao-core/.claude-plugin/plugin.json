@@ -1,0 +1,18 @@
+{
+  "name": "judo-dao-core",
+  "version": "${project.version}",
+  "description": "Skills for JUDO DAO Core - payload processing, statement patterns, instance collection, and entity-to-transfer object mapping",
+  "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-dao-core",
+  "skills": [
+    {
+      "name": "judo-runtime:dao-patterns",
+      "path": "./skills/dao-patterns",
+      "description": "Understand DAO interface patterns - statements, processors, and collectors"
+    },
+    {
+      "name": "judo-runtime:entity-mapping",
+      "path": "./skills/entity-mapping",
+      "description": "Entity to transfer object mapping with values and metadata"
+    }
+  ]
+}

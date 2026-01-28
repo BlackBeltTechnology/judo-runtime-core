@@ -1,0 +1,15 @@
+{
+  "name": "judo-runtime-core-spring",
+  "version": "${project.version}",
+  "description": "JUDO Spring Boot Integration - Autoconfiguration and Spring support",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-spring",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-spring",
+      "path": "./plugins/judo-spring",
+      "description": "Skills for JUDO Spring Boot integration"
+    }
+  ]
+}

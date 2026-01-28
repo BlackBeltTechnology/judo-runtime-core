@@ -1,5 +1,5 @@
 ---
-name: custom-queries
+name: judo-runtime:custom-queries
 description: Extend JUDO DAO RDBMS query translation with custom mappers. Use when adding custom query element handling, extending SQL generation, or implementing custom join strategies.
 metadata:
   author: BlackBelt Technology
@@ -129,4 +129,4 @@ public class CustomQueryModule extends AbstractModule {
 ## See Also
 
 - `agent-docs/architecture.md` - Full DAO architecture
-- `/judo-dao-rdbms:query-debugging` - Debug SQL generation
+- `/judo-runtime:query-debugging` - Debug SQL generation

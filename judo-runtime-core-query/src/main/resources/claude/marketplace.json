@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-query",
+  "version": "${project.version}",
+  "description": "JUDO Query - Query model translation and logical query generation for JUDO runtime",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-query",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-query",
+      "path": "./plugins/judo-query",
+      "description": "Skills for working with JUDO query translation and optimization"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

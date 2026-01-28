@@ -1,5 +1,5 @@
 ---
-name: custom-functions
+name: judo-runtime:custom-functions
 description: Add custom expression translators in JUDO Expression module. Use when implementing domain-specific expression types, custom aggregations, or specialized computations.
 metadata:
   author: BlackBelt Technology
@@ -175,5 +175,5 @@ void testDiscountTranslation() {
 
 ## See Also
 
-- `/judo-expression:expression-syntax` - Expression fundamentals
+- `/judo-runtime:expression-syntax` - Expression fundamentals
 - `agent-docs/extension-points.md` - All extension interfaces

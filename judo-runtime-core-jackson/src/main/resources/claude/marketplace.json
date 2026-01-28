@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-jackson",
+  "version": "${project.version}",
+  "description": "JUDO Jackson - ObjectMapper configuration, custom serializers/deserializers for date-time handling",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-jackson",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-jackson",
+      "path": "./plugins/judo-jackson",
+      "description": "Skills for configuring JUDO Jackson serialization"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-spring-hsqldb",
+  "version": "${project.version}",
+  "description": "JUDO Spring Boot + HSQLDB Integration - Database-specific autoconfiguration",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-spring-hsqldb",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

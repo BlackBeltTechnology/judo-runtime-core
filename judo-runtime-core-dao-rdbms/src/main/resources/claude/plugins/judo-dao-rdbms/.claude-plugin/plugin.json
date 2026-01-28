@@ -5,17 +5,17 @@
   "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-dao-rdbms",
   "skills": [
     {
-      "name": "custom-queries",
+      "name": "judo-runtime:custom-queries",
       "path": "./skills/custom-queries",
       "description": "Extend query translation with custom mappers"
     },
     {
-      "name": "query-debugging",
+      "name": "judo-runtime:query-debugging",
       "path": "./skills/query-debugging",
       "description": "Debug and trace SQL generation"
     },
     {
-      "name": "dialect-extension",
+      "name": "judo-runtime:dialect-extension",
       "path": "./skills/dialect-extension",
       "description": "Add support for new database dialects"
     }

@@ -1,5 +1,5 @@
 ---
-name: judo-testkit
+name: judo-runtime:testkit
 description: Help write tests for JUDO applications using judo-runtime-core-guice-testkit. Use when writing interceptor tests, setting up JudoRuntimeFixture, or troubleshooting testkit issues.
 license: EPL-2.0
 compatibility: Requires judo-runtime-core-guice-testkit dependency.

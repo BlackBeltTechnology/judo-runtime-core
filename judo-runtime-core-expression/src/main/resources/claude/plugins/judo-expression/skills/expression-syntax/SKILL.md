@@ -1,5 +1,5 @@
 ---
-name: expression-syntax
+name: judo-runtime:expression-syntax
 description: Understand JUDO expression metamodel and bindings. Use when working with derived attributes, computed properties, transfer object mappings, or debugging expression resolution.
 metadata:
   author: BlackBelt Technology
@@ -185,4 +185,4 @@ Filter binding:
 ## See Also
 
 - `agent-docs/architecture.md` - Expression module architecture
-- `/judo-expression:custom-functions` - Add custom translators
+- `/judo-runtime:custom-functions` - Add custom translators

@@ -1,5 +1,5 @@
 ---
-name: validation-rules
+name: judo-runtime:validation-rules
 description: Configure and debug JUDO validation rules. Use when troubleshooting validation failures, understanding constraint enforcement, or configuring validation behavior.
 metadata:
   author: BlackBelt Technology
@@ -211,5 +211,5 @@ validator.setRequiredStringValidatorOption(
 
 ## See Also
 
-- `/judo-validator:custom-validators` - Create custom validators
+- `/judo-runtime:custom-validators` - Create custom validators
 - `agent-docs/extension-points.md` - All extension interfaces

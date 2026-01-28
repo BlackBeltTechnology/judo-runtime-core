@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-jaxrs",
+  "version": "${project.version}",
+  "description": "JUDO JAX-RS - REST endpoint providers, exception mappers, request filters, and JSON serialization for building REST APIs",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-jaxrs",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-jaxrs",
+      "path": "./plugins/judo-jaxrs",
+      "description": "Skills for working with JUDO JAX-RS REST endpoints"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

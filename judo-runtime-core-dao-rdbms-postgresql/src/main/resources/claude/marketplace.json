@@ -1,0 +1,5 @@
+{
+  "package": "judo-runtime-core-dao-rdbms-postgresql",
+  "description": "PostgreSQL dialect provider for JUDO Runtime Core DAO layer - provides database initialization, sequence management, connection testing, and SQL function mapping for PostgreSQL",
+  "plugins": []
+}

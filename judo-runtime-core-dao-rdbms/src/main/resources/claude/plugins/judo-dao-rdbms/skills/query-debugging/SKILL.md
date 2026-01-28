@@ -1,5 +1,5 @@
 ---
-name: query-debugging
+name: judo-runtime:query-debugging
 description: Debug and trace JUDO DAO RDBMS SQL generation. Use when troubleshooting query performance, investigating wrong SQL output, or tracing query translation flow.
 metadata:
   author: BlackBelt Technology
@@ -142,5 +142,5 @@ classDiagram
 
 ## See Also
 
-- `/judo-dao-rdbms:custom-queries` - Extend query translation
-- `/judo-dao-rdbms:dialect-extension` - Database-specific debugging
+- `/judo-runtime:custom-queries` - Extend query translation
+- `/judo-runtime:dialect-extension` - Database-specific debugging

@@ -8,5 +8,12 @@
   },
   "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
   "license": "EPL-2.0",
-  "keywords": ["judo", "testing", "interceptor", "guice", "testkit"]
+  "keywords": ["judo", "testing", "interceptor", "guice", "testkit"],
+  "skills": [
+    {
+      "name": "judo-runtime:testkit",
+      "path": "./skills/judo-testkit",
+      "description": "Help write tests for JUDO applications"
+    }
+  ]
 }

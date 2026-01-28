@@ -1,5 +1,5 @@
 ---
-name: debug-operations
+name: judo-runtime:debug-operations
 description: Troubleshooting guide for JUDO Dispatcher operation execution issues. Use when debugging operation not found errors, validation failures, permission denied, interceptor errors, transaction rollbacks, or performance issues.
 metadata:
   author: BlackBelt Technology
@@ -268,6 +268,6 @@ DEBUG Operation completed: OrderService.createOrder
 
 ## See Also
 
-- `/judo-dispatcher:create-interceptor` - How to create interceptors
-- `/judo-dispatcher:dispatcher-architecture` - Understanding internals
+- `/judo-runtime:create-interceptor` - How to create interceptors
+- `/judo-runtime:dispatcher-architecture` - Understanding internals
 - `agent-docs/extension-points.md` - All extension interfaces

@@ -1,0 +1,18 @@
+{
+  "name": "judo-security",
+  "version": "${project.version}",
+  "description": "Skills for JUDO Security - authentication pipelines, user management, OAuth2/OpenID Connect integration",
+  "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-security",
+  "skills": [
+    {
+      "name": "judo-runtime:authentication-flow",
+      "path": "./skills/authentication-flow",
+      "description": "Understand the complete authentication pipeline"
+    },
+    {
+      "name": "judo-runtime:custom-auth",
+      "path": "./skills/custom-auth",
+      "description": "Implement custom authentication providers"
+    }
+  ]
+}

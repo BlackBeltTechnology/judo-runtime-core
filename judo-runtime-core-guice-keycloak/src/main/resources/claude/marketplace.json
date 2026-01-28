@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-guice-keycloak",
+  "version": "${project.version}",
+  "description": "JUDO Guice Keycloak Integration - OAuth2/OpenID Connect authentication and user management",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-guice-keycloak",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

@@ -5,12 +5,12 @@
   "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-expression",
   "skills": [
     {
-      "name": "expression-syntax",
+      "name": "judo-runtime:expression-syntax",
       "path": "./skills/expression-syntax",
       "description": "Understand expression metamodel and bindings"
     },
     {
-      "name": "custom-functions",
+      "name": "judo-runtime:custom-functions",
       "path": "./skills/custom-functions",
       "description": "Add custom expression translators"
     }

@@ -1,0 +1,15 @@
+{
+  "name": "judo-runtime-core-guice",
+  "version": "${project.version}",
+  "description": "JUDO Guice Integration - Dependency injection modules and configuration",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-guice",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-guice",
+      "path": "./plugins/judo-guice",
+      "description": "Skills for JUDO Guice integration"
+    }
+  ]
+}

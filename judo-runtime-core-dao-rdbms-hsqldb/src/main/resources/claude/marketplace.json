@@ -1,0 +1,5 @@
+{
+  "package": "judo-runtime-core-dao-rdbms-hsqldb",
+  "description": "HSQLDB dialect provider for JUDO Runtime Core DAO layer - provides database initialization, sequence management, and SQL function mapping for HSQLDB",
+  "plugins": []
+}

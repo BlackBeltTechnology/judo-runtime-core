@@ -1,5 +1,5 @@
 ---
-name: add-module-skills
+name: judo-runtime:add-module-skills
 description: Add Claude skill packages and agent-docs to a JUDO Runtime Core module. Use when making a module self-contained with embedded documentation, creating skills for interceptors/extensions, or packaging agent docs in JARs.
 metadata:
   author: BlackBelt Technology
@@ -17,6 +17,21 @@ This skill guides you through adding:
 - `agent-docs/` directory with module documentation
 - Maven configuration for version substitution
 - JUnit tests to validate JAR structure
+
+## Naming Convention
+
+**IMPORTANT**: All JUDO Runtime Core skills MUST use the `judo-runtime:` prefix to avoid collisions with other modules and ecosystems:
+
+| Pattern | Example |
+|---------|---------|
+| Plugin name | `judo-runtime:<module>` |
+| Skill command | `/judo-runtime:<module>:<skill>` |
+| SKILL.md name field | `judo-runtime:<module>-<skill>` |
+
+Examples:
+- `/judo-runtime:dispatcher:create-interceptor`
+- `/judo-runtime:dao-rdbms:custom-queries`
+- `/judo-runtime:expression:custom-functions`
 
 ## Process Flow
 
@@ -55,8 +70,8 @@ Questions to answer:
 # Replace <module> with actual module name (e.g., dispatcher, dao-rdbms)
 MODULE_DIR="judo-runtime-core-<module>/src/main/resources"
 
-mkdir -p "$MODULE_DIR/claude/plugins/judo-<short-name>/.claude-plugin"
-mkdir -p "$MODULE_DIR/claude/plugins/judo-<short-name>/skills"
+mkdir -p "$MODULE_DIR/claude/plugins/judo-runtime-<short-name>/.claude-plugin"
+mkdir -p "$MODULE_DIR/claude/plugins/judo-runtime-<short-name>/skills"
 mkdir -p "$MODULE_DIR/agent-docs/examples"
 ```
 
@@ -67,7 +82,7 @@ src/main/resources/
 │   ├── marketplace.json
 │   ├── INSTALL.md
 │   └── plugins/
-│       └── judo-<short-name>/
+│       └── judo-runtime-<short-name>/
 │           ├── .claude-plugin/
 │           │   └── plugin.json
 │           └── skills/
@@ -97,8 +112,8 @@ File: `src/main/resources/claude/marketplace.json`
   "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
   "plugins": [
     {
-      "name": "judo-<short-name>",
-      "path": "./plugins/judo-<short-name>",
+      "name": "judo-runtime:<short-name>",
+      "path": "./plugins/judo-runtime-<short-name>",
       "description": "Skills for working with JUDO <Module Name>"
     }
   ],
@@ -131,23 +146,23 @@ unzip -o "$JAR" "claude/*" "agent-docs/*" -d .
 
 | Skill | Command | Description |
 |-------|---------|-------------|
-| <Skill 1> | `/judo-<short-name>:<skill-1>` | <Description> |
-| <Skill 2> | `/judo-<short-name>:<skill-2>` | <Description> |
+| <Skill 1> | `/judo-runtime:<short-name>:<skill-1>` | <Description> |
+| <Skill 2> | `/judo-runtime:<short-name>:<skill-2>` | <Description> |
 ```
 
 ## Step 5: Create plugin.json
 
-File: `src/main/resources/claude/plugins/judo-<short-name>/.claude-plugin/plugin.json`
+File: `src/main/resources/claude/plugins/judo-runtime-<short-name>/.claude-plugin/plugin.json`
 
 ```json
 {
-  "name": "judo-<short-name>",
+  "name": "judo-runtime:<short-name>",
   "version": "${project.version}",
   "description": "Skills for JUDO <Module Name> - <brief description>",
   "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-<module>",
   "skills": [
     {
-      "name": "<skill-1>",
+      "name": "judo-runtime:<short-name>-<skill-1>",
       "path": "./skills/<skill-1>",
       "description": "<What the skill does>"
     }
@@ -159,11 +174,11 @@ File: `src/main/resources/claude/plugins/judo-<short-name>/.claude-plugin/plugin
 
 Each skill needs a SKILL.md following the [Agent Skills standard](https://agentskills.io/specification):
 
-File: `src/main/resources/claude/plugins/judo-<short-name>/skills/<skill-name>/SKILL.md`
+File: `src/main/resources/claude/plugins/judo-runtime-<short-name>/skills/<skill-name>/SKILL.md`
 
 ```markdown
 ---
-name: <skill-name>
+name: judo-runtime:<short-name>-<skill-name>
 description: <What the skill does AND when to use it. Include keywords for discovery. Max 1024 chars.>
 metadata:
   author: BlackBelt Technology
@@ -222,11 +237,20 @@ binder.addBinding().to(MyExtensionImpl.class);
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | Yes | lowercase letters, numbers, hyphens (max 64 chars) |
+| `name` | Yes | Use `judo-runtime:<module>-<skill>` format (max 64 chars) |
 | `description` | Yes | What AND when to use (max 1024 chars) |
 | `metadata` | No | Custom key-value pairs |
 | `metadata.version` | Recommended | Use `"${project.version}"` for substitution |
 | `metadata.author` | Recommended | `BlackBelt Technology` |
+
+### Naming Examples
+
+| Module | Skill | SKILL.md name field |
+|--------|-------|---------------------|
+| dispatcher | create-interceptor | `judo-runtime:dispatcher-create-interceptor` |
+| dao-rdbms | custom-queries | `judo-runtime:dao-rdbms-custom-queries` |
+| expression | custom-functions | `judo-runtime:expression-custom-functions` |
+| validator | custom-validators | `judo-runtime:validator-custom-validators` |
 
 ## Step 7: Create agent-docs
 
@@ -339,15 +363,15 @@ class JarSkillPackageTest {
     @Test
     void pluginJsonShouldBeAccessible() {
         InputStream is = getClass().getResourceAsStream(
-            "/claude/plugins/judo-<short-name>/.claude-plugin/plugin.json");
+            "/claude/plugins/judo-runtime-<short-name>/.claude-plugin/plugin.json");
         assertThat("plugin.json should be accessible", is, notNullValue());
     }
 
     @Test
     void skillsShouldBeAccessible() {
         String[] skills = {
-            "/claude/plugins/judo-<short-name>/skills/<skill-1>/SKILL.md",
-            "/claude/plugins/judo-<short-name>/skills/<skill-2>/SKILL.md"
+            "/claude/plugins/judo-runtime-<short-name>/skills/<skill-1>/SKILL.md",
+            "/claude/plugins/judo-runtime-<short-name>/skills/<skill-2>/SKILL.md"
         };
         for (String skill : skills) {
             assertThat(skill + " should be accessible",
@@ -400,8 +424,8 @@ Expected output:
 ```
 claude/INSTALL.md
 claude/marketplace.json
-claude/plugins/judo-<short-name>/.claude-plugin/plugin.json
-claude/plugins/judo-<short-name>/skills/<skill-1>/SKILL.md
+claude/plugins/judo-runtime-<short-name>/.claude-plugin/plugin.json
+claude/plugins/judo-runtime-<short-name>/skills/<skill-1>/SKILL.md
 agent-docs/README.md
 agent-docs/architecture.md
 ...
@@ -409,15 +433,15 @@ agent-docs/architecture.md
 
 ## Module-Specific Skill Recommendations
 
-| Module | Recommended Skills |
-|--------|-------------------|
-| `dispatcher` | create-interceptor, architecture, debug-operations |
-| `dao-rdbms` | custom-queries, query-debugging, dialect-extension |
-| `expression` | expression-syntax, custom-functions |
-| `validator` | custom-validators, validation-rules |
-| `guice` | module-setup, dependency-injection |
-| `security` | authentication-flow, custom-auth |
-| `guice-testkit` | test-setup, interceptor-testing |
+| Module | Recommended Skills | Command Examples |
+|--------|-------------------|------------------|
+| `dispatcher` | create-interceptor, architecture, debug-operations | `/judo-runtime:dispatcher:create-interceptor` |
+| `dao-rdbms` | custom-queries, query-debugging, dialect-extension | `/judo-runtime:dao-rdbms:custom-queries` |
+| `expression` | expression-syntax, custom-functions | `/judo-runtime:expression:custom-functions` |
+| `validator` | custom-validators, validation-rules | `/judo-runtime:validator:custom-validators` |
+| `guice` | module-setup, dependency-injection | `/judo-runtime:guice:module-setup` |
+| `security` | authentication-flow, custom-auth | `/judo-runtime:security:authentication-flow` |
+| `guice-testkit` | test-setup, interceptor-testing | `/judo-runtime:testkit:interceptor-testing` |
 
 ## Reference Implementation
 
@@ -430,11 +454,11 @@ See `judo-runtime-core-dispatcher` for a complete example:
 ## Checklist
 
 - [ ] Analyzed module for extension points
-- [ ] Created `claude/` directory structure
+- [ ] Created `claude/` directory structure with `judo-runtime-` prefix
 - [ ] Created `marketplace.json` with version placeholder
 - [ ] Created `INSTALL.md` with extraction instructions
-- [ ] Created `plugin.json` with skill list
-- [ ] Created SKILL.md files with proper frontmatter
+- [ ] Created `plugin.json` with `judo-runtime:` prefixed skill names
+- [ ] Created SKILL.md files with `judo-runtime:<module>-<skill>` name format
 - [ ] Created `agent-docs/README.md`
 - [ ] Created `agent-docs/architecture.md` with mermaid diagrams
 - [ ] Created `agent-docs/extension-points.md`

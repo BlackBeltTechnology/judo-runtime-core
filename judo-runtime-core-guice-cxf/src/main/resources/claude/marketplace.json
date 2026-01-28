@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-guice-cxf",
+  "version": "${project.version}",
+  "description": "JUDO Guice CXF Integration - JAX-RS REST server with CORS, JSON, and interceptor support",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-guice-cxf",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

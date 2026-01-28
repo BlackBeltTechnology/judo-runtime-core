@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-security-keycloak",
+  "version": "${project.version}",
+  "description": "JUDO Security Keycloak - OAuth2/OpenID Connect provider integration with user management, realm synchronization, and admin client",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-security-keycloak",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

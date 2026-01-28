@@ -1,0 +1,10 @@
+{
+  "name": "judo-runtime-core-jaxrs-cxf-server",
+  "version": "${project.version}",
+  "description": "JUDO CXF Server - JAX-RS providers for exception mapping, content-type handling, and payload serialization",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-jaxrs-cxf-server",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [],
+  "agentDocs": "./agent-docs"
+}

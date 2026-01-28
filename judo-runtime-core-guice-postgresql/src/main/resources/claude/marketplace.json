@@ -1,0 +1,9 @@
+{
+  "name": "judo-runtime-core-guice-postgresql",
+  "version": "${project.version}",
+  "description": "JUDO Guice PostgreSQL Integration - Production database configuration with connection pooling",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-guice-postgresql",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": []
+}

@@ -1,5 +1,5 @@
 ---
-name: create-interceptor
+name: judo-runtime:create-interceptor
 description: Step-by-step guide to create custom OperationCallInterceptor implementations in JUDO applications. Use when implementing webhooks, audit logging, input validation, result transformation, or any pre/post operation hooks.
 metadata:
   author: BlackBelt Technology
@@ -235,5 +235,5 @@ public Object postCall(EOperation operation, Object input, Object result) {
 ## See Also
 
 - `agent-docs/extension-points.md` - All extension interfaces
-- `agent-docs/examples/webhook-interceptor.java` - Full example
+- `agent-docs/examples/webhook-interceptor.java.example` - Full example
 - `judo-runtime-core-guice-testkit` - Testing utilities

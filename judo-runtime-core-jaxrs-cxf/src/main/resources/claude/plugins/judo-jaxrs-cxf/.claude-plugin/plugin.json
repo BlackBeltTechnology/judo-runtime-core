@@ -1,0 +1,13 @@
+{
+  "name": "judo-jaxrs-cxf",
+  "version": "${project.version}",
+  "description": "Skills for JUDO JAX-RS CXF - interceptors, fault handling, exchange ID tracking, and authorization",
+  "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-jaxrs-cxf",
+  "skills": [
+    {
+      "name": "judo-runtime:cxf-integration",
+      "path": "./skills/cxf-integration",
+      "description": "Apache CXF integration for JAX-RS"
+    }
+  ]
+}

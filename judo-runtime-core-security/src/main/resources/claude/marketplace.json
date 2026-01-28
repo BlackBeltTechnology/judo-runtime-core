@@ -1,0 +1,16 @@
+{
+  "name": "judo-runtime-core-security",
+  "version": "${project.version}",
+  "description": "JUDO Security - Authentication, authorization, user management, and OAuth2/OpenID Connect integration",
+  "groupId": "hu.blackbelt.judo.runtime",
+  "artifactId": "judo-runtime-core-security",
+  "repository": "https://github.com/BlackBeltTechnology/judo-runtime-core",
+  "plugins": [
+    {
+      "name": "judo-security",
+      "path": "./plugins/judo-security",
+      "description": "Skills for working with JUDO Security framework"
+    }
+  ],
+  "agentDocs": "./agent-docs"
+}

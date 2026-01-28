@@ -5,12 +5,12 @@
   "homepage": "https://github.com/BlackBeltTechnology/judo-runtime-core/tree/develop/judo-runtime-core-validator",
   "skills": [
     {
-      "name": "custom-validators",
+      "name": "judo-runtime:custom-validators",
       "path": "./skills/custom-validators",
       "description": "Create custom validation logic"
     },
     {
-      "name": "validation-rules",
+      "name": "judo-runtime:validation-rules",
       "path": "./skills/validation-rules",
       "description": "Configure and debug validation rules"
     }
