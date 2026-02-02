@@ -2,6 +2,7 @@ package hu.blackbelt.judo.runtime.core.guice.testkit.fixture;
 
 import com.google.inject.AbstractModule;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor;
+import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
 import org.junit.jupiter.api.extension.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +34,13 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
     private static final String RUNTIME_FIXTURE_KEY = "judoRuntimeFixture";
     private static final String TRANSACTION_HANDLING_KEY = "transactionHandling";
     private static final String SINGLETON_DATASOURCE_KEY = "singletonDatasource";
+    private static final String MODEL_LOADER_KEY = "judoModelLoader";
 
     // Singleton datasource shared across all tests (for SINGLETON mode)
     private static volatile CloseableDatasourceFixture singletonDatasource;
+
+    // Singleton model loader shared across all tests (for SINGLETON mode)
+    private static volatile JudoModelLoader singletonModelLoader;
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
@@ -47,6 +52,8 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
             JudoTest.DataSourceMode mode = classAnnotation.dataSourceMode();
             if (mode == JudoTest.DataSourceMode.BY_CLASS || mode == JudoTest.DataSourceMode.SINGLETON) {
                 initializeDatasource(context, classAnnotation);
+                // Also load and cache the model at class level for BY_CLASS and SINGLETON modes
+                initializeModelLoader(context, classAnnotation);
             }
             // For BY_METHOD mode with class-level annotation,
             // initialization happens in beforeEach()
@@ -108,6 +115,63 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         }
 
         store.put(DATASOURCE_FIXTURE_KEY, datasourceToUse);
+    }
+
+    /**
+     * Initializes and caches the model loader for BY_CLASS or SINGLETON modes.
+     * This avoids reloading the model for every test method.
+     */
+    private void initializeModelLoader(ExtensionContext context, JudoTest annotation) throws Exception {
+        ExtensionContext.Store store = getStore(context);
+
+        // Check if already initialized
+        if (store.get(MODEL_LOADER_KEY) != null) {
+            return;
+        }
+
+        JudoTest.DataSourceMode mode = annotation.dataSourceMode();
+
+        // Resolve dialect (same logic as createDatasourceFixture)
+        String dialect = System.getenv("JUDO_TEST_DIALECT");
+        if (dialect == null || dialect.trim().isEmpty()) {
+            dialect = annotation.dialect();
+        }
+        if (dialect == null || dialect.trim().isEmpty()) {
+            dialect = "hsqldb";
+        }
+
+        switch (mode) {
+            case SINGLETON:
+                // Use or create singleton model loader
+                if (singletonModelLoader == null) {
+                    synchronized (JudoTestExtension.class) {
+                        if (singletonModelLoader == null) {
+                            singletonModelLoader = JudoRuntimeFixture.loadModel(
+                                    annotation.modelName(),
+                                    dialect,
+                                    annotation.modelSource()
+                            );
+                            log.info("Loaded SINGLETON model '{}' shared across all test classes", annotation.modelName());
+                        }
+                    }
+                }
+                store.put(MODEL_LOADER_KEY, singletonModelLoader);
+                log.debug("Using SINGLETON model for: {}", context.getRequiredTestClass().getSimpleName());
+                break;
+            case BY_CLASS:
+                // Load model once per test class
+                JudoModelLoader classModelLoader = JudoRuntimeFixture.loadModel(
+                        annotation.modelName(),
+                        dialect,
+                        annotation.modelSource()
+                );
+                store.put(MODEL_LOADER_KEY, classModelLoader);
+                log.info("Loaded BY_CLASS model '{}' for: {}", annotation.modelName(), context.getRequiredTestClass().getSimpleName());
+                break;
+            default:
+                // BY_METHOD mode - model will be loaded per test method
+                break;
+        }
     }
 
     /**
@@ -193,7 +257,17 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
 
         // Create and initialize runtime fixture
         JudoRuntimeFixture runtimeFixture = new JudoRuntimeFixture();
-        runtimeFixture.prepare(annotation.modelName(), datasourceFixture.getDataSource(), datasourceFixture.getDialect(), annotation.modelSource());
+
+        // Check if a cached model loader exists (for BY_CLASS or SINGLETON modes)
+        JudoModelLoader cachedModelLoader = (JudoModelLoader) store.get(MODEL_LOADER_KEY);
+        if (cachedModelLoader != null) {
+            // Reuse the cached model instead of reloading
+            runtimeFixture.prepareWithModel(cachedModelLoader, datasourceFixture.getDataSource(), datasourceFixture.getDialect());
+            log.debug("Using cached model for test: {}", context.getDisplayName());
+        } else {
+            // Load model (for BY_METHOD mode or method-level annotations)
+            runtimeFixture.prepare(annotation.modelName(), datasourceFixture.getDataSource(), datasourceFixture.getDialect(), annotation.modelSource());
+        }
 
         // Register interceptor classes from annotation
         Class<? extends OperationCallInterceptor>[] interceptorClasses = annotation.interceptors();
