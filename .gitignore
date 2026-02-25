@@ -58,5 +58,7 @@ wercker.env
 /**/*.log
 .release
 **/.flattened-pom.xml
-
-
+.claude
+.gemini
+.opencode
+.agent
