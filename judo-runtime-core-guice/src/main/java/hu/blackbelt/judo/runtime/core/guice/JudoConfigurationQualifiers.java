@@ -43,6 +43,12 @@ public class JudoConfigurationQualifiers {
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
     @BindingAnnotation
+    public @interface ActorResolverAcceptableClients {}
+
+    @Qualifier
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface DispatcherMetricsReturned {}
 
     @Qualifier
