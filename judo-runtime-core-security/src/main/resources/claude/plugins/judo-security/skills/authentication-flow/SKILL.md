@@ -271,6 +271,53 @@ Actor types require these annotations in the ASM model:
 @claim("EMAIL")           // Attribute mapped to Keycloak email
 ```
 
+## Acceptable Clients Whitelist
+
+By default, the JWT token's `azp` (authorized party) claim must match an actor type FQN in the ASM model.
+The `acceptableClients` parameter allows additional Keycloak client IDs to authenticate against specific actor types.
+
+### Configuration
+
+**Format**: `ActorTypeFQN=client1,client2;OtherActorFQN=client3`
+
+Client IDs can use either dashes or dots — dashes are automatically converted to dots to match the internal `convertClientToActorName()` normalization.
+
+**Platform (OSGi)**:
+```
+JUDO_PLATFORM_ACCEPTABLE_CLIENTS=MyModel.UserActor=frontend-app,mobile-app;MyModel.AdminActor=admin-tool
+```
+
+**Spring Boot** (`application.properties`):
+```properties
+judo.actorResolver.acceptableClients=MyModel.UserActor=frontend-app,mobile-app;MyModel.AdminActor=admin-tool
+```
+
+**Guice** (`JudoDefaultModuleConfiguration`):
+```java
+JudoDefaultModuleConfiguration.builder()
+    .actorResolverAcceptableClients("MyModel.UserActor=frontend-app,mobile-app")
+    .build();
+```
+
+### How It Works
+
+```
+1. Token arrives with azp = "frontend-app"
+2. KeycloakLoginInterceptor converts to "frontend.app" (dashes → dots)
+3. DefaultActorResolver.authenticateByPrincipal() tries:
+   a. asmUtils.resolve("frontend.app") → empty (not an actor FQN)
+   b. Look up "frontend.app" in acceptableClients map → found under "MyModel.UserActor"
+   c. asmUtils.resolve("MyModel.UserActor") → EClass ✓
+   d. Proceed with MyModel.UserActor as the actor type
+```
+
+### Security Constraints
+
+- Token verification (signature, expiry, audience) is **unchanged** — always validated by Keycloak first
+- Each client is mapped to **exactly one** actor type — prevents privilege escalation
+- Duplicate client across actor types is **rejected at startup** with `IllegalArgumentException`
+- Empty configuration = existing behavior unchanged (backward compatible)
+
 ## Security Context
 
 After successful authentication, `JudoPrincipal` is available:
