@@ -264,7 +264,7 @@ public class DefaultActorResolver implements ActorResolver {
             final String actorFQN = parts[0].trim();
             final Set<String> clients = new LinkedHashSet<>();
             for (String client : parts[1].split(",")) {
-                final String clientName = client.trim();
+                final String clientName = client.trim().replaceAll("-", ".");
                 if (!clientName.isEmpty()) {
                     if (clientToActor.containsKey(clientName)) {
                         throw new IllegalArgumentException(

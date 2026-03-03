@@ -96,6 +96,25 @@ class DefaultActorResolverAcceptableClientsTest {
     }
 
     @Test
+    void parseDashesConvertedToDots() {
+        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+                "MyModel.UserActor=frontend-app,my-mobile-app;MyModel.AdminActor=admin-tool");
+
+        assertEquals(2, result.size());
+        assertEquals(Set.of("frontend.app", "my.mobile.app"), result.get("MyModel.UserActor"));
+        assertEquals(Set.of("admin.tool"), result.get("MyModel.AdminActor"));
+    }
+
+    @Test
+    void parseMixedDashesAndDotsWork() {
+        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+                "MyModel.UserActor=frontend.app,my-mobile-app");
+
+        assertEquals(1, result.size());
+        assertEquals(Set.of("frontend.app", "my.mobile.app"), result.get("MyModel.UserActor"));
+    }
+
+    @Test
     void parseInvalidEntryMissingEqualsThrows() {
         assertThrows(IllegalArgumentException.class, () ->
                 DefaultActorResolver.parseAcceptableClients("InvalidEntry"));

@@ -280,22 +280,22 @@ The `acceptableClients` parameter allows additional Keycloak client IDs to authe
 
 **Format**: `ActorTypeFQN=client1,client2;OtherActorFQN=client3`
 
-Client values must use the **normalized form** (dots, not dashes) — matching the output of `convertClientToActorName()`.
+Client IDs can use either dashes or dots — dashes are automatically converted to dots to match the internal `convertClientToActorName()` normalization.
 
 **Platform (OSGi)**:
 ```
-JUDO_PLATFORM_ACCEPTABLE_CLIENTS=MyModel.UserActor=frontend.app,mobile.app;MyModel.AdminActor=admin.tool
+JUDO_PLATFORM_ACCEPTABLE_CLIENTS=MyModel.UserActor=frontend-app,mobile-app;MyModel.AdminActor=admin-tool
 ```
 
 **Spring Boot** (`application.properties`):
 ```properties
-judo.actorResolver.acceptableClients=MyModel.UserActor=frontend.app,mobile.app;MyModel.AdminActor=admin.tool
+judo.actorResolver.acceptableClients=MyModel.UserActor=frontend-app,mobile-app;MyModel.AdminActor=admin-tool
 ```
 
 **Guice** (`JudoDefaultModuleConfiguration`):
 ```java
 JudoDefaultModuleConfiguration.builder()
-    .actorResolverAcceptableClients("MyModel.UserActor=frontend.app,mobile.app")
+    .actorResolverAcceptableClients("MyModel.UserActor=frontend-app,mobile-app")
     .build();
 ```
 
