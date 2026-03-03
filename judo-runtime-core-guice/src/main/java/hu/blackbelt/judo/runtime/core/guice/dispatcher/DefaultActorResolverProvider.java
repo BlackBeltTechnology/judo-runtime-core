@@ -52,11 +52,6 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     @Nullable
     Boolean checkMappedActors = false;
 
-    @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverAcceptableClients
-    @Nullable
-    String acceptableClients = null;
-
     @SuppressWarnings("unchecked")
     @Override
     public ActorResolver get() {
@@ -65,7 +60,6 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
                 .dao(dao)
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
-                .acceptableClients(acceptableClients)
                 .authenticationInterceptorProvider(authenticationInterceptorProvider)
                 .build();
     }

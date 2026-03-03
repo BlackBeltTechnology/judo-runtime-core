@@ -20,6 +20,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
  * #L%
  */
 
+import hu.blackbelt.judo.runtime.core.security.AcceptableClientsParser;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -31,7 +32,7 @@ class DefaultActorResolverAcceptableClientsTest {
 
     @Test
     void parseValidConfig() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 "MyModel.UserActor=frontend.app,mobile.app;MyModel.AdminActor=admin.tool");
 
         assertEquals(2, result.size());
@@ -41,26 +42,26 @@ class DefaultActorResolverAcceptableClientsTest {
 
     @Test
     void parseNullReturnsEmptyMap() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(null);
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(null);
         assertTrue(result.isEmpty());
     }
 
     @Test
     void parseEmptyStringReturnsEmptyMap() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients("");
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients("");
         assertTrue(result.isEmpty());
     }
 
     @Test
     void parseBlankStringReturnsEmptyMap() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients("   ");
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients("   ");
         assertTrue(result.isEmpty());
     }
 
     @Test
     void parseAmbiguousMappingThrows() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                DefaultActorResolver.parseAcceptableClients(
+                AcceptableClientsParser.parseAcceptableClients(
                         "MyModel.UserActor=shared.app;MyModel.AdminActor=shared.app"));
 
         assertTrue(ex.getMessage().contains("shared.app"));
@@ -69,7 +70,7 @@ class DefaultActorResolverAcceptableClientsTest {
 
     @Test
     void parseSingleEntry() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 "MyModel.UserActor=frontend.app");
 
         assertEquals(1, result.size());
@@ -78,7 +79,7 @@ class DefaultActorResolverAcceptableClientsTest {
 
     @Test
     void parseTrimsWhitespace() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 " MyModel.UserActor = frontend.app , mobile.app ; MyModel.AdminActor = admin.tool ");
 
         assertEquals(2, result.size());
@@ -88,7 +89,7 @@ class DefaultActorResolverAcceptableClientsTest {
 
     @Test
     void parseTrailingSemicolon() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 "MyModel.UserActor=frontend.app;");
 
         assertEquals(1, result.size());
@@ -97,7 +98,7 @@ class DefaultActorResolverAcceptableClientsTest {
 
     @Test
     void parseDashesConvertedToDots() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 "MyModel.UserActor=frontend-app,my-mobile-app;MyModel.AdminActor=admin-tool");
 
         assertEquals(2, result.size());
@@ -107,7 +108,7 @@ class DefaultActorResolverAcceptableClientsTest {
 
     @Test
     void parseMixedDashesAndDotsWork() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 "MyModel.UserActor=frontend.app,my-mobile-app");
 
         assertEquals(1, result.size());
@@ -117,15 +118,40 @@ class DefaultActorResolverAcceptableClientsTest {
     @Test
     void parseInvalidEntryMissingEqualsThrows() {
         assertThrows(IllegalArgumentException.class, () ->
-                DefaultActorResolver.parseAcceptableClients("InvalidEntry"));
+                AcceptableClientsParser.parseAcceptableClients("InvalidEntry"));
     }
 
     @Test
     void resultMapIsUnmodifiable() {
-        Map<String, Set<String>> result = DefaultActorResolver.parseAcceptableClients(
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 "MyModel.UserActor=frontend.app");
 
         assertThrows(UnsupportedOperationException.class, () ->
                 result.put("new", Set.of("test")));
+    }
+
+    @Test
+    void buildClientToActorMapInvertsCorrectly() {
+        Map<String, Set<String>> actorToClients = AcceptableClientsParser.parseAcceptableClients(
+                "MyModel.UserActor=frontend.app,mobile.app;MyModel.AdminActor=admin.tool");
+
+        Map<String, String> clientToActor = AcceptableClientsParser.buildClientToActorMap(actorToClients);
+
+        assertEquals(3, clientToActor.size());
+        assertEquals("MyModel.UserActor", clientToActor.get("frontend.app"));
+        assertEquals("MyModel.UserActor", clientToActor.get("mobile.app"));
+        assertEquals("MyModel.AdminActor", clientToActor.get("admin.tool"));
+    }
+
+    @Test
+    void buildClientToActorMapEmptyInput() {
+        Map<String, String> result = AcceptableClientsParser.buildClientToActorMap(Map.of());
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void buildClientToActorMapNullInput() {
+        Map<String, String> result = AcceptableClientsParser.buildClientToActorMap(null);
+        assertTrue(result.isEmpty());
     }
 }

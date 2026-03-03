@@ -91,18 +91,22 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
     private AsmUtils asmUtils;
 
 
+    private Map<String, String> clientToActorMap;
+
     @Builder
     public KeycloakLoginInterceptor(
             @NonNull RealmExtractor realmExtractor,
             @NonNull AsmModel asmModel,
             @NonNull OpenIdConfigurationProvider openIdConfigurationProvider,
-            @NonNull TransformationTraceService transformationTraceService) {
+            @NonNull TransformationTraceService transformationTraceService,
+            Map<String, String> clientToActorMap) {
         super(Phase.UNMARSHAL);
         this.realmExtractor = realmExtractor;
         this.asmModel = asmModel;
         this.openIdConfigurationProvider = openIdConfigurationProvider;
         this.transformationTraceService = transformationTraceService;
         this.authServerUrl = openIdConfigurationProvider.getServerUrl();
+        this.clientToActorMap = clientToActorMap;
         asmUtils = new AsmUtils(asmModel.getResourceSet());
         keycloakDeploymentMap.clear();
     }
@@ -153,12 +157,14 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
                     final Map<String, Object> attributes = token.entrySet().stream()
                             .collect(Collectors.toMap(e -> mapping.containsKey(e.getKey()) ? mapping.get(e.getKey()).getName() : e.getKey(), e -> e.getValue()));
 
+                    final String resolvedClient = resolveClient(accessToken.getIssuedFor());
+
                     MDC.put("user", accessToken.getPreferredUsername());
                     message.put(SecurityContext.class, KeycloakSecurityContext.builder()
                             .userPrincipal(JudoPrincipal.builder()
                                     .name(accessToken.getPreferredUsername())
                                     .realm(realm.get())
-                                    .client(convertClientToActorName(accessToken.getIssuedFor()))
+                                    .client(resolvedClient)
                                     .attributes(Collections.unmodifiableMap(attributes))
                                     .build())
                             .build());
@@ -195,6 +201,14 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
         } else {
             return Optional.empty();
         }
+    }
+
+    private String resolveClient(final String clientName) {
+        final String normalized = convertClientToActorName(clientName);
+        if (clientToActorMap != null && normalized != null && clientToActorMap.containsKey(normalized)) {
+            return clientToActorMap.get(normalized);
+        }
+        return normalized;
     }
 
     private static String convertClientToActorName(final String clientName) {

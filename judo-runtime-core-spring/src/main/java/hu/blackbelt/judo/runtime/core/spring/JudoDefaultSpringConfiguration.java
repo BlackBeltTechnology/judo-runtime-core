@@ -65,7 +65,6 @@ import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -289,9 +288,6 @@ public class JudoDefaultSpringConfiguration {
         return transformationTraceService;
     }
 
-    @Value("${judo.actorResolver.acceptableClients:#{null}}")
-    String acceptableClients;
-
     @Bean
     @SuppressWarnings("unchecked")
     public ActorResolver getActorResolver(
@@ -304,7 +300,6 @@ public class JudoDefaultSpringConfiguration {
                 .dao(dao)
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
-                .acceptableClients(acceptableClients)
                 .authenticationInterceptorProvider(authenticationInterceptorProvider)
                 .build();
     }
