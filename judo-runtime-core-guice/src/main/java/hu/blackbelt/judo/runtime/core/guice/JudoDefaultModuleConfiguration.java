@@ -61,6 +61,8 @@ public class JudoDefaultModuleConfiguration {
     @Builder.Default
     Boolean actorResolverCheckMappedActors = false;
     @Builder.Default
+    String actorResolverAcceptableClients = null;
+    @Builder.Default
     Boolean dispatcherMetricsReturned = false;
     @Builder.Default
     Boolean dispatcherEnableDefaultValidation = true;
