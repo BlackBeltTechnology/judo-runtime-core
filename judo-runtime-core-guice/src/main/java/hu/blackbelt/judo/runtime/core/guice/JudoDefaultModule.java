@@ -88,6 +88,7 @@ public class JudoDefaultModule extends AbstractModule {
         Integer rdbmsDaoChunkSize = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoChunkSize();
         Integer rdbmsDaoMaximumRecursionCount = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMaximumRecursionCount();
         Boolean actorResolverCheckMappedActors = JudoDefaultModuleConfiguration.DEFAULT.getActorResolverCheckMappedActors();
+        String actorResolverAcceptableClients = JudoDefaultModuleConfiguration.DEFAULT.getActorResolverAcceptableClients();
         Boolean dispatcherMetricsReturned = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherMetricsReturned();
         Boolean dispatcherEnableDefaultValidation = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherEnableDefaultValidation();
         Boolean dispatcherCaseInsensitiveLike = JudoDefaultModuleConfiguration.DEFAULT.getDispatcherCaseInsensitiveLike();
@@ -140,6 +141,7 @@ public class JudoDefaultModule extends AbstractModule {
                             Integer rdbmsDaoChunkSize,
                             Integer rdbmsDaoMaximumRecursionCount,
                             Boolean actorResolverCheckMappedActors,
+                            String actorResolverAcceptableClients,
                             Boolean dispatcherMetricsReturned,
                             Boolean dispatcherEnableDefaultValidation,
                             Boolean dispatcherTrimString,
@@ -192,6 +194,7 @@ public class JudoDefaultModule extends AbstractModule {
                     .rdbmsDaoChunkSize(rdbmsDaoChunkSize)
                     .rdbmsDaoMaximumRecursionCount(rdbmsDaoMaximumRecursionCount)
                     .actorResolverCheckMappedActors(actorResolverCheckMappedActors)
+                    .actorResolverAcceptableClients(actorResolverAcceptableClients)
                     .dispatcherMetricsReturned(dispatcherMetricsReturned)
                     .dispatcherEnableDefaultValidation(dispatcherEnableDefaultValidation)
                     .dispatcherTrimString(dispatcherTrimString)
@@ -268,6 +271,9 @@ public class JudoDefaultModule extends AbstractModule {
         bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class).toInstance(configuration.getRdbmsDaoChunkSize());
         bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoMaximumRecursionCount.class).toInstance(configuration.getRdbmsDaoMaximumRecursionCount());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverCheckMappedActors.class).toInstance(configuration.getActorResolverCheckMappedActors());
+        if (configuration.getActorResolverAcceptableClients() != null) {
+            bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverAcceptableClients.class).toInstance(configuration.getActorResolverAcceptableClients());
+        }
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class).toInstance(configuration.getDispatcherTrimString());

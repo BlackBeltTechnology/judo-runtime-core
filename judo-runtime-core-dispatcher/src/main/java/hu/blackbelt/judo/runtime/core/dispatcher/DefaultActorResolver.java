@@ -63,6 +63,8 @@ public class DefaultActorResolver implements ActorResolver {
 
     AuthenticationInterceptorProvider authenticationInterceptorProvider;
 
+    private Map<String, Set<String>> acceptableClientsMap;
+
 
     @Builder
     public DefaultActorResolver(
@@ -70,13 +72,15 @@ public class DefaultActorResolver implements ActorResolver {
             @NonNull DAO dao,
             @NonNull AsmModel asmModel,
             AuthenticationInterceptorProvider authenticationInterceptorProvider,
-            Boolean checkMappedActors) {
+            Boolean checkMappedActors,
+            String acceptableClients) {
         this.dataTypeManager = dataTypeManager;
         this.dao = dao;
         this.asmModel = asmModel;
         this.checkMappedActors = checkMappedActors == null ? false : checkMappedActors;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.authenticationInterceptorProvider = authenticationInterceptorProvider;
+        this.acceptableClientsMap = parseAcceptableClients(acceptableClients);
     }
 
     @Override
@@ -106,9 +110,7 @@ public class DefaultActorResolver implements ActorResolver {
 
     @Override
     public Optional<Payload> authenticateByPrincipal(JudoPrincipal principal) {
-        final EClass actorType = asmUtils.resolve(principal.getClient())
-                .filter(a -> a instanceof EClass).map(a -> (EClass) a)
-                .orElseThrow(() -> new IllegalStateException("Unsupported client"));
+        final EClass actorType = resolveActorType(principal.getClient());
 
         if (asmUtils.isMappedTransferObjectType(actorType)) {
             final Map<String, Object> claims = principal.getAttributes().entrySet().stream()
@@ -217,5 +219,75 @@ public class DefaultActorResolver implements ActorResolver {
                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
         return result;
+    }
+
+    private EClass resolveActorType(final String clientName) {
+        // 1. Try direct resolution: client name is an actor type FQN
+        final Optional<EClass> directResolution = asmUtils.resolve(clientName)
+                .filter(a -> a instanceof EClass).map(a -> (EClass) a);
+        if (directResolution.isPresent()) {
+            return directResolution.get();
+        }
+
+        // 2. Fallback: look up client in acceptable clients map
+        final Optional<String> actorFQN = acceptableClientsMap.entrySet().stream()
+                .filter(e -> e.getValue().contains(clientName))
+                .map(Map.Entry::getKey)
+                .findFirst();
+
+        if (actorFQN.isPresent()) {
+            return asmUtils.resolve(actorFQN.get())
+                    .filter(a -> a instanceof EClass).map(a -> (EClass) a)
+                    .orElseThrow(() -> new IllegalStateException("Actor type not found for acceptable client mapping: " + actorFQN.get()));
+        }
+
+        throw new IllegalStateException("Unsupported client");
+    }
+
+    static Map<String, Set<String>> parseAcceptableClients(final String acceptableClients) {
+        if (acceptableClients == null || acceptableClients.trim().isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        final Map<String, Set<String>> result = new LinkedHashMap<>();
+        final Map<String, String> clientToActor = new LinkedHashMap<>();
+
+        for (String entry : acceptableClients.split(";")) {
+            final String trimmed = entry.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            final String[] parts = trimmed.split("=", 2);
+            if (parts.length != 2 || parts[0].trim().isEmpty() || parts[1].trim().isEmpty()) {
+                throw new IllegalArgumentException("Invalid acceptable clients entry: " + trimmed);
+            }
+            final String actorFQN = parts[0].trim();
+            final Set<String> clients = new LinkedHashSet<>();
+            for (String client : parts[1].split(",")) {
+                final String clientName = client.trim();
+                if (!clientName.isEmpty()) {
+                    if (clientToActor.containsKey(clientName)) {
+                        throw new IllegalArgumentException(
+                                "Ambiguous acceptable client mapping: client '" + clientName
+                                        + "' is mapped to both '" + clientToActor.get(clientName)
+                                        + "' and '" + actorFQN + "'");
+                    }
+                    clientToActor.put(clientName, actorFQN);
+                    clients.add(clientName);
+                }
+            }
+            if (!clients.isEmpty()) {
+                result.merge(actorFQN, clients, (existing, newSet) -> {
+                    existing.addAll(newSet);
+                    return existing;
+                });
+            }
+        }
+
+        if (!result.isEmpty()) {
+            log.info("Acceptable clients configured: {}", result);
+        }
+
+        return Collections.unmodifiableMap(result);
     }
 }
