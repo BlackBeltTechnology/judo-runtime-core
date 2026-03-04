@@ -75,6 +75,37 @@ Key facts:
 
 - [judo-runtime-core-export-jxls/agent-docs/README.md](judo-runtime-core-export-jxls/agent-docs/README.md): JXLS-based Excel export functionality using Apache POI
 
+## Depends on
+
+- [judo-meta-asm](../../models/judo-meta-asm): models/judo-meta-asm
+- [judo-meta-expression](../../models/judo-meta-expression): models/judo-meta-expression
+- [judo-meta-expression-asm](../../models/judo-meta-expression-asm): models/judo-meta-expression-asm
+- [judo-meta-keycloak](../../models/judo-meta-keycloak): models/judo-meta-keycloak
+- [judo-meta-liquibase](../../models/judo-meta-liquibase): models/judo-meta-liquibase
+- [judo-meta-measure](../../models/judo-meta-measure): models/judo-meta-measure
+- [judo-meta-query](../../models/judo-meta-query): models/judo-meta-query
+- [judo-meta-rdbms](../../models/judo-meta-rdbms): models/judo-meta-rdbms
+- [judo-dao-api](../judo-dao-api): runtime/judo-dao-api
+- [judo-dispatcher-api](../judo-dispatcher-api): runtime/judo-dispatcher-api
+- [judo-sdk-common](../judo-sdk-common): runtime/judo-sdk-common
+- [judo-tatami-base](../judo-tatami-base): runtime/judo-tatami-base
+- [judo-tatami-core](../judo-tatami-core): runtime/judo-tatami-core
+- [mapper](../mapper): runtime/mapper
+- [osgi-filestore](../osgi-filestore): runtime/osgi-filestore
+- [osgi-i18n](../osgi-i18n): runtime/osgi-i18n
+- [epsilon-runtime](../../tools/epsilon-runtime): tools/epsilon-runtime
+
+## Used by
+
+- [judo-platform](../judo-platform): runtime/judo-platform
+- [judo-runtime-core-esm-itest](../judo-runtime-core-esm-itest): runtime/judo-runtime-core-esm-itest
+- [judo-runtime-core-jsl](../judo-runtime-core-jsl): runtime/judo-runtime-core-jsl
+- [judo-services](../judo-services): runtime/judo-services
+- [judo-tatami-jsl](../judo-tatami-jsl): runtime/judo-tatami-jsl
+- [judo-jsl-springboot-parent](../../spring/judo-jsl-springboot-parent): spring/judo-jsl-springboot-parent
+- [judo-jsl-springboot-starter](../../spring/judo-jsl-springboot-starter): spring/judo-jsl-springboot-starter
+- [judo-spring-maven-plugin](../../spring/judo-spring-maven-plugin): spring/judo-spring-maven-plugin
+
 ## Optional
 
 - [.github/CIFLOW.md](.github/CIFLOW.md): CI/CD pipeline documentation
