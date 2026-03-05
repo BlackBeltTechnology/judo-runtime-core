@@ -77,34 +77,34 @@ Key facts:
 
 ## Depends on
 
-- [judo-meta-asm](../../models/judo-meta-asm): models/judo-meta-asm
-- [judo-meta-expression](../../models/judo-meta-expression): models/judo-meta-expression
-- [judo-meta-expression-asm](../../models/judo-meta-expression-asm): models/judo-meta-expression-asm
-- [judo-meta-keycloak](../../models/judo-meta-keycloak): models/judo-meta-keycloak
-- [judo-meta-liquibase](../../models/judo-meta-liquibase): models/judo-meta-liquibase
-- [judo-meta-measure](../../models/judo-meta-measure): models/judo-meta-measure
-- [judo-meta-query](../../models/judo-meta-query): models/judo-meta-query
-- [judo-meta-rdbms](../../models/judo-meta-rdbms): models/judo-meta-rdbms
-- [judo-dao-api](../judo-dao-api): runtime/judo-dao-api
-- [judo-dispatcher-api](../judo-dispatcher-api): runtime/judo-dispatcher-api
-- [judo-sdk-common](../judo-sdk-common): runtime/judo-sdk-common
-- [judo-tatami-base](../judo-tatami-base): runtime/judo-tatami-base
-- [judo-tatami-core](../judo-tatami-core): runtime/judo-tatami-core
-- [mapper](../mapper): runtime/mapper
-- [osgi-filestore](../osgi-filestore): runtime/osgi-filestore
-- [osgi-i18n](../osgi-i18n): runtime/osgi-i18n
-- [epsilon-runtime](../../tools/epsilon-runtime): tools/epsilon-runtime
+- [judo-meta-asm](../../models/judo-meta-asm): ASM metamodel — Ecore-based architecture model with builders and validation
+- [judo-meta-expression](../../models/judo-meta-expression): Expression metamodel — type-safe numeric, string, temporal, and collection expressions
+- [judo-meta-expression-asm](../../models/judo-meta-expression-asm): Bridges Expression metamodel with ASM for symbolic reference resolution
+- [judo-meta-keycloak](../../models/judo-meta-keycloak): Keycloak IAM configuration metamodel
+- [judo-meta-liquibase](../../models/judo-meta-liquibase): Liquibase database change management metamodel
+- [judo-meta-measure](../../models/judo-meta-measure): SI units metamodel — measures, units, and conversion rates
+- [judo-meta-query](../../models/judo-meta-query): Query metamodel — expression-based RDBMS query generation
+- [judo-meta-rdbms](../../models/judo-meta-rdbms): RDBMS schema metamodel with incremental evolution tracking
+- [judo-dao-api](../judo-dao-api): Core DAO interfaces for CRUD, query, navigation, and validation
+- [judo-dispatcher-api](../judo-dispatcher-api): Dispatcher API contracts for routing API calls to runtime actions
+- [judo-sdk-common](../judo-sdk-common): Base classes for generated SDK — entity identity, DAO base, and query filters
+- [judo-tatami-base](../judo-tatami-base): PSM transformation pipeline — models to schemas, expressions, and configurations
+- [judo-tatami-core](../judo-tatami-core): EMF transformation trace tracking and composable workflow engine
+- [mapper](../mapper): Type mapper and coercer library with 60+ built-in converters
+- [osgi-filestore](../osgi-filestore): Unified blob storage service with pluggable backends (RDBMS, filesystem, S3)
+- [osgi-i18n](../osgi-i18n): Internationalization via JDK dynamic proxies and .properties files
+- [epsilon-runtime](../../tools/epsilon-runtime): Eclipse Epsilon runtime for Maven and OSGi environments
 
 ## Used by
 
-- [judo-platform](../judo-platform): runtime/judo-platform
-- [judo-runtime-core-esm-itest](../judo-runtime-core-esm-itest): runtime/judo-runtime-core-esm-itest
-- [judo-runtime-core-jsl](../judo-runtime-core-jsl): runtime/judo-runtime-core-jsl
-- [judo-services](../judo-services): runtime/judo-services
-- [judo-tatami-jsl](../judo-tatami-jsl): runtime/judo-tatami-jsl
-- [judo-jsl-springboot-parent](../../spring/judo-jsl-springboot-parent): spring/judo-jsl-springboot-parent
-- [judo-jsl-springboot-starter](../../spring/judo-jsl-springboot-starter): spring/judo-jsl-springboot-starter
-- [judo-spring-maven-plugin](../../spring/judo-spring-maven-plugin): spring/judo-spring-maven-plugin
+- [judo-platform](../judo-platform): Model-driven OSGi runtime platform with REST APIs and Karaf deployment
+- [judo-runtime-core-esm-itest](../judo-runtime-core-esm-itest): Integration tests for ESM-to-RDBMS transformation pipeline
+- [judo-runtime-core-jsl](../judo-runtime-core-jsl): JSL support for runtime core — model parsing through to DAOs and schema
+- [judo-services](../judo-services): OSGi runtime services enabling multiple data models in a single Karaf container
+- [judo-tatami-jsl](../judo-tatami-jsl): JSL-to-runtime model transformation engine (PSM, ASM, UI, RDBMS, etc.)
+- [judo-jsl-springboot-parent](../../spring/judo-jsl-springboot-parent): Parent POM for JUDO JSL Spring Boot applications
+- [judo-jsl-springboot-starter](../../spring/judo-jsl-springboot-starter): Spring Boot starter aggregating the entire JUDO runtime stack
+- [judo-spring-maven-plugin](../../spring/judo-spring-maven-plugin): Maven plugin transforming JSL models into Spring Boot application code
 
 ## Optional
 
