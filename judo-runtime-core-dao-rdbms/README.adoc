@@ -1,3 +1,0 @@
-# judo-runtime-core-dao-rdbms
-
-

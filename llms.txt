@@ -1,0 +1,113 @@
+# JUDO Runtime Core
+
+> Multi-module Java runtime engine that powers the JUDO low-code platform, providing data access, business logic, REST API serving, and security for model-driven applications.
+
+JUDO Runtime Core is a 31-module Maven project that translates JUDO platform models (ASM/PSM/ESM) into working applications. It handles the full server-side stack: RDBMS-backed data access with Liquibase migrations, expression evaluation, query execution, CXF-based REST endpoints, Jackson serialization, and Keycloak security integration.
+
+Key facts:
+- Java 21, Maven multi-module build
+- 31 modules organized in layers: DAO, business logic, security, serialization/API, and DI integration
+- Dependency injection via Google Guice (primary) and Spring Boot (alternative)
+- Database support: PostgreSQL (production) and HSQLDB (testing)
+- REST API: Apache CXF JAX-RS with Jackson JSON
+- Security: Keycloak OpenID Connect integration
+- Licensed under Eclipse Public License v2.0
+
+## Docs
+
+- [README.md](README.md): Project overview, module listing, and architecture summary
+- [AGENTS.md](AGENTS.md): Developer guide with build commands, module details, and coding conventions
+- [CONTRIBUTING.md](CONTRIBUTING.md): Contribution guidelines and development workflow
+- [docs/submodule-agent-docs.md](docs/submodule-agent-docs.md): Architecture guide for per-module agent-docs system
+
+## Modules — Foundation
+
+- [judo-runtime-core/pom.xml](judo-runtime-core/pom.xml): Core runtime abstractions — DataTypeManager, identifier providers, metrics, and common exceptions
+- [judo-runtime-core-dependencies/pom.xml](judo-runtime-core-dependencies/pom.xml): Centralized dependency management (BOM) for consistent versioning across all modules
+
+## Modules — Data Access Layer
+
+- [judo-runtime-core-dao-core/agent-docs/README.md](judo-runtime-core-dao-core/agent-docs/README.md): Core DAO interfaces and abstractions for data access
+- [judo-runtime-core-dao-rdbms/README.md](judo-runtime-core-dao-rdbms/README.md): RDBMS DAO implementation with query translation, statement executors, and result mapping
+- [judo-runtime-core-dao-rdbms-hsqldb/agent-docs/README.md](judo-runtime-core-dao-rdbms-hsqldb/agent-docs/README.md): HSQLDB database dialect provider for development and testing
+- [judo-runtime-core-dao-rdbms-postgresql/agent-docs/README.md](judo-runtime-core-dao-rdbms-postgresql/agent-docs/README.md): PostgreSQL database dialect provider for production use
+- [judo-runtime-core-dao-rdbms-liquibase/agent-docs/README.md](judo-runtime-core-dao-rdbms-liquibase/agent-docs/README.md): Liquibase integration for database schema management and migrations
+
+## Modules — Business Logic & Processing
+
+- [judo-runtime-core-expression/agent-docs/README.md](judo-runtime-core-expression/agent-docs/README.md): Expression evaluation engine for dynamic values and conditions
+- [judo-runtime-core-query/agent-docs/README.md](judo-runtime-core-query/agent-docs/README.md): Query processing and translation layer converting abstract queries to SQL
+- [judo-runtime-core-dispatcher/agent-docs/README.md](judo-runtime-core-dispatcher/agent-docs/README.md): Request dispatching and operation processing with ANTLR-based parsing
+- [judo-runtime-core-validator/agent-docs/README.md](judo-runtime-core-validator/agent-docs/README.md): Data validation framework for enforcing business rules and constraints
+
+## Modules — Security & Access Control
+
+- [judo-runtime-core-security/agent-docs/README.md](judo-runtime-core-security/agent-docs/README.md): Core security framework with authentication and authorization abstractions
+- [judo-runtime-core-security-keycloak/agent-docs/README.md](judo-runtime-core-security-keycloak/agent-docs/README.md): Keycloak OAuth2/OpenID Connect provider integration
+- [judo-runtime-core-security-keycloak-cxf/agent-docs/README.md](judo-runtime-core-security-keycloak-cxf/agent-docs/README.md): Keycloak integration with Apache CXF for JAX-RS security
+- [judo-runtime-core-accessmanager-api/agent-docs/README.md](judo-runtime-core-accessmanager-api/agent-docs/README.md): Access control API defining permission and role abstractions
+- [judo-runtime-core-accessmanager/agent-docs/README.md](judo-runtime-core-accessmanager/agent-docs/README.md): Access control implementation with permission checking
+
+## Modules — Serialization & API
+
+- [judo-runtime-core-jackson/agent-docs/README.md](judo-runtime-core-jackson/agent-docs/README.md): Jackson JSON serialization providers and type handlers
+- [judo-runtime-core-jaxrs/agent-docs/README.md](judo-runtime-core-jaxrs/agent-docs/README.md): JAX-RS provider implementations for REST APIs
+- [judo-runtime-core-jaxrs-cxf/agent-docs/README.md](judo-runtime-core-jaxrs-cxf/agent-docs/README.md): Apache CXF JAX-RS integration
+- [judo-runtime-core-jaxrs-cxf-server/agent-docs/README.md](judo-runtime-core-jaxrs-cxf-server/agent-docs/README.md): CXF server configuration and bootstrap
+
+## Modules — Guice Integration
+
+- [judo-runtime-core-guice/agent-docs/README.md](judo-runtime-core-guice/agent-docs/README.md): Core Google Guice dependency injection modules
+- [judo-runtime-core-guice-hsqldb/agent-docs/README.md](judo-runtime-core-guice-hsqldb/agent-docs/README.md): Guice + HSQLDB configuration module
+- [judo-runtime-core-guice-postgresql/agent-docs/README.md](judo-runtime-core-guice-postgresql/agent-docs/README.md): Guice + PostgreSQL configuration module
+- [judo-runtime-core-guice-jetty/agent-docs/README.md](judo-runtime-core-guice-jetty/agent-docs/README.md): Jetty servlet container integration with Guice
+- [judo-runtime-core-guice-cxf/agent-docs/README.md](judo-runtime-core-guice-cxf/agent-docs/README.md): Guice + Apache CXF integration
+- [judo-runtime-core-guice-keycloak/agent-docs/README.md](judo-runtime-core-guice-keycloak/agent-docs/README.md): Guice + Keycloak security integration
+- [judo-runtime-core-guice-testkit/README.md](judo-runtime-core-guice-testkit/README.md): Testing toolkit providing utilities for Guice-based integration testing
+
+## Modules — Spring Integration
+
+- [judo-runtime-core-spring/agent-docs/README.md](judo-runtime-core-spring/agent-docs/README.md): Spring Boot autoconfiguration for JUDO runtime
+- [judo-runtime-core-spring-hsqldb/agent-docs/README.md](judo-runtime-core-spring-hsqldb/agent-docs/README.md): Spring + HSQLDB autoconfiguration
+- [judo-runtime-core-spring-postgresql/agent-docs/README.md](judo-runtime-core-spring-postgresql/agent-docs/README.md): Spring + PostgreSQL autoconfiguration
+
+## Modules — Utilities
+
+- [judo-runtime-core-export-jxls/agent-docs/README.md](judo-runtime-core-export-jxls/agent-docs/README.md): JXLS-based Excel export functionality using Apache POI
+
+## Depends on
+
+- [judo-meta-asm](../../models/judo-meta-asm): ASM metamodel — Ecore-based architecture model with builders and validation
+- [judo-meta-expression](../../models/judo-meta-expression): Expression metamodel — type-safe numeric, string, temporal, and collection expressions
+- [judo-meta-expression-asm](../../models/judo-meta-expression-asm): Bridges Expression metamodel with ASM for symbolic reference resolution
+- [judo-meta-keycloak](../../models/judo-meta-keycloak): Keycloak IAM configuration metamodel
+- [judo-meta-liquibase](../../models/judo-meta-liquibase): Liquibase database change management metamodel
+- [judo-meta-measure](../../models/judo-meta-measure): SI units metamodel — measures, units, and conversion rates
+- [judo-meta-query](../../models/judo-meta-query): Query metamodel — expression-based RDBMS query generation
+- [judo-meta-rdbms](../../models/judo-meta-rdbms): RDBMS schema metamodel with incremental evolution tracking
+- [judo-dao-api](../judo-dao-api): Core DAO interfaces for CRUD, query, navigation, and validation
+- [judo-dispatcher-api](../judo-dispatcher-api): Dispatcher API contracts for routing API calls to runtime actions
+- [judo-sdk-common](../judo-sdk-common): Base classes for generated SDK — entity identity, DAO base, and query filters
+- [judo-tatami-base](../judo-tatami-base): PSM transformation pipeline — models to schemas, expressions, and configurations
+- [judo-tatami-core](../judo-tatami-core): EMF transformation trace tracking and composable workflow engine
+- [mapper](../mapper): Type mapper and coercer library with 60+ built-in converters
+- [osgi-filestore](../osgi-filestore): Unified blob storage service with pluggable backends (RDBMS, filesystem, S3)
+- [osgi-i18n](../osgi-i18n): Internationalization via JDK dynamic proxies and .properties files
+- [epsilon-runtime](../../tools/epsilon-runtime): Eclipse Epsilon runtime for Maven and OSGi environments
+
+## Used by
+
+- [judo-platform](../judo-platform): Model-driven OSGi runtime platform with REST APIs and Karaf deployment
+- [judo-runtime-core-esm-itest](../judo-runtime-core-esm-itest): Integration tests for ESM-to-RDBMS transformation pipeline
+- [judo-runtime-core-jsl](../judo-runtime-core-jsl): JSL support for runtime core — model parsing through to DAOs and schema
+- [judo-services](../judo-services): OSGi runtime services enabling multiple data models in a single Karaf container
+- [judo-tatami-jsl](../judo-tatami-jsl): JSL-to-runtime model transformation engine (PSM, ASM, UI, RDBMS, etc.)
+- [judo-jsl-springboot-parent](../../spring/judo-jsl-springboot-parent): Parent POM for JUDO JSL Spring Boot applications
+- [judo-jsl-springboot-starter](../../spring/judo-jsl-springboot-starter): Spring Boot starter aggregating the entire JUDO runtime stack
+- [judo-spring-maven-plugin](../../spring/judo-spring-maven-plugin): Maven plugin transforming JSL models into Spring Boot application code
+
+## Optional
+
+- [.github/CIFLOW.md](.github/CIFLOW.md): CI/CD pipeline documentation
+- [.github/workflows/build.yml](.github/workflows/build.yml): Main CI build workflow
+- [LICENSE.txt](LICENSE.txt): Eclipse Public License v2.0
