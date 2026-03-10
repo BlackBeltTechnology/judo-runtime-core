@@ -122,12 +122,31 @@ class DefaultActorResolverAcceptableClientsTest {
     }
 
     @Test
+    void duplicateClientSameActorIsAllowed() {
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
+                "MyModel.UserActor=frontend.app;MyModel.UserActor=frontend.app");
+
+        assertEquals(1, result.size());
+        assertEquals(Set.of("frontend.app"), result.get("MyModel.UserActor"));
+    }
+
+    @Test
     void resultMapIsUnmodifiable() {
         Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
                 "MyModel.UserActor=frontend.app");
 
         assertThrows(UnsupportedOperationException.class, () ->
                 result.put("new", Set.of("test")));
+    }
+
+    @Test
+    void resultInnerSetsAreUnmodifiable() {
+        Map<String, Set<String>> result = AcceptableClientsParser.parseAcceptableClients(
+                "MyModel.UserActor=frontend.app");
+
+        Set<String> clients = result.get("MyModel.UserActor");
+        assertThrows(UnsupportedOperationException.class, () ->
+                clients.add("hacked"));
     }
 
     @Test

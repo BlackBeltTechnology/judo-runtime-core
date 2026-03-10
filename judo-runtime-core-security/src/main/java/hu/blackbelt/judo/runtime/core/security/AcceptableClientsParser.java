@@ -52,7 +52,7 @@ public final class AcceptableClientsParser {
             for (String client : parts[1].split(",")) {
                 final String clientName = client.trim().replaceAll("-", ".");
                 if (!clientName.isEmpty()) {
-                    if (clientToActor.containsKey(clientName)) {
+                    if (clientToActor.containsKey(clientName) && !clientToActor.get(clientName).equals(actorFQN)) {
                         throw new IllegalArgumentException(
                                 "Ambiguous acceptable client mapping: client '" + clientName
                                         + "' is mapped to both '" + clientToActor.get(clientName)
@@ -74,6 +74,7 @@ public final class AcceptableClientsParser {
             log.info("Acceptable clients configured: {}", result);
         }
 
+        result.replaceAll((key, value) -> Collections.unmodifiableSet(value));
         return Collections.unmodifiableMap(result);
     }
 
