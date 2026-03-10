@@ -112,6 +112,13 @@ public interface ActorResolver {
 
 **Default Implementation**: `DefaultActorResolver`
 
+**Configuration**:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `checkMappedActors` | `Boolean` | `false` | Check/load mapped actors by default |
+| `acceptableClients` | `String` | `null` | Additional accepted Keycloak client IDs mapped to actor types. Format: `ActorFQN=client1,client2;OtherActor=client3`. Client values must use dots (not dashes). See [Authentication Flow - Acceptable Clients Whitelist](../../judo-runtime-core-security/src/main/resources/claude/plugins/judo-security/skills/authentication-flow/SKILL.md) for details. |
+
 **Example**:
 ```java
 public class KeycloakActorResolver implements ActorResolver {
