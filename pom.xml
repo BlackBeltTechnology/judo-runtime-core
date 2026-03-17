@@ -52,9 +52,7 @@
         <antlr4-version>4.5.1-1</antlr4-version>
         <mockito-version>5.17.0</mockito-version>
         <jupiter-version>5.13.4</jupiter-version>
-
-        <epsilon-runtime-version>2.8.0.20251022_112123_14c440b1_develop</epsilon-runtime-version>
-        <judo-tatami-core-version>1.1.4.20260202_143500_4fe70cce_develop</judo-tatami-core-version>
+        <judo-tatami-core-version>1.1.4-SNAPSHOT</judo-tatami-core-version>
 
         <!-- Model versions -->
         <judo-meta-rdbms-version>1.0.2-SNAPSHOT</judo-meta-rdbms-version>
@@ -739,9 +737,14 @@
 <!--        </dependency>-->
         
         <dependency>
-            <groupId>hu.blackbelt.epsilon</groupId>
-            <artifactId>epsilon-runtime-execution</artifactId>
-            <version>${epsilon-runtime-version}</version>
+            <groupId>org.eclipse.emf</groupId>
+            <artifactId>org.eclipse.emf.ecore</artifactId>
+            <version>2.38.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.emf</groupId>
+            <artifactId>org.eclipse.emf.common</artifactId>
+            <version>2.41.0</version>
         </dependency>
 
         <dependency>
