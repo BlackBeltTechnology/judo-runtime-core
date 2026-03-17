@@ -30,7 +30,7 @@ import com.google.common.base.Stopwatch;
 import com.google.inject.*;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
+import hu.blackbelt.judo.tatami.core.BufferedSlf4jLogger;
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.Sequence;

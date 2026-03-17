@@ -20,7 +20,7 @@ package hu.blackbelt.judo.runtime.core.guice;
  * #L%
  */
 
-import hu.blackbelt.epsilon.runtime.execution.impl.BufferedSlf4jLogger;
+import hu.blackbelt.judo.tatami.core.BufferedSlf4jLogger;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.support.AsmModelResourceSupport;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
