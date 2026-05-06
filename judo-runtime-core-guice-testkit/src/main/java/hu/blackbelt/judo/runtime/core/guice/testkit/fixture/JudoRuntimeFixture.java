@@ -106,7 +106,12 @@ public class JudoRuntimeFixture {
 
     private void initModules(DataSource datasource, Dialect dialect) {
         RdbmsInit init = null;
-        simpleLiquibaseExecutor = new SimpleLiquibaseExecutor();
+        // Allow externally-supplied executor (e.g. CountingLiquibaseExecutor) — only create
+        // a fresh one when no caller has pre-set it. Required by the BY_CLASS / SINGLETON
+        // runtime cache so the cold path can install a counting wrapper for regression tests.
+        if (simpleLiquibaseExecutor == null) {
+            simpleLiquibaseExecutor = new SimpleLiquibaseExecutor();
+        }
         if (dialect instanceof HsqldbDialect) {
             init = HsqldbRdbmsInit.builder().liquibaseExecutor(simpleLiquibaseExecutor).liquibaseModel(modelHolder.getLiquibaseModel()).build();
             databaseModule = JudoHsqldbModule.builder().dataSource(datasource).build();
@@ -159,6 +164,54 @@ public class JudoRuntimeFixture {
 
         initQueryFactory();
         initModules(datasource, dialect);
+    }
+
+    /**
+     * Fast path used by {@link JudoTestExtension} when a {@link CachedRuntime} is
+     * available for the current scope ({@code BY_CLASS} or {@code SINGLETON}).
+     * Installs the cached fields and runs Guice member-injection on the test instance,
+     * bypassing {@code initQueryFactory}, {@code initModules}, and {@code Guice.createInjector}.
+     *
+     * @param cached the cached runtime bundle (must not be null)
+     * @param injectModulesTo optional test instance to receive {@code injector.injectMembers(...)};
+     *                        if null, no injection is performed.
+     */
+    void prepareWithCachedRuntime(CachedRuntime cached, Object injectModulesTo) {
+        if (cached == null) {
+            throw new IllegalArgumentException("cached runtime must not be null");
+        }
+        this.modelHolder = cached.modelLoader;
+        this.dialect = cached.dialect;
+        this.queryFactory = cached.queryFactory;
+        this.coercer = cached.coercer;
+        this.databaseModule = cached.databaseModule;
+        this.simpleLiquibaseExecutor = cached.liquibaseExecutor;
+        this.injector = cached.injector;
+        this.transactionManager = cached.transactionManager;
+        if (injectModulesTo != null) {
+            cached.injector.injectMembers(injectModulesTo);
+        }
+    }
+
+    /** Package-private accessor used by regression tests. */
+    QueryFactory queryFactory() {
+        return queryFactory;
+    }
+
+    /** Package-private accessor used by regression tests. */
+    PlatformTransactionManager transactionManager() {
+        return transactionManager;
+    }
+
+    /**
+     * Pre-installs an externally-built Liquibase executor (typically a counting
+     * wrapper) before {@link #prepare} runs. Must be called before {@code prepare}
+     * for the override to take effect.
+     *
+     * <p>Package-private — internal testkit seam.
+     */
+    void setLiquibaseExecutor(SimpleLiquibaseExecutor executor) {
+        this.simpleLiquibaseExecutor = executor;
     }
 
     /**

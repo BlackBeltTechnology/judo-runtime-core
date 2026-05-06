@@ -3,6 +3,16 @@
 Test toolkit for JUDO runtime components outside OSGi. Provides dependency 
 injection and test fixtures for interceptors, operations, and custom components.
 
+## Recent Changes
+
+- **JNG-XXXX (`cache-byclass-test-runtime`)** — `BY_CLASS` and `SINGLETON`
+  modes now cache the derived runtime artifacts (`QueryFactory`, Guice
+  `Injector`, database `Module`, Liquibase executor, `PlatformTransactionManager`)
+  in addition to the model loader, yielding >= 5× speed-up over `BY_METHOD`
+  on real-world models. The public `@JudoTest` API is unchanged. See
+  [TEST-CONFIGURATION.md](TEST-CONFIGURATION.md#caching-invariants-by_class--singleton)
+  for caching invariants and the `BY_METHOD` escape hatch.
+
 ## When to Use What
 
 ```

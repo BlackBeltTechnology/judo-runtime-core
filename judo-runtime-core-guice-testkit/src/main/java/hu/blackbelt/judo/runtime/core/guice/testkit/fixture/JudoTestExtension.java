@@ -7,6 +7,8 @@ import org.junit.jupiter.api.extension.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * JUnit Jupiter extension that provides JUDO runtime fixture setup for tests annotated with @JudoTest.
  *
@@ -35,12 +37,19 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
     private static final String TRANSACTION_HANDLING_KEY = "transactionHandling";
     private static final String SINGLETON_DATASOURCE_KEY = "singletonDatasource";
     private static final String MODEL_LOADER_KEY = "judoModelLoader";
+    private static final String CACHED_RUNTIME_KEY = "judoCachedRuntime";
+    private static final String SINGLETON_RUNTIMES_HOLDER_KEY = "judoSingletonRuntimes";
 
     // Singleton datasource shared across all tests (for SINGLETON mode)
     private static volatile CloseableDatasourceFixture singletonDatasource;
 
     // Singleton model loader shared across all tests (for SINGLETON mode)
     private static volatile JudoModelLoader singletonModelLoader;
+
+    // JVM-wide map of cached runtimes for SINGLETON mode, keyed by ByClassCacheKey.
+    // Guarded with the same lock pattern as singletonModelLoader.
+    private static final ConcurrentHashMap<ByClassCacheKey, CachedRuntime> singletonRuntimes = new ConcurrentHashMap<>();
+    private static volatile boolean singletonRuntimesShutdownRegistered = false;
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
@@ -255,32 +264,43 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         CloseableDatasourceFixture closeableDatasource = getDatasourceFromStore(store);
         JudoDatasourceFixture datasourceFixture = closeableDatasource.datasourceFixture;
 
-        // Create and initialize runtime fixture
+        // Create runtime fixture wrapper (always a fresh per-method instance, even on cached path).
         JudoRuntimeFixture runtimeFixture = new JudoRuntimeFixture();
 
-        // Check if a cached model loader exists (for BY_CLASS or SINGLETON modes)
-        JudoModelLoader cachedModelLoader = (JudoModelLoader) store.get(MODEL_LOADER_KEY);
-        if (cachedModelLoader != null) {
-            // Reuse the cached model instead of reloading
-            runtimeFixture.prepareWithModel(cachedModelLoader, datasourceFixture.getDataSource(), datasourceFixture.getDialect());
-            log.debug("Using cached model for test: {}", context.getDisplayName());
+        // BY_CLASS / SINGLETON cached path: bundle the derived artifacts (QueryFactory, Injector,
+        // databaseModule, Liquibase executor, transactionManager) once per scope and reuse them.
+        // BY_METHOD path: continue to call prepare(...) + init(...) every method (untouched).
+        boolean useCache = isClassLevel
+                && (mode == JudoTest.DataSourceMode.BY_CLASS || mode == JudoTest.DataSourceMode.SINGLETON);
+
+        if (useCache) {
+            CachedRuntime cached = getOrBuildCachedRuntime(
+                    context, store, annotation, datasourceFixture);
+            runtimeFixture.prepareWithCachedRuntime(cached, context.getTestInstance().orElse(null));
+            log.debug("Using cached runtime for test: {} (mode={})", context.getDisplayName(), mode);
         } else {
-            // Load model (for BY_METHOD mode or method-level annotations)
-            runtimeFixture.prepare(annotation.modelName(), datasourceFixture.getDataSource(), datasourceFixture.getDialect(), annotation.modelSource());
+            // Cold path — BY_METHOD or method-level annotation.
+            JudoModelLoader cachedModelLoader = (JudoModelLoader) store.get(MODEL_LOADER_KEY);
+            if (cachedModelLoader != null) {
+                runtimeFixture.prepareWithModel(cachedModelLoader, datasourceFixture.getDataSource(), datasourceFixture.getDialect());
+                log.debug("Using cached model for test: {}", context.getDisplayName());
+            } else {
+                runtimeFixture.prepare(annotation.modelName(), datasourceFixture.getDataSource(), datasourceFixture.getDialect(), annotation.modelSource());
+            }
+
+            // Register interceptor classes from annotation
+            Class<? extends OperationCallInterceptor>[] interceptorClasses = annotation.interceptors();
+            for (Class<? extends OperationCallInterceptor> interceptorClass : interceptorClasses) {
+                runtimeFixture.addInterceptor(interceptorClass);
+                log.debug("Registered interceptor class from annotation: {}", interceptorClass.getName());
+            }
+
+            // Instantiate custom modules from annotation
+            com.google.inject.Module customModule = createCustomModule(annotation);
+
+            // init() will handle interceptor instantiation, registration, and dependency injection
+            runtimeFixture.init(customModule, context.getTestInstance().orElse(null));
         }
-
-        // Register interceptor classes from annotation
-        Class<? extends OperationCallInterceptor>[] interceptorClasses = annotation.interceptors();
-        for (Class<? extends OperationCallInterceptor> interceptorClass : interceptorClasses) {
-            runtimeFixture.addInterceptor(interceptorClass);
-            log.debug("Registered interceptor class from annotation: {}", interceptorClass.getName());
-        }
-
-        // Instantiate custom modules from annotation
-        com.google.inject.Module customModule = createCustomModule(annotation);
-
-        // init() will handle interceptor instantiation, registration, and dependency injection
-        runtimeFixture.init(customModule, context.getTestInstance().orElse(null));
 
         // Handle transaction based on strategy
         JudoTest.TransactionHandling transactionHandling = annotation.transaction();
@@ -401,6 +421,146 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
 
     private ExtensionContext.Store getStore(ExtensionContext context) {
         return context.getStore(ExtensionContext.Namespace.create(getClass(), context.getRequiredTestClass()));
+    }
+
+    /**
+     * Returns the class-level store for the test class. Walks up the
+     * {@link ExtensionContext} chain until a context without a test method is
+     * reached (i.e. the class context). Required because {@code put()}
+     * operations land at the level of the calling context, and we need values
+     * written from {@code beforeEach} to survive across methods.
+     */
+    private ExtensionContext.Store getClassLevelStore(ExtensionContext context) {
+        ExtensionContext target = context;
+        while (target.getTestMethod().isPresent() && target.getParent().isPresent()) {
+            target = target.getParent().get();
+        }
+        return target.getStore(ExtensionContext.Namespace.create(getClass(), context.getRequiredTestClass()));
+    }
+
+    /**
+     * Returns the cached runtime for the current scope, building it on first call.
+     * <ul>
+     *   <li>{@code BY_CLASS}: stored in the class-scoped JUnit store under {@link #CACHED_RUNTIME_KEY},
+     *       auto-closed by JUnit when the class store is cleaned up.</li>
+     *   <li>{@code SINGLETON}: stored in a JVM-wide {@link ConcurrentHashMap} keyed by
+     *       {@link ByClassCacheKey}. A single root-store {@link ExtensionContext.Store.CloseableResource}
+     *       is registered exactly once to close all entries at JVM shutdown.</li>
+     * </ul>
+     */
+    private CachedRuntime getOrBuildCachedRuntime(
+            ExtensionContext context,
+            ExtensionContext.Store store,
+            JudoTest annotation,
+            JudoDatasourceFixture datasourceFixture) {
+        JudoTest.DataSourceMode mode = annotation.dataSourceMode();
+        String resolvedDialect = datasourceFixture.getDialect();
+
+        JudoModelLoader preloaded = (JudoModelLoader) store.get(MODEL_LOADER_KEY);
+
+        if (mode == JudoTest.DataSourceMode.BY_CLASS) {
+            // IMPORTANT: write the CachedRuntime to the CLASS-level store, not the
+            // method-level store, otherwise it would be evicted after afterEach
+            // and re-built every method — defeating the cache. Reads still work
+            // from method-context because JUnit's NamespaceAwareStore walks up to
+            // ancestor stores on get().
+            ExtensionContext.Store classStore = getClassLevelStore(context);
+            CachedRuntime existing = (CachedRuntime) classStore.get(CACHED_RUNTIME_KEY);
+            if (existing != null) {
+                return existing;
+            }
+            CachedRuntime built = buildCachedRuntime(annotation, datasourceFixture, preloaded);
+            classStore.put(CACHED_RUNTIME_KEY, built); // CloseableResource — JUnit auto-closes at class end.
+            return built;
+        }
+
+        // SINGLETON: JVM-scoped map.
+        ByClassCacheKey key = ByClassCacheKey.forSingleton(annotation, resolvedDialect);
+        CachedRuntime cached = singletonRuntimes.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (JudoTestExtension.class) {
+            cached = singletonRuntimes.get(key);
+            if (cached == null) {
+                cached = buildCachedRuntime(annotation, datasourceFixture, preloaded);
+                singletonRuntimes.put(key, cached);
+                if (!singletonRuntimesShutdownRegistered) {
+                    ExtensionContext.Store rootStore = context.getRoot().getStore(
+                            ExtensionContext.Namespace.create(getClass(), "singleton-runtimes"));
+                    rootStore.put(SINGLETON_RUNTIMES_HOLDER_KEY,
+                            (ExtensionContext.Store.CloseableResource) JudoTestExtension::closeAllSingletonRuntimes);
+                    singletonRuntimesShutdownRegistered = true;
+                    log.debug("Registered SINGLETON cached-runtime shutdown hook in root store");
+                }
+            }
+        }
+        return cached;
+    }
+
+    /**
+     * Builds a fresh {@link CachedRuntime} by performing the full prepare + init chain
+     * once. Installs a {@link CountingLiquibaseExecutor} so subsequent test methods can
+     * verify exactly-once Liquibase execution.
+     */
+    private CachedRuntime buildCachedRuntime(JudoTest annotation, JudoDatasourceFixture datasourceFixture, JudoModelLoader preloadedModel) {
+        JudoRuntimeFixture builder = new JudoRuntimeFixture();
+        // Install counting executor BEFORE prepare so initModules() picks it up.
+        builder.setLiquibaseExecutor(new CountingLiquibaseExecutor());
+        try {
+            if (preloadedModel != null) {
+                builder.prepareWithModel(preloadedModel,
+                        datasourceFixture.getDataSource(),
+                        datasourceFixture.getDialect());
+            } else {
+                builder.prepare(annotation.modelName(),
+                        datasourceFixture.getDataSource(),
+                        datasourceFixture.getDialect(),
+                        annotation.modelSource());
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to prepare cached runtime for model '"
+                    + annotation.modelName() + "'", e);
+        }
+
+        // Register interceptor classes from annotation.
+        for (Class<? extends OperationCallInterceptor> interceptorClass : annotation.interceptors()) {
+            builder.addInterceptor(interceptorClass);
+        }
+
+        com.google.inject.Module customModule = createCustomModule(annotation);
+        builder.init(customModule, null /* member-injection deferred to per-method test instance */);
+
+        // Eagerly resolve the PlatformTransactionManager so cached methods skip the lookup too.
+        org.springframework.transaction.PlatformTransactionManager txManager =
+                builder.getInjector().getInstance(org.springframework.transaction.PlatformTransactionManager.class);
+
+        return new CachedRuntime(
+                builder.modelHolder,
+                builder.dialect,
+                builder.queryFactory,
+                builder.coercer,
+                builder.databaseModule,
+                builder.simpleLiquibaseExecutor,
+                builder.getInjector(),
+                txManager);
+    }
+
+    /** Package-private accessor used by functional tests to inspect the JVM-wide SINGLETON cache. */
+    static java.util.Map<ByClassCacheKey, CachedRuntime> singletonRuntimesForTesting() {
+        return singletonRuntimes;
+    }
+
+    /** Closes every entry in {@link #singletonRuntimes} exactly once at JVM shutdown. */
+    static void closeAllSingletonRuntimes() {
+        for (CachedRuntime cached : singletonRuntimes.values()) {
+            try {
+                cached.close();
+            } catch (Exception e) {
+                log.error("Error closing SINGLETON cached runtime: {}", e.getMessage(), e);
+            }
+        }
+        singletonRuntimes.clear();
     }
 
     /**

@@ -107,7 +107,7 @@ class AnnotationBasedTest {
     /**
      * Test with custom model name (if you have multiple models)
      */
-    @JudoTest(modelName = "rackinspect")
+    @JudoTest(modelName = "example")
     @DisplayName("Test with custom model name")
     void testWithCustomModel(JudoRuntimeFixture fixture) {
         assertNotNull(fixture);
