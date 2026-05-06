@@ -269,8 +269,45 @@ Choose the appropriate `modelSource` based on your scenario:
 | Mode | Scope | Isolation | Performance | Use Case |
 |------|-------|-----------|-------------|----------|
 | `BY_METHOD` (default) | Per test method | Maximum | Slowest | Each test needs clean DB |
-| `BY_CLASS` | Per test class | Medium | Medium | Tests in class don't conflict |
+| `BY_CLASS` | Per test class | Medium | Medium (>= 5× vs BY_METHOD on real models) | Tests in class don't conflict |
 | `SINGLETON` | Shared across all classes | Minimum | Fastest | Read-only or well-isolated tests |
+
+### Caching invariants (BY_CLASS / SINGLETON)
+
+For `BY_CLASS` and `SINGLETON` modes, the testkit caches the derived runtime
+artifacts — `QueryFactory`, the database `Module`, the Liquibase executor, the
+Guice `Injector`, and the `PlatformTransactionManager` — so they are built
+exactly once per scope and reused across every test method. This is what gives
+`BY_CLASS` its >= 5× speed-up over `BY_METHOD` on real-world models.
+
+This caching is **transparent** for typical tests (the `@JudoTest` API is
+unchanged) but has a few consequences you must be aware of:
+
+- **Stateful interceptor instances are reused across methods.** An interceptor
+  registered via `interceptors = { ... }` is instantiated once per cached
+  runtime; any field state it carries persists across all methods of the class.
+  If your interceptor accumulates state (counters, captured calls, etc.)
+  either reset it explicitly in `@BeforeEach`, or pin the test class to
+  `BY_METHOD`.
+- **Schema-mutating tests must use `BY_METHOD`.** If a test drops a table,
+  alters a column, or otherwise mutates the database schema and expects the
+  next method to see a fresh schema (because Liquibase would re-run), it
+  *will break* under `BY_CLASS` or `SINGLETON`: Liquibase executes exactly
+  once per cached runtime. Switch such tests to `BY_METHOD`.
+- **Subclasses of `JudoRuntimeFixture` overriding `init(…)`** — the cached
+  path bypasses `init(…)` entirely (it uses `prepareWithCachedRuntime` instead),
+  so any subclass override of `init` is not invoked under `BY_CLASS` /
+  `SINGLETON`. Use `BY_METHOD` if your test relies on a custom `init` override.
+- **Cache key.** Two `@JudoTest` configurations differing only in `modules` or
+  `interceptors` produce *different* cache entries and therefore do not share
+  a cached runtime — you do not need to worry about cross-contamination from
+  a similarly-named test class with different bindings.
+
+**Escape hatch:** when in doubt, use
+`@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)`. This always
+builds a fresh `Injector`, `QueryFactory`, and `PlatformTransactionManager`
+for every method — the cache is bypassed entirely and existing user
+subclasses overriding `init(…)` continue to work as before.
 
 ### Database Configuration
 

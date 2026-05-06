@@ -179,8 +179,19 @@ class MyTestClass {
 | Mode | Scope | Isolation | Performance | Use Case |
 |------|-------|-----------|-------------|----------|
 | **BY_METHOD** (default) | Per test method | Maximum | Slowest | Each test needs clean DB |
-| **BY_CLASS** | Per test class | Medium | Medium | Tests in class don't conflict |
+| **BY_CLASS** | Per test class | Medium | Medium (>= 5× vs BY_METHOD on real models) | Tests in class don't conflict |
 | **SINGLETON** | Shared across all classes | Minimum | Fastest | Read-only or well-isolated tests |
+
+> **Caching note (BY_CLASS / SINGLETON):** Beyond the datasource, the testkit
+> also caches the derived runtime artifacts — Guice `Injector`, `QueryFactory`,
+> Liquibase executor, and `PlatformTransactionManager` — so they are built
+> once per scope and reused across every method. Liquibase runs **exactly
+> once** per cached scope. Stateful interceptor instances and any subclass
+> override of `JudoRuntimeFixture#init(…)` are bypassed on the cached path.
+> Switch to `BY_METHOD` if your test relies on a fresh injector / fresh
+> migration / interceptor state per method. See
+> [TEST-CONFIGURATION.md » Caching invariants](TEST-CONFIGURATION.md#caching-invariants-by_class--singleton)
+> for full details.
 
 ```java
 // BY_METHOD: New datasource for each test (default)
@@ -220,20 +231,20 @@ class Test4 {
 
 ```java
 // Example 1: Default - Auto-detect (filesystem → classpath fallback)
-@JudoTest(modelName = "rackinspect")
+@JudoTest(modelName = "example")
 void testWithAutoDetect(JudoRuntimeFixture fixture) {
     // Tries filesystem first, falls back to classpath if not found
 }
 
 // Example 2: Force filesystem loading (development)
-@JudoTest(modelName = "rackinspect", modelSource = ModelSource.FILESYSTEM)
+@JudoTest(modelName = "example", modelSource = ModelSource.FILESYSTEM)
 void testFromFilesystem(JudoRuntimeFixture fixture) {
     // Only loads from target/generated-test-sources/model
     // Fails if model not found on filesystem
 }
 
 // Example 3: Force classpath loading (packaged JAR tests)
-@JudoTest(modelName = "rackinspect", modelSource = ModelSource.CLASSPATH)
+@JudoTest(modelName = "example", modelSource = ModelSource.CLASSPATH)
 void testFromClasspath(JudoRuntimeFixture fixture) {
     // Only loads from /model/ directory in JAR or test resources
     // Perfect for testing packaged applications
@@ -445,7 +456,7 @@ void testWithMultipleModules(JudoRuntimeFixture fixture) {
 ```java
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.CreateInstanceCall;
-import hu.blackbelt.rackinspect.interceptors.user.UserCreateInterceptor;
+import com.example.interceptors.user.UserCreateInterceptor;
 
 class UserCreateInterceptorTest {
     

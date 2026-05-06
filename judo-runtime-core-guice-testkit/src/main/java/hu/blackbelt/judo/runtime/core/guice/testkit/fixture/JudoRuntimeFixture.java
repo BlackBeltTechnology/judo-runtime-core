@@ -106,7 +106,12 @@ public class JudoRuntimeFixture {
 
     private void initModules(DataSource datasource, Dialect dialect) {
         RdbmsInit init = null;
-        simpleLiquibaseExecutor = new SimpleLiquibaseExecutor();
+        // Allow externally-supplied executor (e.g. CountingLiquibaseExecutor) — only create
+        // a fresh one when no caller has pre-set it. Required by the BY_CLASS / SINGLETON
+        // runtime cache so the cold path can install a counting wrapper for regression tests.
+        if (simpleLiquibaseExecutor == null) {
+            simpleLiquibaseExecutor = new SimpleLiquibaseExecutor();
+        }
         if (dialect instanceof HsqldbDialect) {
             init = HsqldbRdbmsInit.builder().liquibaseExecutor(simpleLiquibaseExecutor).liquibaseModel(modelHolder.getLiquibaseModel()).build();
             databaseModule = JudoHsqldbModule.builder().dataSource(datasource).build();
@@ -159,6 +164,133 @@ public class JudoRuntimeFixture {
 
         initQueryFactory();
         initModules(datasource, dialect);
+    }
+
+    /**
+     * Fast path used by {@link JudoTestExtension} when a {@link CachedRuntime} is
+     * available for the current scope ({@code BY_CLASS} or {@code SINGLETON}).
+     * Installs the cached fields and runs Guice member-injection on the test instance,
+     * bypassing {@code initQueryFactory}, {@code initModules}, and {@code Guice.createInjector}.
+     *
+     * @param cached the cached runtime bundle (must not be null)
+     * @param injectModulesTo optional test instance to receive {@code injector.injectMembers(...)};
+     *                        if null, no injection is performed.
+     */
+    void prepareWithCachedRuntime(CachedRuntime cached, Object injectModulesTo) {
+        if (cached == null) {
+            throw new IllegalArgumentException("cached runtime must not be null");
+        }
+        this.modelHolder = cached.modelLoader;
+        this.dialect = cached.dialect;
+        this.queryFactory = cached.queryFactory;
+        this.coercer = cached.coercer;
+        this.databaseModule = cached.databaseModule;
+        this.simpleLiquibaseExecutor = cached.liquibaseExecutor;
+        this.injector = cached.injector;
+        this.transactionManager = cached.transactionManager;
+        if (injectModulesTo != null) {
+            cached.injector.injectMembers(injectModulesTo);
+        }
+    }
+
+    /** Package-private accessor used by regression tests. */
+    QueryFactory queryFactory() {
+        return queryFactory;
+    }
+
+    /** Package-private accessor used by regression tests. */
+    PlatformTransactionManager transactionManager() {
+        return transactionManager;
+    }
+
+    /**
+     * Pre-installs an externally-built Liquibase executor (typically a counting
+     * wrapper) before {@link #prepare} runs. Must be called before {@code prepare}
+     * for the override to take effect.
+     *
+     * <p>Package-private — internal testkit seam.
+     */
+    void setLiquibaseExecutor(SimpleLiquibaseExecutor executor) {
+        this.simpleLiquibaseExecutor = executor;
+    }
+
+    /**
+     * Prepares the runtime fixture using a pre-loaded model.
+     * This is useful when running in BY_CLASS or SINGLETON mode to avoid reloading the model for each test method.
+     *
+     * @param preloadedModel The pre-loaded JudoModelLoader instance
+     * @param datasource The datasource to use
+     * @param dialectName The dialect name ("hsqldb" or "postgresql")
+     * @throws Exception if preparation fails
+     */
+    public void prepareWithModel(JudoModelLoader preloadedModel, DataSource datasource, String dialectName) throws Exception {
+        if (DIALECT_POSTGRESQL.equals(dialectName)) {
+            dialect = new PostgresqlDialect();
+        } else if (DIALECT_HSQLDB.equals(dialectName)) {
+            dialect = new HsqldbDialect();
+        } else {
+            throw new IllegalArgumentException("Unsupported dialect: " + dialectName);
+        }
+
+        this.modelHolder = preloadedModel;
+        log.debug("Using pre-loaded model: {}", preloadedModel.getAsmModel().getName());
+
+        initQueryFactory();
+        initModules(datasource, dialect);
+    }
+
+    /**
+     * Loads the model based on the specified source.
+     * This is a public method to allow loading the model separately for caching purposes.
+     *
+     * @param modelName The name of the model to load
+     * @param dialectName The dialect name ("hsqldb" or "postgresql")
+     * @param modelSource The source from which to load the model
+     * @return The loaded JudoModelLoader instance
+     * @throws Exception if model loading fails
+     */
+    public static JudoModelLoader loadModel(String modelName, String dialectName, JudoTest.ModelSource modelSource) throws Exception {
+        Dialect loadDialect;
+        if (DIALECT_POSTGRESQL.equals(dialectName)) {
+            loadDialect = new PostgresqlDialect();
+        } else if (DIALECT_HSQLDB.equals(dialectName)) {
+            loadDialect = new HsqldbDialect();
+        } else {
+            throw new IllegalArgumentException("Unsupported dialect: " + dialectName);
+        }
+
+        JudoModelLoader loadedModel;
+        switch (modelSource) {
+            case FILESYSTEM:
+                log.debug("Loading model '{}' from filesystem: {}", modelName, MODEL_SOURCES);
+                loadedModel = JudoModelLoader.loadFromDirectory(modelName, new File(MODEL_SOURCES), loadDialect, true, false);
+                log.info("Successfully loaded model '{}' from filesystem", modelName);
+                break;
+            case CLASSPATH:
+                log.debug("Loading model '{}' from classpath", modelName);
+                loadedModel = JudoModelLoader.loadFromClassloader(modelName, Thread.currentThread().getContextClassLoader(), loadDialect, true, false);
+                log.info("Successfully loaded model '{}' from classpath", modelName);
+                break;
+            case AUTO:
+            default:
+                // Try filesystem first, fallback to classpath
+                try {
+                    log.debug("Attempting to load model '{}' from filesystem: {}", modelName, MODEL_SOURCES);
+                    loadedModel = JudoModelLoader.loadFromDirectory(modelName, new File(MODEL_SOURCES), loadDialect, true, false);
+                    log.info("Successfully loaded model '{}' from filesystem", modelName);
+                } catch (Exception e) {
+                    log.warn("Failed to load model '{}' from filesystem ({}), attempting to load from classpath", modelName, e.getMessage());
+                    try {
+                        loadedModel = JudoModelLoader.loadFromClassloader(modelName, Thread.currentThread().getContextClassLoader(), loadDialect, true, false);
+                        log.info("Successfully loaded model '{}' from classpath", modelName);
+                    } catch (Exception e2) {
+                        log.error("Failed to load model '{}' from both filesystem and classpath", modelName);
+                        throw new IllegalArgumentException("Could not load model '" + modelName + "'. " + "Filesystem error: " + e.getMessage() + ". " + "Classpath error: " + e2.getMessage(), e2);
+                    }
+                }
+                break;
+        }
+        return loadedModel;
     }
 
     private void loadModelFromFilesystem(String modelName) throws Exception {

@@ -13,7 +13,32 @@ Main test fixture for JUDO runtime testing.
 | `prepare(modelName, dataSource, dialect)` | Initialize with model name and datasource |
 | `prepare(JudoModelLoader, dataSource, dialect)` | Initialize with pre-loaded model |
 | `init(Module, injectTarget)` | Create Guice injector and initialize runtime |
-| `tearDown()` | Clean up resources |
+| `tearDown()` | Clean up resources (does NOT close the injector or datasource on cached scopes) |
+
+#### Cached fast path (BY_CLASS / SINGLETON)
+
+`JudoTestExtension` uses an internal fast path on cached scopes that bypasses
+`prepare(…)` and `init(…)` after the first method:
+
+| Method (package-private) | Description |
+|--------------------------|-------------|
+| `prepareWithCachedRuntime(CachedRuntime, Object)` | Installs the cached `Injector`, `QueryFactory`, `PlatformTransactionManager`, database `Module`, Liquibase executor, model loader, and dialect. Optionally runs `injector.injectMembers(testInstance)`. |
+
+`CachedRuntime` is an immutable bundle of the derived runtime artifacts plus an
+idempotent `close()` (it implements `ExtensionContext.Store.CloseableResource`).
+Its lifecycle is:
+
+- **BY_CLASS**: built on the first method; stored in JUnit's class-scoped
+  `Store`; closed by JUnit when the class store is cleaned up.
+- **SINGLETON**: built on first access in any test class with a matching
+  configuration; stored in a JVM-wide `ConcurrentHashMap` keyed by
+  `(modelName, dialect, modelSource, modules, interceptors)`; all entries are
+  closed exactly once at JVM shutdown via a single root-store
+  `CloseableResource`.
+
+User code does NOT call `prepareWithCachedRuntime` directly — it is invoked
+by `JudoTestExtension` on cached scopes. The public API surface
+(`@JudoTest`, `DataSourceMode`) is unchanged.
 
 ### Interceptor Methods
 
