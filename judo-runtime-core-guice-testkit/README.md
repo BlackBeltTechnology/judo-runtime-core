@@ -188,8 +188,11 @@ class MyTestClass {
 > once per scope and reused across every method. Liquibase runs **exactly
 > once** per cached scope. Stateful interceptor instances and any subclass
 > override of `JudoRuntimeFixture#init(…)` are bypassed on the cached path.
-> Switch to `BY_METHOD` if your test relies on a fresh injector / fresh
-> migration / interceptor state per method. See
+>
+> If you need a fresh injector per method but want to keep the per-class
+> DataSource for performance, set
+> `@JudoTest(dataSourceMode = BY_CLASS, cacheRuntime = false)`. Otherwise
+> switch to `BY_METHOD` for full per-method freshness. See
 > [TEST-CONFIGURATION.md » Caching invariants](TEST-CONFIGURATION.md#caching-invariants-by_class--singleton)
 > for full details.
 

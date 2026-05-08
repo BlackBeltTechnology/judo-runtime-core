@@ -303,11 +303,47 @@ unchanged) but has a few consequences you must be aware of:
   a cached runtime — you do not need to worry about cross-contamination from
   a similarly-named test class with different bindings.
 
-**Escape hatch:** when in doubt, use
-`@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)`. This always
-builds a fresh `Injector`, `QueryFactory`, and `PlatformTransactionManager`
-for every method — the cache is bypassed entirely and existing user
-subclasses overriding `init(…)` continue to work as before.
+**Escape hatches:** when the cache invariants above are a problem, you have
+two options.
+
+1. **Drop to `BY_METHOD`** — every method gets a fresh DataSource, fresh
+   Liquibase migration, fresh `Injector`. Maximum isolation, slowest
+   (you pay the full cold cost on every method):
+   ```java
+   @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
+   ```
+
+2. **Keep the shared DataSource and JudoModelLoader, but disable the runtime
+   cache** with `cacheRuntime = false`. The DataSource is reused per class
+   (BY_CLASS) or per JVM (SINGLETON), but the `Injector`, `QueryFactory`,
+   `Module`, Liquibase executor, and `PlatformTransactionManager` are
+   rebuilt for every method. This is the right choice when you want
+   `BY_CLASS`-level perf on the datasource side but stateful interceptors
+   / schema mutation / `init(…)` overrides on the runtime side.
+   ```java
+   @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+             cacheRuntime = false)
+   ```
+
+### Behavior matrix
+
+The `dataSourceMode` and `cacheRuntime` flags interact as follows:
+
+| `dataSourceMode` | `cacheRuntime` | DataSource | Liquibase | Injector / QueryFactory / TxManager | JudoModelLoader |
+|---|---|---|---|---|---|
+| BY_METHOD | *(ignored)* | per method | per method | per method | per method |
+| BY_CLASS | `true` (default) | per class | once | per class | per class |
+| **BY_CLASS** | **`false`** | **per class** | **per method** | **per method** | **per class** |
+| SINGLETON | *(ignored)* | JVM-wide | once | JVM-wide | JVM-wide |
+
+The **bold** row is reachable only via `cacheRuntime = false`.
+
+`cacheRuntime` only affects `BY_CLASS` mode. It is ignored for:
+- `BY_METHOD` — nothing is cached regardless.
+- `SINGLETON` — always cached. Disabling the cache on a JVM-wide DataSource
+  would re-run Liquibase per method against a shared database, risking
+  schema corruption under parallel execution.
+- Method-level `@JudoTest` annotations (those always behave as `BY_METHOD`).
 
 ### Database Configuration
 

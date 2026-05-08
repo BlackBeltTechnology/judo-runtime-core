@@ -130,38 +130,8 @@ public class JudoRuntimeFixture {
     }
 
     public void prepare(String modelName, DataSource datasource, String dialectName, JudoTest.ModelSource modelSource) throws Exception {
-        if (DIALECT_POSTGRESQL.equals(dialectName)) {
-            dialect = new PostgresqlDialect();
-        } else if (DIALECT_HSQLDB.equals(dialectName)) {
-            dialect = new HsqldbDialect();
-        } else {
-            throw new IllegalArgumentException("Unsupported dialect: " + dialectName);
-        }
-
-        switch (modelSource) {
-            case FILESYSTEM:
-                loadModelFromFilesystem(modelName);
-                break;
-            case CLASSPATH:
-                loadModelFromClasspath(modelName);
-                break;
-            case AUTO:
-            default:
-                // Try filesystem first, fallback to classpath
-                try {
-                    loadModelFromFilesystem(modelName);
-                } catch (Exception e) {
-                    log.warn("Failed to load model '{}' from filesystem ({}), " + "attempting to load from classpath", modelName, e.getMessage());
-                    try {
-                        loadModelFromClasspath(modelName);
-                    } catch (Exception e2) {
-                        log.error("Failed to load model '{}' from both filesystem and classpath", modelName);
-                        throw new IllegalArgumentException("Could not load model '" + modelName + "'. " + "Filesystem error: " + e.getMessage() + ". " + "Classpath error: " + e2.getMessage(), e2);
-                    }
-                }
-                break;
-        }
-
+        dialect = resolveDialect(dialectName);
+        modelHolder = loadModel(modelName, dialectName, modelSource);
         initQueryFactory();
         initModules(datasource, dialect);
     }
@@ -224,14 +194,7 @@ public class JudoRuntimeFixture {
      * @throws Exception if preparation fails
      */
     public void prepareWithModel(JudoModelLoader preloadedModel, DataSource datasource, String dialectName) throws Exception {
-        if (DIALECT_POSTGRESQL.equals(dialectName)) {
-            dialect = new PostgresqlDialect();
-        } else if (DIALECT_HSQLDB.equals(dialectName)) {
-            dialect = new HsqldbDialect();
-        } else {
-            throw new IllegalArgumentException("Unsupported dialect: " + dialectName);
-        }
-
+        dialect = resolveDialect(dialectName);
         this.modelHolder = preloadedModel;
         log.debug("Using pre-loaded model: {}", preloadedModel.getAsmModel().getName());
 
@@ -249,60 +212,74 @@ public class JudoRuntimeFixture {
      * @return The loaded JudoModelLoader instance
      * @throws Exception if model loading fails
      */
-    public static JudoModelLoader loadModel(String modelName, String dialectName, JudoTest.ModelSource modelSource) throws Exception {
-        Dialect loadDialect;
+    /**
+     * Resolves a dialect name string to a {@link Dialect} instance.
+     *
+     * @param dialectName The dialect name ("hsqldb" or "postgresql")
+     * @return the corresponding Dialect instance
+     * @throws IllegalArgumentException if the dialect name is not recognised
+     */
+    static Dialect resolveDialect(String dialectName) {
         if (DIALECT_POSTGRESQL.equals(dialectName)) {
-            loadDialect = new PostgresqlDialect();
+            return new PostgresqlDialect();
         } else if (DIALECT_HSQLDB.equals(dialectName)) {
-            loadDialect = new HsqldbDialect();
-        } else {
-            throw new IllegalArgumentException("Unsupported dialect: " + dialectName);
+            return new HsqldbDialect();
         }
+        throw new IllegalArgumentException("Unsupported dialect: " + dialectName);
+    }
 
-        JudoModelLoader loadedModel;
+    /**
+     * Loads the model based on the specified source.
+     * This is a public method to allow loading the model separately for caching purposes.
+     *
+     * @param modelName The name of the model to load
+     * @param dialectName The dialect name ("hsqldb" or "postgresql")
+     * @param modelSource The source from which to load the model
+     * @return The loaded JudoModelLoader instance
+     * @throws Exception if model loading fails
+     */
+    public static JudoModelLoader loadModel(String modelName, String dialectName, JudoTest.ModelSource modelSource) throws Exception {
+        Dialect loadDialect = resolveDialect(dialectName);
+
         switch (modelSource) {
             case FILESYSTEM:
-                log.debug("Loading model '{}' from filesystem: {}", modelName, MODEL_SOURCES);
-                loadedModel = JudoModelLoader.loadFromDirectory(modelName, new File(MODEL_SOURCES), loadDialect, true, false);
-                log.info("Successfully loaded model '{}' from filesystem", modelName);
-                break;
+                return loadModelFromFilesystem(modelName, loadDialect);
             case CLASSPATH:
-                log.debug("Loading model '{}' from classpath", modelName);
-                loadedModel = JudoModelLoader.loadFromClassloader(modelName, Thread.currentThread().getContextClassLoader(), loadDialect, true, false);
-                log.info("Successfully loaded model '{}' from classpath", modelName);
-                break;
+                return loadModelFromClasspath(modelName, loadDialect);
             case AUTO:
             default:
-                // Try filesystem first, fallback to classpath
-                try {
-                    log.debug("Attempting to load model '{}' from filesystem: {}", modelName, MODEL_SOURCES);
-                    loadedModel = JudoModelLoader.loadFromDirectory(modelName, new File(MODEL_SOURCES), loadDialect, true, false);
-                    log.info("Successfully loaded model '{}' from filesystem", modelName);
-                } catch (Exception e) {
-                    log.warn("Failed to load model '{}' from filesystem ({}), attempting to load from classpath", modelName, e.getMessage());
-                    try {
-                        loadedModel = JudoModelLoader.loadFromClassloader(modelName, Thread.currentThread().getContextClassLoader(), loadDialect, true, false);
-                        log.info("Successfully loaded model '{}' from classpath", modelName);
-                    } catch (Exception e2) {
-                        log.error("Failed to load model '{}' from both filesystem and classpath", modelName);
-                        throw new IllegalArgumentException("Could not load model '" + modelName + "'. " + "Filesystem error: " + e.getMessage() + ". " + "Classpath error: " + e2.getMessage(), e2);
-                    }
-                }
-                break;
+                return loadModelAuto(modelName, loadDialect);
         }
-        return loadedModel;
     }
 
-    private void loadModelFromFilesystem(String modelName) throws Exception {
-        log.debug("Attempting to load model '{}' from filesystem: {}", modelName, MODEL_SOURCES);
-        modelHolder = JudoModelLoader.loadFromDirectory(modelName, new File(MODEL_SOURCES), dialect, true, false);
+    private static JudoModelLoader loadModelFromFilesystem(String modelName, Dialect loadDialect) throws Exception {
+        log.debug("Loading model '{}' from filesystem: {}", modelName, MODEL_SOURCES);
+        JudoModelLoader model = JudoModelLoader.loadFromDirectory(modelName, new File(MODEL_SOURCES), loadDialect, true, false);
         log.info("Successfully loaded model '{}' from filesystem", modelName);
+        return model;
     }
 
-    private void loadModelFromClasspath(String modelName) throws Exception {
-        log.debug("Attempting to load model '{}' from classpath", modelName);
-        modelHolder = JudoModelLoader.loadFromClassloader(modelName, Thread.currentThread().getContextClassLoader(), dialect, true, false);
+    private static JudoModelLoader loadModelFromClasspath(String modelName, Dialect loadDialect) throws Exception {
+        log.debug("Loading model '{}' from classpath", modelName);
+        JudoModelLoader model = JudoModelLoader.loadFromClassloader(modelName, Thread.currentThread().getContextClassLoader(), loadDialect, true, false);
         log.info("Successfully loaded model '{}' from classpath", modelName);
+        return model;
+    }
+
+    private static JudoModelLoader loadModelAuto(String modelName, Dialect loadDialect) throws Exception {
+        try {
+            return loadModelFromFilesystem(modelName, loadDialect);
+        } catch (Exception e) {
+            log.warn("Failed to load model '{}' from filesystem ({}), attempting to load from classpath", modelName, e.getMessage());
+            try {
+                return loadModelFromClasspath(modelName, loadDialect);
+            } catch (Exception e2) {
+                log.error("Failed to load model '{}' from both filesystem and classpath", modelName);
+                throw new IllegalArgumentException("Could not load model '" + modelName + "'. "
+                        + "Filesystem error: " + e.getMessage() + ". "
+                        + "Classpath error: " + e2.getMessage(), e2);
+            }
+        }
     }
 
     public void init(Module module, Object injectModulesTo) {

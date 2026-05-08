@@ -127,6 +127,21 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
     }
 
     /**
+     * Resolves the effective dialect name from environment variable, annotation, and default.
+     * Resolution priority: {@code JUDO_TEST_DIALECT} env var &gt; annotation value &gt; {@code "hsqldb"}.
+     */
+    private static String resolveDialectName(JudoTest annotation) {
+        String dialect = System.getenv("JUDO_TEST_DIALECT");
+        if (dialect == null || dialect.trim().isEmpty()) {
+            dialect = annotation.dialect();
+        }
+        if (dialect == null || dialect.trim().isEmpty()) {
+            dialect = "hsqldb";
+        }
+        return dialect;
+    }
+
+    /**
      * Initializes and caches the model loader for BY_CLASS or SINGLETON modes.
      * This avoids reloading the model for every test method.
      */
@@ -139,15 +154,7 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         }
 
         JudoTest.DataSourceMode mode = annotation.dataSourceMode();
-
-        // Resolve dialect (same logic as createDatasourceFixture)
-        String dialect = System.getenv("JUDO_TEST_DIALECT");
-        if (dialect == null || dialect.trim().isEmpty()) {
-            dialect = annotation.dialect();
-        }
-        if (dialect == null || dialect.trim().isEmpty()) {
-            dialect = "hsqldb";
-        }
+        String dialect = resolveDialectName(annotation);
 
         switch (mode) {
             case SINGLETON:
@@ -191,13 +198,7 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         JudoDatasourceFixture datasourceFixture = new JudoDatasourceFixture();
 
         // Resolve dialect: env var > annotation > default (hsqldb)
-        String dialect = System.getenv("JUDO_TEST_DIALECT");
-        if (dialect == null || dialect.trim().isEmpty()) {
-            dialect = annotation.dialect();
-        }
-        if (dialect == null || dialect.trim().isEmpty()) {
-            dialect = "hsqldb";
-        }
+        String dialect = resolveDialectName(annotation);
 
         // Resolve container: env var > annotation > auto-detect
         String container = System.getenv("JUDO_TEST_CONTAINER");
@@ -269,9 +270,10 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
 
         // BY_CLASS / SINGLETON cached path: bundle the derived artifacts (QueryFactory, Injector,
         // databaseModule, Liquibase executor, transactionManager) once per scope and reuse them.
-        // BY_METHOD path: continue to call prepare(...) + init(...) every method (untouched).
-        boolean useCache = isClassLevel
-                && (mode == JudoTest.DataSourceMode.BY_CLASS || mode == JudoTest.DataSourceMode.SINGLETON);
+        // BY_METHOD path AND cacheRuntime=false path: continue to call prepare(...) + init(...) every method.
+        // The routing predicate is centralised in JudoTestExtensionRouting for unit-testability.
+        boolean useCache = JudoTestExtensionRouting.useCache(
+                isClassLevel, mode, annotation.cacheRuntime());
 
         if (useCache) {
             CachedRuntime cached = getOrBuildCachedRuntime(
@@ -561,6 +563,7 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
             }
         }
         singletonRuntimes.clear();
+        singletonModelLoader = null;
     }
 
     /**

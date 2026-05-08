@@ -239,11 +239,55 @@ uses `prepareWithCachedRuntime(…)` instead of `init(…)` after the first
 method — by design, since the artifacts are pre-built. Subclass `init`
 overrides are bypassed.
 
-**Fix:** Use `BY_METHOD` for tests that depend on a custom `init` override:
+**Fix Options:**
+
+Option 1 — Disable runtime caching while keeping the shared datasource:
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+          cacheRuntime = false)
+class MyCustomFixtureTest { ... }
+```
+This keeps the per-class DataSource and JudoModelLoader for performance,
+but rebuilds the Injector and re-invokes `init(…)` for every method.
+
+Option 2 — Drop to `BY_METHOD` (slowest, fully fresh per method):
 ```java
 @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
 class MyCustomFixtureTest { ... }
 ```
+
+---
+
+### How do I keep BY_CLASS performance but get a fresh injector per method?
+
+**Question:** I want the speed of a per-class DataSource (no Liquibase
+re-bootstrap, no HikariCP pool churn) but I need a fresh Guice `Injector`
+per method (for stateful interceptors, schema-mutating tests, or `init(…)`
+overrides). How?
+
+**Answer:** Set `cacheRuntime = false`:
+
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+          cacheRuntime = false)
+class FreshInjectorPerMethodTest { ... }
+```
+
+This is the middle-ground between `BY_CLASS, cacheRuntime = true` (fastest,
+everything cached) and `BY_METHOD` (slowest, everything fresh):
+
+| | BY_CLASS, true | **BY_CLASS, false** | BY_METHOD |
+|---|---|---|---|
+| DataSource | per class | **per class** | per method |
+| Liquibase | once | **per method** | per method |
+| Injector | per class | **per method** | per method |
+| Speed | fastest | **medium** | slowest |
+
+> **Note:** `cacheRuntime` only affects `BY_CLASS`. For `SINGLETON` the flag
+> is ignored — SINGLETON always caches because disabling the cache on a
+> JVM-wide DataSource would re-run Liquibase per method against a shared
+> database, risking schema corruption. Use `BY_METHOD` if you need full
+> per-method isolation.
 
 ---
 

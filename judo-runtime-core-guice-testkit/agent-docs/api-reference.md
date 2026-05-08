@@ -10,10 +10,18 @@ Main test fixture for JUDO runtime testing.
 
 | Method | Description |
 |--------|-------------|
-| `prepare(modelName, dataSource, dialect)` | Initialize with model name and datasource |
-| `prepare(JudoModelLoader, dataSource, dialect)` | Initialize with pre-loaded model |
+| `prepare(modelName, dataSource, dialect)` | Initialize with model name and datasource (auto model source) |
+| `prepare(modelName, dataSource, dialect, modelSource)` | Initialize with model name, datasource, and explicit model source |
+| `prepareWithModel(JudoModelLoader, dataSource, dialect)` | Initialize with a pre-loaded model (skips model loading) |
 | `init(Module, injectTarget)` | Create Guice injector and initialize runtime |
 | `tearDown()` | Clean up resources (does NOT close the injector or datasource on cached scopes) |
+
+### Static Helpers
+
+| Method | Description |
+|--------|-------------|
+| `loadModel(modelName, dialectName, modelSource)` | Load a `JudoModelLoader` independently (for caching or reuse) |
+| `resolveDialect(dialectName)` | Convert a dialect name string (`"hsqldb"` / `"postgresql"`) to a `Dialect` instance |
 
 #### Cached fast path (BY_CLASS / SINGLETON)
 
@@ -94,6 +102,8 @@ Declarative test configuration annotation.
 | `transaction` | `TransactionHandling` | `AUTO_ROLLBACK` | Transaction mode |
 | `interceptors` | `Class[]` | `{}` | Interceptor classes to register |
 | `modules` | `Class[]` | `{}` | Custom Guice modules |
+| `dataSourceMode` | `DataSourceMode` | `BY_METHOD` | Datasource lifecycle: `BY_METHOD` / `BY_CLASS` / `SINGLETON` |
+| `cacheRuntime` | `boolean` | `true` | Cache derived runtime artifacts (Injector, QueryFactory, Liquibase executor, TxManager) for `BY_CLASS`. Set `false` to keep the shared DataSource but rebuild the runtime per method. Only affects `BY_CLASS`; ignored for `BY_METHOD`, `SINGLETON`, and method-level `@JudoTest`. |
 
 ### ModelSource Enum
 
@@ -240,7 +250,7 @@ JudoModelLoader loader = JudoModelLoader.loadFromClassloader(
 );
 
 // Use with fixture
-fixture.prepare(loader, dataSource, "hsqldb");
+fixture.prepareWithModel(loader, dataSource, "hsqldb");
 ```
 
 ---
