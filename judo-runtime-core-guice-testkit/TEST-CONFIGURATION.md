@@ -269,8 +269,152 @@ Choose the appropriate `modelSource` based on your scenario:
 | Mode | Scope | Isolation | Performance | Use Case |
 |------|-------|-----------|-------------|----------|
 | `BY_METHOD` (default) | Per test method | Maximum | Slowest | Each test needs clean DB |
-| `BY_CLASS` | Per test class | Medium | Medium | Tests in class don't conflict |
+| `BY_CLASS` | Per test class | Medium | Medium (>= 5× vs BY_METHOD on real models) | Tests in class don't conflict |
 | `SINGLETON` | Shared across all classes | Minimum | Fastest | Read-only or well-isolated tests |
+
+### Why runtime caching exists
+
+Before the runtime cache was introduced, `BY_CLASS` and `SINGLETON` modes only
+shared the `DataSource` and the `JudoModelLoader`. Every test method still:
+
+1. Re-built the `QueryFactory` by extracting JQL expressions from the ASM
+   model (~3 s on a real-world model).
+2. Re-ran the Liquibase changelog re-validation against `DATABASECHANGELOG`
+   (~5 s, including lock acquire / release).
+3. Re-created the Guice `Injector` over `judoDefaultModule + databaseModule
+   + customModule` (~10–15 s).
+4. Re-resolved the `PlatformTransactionManager`.
+
+Empirically on a 20-method class with a real-world model (~20 MB ASM), the
+model-only cache yielded just ~10 % speed-up because the model load is only
+~3 s of the ~28 s per-test cost. The remaining ~25 s is repeated Liquibase
+work and Guice injector construction.
+
+**Caching these four artifacts amortises them across the entire class scope**,
+dropping per-method cost from ~26 s to under 1 ms once the cache is warm — a
+>= 20× observed speed-up on real-world models. On a 20-method class this
+saves roughly **8 minutes of wall-clock per test class**.
+
+### Caching invariants (BY_CLASS / SINGLETON)
+
+For `BY_CLASS` and `SINGLETON` modes, the testkit caches the derived runtime
+artifacts — `QueryFactory`, the database `Module`, the Liquibase executor, the
+Guice `Injector`, and the `PlatformTransactionManager` — so they are built
+exactly once per scope and reused across every test method. This is what gives
+`BY_CLASS` its >= 5× speed-up over `BY_METHOD` on real-world models.
+
+This caching is **transparent** for typical tests (the `@JudoTest` API is
+unchanged) but has a few consequences you must be aware of:
+
+- **Stateful interceptor instances are reused across methods.** An interceptor
+  registered via `interceptors = { ... }` is instantiated once per cached
+  runtime; any field state it carries persists across all methods of the class.
+  If your interceptor accumulates state (counters, captured calls, etc.)
+  either reset it explicitly in `@BeforeEach`, or pin the test class to
+  `BY_METHOD`.
+- **Schema-mutating tests must use `BY_METHOD`.** If a test drops a table,
+  alters a column, or otherwise mutates the database schema and expects the
+  next method to see a fresh schema (because Liquibase would re-run), it
+  *will break* under `BY_CLASS` or `SINGLETON`: Liquibase executes exactly
+  once per cached runtime. Switch such tests to `BY_METHOD`.
+- **Subclasses of `JudoRuntimeFixture` overriding `init(…)`** — the cached
+  path bypasses `init(…)` entirely (it uses `prepareWithCachedRuntime` instead),
+  so any subclass override of `init` is not invoked under `BY_CLASS` /
+  `SINGLETON`. Use `BY_METHOD` if your test relies on a custom `init` override.
+- **Cache key.** Two `@JudoTest` configurations differing only in `modules` or
+  `interceptors` produce *different* cache entries and therefore do not share
+  a cached runtime — you do not need to worry about cross-contamination from
+  a similarly-named test class with different bindings.
+
+**Escape hatches:** when the cache invariants above are a problem, you have
+two options.
+
+1. **Drop to `BY_METHOD`** — every method gets a fresh DataSource, fresh
+   Liquibase migration, fresh `Injector`. Maximum isolation, slowest
+   (you pay the full cold cost on every method):
+   ```java
+   @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
+   ```
+
+2. **Keep the shared DataSource and JudoModelLoader, but disable the runtime
+   cache** with `cacheRuntime = false`. The DataSource is reused per class
+   (BY_CLASS) or per JVM (SINGLETON), but the `Injector`, `QueryFactory`,
+   `Module`, Liquibase executor, and `PlatformTransactionManager` are
+   rebuilt for every method. This is the right choice when you want
+   `BY_CLASS`-level perf on the datasource side but stateful interceptors
+   / schema mutation / `init(…)` overrides on the runtime side.
+   ```java
+   @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+             cacheRuntime = false)
+   ```
+
+### Behavior matrix
+
+The `dataSourceMode` and `cacheRuntime` flags interact as follows:
+
+| `dataSourceMode` | `cacheRuntime` | DataSource | Liquibase | Injector / QueryFactory / TxManager | JudoModelLoader |
+|---|---|---|---|---|---|
+| BY_METHOD | *(ignored)* | per method | per method | per method | per method |
+| BY_CLASS | `true` (default) | per class | once | per class | per class |
+| **BY_CLASS** | **`false`** | **per class** | **per method** | **per method** | **per class** |
+| SINGLETON | *(ignored)* | JVM-wide | once | JVM-wide | JVM-wide |
+
+The **bold** row is reachable only via `cacheRuntime = false`.
+
+`cacheRuntime` only affects `BY_CLASS` mode. It is ignored for:
+- `BY_METHOD` — nothing is cached regardless.
+- `SINGLETON` — always cached. Disabling the cache on a JVM-wide DataSource
+  would re-run Liquibase per method against a shared database, risking
+  schema corruption under parallel execution.
+- Method-level `@JudoTest` annotations (those always behave as `BY_METHOD`).
+
+### Why `cacheRuntime = false` was added (and why only for BY_CLASS)
+
+The runtime cache was originally unconditional for `BY_CLASS` and `SINGLETON`
+— the only opt-out was dropping to `BY_METHOD`, which pays the full ~28 s
+cold cost on every method. Three legitimate use cases needed an opt-out that
+still preserved the per-class `DataSource` for performance:
+
+1. **Stateful interceptor instances** — an interceptor registered via
+   `interceptors = { … }` is instantiated once per cached runtime and
+   accumulates state (counters, captured calls) across every method.
+   Resetting in `@BeforeEach` works but is easy to forget.
+2. **Schema-mutating tests** — a test that drops a table expects Liquibase
+   to re-create it on the next method; with the cache, Liquibase only ran
+   once per scope.
+3. **Custom `JudoRuntimeFixture` subclasses overriding `init(…)`** — the
+   cached path uses `prepareWithCachedRuntime(…)` and never invokes
+   `init(…)` after the first method, silently skipping any subclass
+   override.
+
+`cacheRuntime = false` solves all three by rebuilding the `Injector`,
+`QueryFactory`, Liquibase executor, and `PlatformTransactionManager` every
+method, while keeping the per-class `DataSource` and `JudoModelLoader`
+cached for performance.
+
+**Why the flag is BY_CLASS-only:**
+
+`SINGLETON + cacheRuntime = false` was considered and rejected because:
+
+- **Liquibase race condition.** `SINGLETON` shares one `DataSource` JVM-wide.
+  With the cache disabled, every method would re-run Liquibase against that
+  shared database. Under JUnit parallel execution, multiple Liquibase
+  instances would hit the same schema concurrently, risking
+  `LockException`, corrupted `DATABASECHANGELOGLOCK`, or schema drift.
+- **No coherent use case.** All three motivating scenarios are inherently
+  per-class-or-narrower: stateful interceptors are class-scoped, schema
+  mutations want fresh schemas (so `BY_METHOD` is correct anyway), custom
+  `init(…)` overrides only make sense per-class. Nobody wants "JVM-wide
+  `DataSource` sharing but per-method `Injector` rebuilds across unrelated
+  test classes."
+- **Misleading semantics.** Users reading `SINGLETON + cacheRuntime = false`
+  would expect full per-method freshness and be surprised when they share
+  state via the JVM-wide `DataSource`.
+
+The routing predicate therefore silently ignores `cacheRuntime` for
+`SINGLETON` (always caches). If you need per-method runtime freshness AND a
+shared database, that's a contradiction — use `BY_CLASS + cacheRuntime =
+false` (per-class `DataSource`) or `BY_METHOD` (everything fresh).
 
 ### Database Configuration
 
