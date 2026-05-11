@@ -103,7 +103,7 @@ Declarative test configuration annotation.
 | `interceptors` | `Class[]` | `{}` | Interceptor classes to register |
 | `modules` | `Class[]` | `{}` | Custom Guice modules |
 | `dataSourceMode` | `DataSourceMode` | `BY_METHOD` | Datasource lifecycle: `BY_METHOD` / `BY_CLASS` / `SINGLETON` |
-| `cacheRuntime` | `boolean` | `true` | Cache derived runtime artifacts (Injector, QueryFactory, Liquibase executor, TxManager) for `BY_CLASS`. Set `false` to keep the shared DataSource but rebuild the runtime per method. Only affects `BY_CLASS`; ignored for `BY_METHOD`, `SINGLETON`, and method-level `@JudoTest`. |
+| `cacheRuntime` | `boolean` | `true` | Cache derived runtime artifacts (Injector, QueryFactory, Liquibase executor, TxManager) for `BY_CLASS`. Set `false` to keep the shared DataSource but rebuild the runtime per method — needed for stateful interceptors, schema-mutating tests, or custom `JudoRuntimeFixture#init(…)` overrides. Only affects `BY_CLASS`; ignored for `BY_METHOD`, `SINGLETON`, and method-level `@JudoTest`. See [TEST-CONFIGURATION.md § Why `cacheRuntime = false` was added](../TEST-CONFIGURATION.md#why-cacheruntime--false-was-added-and-why-only-for-by_class) for rationale. |
 
 ### ModelSource Enum
 
