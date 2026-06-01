@@ -170,7 +170,7 @@ fail their identity / count / perf assertions.
       RackinspectModelClassCachePerformanceTest` — the 5× / 6 s
       thresholds SHALL still hold under the new explicit
       `shareInjector = true`.
-- [ ] 9.3 Commit on the same branch
+- [x] 9.3 Commit on the same branch (commit `a7b917c7`) — done.
       (`feature/JNG-6374_cache_model_loader_in_testkit`) with a
       conventional message: `JNG-6374 Rename cacheRuntime →
       shareInjector and invert default to false`. Reference this
