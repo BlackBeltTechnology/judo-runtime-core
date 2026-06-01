@@ -176,7 +176,18 @@ fail their identity / count / perf assertions.
       shareInjector and invert default to false`. Reference this
       change in the body.
 - [ ] 9.4 Push and update the PR description.
-- [ ] 9.5 After merge, archive all three changes together:
+- [ ] 9.5 Benchmark `shareInjector = false` per-method overhead. The
+      docs currently quote ~19 s per method on a rackinspect-scale
+      model as an estimate derived from cold-path decomposition. Run a
+      20-method `@JudoTest(BY_CLASS)` (default `shareInjector`) against
+      rackinspect on CI hardware, record actual per-method times, and
+      reconcile the estimates in
+      `judo-runtime-core-guice-testkit/TEST-CONFIGURATION.md § Per-method
+      overhead under shareInjector = false` and the equivalent
+      `troubleshooting.md` Q&A. If the measured overhead differs
+      materially from the estimate, re-tune the "When the overhead
+      matters" thresholds.
+- [ ] 9.6 After merge, archive all three changes together:
       ```
       openspec archive cache-byclass-test-runtime
       openspec archive judo-test-enable-runtime-cache-flag

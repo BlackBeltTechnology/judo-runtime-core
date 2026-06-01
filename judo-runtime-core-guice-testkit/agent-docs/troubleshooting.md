@@ -310,6 +310,51 @@ behavioural isolation, set `shareInjector = true`.
 
 ---
 
+### How much overhead does `shareInjector = false` add?
+
+**Question:** I read "Liquibase is idempotent, the cost is just one extra
+round-trip" — but my 20-method BY_CLASS suite is much slower than it
+should be. What's actually happening?
+
+**Answer:** Idempotent does not mean free. Under `shareInjector = false`
+against a shared `DataSource` (`BY_CLASS` or `SINGLETON`), every test
+method pays for the full Guice `Injector` rebuild plus a
+`DATABASECHANGELOG` round-trip. Order-of-magnitude estimates on a
+rackinspect-scale model (~20 MB ASM, ~100 changesets):
+
+| Configuration | Per-method cost (estimate) |
+|---|---|
+| `BY_CLASS` + `shareInjector = true` (cached) | ~100 ms |
+| `BY_CLASS` + `shareInjector = false` (default) | ~19 s |
+| `BY_METHOD` | ~28 s |
+
+The ~19 s figure is dominated by injector reconstruction (~15 s) and
+`QueryFactory` extraction (~3 s), plus ~50–200 ms for the
+`DATABASECHANGELOG` SELECT + `DATABASECHANGELOGLOCK` acquire/release.
+Liquibase changeset *application* is skipped on every method after the
+first.
+
+**Decision rule of thumb:**
+
+- 1–3 methods per class: default is fine.
+- 4–10 methods: default is usually fine; you pay 1–3 minutes total
+  overhead vs the cached path.
+- 11+ methods or any perf benchmark: switch to
+  `shareInjector = true` unless you have a behavioural-isolation reason
+  to keep it `false`.
+
+See [TEST-CONFIGURATION.md § Per-method overhead under `shareInjector = false`](TEST-CONFIGURATION.md#per-method-overhead-under-shareinjector--false)
+for the full breakdown and a note on lock contention under parallel
+execution.
+
+> The numbers are estimates pending end-to-end profiling on CI hardware.
+> They are derived from the existing cold-path baseline and the
+> model-loader cost decomposition in the JNG-6374 design doc. If your
+> measured overhead is materially larger than the estimates above,
+> please file an issue — we are tracking a follow-up measurement task.
+
+---
+
 ## Diagnostic Checklist
 
 When interceptor tests fail, check:

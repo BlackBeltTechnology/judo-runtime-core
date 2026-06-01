@@ -425,6 +425,85 @@ So `SINGLETON + shareInjector = false` is now a fully valid default
 configuration. Users who want maximum perf still opt into
 `shareInjector = true`.
 
+### Per-method overhead under `shareInjector = false`
+
+"Idempotent" is not "free". When `shareInjector = false` against a shared
+`DataSource` (`BY_CLASS` or `SINGLETON`), every test method pays a
+reconstruction cost that the cached fast path skips:
+
+| Cost component | What it costs | Per-method? |
+|---|---|---|
+| `DATABASECHANGELOG` SELECT | one query against the changelog tracking table | yes |
+| `DATABASECHANGELOGLOCK` acquire / release | two row writes (HSQLDB) or row-level lock dance (PostgreSQL) | yes |
+| Changeset "already applied" diff | in-memory comparison of changeset checksums vs DB rows | yes |
+| Guice `Injector` construction | full module graph rebuild | yes |
+| `QueryFactory` extraction | walks the ASM model to compile JQL expressions | yes |
+| `PlatformTransactionManager` resolution | one injector lookup | yes |
+| Model load (ASM, Liquibase model) | **no — the `JudoModelLoader` is still cached** | no |
+| Liquibase changeset *application* | **no — idempotent skip after first method** | no |
+
+#### Order-of-magnitude estimates
+
+These numbers are **estimates pending end-to-end profiling**. They are
+derived from the existing `RackinspectModelClassCachePerformanceTest`
+baseline (28.7 s cold first method, ~26 s cached avg under the model-only
+cache that preceded JNG-6374) and the design.md claim that the
+model-loader portion is ~3 s of the cold cost. The breakdown is
+approximate:
+
+| Phase | Cold (uncached) | `shareInjector = false`, method N | `shareInjector = true`, method N |
+|---|---|---|---|
+| Model load | ~3 s | 0 ms (model cached) | 0 ms |
+| Liquibase + `DATABASECHANGELOG` | ~6 s | ~50–200 ms (idempotent no-op + lock) | 0 ms |
+| `Injector` + module rebuild | ~15 s | ~15 s | 0 ms |
+| `QueryFactory` extraction | ~3 s | ~3 s | 0 ms |
+| Other (TxManager, plumbing) | ~1 s | ~1 s | 0 ms |
+| **Estimated per-method total** | **~28 s** | **~19 s** | **~0.1 s** |
+
+The headline read: `shareInjector = false` saves the ~3 s model load and
+the ~6 s Liquibase application, but pays ~15 s every method for injector
+rebuild. **`shareInjector = true` is the only path to sub-second
+per-method cost on a heavy model.**
+
+> These figures are derived from the rackinspect baseline (~20 MB ASM,
+> ~100-changeset Liquibase model). On smaller models the absolute numbers
+> shrink, but the *ratio* `shareInjector = true` : `false` : `BY_METHOD`
+> stays roughly 1 : 100 : 200.
+
+#### When the overhead matters
+
+| Suite shape | Recommendation |
+|---|---|
+| 1–3 methods per class | Default (`false`) — isolation wins, overhead negligible at low N |
+| 4–10 methods per class | Default (`false`) — you pay ~1.5–3 minutes of overhead vs cached fast path; usually acceptable |
+| 11–20+ methods per class | Consider `shareInjector = true` if no behavioural-isolation risk — you're paying ~5–10 minutes of overhead vs the cached path |
+| Heavy-model perf benchmark | `shareInjector = true` is the only configuration whose results are meaningful |
+| Read-only suite | `shareInjector = true` — no mutation, no risk, all the perf |
+| Schema-mutating / stateful interceptor suite | `false` (default) — the overhead is the price of correctness |
+
+#### A small note on the Liquibase lock
+
+Under PostgreSQL with parallel-class JUnit execution
+(`-DforkCount=N -Dthreads=N`) and `SINGLETON + shareInjector = false`,
+the per-method `DATABASECHANGELOGLOCK` acquire / release path is the most
+likely contention point. The lock is serialised correctly (no corruption
+risk per design.md D3), but two workers racing to call `init.execute(...)`
+will serialise on it, eroding parallelism. If you see
+flat-line CPU on a parallel build with SINGLETON + default `shareInjector`,
+this is the suspect. Fix: opt into `shareInjector = true` for the
+performance-critical SINGLETON classes.
+
+#### Pending measurement
+
+The order-of-magnitude estimates above are derived from the cold-path
+baseline; they have **not yet been benchmarked end-to-end** against the
+idempotent re-run path. A follow-up task is tracked in
+`docs/JNG-6374-testkit-runtime-cache.md` to run a 20-method
+`@JudoTest(BY_CLASS)` with no `shareInjector` against rackinspect on CI
+hardware and record actual per-method numbers. If the measured overhead
+is materially larger than the estimates above, this section will be
+updated and the recommendations re-tuned.
+
 ### Database Configuration
 
 | Parameter | Values | Default | Override with Environment Variable |
