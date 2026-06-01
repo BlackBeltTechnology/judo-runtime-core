@@ -73,6 +73,32 @@ The cache key for `BY_CLASS` and `SINGLETON` runtime caching SHALL include the `
 - **WHEN** both classes run
 - **THEN** they SHALL NOT share a cached `Injector` instance
 
+### Requirement: SINGLETON Model Loader And Datasource Are Keyed By Configuration
+The JVM-wide SINGLETON model loader cache SHALL be keyed by `(modelName, dialect, modelSource)` and the JVM-wide SINGLETON datasource cache SHALL be keyed by `(dialect, container)`. Two `@JudoTest(dataSourceMode = SINGLETON)` test classes whose annotations resolve to different keys SHALL NOT share a `JudoModelLoader` or a `JudoDatasourceFixture`.
+
+This closes the gap where the previous implementation held a single unkeyed `singletonModelLoader` / `singletonDatasource` field — first-write-wins — and silently handed the first SINGLETON class's resources to every subsequent SINGLETON class regardless of their configuration.
+
+#### Scenario: Two SINGLETON classes with different modelName receive different model loaders
+- **GIVEN** two test classes A and B annotated `@JudoTest(dataSourceMode = SINGLETON)` differing only in `modelName`
+- **WHEN** both classes run in the same JVM
+- **THEN** the `JudoModelLoader` exposed to class A SHALL NOT be the same instance as the one exposed to class B
+
+#### Scenario: Two SINGLETON classes with different dialect receive different datasources
+- **GIVEN** two test classes A and B annotated `@JudoTest(dataSourceMode = SINGLETON)` differing only in resolved `dialect` (after env-var resolution)
+- **WHEN** both classes run in the same JVM
+- **THEN** they SHALL receive DIFFERENT `JudoDatasourceFixture` instances
+
+#### Scenario: Two SINGLETON classes with different container receive different datasources
+- **GIVEN** two test classes A and B annotated `@JudoTest(dataSourceMode = SINGLETON)` differing only in resolved `container` (after env-var resolution and `postgresql + none` auto-detection)
+- **WHEN** both classes run in the same JVM
+- **THEN** they SHALL receive DIFFERENT `JudoDatasourceFixture` instances
+
+#### Scenario: All SINGLETON resource maps are cleared at JVM shutdown
+- **GIVEN** one or more entries exist in the SINGLETON model loader map and the SINGLETON datasource map
+- **WHEN** the JVM shutdown hook (`closeAllSingletonRuntimes`) runs
+- **THEN** every cached datasource SHALL have `teardownDatasource()` invoked exactly once
+- **AND** every entry in the model loader, datasource, and runtime maps SHALL be cleared so a subsequent test suite in the same JVM starts fresh
+
 ### Requirement: Performance Speed-up Guard for BY_CLASS Mode
 A slow-tagged regression test SHALL assert that, for a real-world model exercising `BY_CLASS` mode with at least 20 test methods, the average elapsed time of the cached methods MUST be at least 5× shorter than the cold first-method elapsed time.
 

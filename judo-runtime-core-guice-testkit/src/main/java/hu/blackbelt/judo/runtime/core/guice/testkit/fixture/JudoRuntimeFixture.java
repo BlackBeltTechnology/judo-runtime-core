@@ -158,6 +158,13 @@ public class JudoRuntimeFixture {
         this.simpleLiquibaseExecutor = cached.liquibaseExecutor;
         this.injector = cached.injector;
         this.transactionManager = cached.transactionManager;
+        // Restore the interceptor provider so getInterceptorProvider() works on the
+        // cached path. Without this, the cached fixture would throw a misleading
+        // "Call init() first." — the user did not skip init(), the extension chose
+        // the cached path on their behalf. Note: the provider is class-shared mutable
+        // state on the cached path (BY_CLASS / SINGLETON); runtime mutations made by
+        // one test method are visible to sibling methods sharing the same cache.
+        this.interceptorProvider = cached.interceptorProvider;
         if (injectModulesTo != null) {
             cached.injector.injectMembers(injectModulesTo);
         }

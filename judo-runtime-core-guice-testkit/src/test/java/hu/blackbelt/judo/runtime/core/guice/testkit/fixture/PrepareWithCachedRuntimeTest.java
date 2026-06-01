@@ -2,12 +2,11 @@ package hu.blackbelt.judo.runtime.core.guice.testkit.fixture;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
+import com.google.inject.Inject;
 import com.google.inject.Injector;
+import hu.blackbelt.judo.runtime.core.guice.testkit.util.TestOperationCallInterceptorProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.transaction.PlatformTransactionManager;
-
-import com.google.inject.Inject;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -98,5 +97,42 @@ class PrepareWithCachedRuntimeTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> fixture.prepareWithCachedRuntime(null, null));
         assertTrue(ex.getMessage().toLowerCase().contains("must not be null"));
+    }
+
+    /**
+     * Regression for the CodeRabbit major finding: {@code prepareWithCachedRuntime} previously
+     * left {@code interceptorProvider} unset, so any cached-path test calling the public
+     * {@link JudoRuntimeFixture#getInterceptorProvider()} hit a misleading
+     * "Interceptor provider not available. Call init() first." error — even though the
+     * extension itself chose the cached path, not the user.
+     */
+    @Test
+    @DisplayName("Restores interceptorProvider so getInterceptorProvider() works on cached path")
+    void restoresInterceptorProviderOnCachedPath() {
+        Injector injector = Guice.createInjector(new AbstractModule() {});
+        TestOperationCallInterceptorProvider provider = new TestOperationCallInterceptorProvider();
+
+        CachedRuntime cached = new CachedRuntime(
+                null, null, null, null, null, null, injector, null, provider);
+
+        JudoRuntimeFixture fixture = new JudoRuntimeFixture();
+        fixture.prepareWithCachedRuntime(cached, /* no member-injection */ null);
+
+        assertSame(provider, fixture.getInterceptorProvider(),
+                "interceptor provider on cached path MUST be the cached one, not a fresh instance");
+    }
+
+    /**
+     * Backwards-compat: the 8-arg constructor (used by older tests) still produces a runtime
+     * that {@code prepareWithCachedRuntime} accepts — the resulting fixture's
+     * {@code interceptorProvider} is simply {@code null} and behaves as it did before this fix
+     * for that legacy call site.
+     */
+    @Test
+    void eightArgConstructorYieldsNullInterceptorProvider() {
+        Injector injector = Guice.createInjector(new AbstractModule() {});
+        CachedRuntime cached = new CachedRuntime(null, null, null, null, null, null, injector, null);
+        assertNull(cached.interceptorProvider,
+                "the backwards-compat 8-arg constructor MUST leave interceptorProvider null");
     }
 }

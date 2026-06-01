@@ -37,18 +37,33 @@ For a test class annotated `@JudoTest(dataSourceMode = BY_CLASS, cacheRuntime = 
 - **WHEN** the test methods execute
 - **THEN** the overridden `init(\u2026)` SHALL be invoked exactly once per method (the cached fast path is bypassed)
 
-### Requirement: cacheRuntime = false Bypasses Runtime Cache for SINGLETON
-For a test class annotated `@JudoTest(dataSourceMode = SINGLETON, cacheRuntime = false)`, `JudoTestExtension` SHALL build a fresh `QueryFactory`, database `Module`, Liquibase executor, Guice `Injector`, and `PlatformTransactionManager` for every test method, while still reusing the JVM-wide `JudoModelLoader` and the JVM-wide `DataSource`.
+### Requirement: cacheRuntime is a No-Op for SINGLETON
 
-#### Scenario: SINGLETON with cacheRuntime = false yields distinct injectors per method
+The `cacheRuntime` flag SHALL be honoured **only** for `dataSourceMode = BY_CLASS`. For
+`dataSourceMode = SINGLETON`, the flag SHALL be ignored and caching SHALL always be
+enabled, mirroring the existing rule that already applies to `BY_METHOD` (where there
+is nothing to cache).
+
+This restriction is intentional and follows the v2 proposal
+(`proposal-v2-simplify-cacheRuntime.md`): `SINGLETON + cacheRuntime = false` would
+re-run Liquibase per method against the shared JVM-wide datasource, risking schema
+corruption under parallel execution and effectively turning the singleton into a
+flaky per-method mode without exposing the user to the underlying hazard. Tests
+that want per-method isolation under SINGLETON's shared datasource SHOULD instead:
+
+- reset state via `@BeforeEach` (recommended for stateful interceptors), or
+- switch the class to `BY_CLASS` or `BY_METHOD`.
+
+#### Scenario: SINGLETON with cacheRuntime = true caches (default behaviour)
+- **GIVEN** a test class annotated `@JudoTest(dataSourceMode = SINGLETON, cacheRuntime = true)`
+- **WHEN** the test methods execute
+- **THEN** the cached runtime SHALL be reused across every method (same identity guarantees as the default)
+
+#### Scenario: SINGLETON with cacheRuntime = false still caches (flag ignored)
 - **GIVEN** a test class annotated `@JudoTest(dataSourceMode = SINGLETON, cacheRuntime = false)` with two methods
 - **WHEN** both methods execute
-- **THEN** `JudoRuntimeFixture#getInjector()` SHALL return DIFFERENT `Injector` instances for the two methods
-
-#### Scenario: SINGLETON with cacheRuntime = false does NOT populate the singleton runtime map
-- **GIVEN** any number of test classes annotated `@JudoTest(dataSourceMode = SINGLETON, cacheRuntime = false)`
-- **WHEN** any of their test methods execute
-- **THEN** the JVM-wide singleton runtime map SHALL NOT receive a new entry for those classes
+- **THEN** `JudoRuntimeFixture#getInjector()` SHALL return the SAME `Injector` instance for both methods
+- **AND** the JVM-wide singleton runtime map SHALL receive a cache entry for the resolved cache key (identical behaviour to `cacheRuntime = true`)
 
 ### Requirement: cacheRuntime is a No-Op for BY_METHOD
 For `@JudoTest(dataSourceMode = BY_METHOD)`, the value of `cacheRuntime` SHALL have no observable effect: every method SHALL receive a fresh `Injector`, `QueryFactory`, `Module`, Liquibase executor, and `PlatformTransactionManager`, regardless of the flag value.

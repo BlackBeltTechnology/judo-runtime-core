@@ -61,10 +61,17 @@ class RoutingPredicateTest {
         }
 
         @Test
-        @DisplayName("SINGLETON at method-level = not cached (isClassLevel=false overrides)")
+        @DisplayName("SINGLETON at method-level + cacheRuntime=true = not cached (isClassLevel=false overrides)")
         void singletonMethodLevel() {
             assertFalse(JudoTestExtensionRouting.useCache(
                     false, JudoTest.DataSourceMode.SINGLETON, true));
+        }
+
+        @Test
+        @DisplayName("SINGLETON at method-level + cacheRuntime=false = not cached (both reasons agree)")
+        void singletonMethodLevelFalseFlag() {
+            assertFalse(JudoTestExtensionRouting.useCache(
+                    false, JudoTest.DataSourceMode.SINGLETON, false));
         }
     }
 
@@ -115,10 +122,17 @@ class RoutingPredicateTest {
         }
 
         @Test
-        @DisplayName("BY_METHOD at method-level = not cached")
+        @DisplayName("BY_METHOD at method-level + cacheRuntime=true = not cached")
         void byMethodMethodLevel() {
             assertFalse(JudoTestExtensionRouting.useCache(
                     false, JudoTest.DataSourceMode.BY_METHOD, true));
+        }
+
+        @Test
+        @DisplayName("BY_METHOD at method-level + cacheRuntime=false = not cached (both reasons agree)")
+        void byMethodMethodLevelFalseFlag() {
+            assertFalse(JudoTestExtensionRouting.useCache(
+                    false, JudoTest.DataSourceMode.BY_METHOD, false));
         }
     }
 }

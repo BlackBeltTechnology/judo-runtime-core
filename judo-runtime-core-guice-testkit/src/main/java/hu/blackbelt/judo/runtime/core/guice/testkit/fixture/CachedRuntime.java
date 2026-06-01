@@ -5,6 +5,7 @@ import com.google.inject.Module;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.liquibase.SimpleLiquibaseExecutor;
 import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
+import hu.blackbelt.judo.runtime.core.guice.testkit.util.TestOperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -38,9 +39,20 @@ final class CachedRuntime implements ExtensionContext.Store.CloseableResource {
     final SimpleLiquibaseExecutor liquibaseExecutor;
     final Injector injector;
     final PlatformTransactionManager transactionManager;
+    /**
+     * Carried across cached test methods so that {@code JudoRuntimeFixture#getInterceptorProvider()}
+     * keeps working on the cached path. Without this field the cached fixture would throw
+     * {@code IllegalStateException("Interceptor provider not available. Call init() first.")}
+     * because the per-method fixture instance never executes {@code init(...)}.
+     */
+    final TestOperationCallInterceptorProvider interceptorProvider;
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
+    /**
+     * Backwards-compatible 8-arg constructor preserved for existing unit tests that build
+     * synthetic {@link CachedRuntime} instances without an interceptor provider.
+     */
     CachedRuntime(
             JudoModelLoader modelLoader,
             Dialect dialect,
@@ -50,6 +62,20 @@ final class CachedRuntime implements ExtensionContext.Store.CloseableResource {
             SimpleLiquibaseExecutor liquibaseExecutor,
             Injector injector,
             PlatformTransactionManager transactionManager) {
+        this(modelLoader, dialect, queryFactory, coercer, databaseModule,
+                liquibaseExecutor, injector, transactionManager, null);
+    }
+
+    CachedRuntime(
+            JudoModelLoader modelLoader,
+            Dialect dialect,
+            QueryFactory queryFactory,
+            ExtendableCoercer coercer,
+            Module databaseModule,
+            SimpleLiquibaseExecutor liquibaseExecutor,
+            Injector injector,
+            PlatformTransactionManager transactionManager,
+            TestOperationCallInterceptorProvider interceptorProvider) {
         this.modelLoader = modelLoader;
         this.dialect = dialect;
         this.queryFactory = queryFactory;
@@ -58,6 +84,7 @@ final class CachedRuntime implements ExtensionContext.Store.CloseableResource {
         this.liquibaseExecutor = liquibaseExecutor;
         this.injector = injector;
         this.transactionManager = transactionManager;
+        this.interceptorProvider = interceptorProvider;
     }
 
     /** @return whether {@link #close()} has been invoked at least once. */

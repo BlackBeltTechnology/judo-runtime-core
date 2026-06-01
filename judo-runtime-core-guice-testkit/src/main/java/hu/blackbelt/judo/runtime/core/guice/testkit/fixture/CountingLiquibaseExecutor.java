@@ -8,20 +8,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Test-only delegating wrapper around {@link SimpleLiquibaseExecutor} that counts
- * how many times the schema-creating entry point ({@link #createDatabase}) has been
- * invoked. Used by regression tests in the {@code cache-byclass-test-runtime}
- * change to verify that Liquibase runs at most once per cached runtime in
- * {@code BY_CLASS} / {@code SINGLETON} modes.
+ * how many times the schema-creating entry point ({@link #createDatabase}) has
+ * <b>successfully</b> completed. Used by regression tests in the
+ * {@code cache-byclass-test-runtime} change to verify that Liquibase runs at
+ * most once per cached runtime in {@code BY_CLASS} / {@code SINGLETON} modes.
+ *
+ * <p>The counter is incremented <em>after</em> the delegated {@code super}
+ * call returns normally so failed attempts followed by a retry do not inflate
+ * the count and produce a misleading “Liquibase ran twice” signal.
  *
  * <p>Package-private intentionally: this is an internal testkit seam, not a
  * public API.
  */
-final class CountingLiquibaseExecutor extends SimpleLiquibaseExecutor {
+class CountingLiquibaseExecutor extends SimpleLiquibaseExecutor {
 
     private final AtomicInteger executionCount = new AtomicInteger(0);
 
     /**
-     * @return the number of times {@link #createDatabase(DataSource, LiquibaseModel)} has been invoked.
+     * @return the number of times {@link #createDatabase(DataSource, LiquibaseModel)}
+     *         has completed successfully (i.e. without throwing from {@code super}).
      */
     int executionCount() {
         return executionCount.get();
@@ -29,7 +34,7 @@ final class CountingLiquibaseExecutor extends SimpleLiquibaseExecutor {
 
     @Override
     public void createDatabase(DataSource dataSource, LiquibaseModel liquibaseModel) {
-        executionCount.incrementAndGet();
         super.createDatabase(dataSource, liquibaseModel);
+        executionCount.incrementAndGet();
     }
 }

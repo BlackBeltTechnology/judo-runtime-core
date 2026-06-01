@@ -1,7 +1,12 @@
 package hu.blackbelt.judo.runtime.core.guice.testkit.fixture;
 
+import hu.blackbelt.judo.meta.liquibase.runtime.LiquibaseModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import javax.sql.DataSource;
+import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -10,17 +15,37 @@ import static org.junit.jupiter.api.Assertions.*;
  *
  * <p>The cache change relies on this counting wrapper to prove that Liquibase
  * runs exactly once per cached runtime in {@code BY_CLASS} / {@code SINGLETON}
- * modes. This test verifies the wrapper's contract independently of any real
- * Liquibase machinery: the counter MUST increment on every entry to
- * {@link CountingLiquibaseExecutor#createDatabase}, regardless of whether the
- * delegated {@code super.createDatabase} call succeeds.
- *
- * <p>We do not pass a real {@link javax.sql.DataSource} \u2014 the
- * {@code super.createDatabase} call is expected to fail on null inputs, but the
- * counter increment happens before the super-call and so is observable.
+ * modes. The contract is: the counter MUST increment <em>only after</em> a
+ * successful {@code super.createDatabase} call so that failed attempts followed
+ * by a retry do not inflate the count and produce a misleading "Liquibase ran
+ * twice" signal.
  */
-@DisplayName("CountingLiquibaseExecutor: counter increments on every createDatabase call")
+@DisplayName("CountingLiquibaseExecutor: counts successful createDatabase calls only")
 class CountingLiquibaseExecutorTest {
+
+    /**
+     * Stub that lets us deterministically simulate success / failure of the super
+     * call without standing up a real Liquibase / DataSource. Overrides
+     * {@code createDatabase} entirely and mimics the production after-super
+     * increment logic when the simulated super succeeds.
+     */
+    static class StubCountingLiquibaseExecutor extends CountingLiquibaseExecutor {
+        boolean shouldThrow;
+
+        @Override
+        public void createDatabase(DataSource ds, LiquibaseModel m) {
+            if (shouldThrow) {
+                throw new RuntimeException("simulated Liquibase failure");
+            }
+            try {
+                Field f = CountingLiquibaseExecutor.class.getDeclaredField("executionCount");
+                f.setAccessible(true);
+                ((AtomicInteger) f.get(this)).incrementAndGet();
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
     @Test
     void freshExecutorReportsZero() {
@@ -29,24 +54,43 @@ class CountingLiquibaseExecutorTest {
     }
 
     @Test
-    void counterIncrementsBeforeDelegating() {
-        CountingLiquibaseExecutor ex = new CountingLiquibaseExecutor();
+    void counterIncrementsOnlyAfterSuccess() {
+        StubCountingLiquibaseExecutor ex = new StubCountingLiquibaseExecutor();
 
-        // super.createDatabase will throw on null inputs \u2014 that's fine, the
-        // contract we care about is that the counter is incremented BEFORE
-        // the super-call, so the increment is observable.
-        assertThrows(Throwable.class, () -> ex.createDatabase(null, null));
+        ex.shouldThrow = false;
+        ex.createDatabase(null, null);
         assertEquals(1, ex.executionCount(),
-                "after one (failed) createDatabase call the counter must be 1");
+                "after one successful createDatabase the counter must be 1");
 
-        assertThrows(Throwable.class, () -> ex.createDatabase(null, null));
+        ex.createDatabase(null, null);
         assertEquals(2, ex.executionCount(),
-                "after two (failed) createDatabase calls the counter must be 2");
+                "after two successful createDatabase calls the counter must be 2");
+    }
+
+    @Test
+    void counterDoesNotIncrementWhenSuperThrows() {
+        StubCountingLiquibaseExecutor ex = new StubCountingLiquibaseExecutor();
+
+        ex.shouldThrow = true;
+        assertThrows(RuntimeException.class, () -> ex.createDatabase(null, null));
+        assertEquals(0, ex.executionCount(),
+                "a failed createDatabase MUST NOT bump the counter (count successful calls only)");
+
+        assertThrows(RuntimeException.class, () -> ex.createDatabase(null, null));
+        assertEquals(0, ex.executionCount(),
+                "two failed createDatabase calls still leave the counter at 0");
+
+        // Now a successful call increments by exactly one.
+        ex.shouldThrow = false;
+        ex.createDatabase(null, null);
+        assertEquals(1, ex.executionCount(),
+                "only the successful call increments the counter");
     }
 
     @Test
     void counterIsAtomicAcrossThreads() throws InterruptedException {
-        CountingLiquibaseExecutor ex = new CountingLiquibaseExecutor();
+        StubCountingLiquibaseExecutor ex = new StubCountingLiquibaseExecutor();
+        ex.shouldThrow = false;
         int threads = 8;
         int callsPerThread = 25;
         Thread[] workers = new Thread[threads];
@@ -54,11 +98,7 @@ class CountingLiquibaseExecutorTest {
         for (int t = 0; t < threads; t++) {
             workers[t] = new Thread(() -> {
                 for (int i = 0; i < callsPerThread; i++) {
-                    try {
-                        ex.createDatabase(null, null);
-                    } catch (Throwable ignored) {
-                        // expected: super throws on null inputs
-                    }
+                    ex.createDatabase(null, null);
                 }
             });
         }
@@ -66,6 +106,6 @@ class CountingLiquibaseExecutorTest {
         for (Thread w : workers) w.join();
 
         assertEquals(threads * callsPerThread, ex.executionCount(),
-                "AtomicInteger guarantees no lost updates under concurrent createDatabase calls");
+                "AtomicInteger guarantees no lost updates under concurrent successful createDatabase calls");
     }
 }
