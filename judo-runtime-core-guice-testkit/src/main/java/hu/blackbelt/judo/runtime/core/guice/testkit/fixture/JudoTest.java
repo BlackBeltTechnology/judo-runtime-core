@@ -168,41 +168,51 @@ public @interface JudoTest {
     DataSourceMode dataSourceMode() default DataSourceMode.BY_METHOD;
 
     /**
-     * Whether the testkit caches the derived runtime artifacts — Guice {@code Injector},
-     * {@code QueryFactory}, database {@code Module}, Liquibase executor, and
-     * {@code PlatformTransactionManager} — across the test methods when
-     * {@link #dataSourceMode()} is {@code BY_CLASS}. Default: {@code true}.
+     * Whether two test methods of the same class receive the SAME Guice {@link com.google.inject.Injector}
+     * (and consequently the same {@code QueryFactory}, {@code PlatformTransactionManager},
+     * Liquibase executor, and interceptor instances bound by that injector).
+     * Default: {@code false} — each method gets its own runtime, isolation by default.
      *
-     * <p><b>This flag only affects {@code BY_CLASS} mode.</b> It is ignored for
-     * {@code BY_METHOD} (nothing to cache) and {@code SINGLETON} (always cached —
-     * disabling the cache on a JVM-wide DataSource would re-run Liquibase per
-     * method against a shared database, risking schema corruption).
+     * <p>This flag controls <b>behavioural sharing</b>. It is orthogonal to
+     * {@link #dataSourceMode()}, which controls <b>resource lifecycle</b>.
+     * Selecting {@code BY_CLASS} or {@code SINGLETON} reuses the heavy physical
+     * datasource (and the cached {@code JudoModelLoader}); setting
+     * {@code shareInjector = true} additionally reuses the Guice graph built on top.
      *
      * <p><b>Effect by mode</b>:
      * <table>
-     *   <tr><th>{@code dataSourceMode}</th><th>{@code cacheRuntime}</th><th>Effect</th></tr>
+     *   <tr><th>{@code dataSourceMode}</th><th>{@code shareInjector}</th><th>Effect</th></tr>
      *   <tr><td>BY_METHOD</td><td>(ignored)</td><td>Everything fresh per method</td></tr>
-     *   <tr><td>BY_CLASS</td><td>true (default)</td><td>Injector / QueryFactory / Liquibase / TxManager built ONCE per class and reused</td></tr>
-     *   <tr><td>BY_CLASS</td><td>false</td><td>DataSource and JudoModelLoader still shared per class, but Injector / QueryFactory / Liquibase / TxManager are rebuilt per method</td></tr>
-     *   <tr><td>SINGLETON</td><td>(ignored)</td><td>Everything cached JVM-wide</td></tr>
+     *   <tr><td>BY_CLASS</td><td>false (default)</td><td>DataSource and {@code JudoModelLoader} shared per class; Injector / QueryFactory / Liquibase / TxManager fresh per method</td></tr>
+     *   <tr><td>BY_CLASS</td><td>true</td><td>Everything cached per class (~5×–10× perf win, see TEST-CONFIGURATION.md)</td></tr>
+     *   <tr><td>SINGLETON</td><td>false (default)</td><td>DataSource and {@code JudoModelLoader} shared JVM-wide; Injector / QueryFactory / Liquibase / TxManager fresh per method (Liquibase re-runs are idempotent via DATABASECHANGELOG)</td></tr>
+     *   <tr><td>SINGLETON</td><td>true</td><td>Everything cached JVM-wide, keyed by configuration</td></tr>
      * </table>
      *
-     * <p><b>When to set {@code cacheRuntime = false}</b>:
+     * <p><b>When to set {@code shareInjector = true}</b>:
      * <ul>
-     *   <li>Tests using a {@code JudoRuntimeFixture} subclass overriding {@code init(…)},
-     *       whose override is bypassed on the cached fast path.</li>
-     *   <li>Tests with stateful interceptors that you do not want to reset in {@code @BeforeEach}.</li>
-     *   <li>Tests that mutate the database schema and rely on Liquibase to re-apply on every method.</li>
+     *   <li>Performance: heavy-model classes with many test methods (the 5×–10× win).</li>
+     *   <li>Cross-method state: when you intentionally want a {@code @BeforeAll}-built
+     *       cache or counter visible to every method.</li>
+     * </ul>
+     *
+     * <p><b>When to keep the default {@code shareInjector = false}</b>:
+     * <ul>
+     *   <li>Tests with stateful interceptors whose state must not leak across methods.</li>
+     *   <li>Tests that mutate the database schema and rely on Liquibase to re-apply.</li>
+     *   <li>Tests using a {@code JudoRuntimeFixture} subclass that overrides {@code init(…)}.</li>
+     *   <li>By default — isolation between methods is the conservative choice.</li>
      * </ul>
      *
      * <p>Setting this flag on a method-level {@code @JudoTest} has no effect:
-     * method-level annotations always behave as {@code BY_METHOD}.
+     * method-level annotations always behave as {@code BY_METHOD} and never
+     * activate runtime sharing.
      *
-     * <p>See {@code agent-docs/TEST-CONFIGURATION.md § Caching invariants} for full details.
+     * <p>See {@code agent-docs/TEST-CONFIGURATION.md § Behavioural sharing} for full details.
      *
      * @since 1.0.7
      */
-    boolean cacheRuntime() default true;
+    boolean shareInjector() default false;
 
     /**
      * Interceptor classes to register for the test.

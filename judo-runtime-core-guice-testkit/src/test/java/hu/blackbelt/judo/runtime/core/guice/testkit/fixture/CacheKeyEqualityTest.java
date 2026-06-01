@@ -108,7 +108,7 @@ class CacheKeyEqualityTest {
             @Override public Class<? extends Module>[] modules() { return modules; }
             @Override public DataSourceMode dataSourceMode() { return DataSourceMode.BY_CLASS; }
             @Override public Class<? extends OperationCallInterceptor>[] interceptors() { return interceptors; }
-            @Override public boolean cacheRuntime() { return true; }
+            @Override public boolean shareInjector() { return true; }
         };
     }
 }

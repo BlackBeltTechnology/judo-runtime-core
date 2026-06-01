@@ -5,15 +5,17 @@ injection and test fixtures for interceptors, operations, and custom components.
 
 ## Recent Changes
 
-- **JNG-6374 (`judo-test-enable-runtime-cache-flag`)** — added
-  `@JudoTest#cacheRuntime` (boolean, default `true`). Setting it to `false`
-  on a `BY_CLASS` test class keeps the shared DataSource and
-  `JudoModelLoader` for performance, but rebuilds the Guice `Injector`,
-  `QueryFactory`, Liquibase executor, and `PlatformTransactionManager` for
-  every method — the middle-ground between the cached fast path and
-  `BY_METHOD`. Only affects `BY_CLASS`; ignored for `SINGLETON` and
-  `BY_METHOD`. See
-  [TEST-CONFIGURATION.md » Behavior matrix](TEST-CONFIGURATION.md#behavior-matrix).
+- **JNG-6374 (`share-injector-opt-in`)** — added
+  `@JudoTest#shareInjector` (boolean, default `false`). Selecting
+  `dataSourceMode = BY_CLASS` or `SINGLETON` now reuses only the heavy
+  resources (DataSource, `JudoModelLoader`); the Guice `Injector` and
+  ancillaries are rebuilt per method by default. Set `shareInjector = true`
+  to opt into the cached fast path (5×–10× perf win) when you don't need
+  behavioural isolation between methods. Supersedes the earlier
+  `cacheRuntime` flag (which defaulted to `true` and silently coupled
+  resource and behavioural sharing). Honoured uniformly for `BY_CLASS` and
+  `SINGLETON`; ignored for `BY_METHOD`. See
+  [TEST-CONFIGURATION.md » Behavioural sharing](TEST-CONFIGURATION.md#behavioural-sharing).
 - **JNG-6374 (`cache-byclass-test-runtime`)** — `BY_CLASS` and `SINGLETON`
   modes now cache the derived runtime artifacts (`QueryFactory`, Guice
   `Injector`, database `Module`, Liquibase executor, `PlatformTransactionManager`)

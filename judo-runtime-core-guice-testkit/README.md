@@ -182,19 +182,22 @@ class MyTestClass {
 | **BY_CLASS** | Per test class | Medium | Medium (>= 5× vs BY_METHOD on real models) | Tests in class don't conflict |
 | **SINGLETON** | Shared across all classes | Minimum | Fastest | Read-only or well-isolated tests |
 
-> **Caching note (BY_CLASS / SINGLETON):** Beyond the datasource, the testkit
-> also caches the derived runtime artifacts — Guice `Injector`, `QueryFactory`,
-> Liquibase executor, and `PlatformTransactionManager` — so they are built
-> once per scope and reused across every method. Liquibase runs **exactly
-> once** per cached scope. Stateful interceptor instances and any subclass
-> override of `JudoRuntimeFixture#init(…)` are bypassed on the cached path.
+> **Behavioural sharing note (BY_CLASS / SINGLETON):** Selecting
+> `BY_CLASS` or `SINGLETON` shares the heavy resources (`DataSource`,
+> `JudoModelLoader`) across methods for performance, but every test
+> method still gets its **own** Guice `Injector`, `QueryFactory`,
+> Liquibase executor, and interceptor instances by default. Liquibase
+> re-runs are no-ops via `DATABASECHANGELOG` (idempotent), so this is
+> cheap.
 >
-> If you need a fresh injector per method but want to keep the per-class
-> DataSource for performance, set
-> `@JudoTest(dataSourceMode = BY_CLASS, cacheRuntime = false)`. Otherwise
-> switch to `BY_METHOD` for full per-method freshness. See
-> [TEST-CONFIGURATION.md » Caching invariants](TEST-CONFIGURATION.md#caching-invariants-by_class--singleton)
-> for full details.
+> **Want the 5×–10× perf win?** Set
+> `@JudoTest(dataSourceMode = BY_CLASS, shareInjector = true)`. Everything
+> is then cached per class — one `Injector`, one Liquibase invocation, one
+> `QueryFactory`. Make sure your test doesn't depend on per-method
+> behavioural isolation (stateful interceptors, schema mutations) before
+> opting in. See
+> [TEST-CONFIGURATION.md » Behavioural sharing](TEST-CONFIGURATION.md#behavioural-sharing)
+> for the full matrix and rationale.
 
 ```java
 // BY_METHOD: New datasource for each test (default)

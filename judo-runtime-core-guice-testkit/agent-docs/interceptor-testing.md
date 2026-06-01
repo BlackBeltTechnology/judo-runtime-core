@@ -238,25 +238,26 @@ void testWithSpy(JudoRuntimeFixture fixture) {
 
 > ⚠️ **Stateful interceptors under `BY_CLASS` / `SINGLETON`**
 >
-> The cached runtime path reuses the same Guice `Injector`, and therefore the
-> same interceptor *instance*, across every test method of the class (or
-> across every class for `SINGLETON`). Counter fields like `preCallCount`
-> above will accumulate across methods. Three options:
+> When `shareInjector = true` is set on a `BY_CLASS` or `SINGLETON` class,
+> the cached runtime path reuses the same Guice `Injector`, and therefore
+> the same interceptor *instance*, across every test method of the class
+> (or across every class for `SINGLETON`). Counter fields like
+> `preCallCount` above will accumulate across methods. Three options:
 >
-> 1. Call `spy.reset()` in `@BeforeEach` (cheapest — keeps the cached
->    injector, just resets the spy's fields).
-> 2. Disable the runtime cache for this class only, keeping the per-class
->    DataSource for performance:
+> 1. **The default — do nothing.** `shareInjector` defaults to `false`, so
+>    each method already gets a fresh `SpyInterceptor` instance. The
+>    per-class DataSource and `JudoModelLoader` are still reused, so this
+>    is fast.
 >    ```java
 >    @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
->              cacheRuntime = false,
 >              interceptors = { SpyInterceptor.class })
->    class SpyTest { ... }
+>    class SpyTest { ... }   // shareInjector defaults to false
 >    ```
->    Every method gets a fresh `SpyInterceptor` instance; the DataSource
->    is still shared per class.
+> 2. If you've opted into `shareInjector = true` for perf, call
+>    `spy.reset()` in `@BeforeEach` to clear accumulated state without
+>    losing the cached injector.
 > 3. Drop to `BY_METHOD` (most isolated, slowest — every method also
->    rebuilds the DataSource and re-runs Liquibase):
+>    rebuilds the DataSource and re-runs Liquibase from scratch):
 >    ```java
 >    @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD,
 >              interceptors = { SpyInterceptor.class })

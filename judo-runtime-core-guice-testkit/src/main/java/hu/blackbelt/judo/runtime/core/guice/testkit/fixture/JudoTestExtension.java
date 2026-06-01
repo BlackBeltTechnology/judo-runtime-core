@@ -296,12 +296,13 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         // Create runtime fixture wrapper (always a fresh per-method instance, even on cached path).
         JudoRuntimeFixture runtimeFixture = new JudoRuntimeFixture();
 
-        // BY_CLASS / SINGLETON cached path: bundle the derived artifacts (QueryFactory, Injector,
-        // databaseModule, Liquibase executor, transactionManager) once per scope and reuse them.
-        // BY_METHOD path AND cacheRuntime=false path: continue to call prepare(...) + init(...) every method.
-        // The routing predicate is centralised in JudoTestExtensionRouting for unit-testability.
+        // BY_CLASS / SINGLETON + shareInjector=true: bundle the derived artifacts (QueryFactory,
+        // Injector, databaseModule, Liquibase executor, transactionManager) once per scope and reuse them.
+        // BY_METHOD, method-level @JudoTest, AND shareInjector=false (default): continue to call
+        // prepare(...) + init(...) every method. The routing predicate is centralised in
+        // JudoTestExtensionRouting for unit-testability.
         boolean useCache = JudoTestExtensionRouting.useCache(
-                isClassLevel, mode, annotation.cacheRuntime());
+                isClassLevel, mode, annotation.shareInjector());
 
         if (useCache) {
             CachedRuntime cached = getOrBuildCachedRuntime(

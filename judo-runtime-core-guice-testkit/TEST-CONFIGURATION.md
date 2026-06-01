@@ -336,85 +336,94 @@ two options.
    @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
    ```
 
-2. **Keep the shared DataSource and JudoModelLoader, but disable the runtime
-   cache** with `cacheRuntime = false`. The DataSource is reused per class
-   (BY_CLASS) or per JVM (SINGLETON), but the `Injector`, `QueryFactory`,
-   `Module`, Liquibase executor, and `PlatformTransactionManager` are
-   rebuilt for every method. This is the right choice when you want
-   `BY_CLASS`-level perf on the datasource side but stateful interceptors
-   / schema mutation / `init(…)` overrides on the runtime side.
+2. **Opt into the cached fast path** with `shareInjector = true`. The
+   `Injector`, `QueryFactory`, `Module`, Liquibase executor, and
+   `PlatformTransactionManager` are built ONCE per scope (per class for
+   `BY_CLASS`; JVM-wide for `SINGLETON`) and reused across every test
+   method. This is the right choice for read-heavy suites or any class
+   where you've satisfied yourself there is no behavioural sharing risk
+   (see [§ Behavioural sharing](#behavioural-sharing)).
    ```java
    @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
-             cacheRuntime = false)
+             shareInjector = true)
    ```
 
 ### Behavior matrix
 
-The `dataSourceMode` and `cacheRuntime` flags interact as follows:
+The `dataSourceMode` and `shareInjector` flags interact as follows:
 
-| `dataSourceMode` | `cacheRuntime` | DataSource | Liquibase | Injector / QueryFactory / TxManager | JudoModelLoader |
+| `dataSourceMode` | `shareInjector` | DataSource | Liquibase | Injector / QueryFactory / TxManager | JudoModelLoader |
 |---|---|---|---|---|---|
 | BY_METHOD | *(ignored)* | per method | per method | per method | per method |
-| BY_CLASS | `true` (default) | per class | once | per class | per class |
-| **BY_CLASS** | **`false`** | **per class** | **per method** | **per method** | **per class** |
-| SINGLETON | *(ignored)* | JVM-wide | once | JVM-wide | JVM-wide |
+| BY_CLASS | `false` *(default)* | per class | per method (no-op after 1st) | per method | per class |
+| **BY_CLASS** | **`true`** | **per class** | **once** | **per class** | **per class** |
+| SINGLETON | `false` *(default)* | JVM-wide | per method (no-op after 1st) | per method | JVM-wide |
+| **SINGLETON** | **`true`** | **JVM-wide** | **once** | **JVM-wide** | **JVM-wide** |
 
-The **bold** row is reachable only via `cacheRuntime = false`.
+The **bold** rows are the cached fast paths, reachable only via
+`shareInjector = true`.
 
-`cacheRuntime` only affects `BY_CLASS` mode. It is ignored for:
+`shareInjector` is honoured uniformly for every class-scoped mode. It is
+ignored only when there is no class scope to attach the cache to:
 - `BY_METHOD` — nothing is cached regardless.
-- `SINGLETON` — always cached. Disabling the cache on a JVM-wide DataSource
-  would re-run Liquibase per method against a shared database, risking
-  schema corruption under parallel execution.
-- Method-level `@JudoTest` annotations (those always behave as `BY_METHOD`).
+- Method-level `@JudoTest` annotations — those always behave as `BY_METHOD`.
 
-### Why `cacheRuntime = false` was added (and why only for BY_CLASS)
+### Behavioural sharing
 
-The runtime cache was originally unconditional for `BY_CLASS` and `SINGLETON`
-— the only opt-out was dropping to `BY_METHOD`, which pays the full ~28 s
-cold cost on every method. Three legitimate use cases needed an opt-out that
-still preserved the per-class `DataSource` for performance:
+> Renamed and inverted in the `share-injector-opt-in` change. The legacy
+> `cacheRuntime` element (default `true`) has been removed; the replacement
+> is `shareInjector` with default `false`.
 
-1. **Stateful interceptor instances** — an interceptor registered via
-   `interceptors = { … }` is instantiated once per cached runtime and
-   accumulates state (counters, captured calls) across every method.
-   Resetting in `@BeforeEach` works but is easy to forget.
-2. **Schema-mutating tests** — a test that drops a table expects Liquibase
-   to re-create it on the next method; with the cache, Liquibase only ran
-   once per scope.
-3. **Custom `JudoRuntimeFixture` subclasses overriding `init(…)`** — the
-   cached path uses `prepareWithCachedRuntime(…)` and never invokes
-   `init(…)` after the first method, silently skipping any subclass
-   override.
+**Why the default flipped.** Selecting `BY_CLASS` (or `SINGLETON`) used to
+automatically grant *behavioural* sharing as well as *resource* sharing.
+That conflated two orthogonal concerns:
 
-`cacheRuntime = false` solves all three by rebuilding the `Injector`,
-`QueryFactory`, Liquibase executor, and `PlatformTransactionManager` every
-method, while keeping the per-class `DataSource` and `JudoModelLoader`
-cached for performance.
+- **Resource lifecycle** — how long does the physical `DataSource` live?
+  Controlled by `dataSourceMode`. Sharing a `DataSource` is a pure
+  performance win.
+- **Behavioural sharing** — do two test methods receive the same `Injector`
+  (and consequently the same `QueryFactory`, interceptor instances,
+  Liquibase high-water-mark)? Controlled by `shareInjector`. This affects
+  test correctness, not just speed.
 
-**Why the flag is BY_CLASS-only:**
+Making behavioural sharing opt-in (rather than implicit in the mode
+choice) matches pytest fixtures, JUnit 5 `PER_METHOD` instance lifecycle,
+and Testcontainers — isolation by default; sharing on request.
 
-`SINGLETON + cacheRuntime = false` was considered and rejected because:
+**When to set `shareInjector = true`:**
 
-- **Liquibase race condition.** `SINGLETON` shares one `DataSource` JVM-wide.
-  With the cache disabled, every method would re-run Liquibase against that
-  shared database. Under JUnit parallel execution, multiple Liquibase
-  instances would hit the same schema concurrently, risking
-  `LockException`, corrupted `DATABASECHANGELOGLOCK`, or schema drift.
-- **No coherent use case.** All three motivating scenarios are inherently
-  per-class-or-narrower: stateful interceptors are class-scoped, schema
-  mutations want fresh schemas (so `BY_METHOD` is correct anyway), custom
-  `init(…)` overrides only make sense per-class. Nobody wants "JVM-wide
-  `DataSource` sharing but per-method `Injector` rebuilds across unrelated
-  test classes."
-- **Misleading semantics.** Users reading `SINGLETON + cacheRuntime = false`
-  would expect full per-method freshness and be surprised when they share
-  state via the JVM-wide `DataSource`.
+- Performance: heavy-model classes with many methods (the 5×–10× win on
+  rackinspect-scale models).
+- Cross-method state you intentionally want — e.g. a `@BeforeAll`-built
+  counter or cache.
+- Read-only test suites where you've verified there is no mutation across
+  methods.
 
-The routing predicate therefore silently ignores `cacheRuntime` for
-`SINGLETON` (always caches). If you need per-method runtime freshness AND a
-shared database, that's a contradiction — use `BY_CLASS + cacheRuntime =
-false` (per-class `DataSource`) or `BY_METHOD` (everything fresh).
+**When to keep the default `shareInjector = false`:**
+
+- Tests with stateful interceptor instances — each method gets a fresh
+  interceptor with no inherited state.
+- Schema-mutating tests — each method gets a fresh Liquibase run.
+  Liquibase is idempotent via `DATABASECHANGELOG`, so this is cheap on
+  cached-datasource modes.
+- Tests using a `JudoRuntimeFixture` subclass overriding `init(…)` — the
+  cold path always calls `init(…)`, your override fires on every method.
+- By default — isolation between methods is the conservative choice.
+
+**Why `SINGLETON + shareInjector = false` is safe.** The earlier design
+considered this configuration dangerous because Liquibase would re-run
+against a shared JVM-wide database. Re-analysis showed:
+
+1. `DATABASECHANGELOG` records every applied changeset, so subsequent runs
+   are no-ops (idempotence guaranteed by Liquibase itself).
+2. `DATABASECHANGELOGLOCK` serialises concurrent invocations against the
+   same physical schema, eliminating the "two workers race to apply" path.
+3. The actual cost is a per-method round-trip to `DATABASECHANGELOG` plus
+   `Injector` reconstruction — performance, not correctness.
+
+So `SINGLETON + shareInjector = false` is now a fully valid default
+configuration. Users who want maximum perf still opt into
+`shareInjector = true`.
 
 ### Database Configuration
 

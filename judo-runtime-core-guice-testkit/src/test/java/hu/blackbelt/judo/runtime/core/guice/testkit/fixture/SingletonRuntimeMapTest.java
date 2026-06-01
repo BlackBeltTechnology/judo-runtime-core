@@ -114,7 +114,7 @@ class SingletonRuntimeMapTest {
             @Override public Class<? extends hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor>[] interceptors() {
                 return (Class<? extends hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptor>[]) new Class<?>[0];
             }
-            @Override public boolean cacheRuntime() { return true; }
+            @Override public boolean shareInjector() { return true; }
         };
     }
 }

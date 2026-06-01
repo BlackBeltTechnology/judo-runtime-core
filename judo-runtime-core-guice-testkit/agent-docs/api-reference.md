@@ -103,7 +103,7 @@ Declarative test configuration annotation.
 | `interceptors` | `Class[]` | `{}` | Interceptor classes to register |
 | `modules` | `Class[]` | `{}` | Custom Guice modules |
 | `dataSourceMode` | `DataSourceMode` | `BY_METHOD` | Datasource lifecycle: `BY_METHOD` / `BY_CLASS` / `SINGLETON` |
-| `cacheRuntime` | `boolean` | `true` | Cache derived runtime artifacts (Injector, QueryFactory, Liquibase executor, TxManager) for `BY_CLASS`. Set `false` to keep the shared DataSource but rebuild the runtime per method — needed for stateful interceptors, schema-mutating tests, or custom `JudoRuntimeFixture#init(…)` overrides. Only affects `BY_CLASS`; ignored for `BY_METHOD`, `SINGLETON`, and method-level `@JudoTest`. See [TEST-CONFIGURATION.md § Why `cacheRuntime = false` was added](../TEST-CONFIGURATION.md#why-cacheruntime--false-was-added-and-why-only-for-by_class) for rationale. |
+| `shareInjector` | `boolean` | `false` | Opt into **behavioural sharing** across the test methods of a class. When `true` and `dataSourceMode ∈ {BY_CLASS, SINGLETON}`, the framework caches the derived runtime artifacts (Injector, QueryFactory, Liquibase executor, TxManager) so every method receives the same `Injector` and interceptor instances. Default is `false` — each method gets a fresh runtime even when the underlying `DataSource` and `JudoModelLoader` are shared (the cheap, idempotent path). Honoured uniformly for `BY_CLASS` and `SINGLETON`; ignored for `BY_METHOD` and method-level `@JudoTest`. See [TEST-CONFIGURATION.md § Behavioural sharing](../TEST-CONFIGURATION.md#behavioural-sharing) for rationale. |
 
 ### ModelSource Enum
 

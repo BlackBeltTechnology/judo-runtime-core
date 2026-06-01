@@ -241,16 +241,18 @@ overrides are bypassed.
 
 **Fix Options:**
 
-Option 1 — Disable runtime caching while keeping the shared datasource:
+Option 1 — Use the default (`shareInjector = false`). The cold path
+always calls `init(…)` and your override fires on every method, while the
+per-class DataSource and `JudoModelLoader` are still reused:
 ```java
-@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
-          cacheRuntime = false)
-class MyCustomFixtureTest { ... }
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS)
+class MyCustomFixtureTest { ... }   // shareInjector defaults to false
 ```
-This keeps the per-class DataSource and JudoModelLoader for performance,
-but rebuilds the Injector and re-invokes `init(…)` for every method.
+Liquibase re-runs idempotently against `DATABASECHANGELOG`; only the
+first method actually applies the changelog.
 
-Option 2 — Drop to `BY_METHOD` (slowest, fully fresh per method):
+Option 2 — Drop to `BY_METHOD` (slowest, fully fresh per method,
+DataSource also rebuilt):
 ```java
 @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
 class MyCustomFixtureTest { ... }
@@ -258,36 +260,53 @@ class MyCustomFixtureTest { ... }
 
 ---
 
-### How do I keep BY_CLASS performance but get a fresh injector per method?
+### Why are my BY_CLASS tests slower than before the upgrade?
 
-**Question:** I want the speed of a per-class DataSource (no Liquibase
-re-bootstrap, no HikariCP pool churn) but I need a fresh Guice `Injector`
-per method (for stateful interceptors, schema-mutating tests, or `init(…)`
-overrides). How?
+**Question:** I upgraded judo-runtime-core and my `BY_CLASS` test class is
+now noticeably slower per method — the cached fast path seems to have
+stopped working.
 
-**Answer:** Set `cacheRuntime = false`:
+**Answer:** The default behaviour of `BY_CLASS` flipped in the
+`share-injector-opt-in` change. The shared Guice `Injector` is no longer
+implicit — you must now opt in with `shareInjector = true`:
 
 ```java
 @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
-          cacheRuntime = false)
-class FreshInjectorPerMethodTest { ... }
+          shareInjector = true)
+class FastByClassTest { ... }
 ```
 
-This is the middle-ground between `BY_CLASS, cacheRuntime = true` (fastest,
-everything cached) and `BY_METHOD` (slowest, everything fresh):
+This restores the previous behaviour: one `Injector`, one Liquibase
+invocation, and one `QueryFactory` per class — the 5×–10× perf path. Make
+sure you've verified your test does not depend on per-method behavioural
+isolation (stateful interceptors, schema mutations) before opting in.
 
-| | BY_CLASS, true | **BY_CLASS, false** | BY_METHOD |
-|---|---|---|---|
-| DataSource | per class | **per class** | per method |
-| Liquibase | once | **per method** | per method |
-| Injector | per class | **per method** | per method |
-| Speed | fastest | **medium** | slowest |
+---
 
-> **Note:** `cacheRuntime` only affects `BY_CLASS`. For `SINGLETON` the flag
-> is ignored — SINGLETON always caches because disabling the cache on a
-> JVM-wide DataSource would re-run Liquibase per method against a shared
-> database, risking schema corruption. Use `BY_METHOD` if you need full
-> per-method isolation.
+### Can I use SINGLETON without sharing the injector?
+
+**Question:** I want JVM-wide `DataSource` reuse for performance, but I
+need a fresh Guice `Injector` per test method. Is `SINGLETON +
+shareInjector = false` valid?
+
+**Answer:** Yes — it's the SINGLETON default. The earlier design forbade
+this combination on the grounds that re-running Liquibase against a
+shared database was unsafe; re-analysis showed:
+
+1. `DATABASECHANGELOG` makes re-application a no-op (idempotence).
+2. `DATABASECHANGELOGLOCK` serialises concurrent invocations
+   (concurrency-safe).
+3. The actual cost is one extra round-trip per method plus injector
+   reconstruction — a performance tax, not a correctness hazard.
+
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.SINGLETON)
+class IsolatedRuntimePerMethodTest { ... }   // shareInjector defaults to false
+```
+
+The JVM-wide `DataSource` and `JudoModelLoader` are still reused; each
+method gets a fresh `Injector`. For maximum perf at the cost of
+behavioural isolation, set `shareInjector = true`.
 
 ---
 
