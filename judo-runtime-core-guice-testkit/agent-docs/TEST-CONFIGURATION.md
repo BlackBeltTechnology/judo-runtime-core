@@ -269,8 +269,240 @@ Choose the appropriate `modelSource` based on your scenario:
 | Mode | Scope | Isolation | Performance | Use Case |
 |------|-------|-----------|-------------|----------|
 | `BY_METHOD` (default) | Per test method | Maximum | Slowest | Each test needs clean DB |
-| `BY_CLASS` | Per test class | Medium | Medium | Tests in class don't conflict |
+| `BY_CLASS` | Per test class | Medium | Medium (>= 5× vs BY_METHOD on real models) | Tests in class don't conflict |
 | `SINGLETON` | Shared across all classes | Minimum | Fastest | Read-only or well-isolated tests |
+
+### Why runtime caching exists
+
+Before the runtime cache was introduced, `BY_CLASS` and `SINGLETON` modes only
+shared the `DataSource` and the `JudoModelLoader`. Every test method still:
+
+1. Re-built the `QueryFactory` by extracting JQL expressions from the ASM
+   model (~3 s on a real-world model).
+2. Re-ran the Liquibase changelog re-validation against `DATABASECHANGELOG`
+   (~5 s, including lock acquire / release).
+3. Re-created the Guice `Injector` over `judoDefaultModule + databaseModule
+   + customModule` (~10–15 s).
+4. Re-resolved the `PlatformTransactionManager`.
+
+Empirically on a 20-method class with a real-world model (~20 MB ASM), the
+model-only cache yielded just ~10 % speed-up because the model load is only
+~3 s of the ~28 s per-test cost. The remaining ~25 s is repeated Liquibase
+work and Guice injector construction.
+
+**Caching these four artifacts amortises them across the entire class scope**,
+dropping per-method cost from ~26 s to under 1 ms once the cache is warm — a
+>= 20× observed speed-up on real-world models. On a 20-method class this
+saves roughly **8 minutes of wall-clock per test class**.
+
+### Caching invariants (BY_CLASS / SINGLETON)
+
+For `BY_CLASS` and `SINGLETON` modes, the testkit caches the derived runtime
+artifacts — `QueryFactory`, the database `Module`, the Liquibase executor, the
+Guice `Injector`, and the `PlatformTransactionManager` — so they are built
+exactly once per scope and reused across every test method. This is what gives
+`BY_CLASS` its >= 5× speed-up over `BY_METHOD` on real-world models.
+
+This caching is **transparent** for typical tests (the `@JudoTest` API is
+unchanged) but has a few consequences you must be aware of:
+
+- **Stateful interceptor instances are reused across methods.** An interceptor
+  registered via `interceptors = { ... }` is instantiated once per cached
+  runtime; any field state it carries persists across all methods of the class.
+  If your interceptor accumulates state (counters, captured calls, etc.)
+  either reset it explicitly in `@BeforeEach`, or pin the test class to
+  `BY_METHOD`.
+- **Schema-mutating tests must use `BY_METHOD`.** If a test drops a table,
+  alters a column, or otherwise mutates the database schema and expects the
+  next method to see a fresh schema (because Liquibase would re-run), it
+  *will break* under `BY_CLASS` or `SINGLETON`: Liquibase executes exactly
+  once per cached runtime. Switch such tests to `BY_METHOD`.
+- **Subclasses of `JudoRuntimeFixture` overriding `init(…)`** — the cached
+  path bypasses `init(…)` entirely (it uses `prepareWithCachedRuntime` instead),
+  so any subclass override of `init` is not invoked under `BY_CLASS` /
+  `SINGLETON`. Use `BY_METHOD` if your test relies on a custom `init` override.
+- **Cache key.** Two `@JudoTest` configurations differing only in `modules` or
+  `interceptors` produce *different* cache entries and therefore do not share
+  a cached runtime — you do not need to worry about cross-contamination from
+  a similarly-named test class with different bindings.
+
+**Escape hatches:** when the cache invariants above are a problem, you have
+two options.
+
+1. **Drop to `BY_METHOD`** — every method gets a fresh DataSource, fresh
+   Liquibase migration, fresh `Injector`. Maximum isolation, slowest
+   (you pay the full cold cost on every method):
+   ```java
+   @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
+   ```
+
+2. **Opt into the cached fast path** with `shareInjector = true`. The
+   `Injector`, `QueryFactory`, `Module`, Liquibase executor, and
+   `PlatformTransactionManager` are built ONCE per scope (per class for
+   `BY_CLASS`; JVM-wide for `SINGLETON`) and reused across every test
+   method. This is the right choice for read-heavy suites or any class
+   where you've satisfied yourself there is no behavioural sharing risk
+   (see [§ Behavioural sharing](#behavioural-sharing)).
+   ```java
+   @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+             shareInjector = true)
+   ```
+
+### Behavior matrix
+
+The `dataSourceMode` and `shareInjector` flags interact as follows:
+
+| `dataSourceMode` | `shareInjector` | DataSource | Liquibase | Injector / QueryFactory / TxManager | JudoModelLoader |
+|---|---|---|---|---|---|
+| BY_METHOD | *(ignored)* | per method | per method | per method | per method |
+| BY_CLASS | `false` *(default)* | per class | per method (no-op after 1st) | per method | per class |
+| **BY_CLASS** | **`true`** | **per class** | **once** | **per class** | **per class** |
+| SINGLETON | `false` *(default)* | JVM-wide | per method (no-op after 1st) | per method | JVM-wide |
+| **SINGLETON** | **`true`** | **JVM-wide** | **once** | **JVM-wide** | **JVM-wide** |
+
+The **bold** rows are the cached fast paths, reachable only via
+`shareInjector = true`.
+
+`shareInjector` is honoured uniformly for every class-scoped mode. It is
+ignored only when there is no class scope to attach the cache to:
+- `BY_METHOD` — nothing is cached regardless.
+- Method-level `@JudoTest` annotations — those always behave as `BY_METHOD`.
+
+### Behavioural sharing
+
+> Renamed and inverted in the `share-injector-opt-in` change. The legacy
+> `cacheRuntime` element (default `true`) has been removed; the replacement
+> is `shareInjector` with default `false`.
+
+**Why the default flipped.** Selecting `BY_CLASS` (or `SINGLETON`) used to
+automatically grant *behavioural* sharing as well as *resource* sharing.
+That conflated two orthogonal concerns:
+
+- **Resource lifecycle** — how long does the physical `DataSource` live?
+  Controlled by `dataSourceMode`. Sharing a `DataSource` is a pure
+  performance win.
+- **Behavioural sharing** — do two test methods receive the same `Injector`
+  (and consequently the same `QueryFactory`, interceptor instances,
+  Liquibase high-water-mark)? Controlled by `shareInjector`. This affects
+  test correctness, not just speed.
+
+Making behavioural sharing opt-in (rather than implicit in the mode
+choice) matches pytest fixtures, JUnit 5 `PER_METHOD` instance lifecycle,
+and Testcontainers — isolation by default; sharing on request.
+
+**When to set `shareInjector = true`:**
+
+- Performance: heavy-model classes with many methods (the 5×–10× win on
+  rackinspect-scale models).
+- Cross-method state you intentionally want — e.g. a `@BeforeAll`-built
+  counter or cache.
+- Read-only test suites where you've verified there is no mutation across
+  methods.
+
+**When to keep the default `shareInjector = false`:**
+
+- Tests with stateful interceptor instances — each method gets a fresh
+  interceptor with no inherited state.
+- Schema-mutating tests — each method gets a fresh Liquibase run.
+  Liquibase is idempotent via `DATABASECHANGELOG`, so this is cheap on
+  cached-datasource modes.
+- Tests using a `JudoRuntimeFixture` subclass overriding `init(…)` — the
+  cold path always calls `init(…)`, your override fires on every method.
+- By default — isolation between methods is the conservative choice.
+
+**Why `SINGLETON + shareInjector = false` is safe.** The earlier design
+considered this configuration dangerous because Liquibase would re-run
+against a shared JVM-wide database. Re-analysis showed:
+
+1. `DATABASECHANGELOG` records every applied changeset, so subsequent runs
+   are no-ops (idempotence guaranteed by Liquibase itself).
+2. `DATABASECHANGELOGLOCK` serialises concurrent invocations against the
+   same physical schema, eliminating the "two workers race to apply" path.
+3. The actual cost is a per-method round-trip to `DATABASECHANGELOG` plus
+   `Injector` reconstruction — performance, not correctness.
+
+So `SINGLETON + shareInjector = false` is now a fully valid default
+configuration. Users who want maximum perf still opt into
+`shareInjector = true`.
+
+### Per-method overhead under `shareInjector = false`
+
+"Idempotent" is not "free". When `shareInjector = false` against a shared
+`DataSource` (`BY_CLASS` or `SINGLETON`), every test method pays a
+reconstruction cost that the cached fast path skips:
+
+| Cost component | What it costs | Per-method? |
+|---|---|---|
+| `DATABASECHANGELOG` SELECT | one query against the changelog tracking table | yes |
+| `DATABASECHANGELOGLOCK` acquire / release | two row writes (HSQLDB) or row-level lock dance (PostgreSQL) | yes |
+| Changeset "already applied" diff | in-memory comparison of changeset checksums vs DB rows | yes |
+| Guice `Injector` construction | full module graph rebuild | yes |
+| `QueryFactory` extraction | walks the ASM model to compile JQL expressions | yes |
+| `PlatformTransactionManager` resolution | one injector lookup | yes |
+| Model load (ASM, Liquibase model) | **no — the `JudoModelLoader` is still cached** | no |
+| Liquibase changeset *application* | **no — idempotent skip after first method** | no |
+
+#### Order-of-magnitude estimates
+
+These numbers are **estimates pending end-to-end profiling**. They are
+derived from the existing `RackinspectModelClassCachePerformanceTest`
+baseline (28.7 s cold first method, ~26 s cached avg under the model-only
+cache that preceded JNG-6374) and the design.md claim that the
+model-loader portion is ~3 s of the cold cost. The breakdown is
+approximate:
+
+| Phase | Cold (uncached) | `shareInjector = false`, method N | `shareInjector = true`, method N |
+|---|---|---|---|
+| Model load | ~3 s | 0 ms (model cached) | 0 ms |
+| Liquibase + `DATABASECHANGELOG` | ~6 s | ~50–200 ms (idempotent no-op + lock) | 0 ms |
+| `Injector` + module rebuild | ~15 s | ~15 s | 0 ms |
+| `QueryFactory` extraction | ~3 s | ~3 s | 0 ms |
+| Other (TxManager, plumbing) | ~1 s | ~1 s | 0 ms |
+| **Estimated per-method total** | **~28 s** | **~19 s** | **~0.1 s** |
+
+The headline read: `shareInjector = false` saves the ~3 s model load and
+the ~6 s Liquibase application, but pays ~15 s every method for injector
+rebuild. **`shareInjector = true` is the only path to sub-second
+per-method cost on a heavy model.**
+
+> These figures are derived from the rackinspect baseline (~20 MB ASM,
+> ~100-changeset Liquibase model). On smaller models the absolute numbers
+> shrink, but the *ratio* `shareInjector = true` : `false` : `BY_METHOD`
+> stays roughly 1 : 100 : 200.
+
+#### When the overhead matters
+
+| Suite shape | Recommendation |
+|---|---|
+| 1–3 methods per class | Default (`false`) — isolation wins, overhead negligible at low N |
+| 4–10 methods per class | Default (`false`) — you pay ~1.5–3 minutes of overhead vs cached fast path; usually acceptable |
+| 11–20+ methods per class | Consider `shareInjector = true` if no behavioural-isolation risk — you're paying ~5–10 minutes of overhead vs the cached path |
+| Heavy-model perf benchmark | `shareInjector = true` is the only configuration whose results are meaningful |
+| Read-only suite | `shareInjector = true` — no mutation, no risk, all the perf |
+| Schema-mutating / stateful interceptor suite | `false` (default) — the overhead is the price of correctness |
+
+#### A small note on the Liquibase lock
+
+Under PostgreSQL with parallel-class JUnit execution
+(`-DforkCount=N -Dthreads=N`) and `SINGLETON + shareInjector = false`,
+the per-method `DATABASECHANGELOGLOCK` acquire / release path is the most
+likely contention point. The lock is serialised correctly (no corruption
+risk per design.md D3), but two workers racing to call `init.execute(...)`
+will serialise on it, eroding parallelism. If you see
+flat-line CPU on a parallel build with SINGLETON + default `shareInjector`,
+this is the suspect. Fix: opt into `shareInjector = true` for the
+performance-critical SINGLETON classes.
+
+#### Pending measurement
+
+The order-of-magnitude estimates above are derived from the cold-path
+baseline; they have **not yet been benchmarked end-to-end** against the
+idempotent re-run path. A follow-up task is tracked in
+`docs/JNG-6374-testkit-runtime-cache.md` to run a 20-method
+`@JudoTest(BY_CLASS)` with no `shareInjector` against rackinspect on CI
+hardware and record actual per-method numbers. If the measured overhead
+is materially larger than the estimates above, this section will be
+updated and the recommendations re-tuned.
 
 ### Database Configuration
 

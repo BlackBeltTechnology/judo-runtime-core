@@ -236,6 +236,34 @@ void testWithSpy(JudoRuntimeFixture fixture) {
 }
 ```
 
+> ⚠️ **Stateful interceptors under `BY_CLASS` / `SINGLETON`**
+>
+> When `shareInjector = true` is set on a `BY_CLASS` or `SINGLETON` class,
+> the cached runtime path reuses the same Guice `Injector`, and therefore
+> the same interceptor *instance*, across every test method of the class
+> (or across every class for `SINGLETON`). Counter fields like
+> `preCallCount` above will accumulate across methods. Three options:
+>
+> 1. **The default — do nothing.** `shareInjector` defaults to `false`, so
+>    each method already gets a fresh `SpyInterceptor` instance. The
+>    per-class DataSource and `JudoModelLoader` are still reused, so this
+>    is fast.
+>    ```java
+>    @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+>              interceptors = { SpyInterceptor.class })
+>    class SpyTest { ... }   // shareInjector defaults to false
+>    ```
+> 2. If you've opted into `shareInjector = true` for perf, call
+>    `spy.reset()` in `@BeforeEach` to clear accumulated state without
+>    losing the cached injector.
+> 3. Drop to `BY_METHOD` (most isolated, slowest — every method also
+>    rebuilds the DataSource and re-runs Liquibase from scratch):
+>    ```java
+>    @JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD,
+>              interceptors = { SpyInterceptor.class })
+>    class SpyTest { ... }
+>    ```
+
 ### 5. Mid-Test Interceptor Manipulation
 
 ```java

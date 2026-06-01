@@ -3,6 +3,27 @@
 Test toolkit for JUDO runtime components outside OSGi. Provides dependency 
 injection and test fixtures for interceptors, operations, and custom components.
 
+## Recent Changes
+
+- **JNG-6374 (`share-injector-opt-in`)** — added
+  `@JudoTest#shareInjector` (boolean, default `false`). Selecting
+  `dataSourceMode = BY_CLASS` or `SINGLETON` now reuses only the heavy
+  resources (DataSource, `JudoModelLoader`); the Guice `Injector` and
+  ancillaries are rebuilt per method by default. Set `shareInjector = true`
+  to opt into the cached fast path (5×–10× perf win) when you don't need
+  behavioural isolation between methods. Supersedes the earlier
+  `cacheRuntime` flag (which defaulted to `true` and silently coupled
+  resource and behavioural sharing). Honoured uniformly for `BY_CLASS` and
+  `SINGLETON`; ignored for `BY_METHOD`. See
+  [TEST-CONFIGURATION.md » Behavioural sharing](TEST-CONFIGURATION.md#behavioural-sharing).
+- **JNG-6374 (`cache-byclass-test-runtime`)** — `BY_CLASS` and `SINGLETON`
+  modes now cache the derived runtime artifacts (`QueryFactory`, Guice
+  `Injector`, database `Module`, Liquibase executor, `PlatformTransactionManager`)
+  in addition to the model loader, yielding >= 5× speed-up over `BY_METHOD`
+  on real-world models. The public `@JudoTest` API is unchanged. See
+  [TEST-CONFIGURATION.md](TEST-CONFIGURATION.md#caching-invariants-by_class--singleton)
+  for caching invariants and the `BY_METHOD` escape hatch.
+
 ## When to Use What
 
 ```
