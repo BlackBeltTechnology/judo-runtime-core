@@ -176,6 +176,121 @@ void test(JudoRuntimeFixture fixture) {
 
 ---
 
+### Test methods see stale interceptor state under BY_CLASS / SINGLETON
+
+**Symptom:** A test passes in isolation but fails when run as part of a
+`BY_CLASS` or `SINGLETON` test suite, with assertions like
+`expected callCount=1 but was 4` or counters that keep growing across methods.
+
+**Cause:** `@JudoTest(dataSourceMode = BY_CLASS | SINGLETON)` caches the Guice
+`Injector` and therefore the same interceptor instances across every method of
+the class (and across every class for SINGLETON). If your interceptor
+accumulates state (counters, captured calls, mutable lists, ...) it will leak
+between methods.
+
+**Fix Options:**
+
+Option 1 — Reset state in `@BeforeEach`:
+```java
+@BeforeEach
+void resetInterceptor(JudoRuntimeFixture fixture) {
+    MyCountingInterceptor i = fixture.getInjector().getInstance(MyCountingInterceptor.class);
+    i.reset();
+}
+```
+
+Option 2 — Pin the test class to BY_METHOD:
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD,
+          interceptors = { MyCountingInterceptor.class })
+class MyTest { ... }
+```
+
+---
+
+### Schema changes from one test method are visible in the next
+
+**Symptom:** A test that drops/recreates a table or alters a column passes,
+but subsequent methods of the same class fail with `table not found` or
+schema mismatch errors.
+
+**Cause:** Under `BY_CLASS` and `SINGLETON`, Liquibase runs **exactly once**
+per cached runtime, NOT once per method. If a test method mutates the schema,
+those mutations persist for the rest of the class and are NOT reverted by a
+fresh Liquibase migration on the next method.
+
+**Fix:** Switch the schema-mutating test class to `BY_METHOD`:
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
+class SchemaMutatingTest { ... }
+```
+
+This re-runs Liquibase per method, restoring a clean schema.
+
+---
+
+### Subclass override of `JudoRuntimeFixture#init(…)` is not invoked
+
+**Symptom:** Custom subclass of `JudoRuntimeFixture` overrides `init(…)` to
+do extra setup, but the override never fires.
+
+**Cause:** On the cached `BY_CLASS` / `SINGLETON` code path, `JudoTestExtension`
+uses `prepareWithCachedRuntime(…)` instead of `init(…)` after the first
+method — by design, since the artifacts are pre-built. Subclass `init`
+overrides are bypassed.
+
+**Fix Options:**
+
+Option 1 — Disable runtime caching while keeping the shared datasource:
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+          cacheRuntime = false)
+class MyCustomFixtureTest { ... }
+```
+This keeps the per-class DataSource and JudoModelLoader for performance,
+but rebuilds the Injector and re-invokes `init(…)` for every method.
+
+Option 2 — Drop to `BY_METHOD` (slowest, fully fresh per method):
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_METHOD)
+class MyCustomFixtureTest { ... }
+```
+
+---
+
+### How do I keep BY_CLASS performance but get a fresh injector per method?
+
+**Question:** I want the speed of a per-class DataSource (no Liquibase
+re-bootstrap, no HikariCP pool churn) but I need a fresh Guice `Injector`
+per method (for stateful interceptors, schema-mutating tests, or `init(…)`
+overrides). How?
+
+**Answer:** Set `cacheRuntime = false`:
+
+```java
+@JudoTest(dataSourceMode = JudoTest.DataSourceMode.BY_CLASS,
+          cacheRuntime = false)
+class FreshInjectorPerMethodTest { ... }
+```
+
+This is the middle-ground between `BY_CLASS, cacheRuntime = true` (fastest,
+everything cached) and `BY_METHOD` (slowest, everything fresh):
+
+| | BY_CLASS, true | **BY_CLASS, false** | BY_METHOD |
+|---|---|---|---|
+| DataSource | per class | **per class** | per method |
+| Liquibase | once | **per method** | per method |
+| Injector | per class | **per method** | per method |
+| Speed | fastest | **medium** | slowest |
+
+> **Note:** `cacheRuntime` only affects `BY_CLASS`. For `SINGLETON` the flag
+> is ignored — SINGLETON always caches because disabling the cache on a
+> JVM-wide DataSource would re-run Liquibase per method against a shared
+> database, risking schema corruption. Use `BY_METHOD` if you need full
+> per-method isolation.
+
+---
+
 ## Diagnostic Checklist
 
 When interceptor tests fail, check:

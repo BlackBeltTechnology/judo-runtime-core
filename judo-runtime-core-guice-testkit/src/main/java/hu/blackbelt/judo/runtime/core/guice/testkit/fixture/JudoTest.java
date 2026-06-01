@@ -168,6 +168,43 @@ public @interface JudoTest {
     DataSourceMode dataSourceMode() default DataSourceMode.BY_METHOD;
 
     /**
+     * Whether the testkit caches the derived runtime artifacts — Guice {@code Injector},
+     * {@code QueryFactory}, database {@code Module}, Liquibase executor, and
+     * {@code PlatformTransactionManager} — across the test methods when
+     * {@link #dataSourceMode()} is {@code BY_CLASS}. Default: {@code true}.
+     *
+     * <p><b>This flag only affects {@code BY_CLASS} mode.</b> It is ignored for
+     * {@code BY_METHOD} (nothing to cache) and {@code SINGLETON} (always cached —
+     * disabling the cache on a JVM-wide DataSource would re-run Liquibase per
+     * method against a shared database, risking schema corruption).
+     *
+     * <p><b>Effect by mode</b>:
+     * <table>
+     *   <tr><th>{@code dataSourceMode}</th><th>{@code cacheRuntime}</th><th>Effect</th></tr>
+     *   <tr><td>BY_METHOD</td><td>(ignored)</td><td>Everything fresh per method</td></tr>
+     *   <tr><td>BY_CLASS</td><td>true (default)</td><td>Injector / QueryFactory / Liquibase / TxManager built ONCE per class and reused</td></tr>
+     *   <tr><td>BY_CLASS</td><td>false</td><td>DataSource and JudoModelLoader still shared per class, but Injector / QueryFactory / Liquibase / TxManager are rebuilt per method</td></tr>
+     *   <tr><td>SINGLETON</td><td>(ignored)</td><td>Everything cached JVM-wide</td></tr>
+     * </table>
+     *
+     * <p><b>When to set {@code cacheRuntime = false}</b>:
+     * <ul>
+     *   <li>Tests using a {@code JudoRuntimeFixture} subclass overriding {@code init(…)},
+     *       whose override is bypassed on the cached fast path.</li>
+     *   <li>Tests with stateful interceptors that you do not want to reset in {@code @BeforeEach}.</li>
+     *   <li>Tests that mutate the database schema and rely on Liquibase to re-apply on every method.</li>
+     * </ul>
+     *
+     * <p>Setting this flag on a method-level {@code @JudoTest} has no effect:
+     * method-level annotations always behave as {@code BY_METHOD}.
+     *
+     * <p>See {@code agent-docs/TEST-CONFIGURATION.md § Caching invariants} for full details.
+     *
+     * @since 1.0.7
+     */
+    boolean cacheRuntime() default true;
+
+    /**
      * Interceptor classes to register for the test.
      *
      * <p>Each interceptor will be:
