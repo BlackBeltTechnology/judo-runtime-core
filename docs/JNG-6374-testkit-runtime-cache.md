@@ -2,21 +2,25 @@
 
 > **Branch:** `feature/JNG-6374_cache_model_loader_in_testkit`
 > **Module:** `judo-runtime-core-guice-testkit`
-> **Status:** Implementation complete; pending CI perf-run record (task 6.2/6.3) and PR.
-> **OpenSpec changes:** `cache-byclass-test-runtime`, `judo-test-enable-runtime-cache-flag`
+> **Status:** Implementation complete; full reactor green under Java 21; pending push/PR.
+> **OpenSpec changes:** `cache-byclass-test-runtime`, `judo-test-enable-runtime-cache-flag`, `share-injector-opt-in` (final shape).
+> **Final API:** `@JudoTest#shareInjector` (boolean, default `false`).
 
 This document is the **canonical narrative** of every behavioural change introduced
 by this branch vs `develop`, grouped by theme. Each section answers two questions:
 **what** changed, and **why**. Code paths, types, and tests are named so this doc
-can be used as a navigation index.
+can be used as a navigation index. The API names and defaults described here are
+the **final shipping shape**; an intermediate `cacheRuntime` flag existed mid-branch
+but was renamed and inverted before merge — see §17 "Evolution / Changelog".
 
 For machine-checkable requirements, see the OpenSpec specs under
-`openspec/changes/cache-byclass-test-runtime/specs/guice-testkit/spec.md` and
-`openspec/changes/judo-test-enable-runtime-cache-flag/specs/guice-testkit/spec.md`.
+`openspec/changes/cache-byclass-test-runtime/specs/guice-testkit/spec.md`,
+`openspec/changes/judo-test-enable-runtime-cache-flag/specs/guice-testkit/spec.md`,
+and `openspec/changes/share-injector-opt-in/specs/guice-testkit/spec.md`.
 
 ---
 
-## Commits on this branch (6, vs `develop`)
+## Commits on this branch (vs `develop`)
 
 | # | Hash | Date | Subject |
 |---|---|---|---|
@@ -24,9 +28,13 @@ For machine-checkable requirements, see the OpenSpec specs under
 | 2 | `52b642d8` | 2026-02-04 | Merge develop → branch |
 | 3 | `950ff0bb` | 2026-05-05 | Merge develop → branch |
 | 4 | `26141997` | 2026-05-06 | Cache full runtime artifacts ("caxhed model for class running") — major commit |
-| 5 | `31c6097a` | 2026-05-08 | Add `cacheRuntime` parameter — opt-out flag for BY_CLASS |
+| 5 | `31c6097a` | 2026-05-08 | Add `cacheRuntime` opt-out flag (later renamed to `shareInjector` in #9) |
 | 6 | `a73e1f6e` | 2026-05-11 | Add MDs + `ResolveDialectTest`, `RoutingPredicateTest` |
 | 7 | `fe8c7f2d` | 2026-06-01 | Key SINGLETON caches by config + harden cached-runtime fixture (CodeRabbit follow-ups) |
+| 8 | `a7b917c7` | 2026-06-01 | Rename `cacheRuntime` → `shareInjector` and invert default to `false` |
+| 9 | `be8a613e` | 2026-06-01 | Mark commit task done in `share-injector-opt-in` tasks.md |
+| 10 | `f935d5ff` | 2026-06-01 | Document `shareInjector = false` per-method overhead |
+| 11 | `0aa7008a` | 2026-06-01 | Revert standalone migration guide (info kept in TEST-CONFIGURATION.md / troubleshooting.md) |
 
 ---
 
@@ -167,10 +175,10 @@ static boolean isClassScopedMode(JudoTest.DataSourceMode mode) {
 
 static boolean useCache(boolean isClassLevel,
                         JudoTest.DataSourceMode mode,
-                        boolean cacheRuntime) {
+                        boolean shareInjector) {
     if (!isClassLevel) return false;                 // method-level @JudoTest ⇒ cold path
-    if (mode == SINGLETON) return true;              // SINGLETON ALWAYS caches (see §5)
-    return mode == BY_CLASS && cacheRuntime;         // only BY_CLASS honours the flag
+    if (mode == BY_METHOD) return false;             // nothing class-scoped to cache
+    return shareInjector;                            // BY_CLASS and SINGLETON honour the flag uniformly
 }
 ```
 
@@ -231,59 +239,61 @@ interceptor state explicitly.
 
 ---
 
-## 5. The `cacheRuntime` opt-out flag (31c6097a, refined fe8c7f2d)
+## 5. The `shareInjector` opt-in flag (a7b917c7)
 
 ### 5.1 What it is
 
-A new optional element on `@JudoTest`, default `true` — backwards-compatible:
+A class-level element on `@JudoTest`, default `false`. Setting it to `true`
+opts a `BY_CLASS` or `SINGLETON` test class into the cached fast path:
 
 ```java
 @JudoTest(
     dataSourceMode = BY_CLASS,
-    cacheRuntime = false   // opt out of the runtime cache; keep datasource + model cache
+    shareInjector = true   // opt into the cached fast path; same Injector across methods
 )
 ```
 
-### 5.2 Semantics (final, after v2 simplification)
+With the default `false`, the class still benefits from the shared
+`DataSource` and cached `JudoModelLoader`, but every test method receives a
+fresh `Injector` + `QueryFactory` + interceptor instances — the same
+behaviour an existing `@JudoTest(BY_CLASS)` class has on `develop` today.
 
-| `dataSourceMode` | `cacheRuntime` | Behaviour |
+### 5.2 Semantics (final)
+
+| `dataSourceMode` | `shareInjector` | Behaviour |
 |---|---|---|
 | `BY_METHOD`  | *(ignored)*           | Everything fresh per method |
-| `BY_CLASS`   | `true` *(default)*    | Everything cached per class (full fast path) |
-| `BY_CLASS`   | `false`               | DataSource + model cached per class; Injector + Liquibase rebuilt per method |
-| `SINGLETON`  | `true` *(default)*    | Everything cached JVM-wide |
-| `SINGLETON`  | `false`               | **No-op — flag ignored** (still caches) |
-| Method-level `@JudoTest` | *(any)*    | Ignored; always cold path |
+| `BY_CLASS`   | `false` *(default)*   | DataSource + model cached per class; Injector + interceptors fresh per method |
+| `BY_CLASS`   | `true`                | Full cached fast path — same Injector across methods (~5×–10× perf win) |
+| `SINGLETON`  | `false` *(default)*   | DataSource + model cached JVM-wide; Injector + interceptors fresh per method |
+| `SINGLETON`  | `true`                | Full cached fast path — same Injector across the JVM |
+| Method-level `@JudoTest` | *(any)* | Ignored; always cold path |
 
-### 5.3 Why SINGLETON ignores the flag (the v2 contradiction we resolved)
+### 5.3 Why SINGLETON honours the flag uniformly with BY_CLASS
 
-The initial spec said *"`cacheRuntime = false` Bypasses Runtime Cache for SINGLETON"*.
-That requirement was abandoned in `proposal-v2-simplify-cacheRuntime.md`
-(Option A, fe8c7f2d task 9.10) for one decisive reason:
+An earlier intermediate design (the `cacheRuntime` flag) had SINGLETON
+*ignore* the flag on the grounds that disabling the cache on a JVM-wide
+DataSource would re-run Liquibase against the shared database per method.
+That concern was re-analysed before shipping and discarded:
 
-> Disabling the cache on a JVM-wide DataSource would re-run **Liquibase**
-> against the **shared database** for every test method. Under parallel
-> execution, multiple workers would race to apply the changelog against
-> the same physical schema — **schema corruption**.
+1. `DATABASECHANGELOG` records every applied changeset. Re-invocation is a
+   no-op for already-applied changesets, not a re-application.
+2. `DATABASECHANGELOGLOCK` serialises concurrent invocations against the
+   same physical schema. No "two workers race to apply" scenario exists.
+3. The actual cost is one extra `DATABASECHANGELOG` round-trip per method
+   plus `Injector` reconstruction — **performance, not correctness**.
 
-So `SINGLETON + cacheRuntime=false` is not a useful configuration; it is a
-foot-gun. v2 makes it a **no-op** (flag ignored, behaviour identical to
-`cacheRuntime=true`) rather than throwing — preserving backwards compatibility
-for any existing annotations that happen to set the flag. Documented escape
-hatches:
-
-1. Use `@BeforeEach` to reset interceptor / shared state.
-2. Switch to `BY_CLASS` (with or without `cacheRuntime=false`) or `BY_METHOD`
-   if true per-method isolation is required.
-
-The same rationale applies to `BY_METHOD + false` (nothing to disable).
+So `SINGLETON + shareInjector = false` is a valid, safe configuration that
+simply costs more per method than `SINGLETON + shareInjector = true`.
+The two modes now route identically; the predicate has no per-mode special
+case (see §3).
 
 ### 5.4 Method-level annotations are ignored
 
-`cacheRuntime` is meaningful only on class-level `@JudoTest`. The routing
+`shareInjector` is meaningful only on class-level `@JudoTest`. The routing
 predicate's `isClassLevel` guard skips the cache entirely for method-level
 annotations; the flag value is never read in that branch. Covered by
-`MethodLevelCacheRuntimeIgnoredTest`.
+`MethodLevelShareInjectorIgnoredTest`.
 
 ---
 
@@ -430,7 +440,7 @@ asserting count == 1 after one successful completion.
 | `JudoRuntimeFixture.java` | modified — `prepareWithCachedRuntime`, interceptor carry-over |
 | `CachedRuntime.java` | modified — added `interceptorProvider`; backwards-compat constructor |
 | `CountingLiquibaseExecutor.java` | modified — count-after-success; non-final |
-| `JudoTest.java` | new — class-level annotation w/ `cacheRuntime` flag and `ModelSource` enum |
+| `JudoTest.java` | modified — added `shareInjector` flag (default `false`); `ModelSource` enum already existed |
 | `JudoTestExtensionRouting.java` | new — pure routing predicates |
 | `SingletonDatasourceKey.java` | new — `(dialect, container)` key |
 | `SingletonModelKey.java` | new — `(modelName, dialect, modelSource)` key |
@@ -444,14 +454,16 @@ asserting count == 1 after one successful completion.
 | `SingletonRuntimeMapTest` | SINGLETON runtime map basics |
 | `CountingLiquibaseExecutorTest` | Count-after-success; failed-retry scenario |
 | `PrepareWithCachedRuntimeTest` | Fast path adopts cached fields, including interceptor provider |
-| `JudoTestCacheRuntimeFlagTest` | `cacheRuntime=false` rebuilds the injector for BY_CLASS |
-| `MethodLevelCacheRuntimeIgnoredTest` | Method-level `cacheRuntime=true` does NOT enable caching |
-| `RoutingPredicateTest` | Every branch of `useCache(...)` |
+| `ShareInjectorFlagTest` | `shareInjector` default is `false`; routing predicate consumes both mode and flag; legacy `cacheRuntime` element absent |
+| `DefaultIsFreshRuntimePerMethodTest` | The headline contract — default annotation yields a fresh runtime per method |
+| `SingletonShareInjectorFlagTest` | SINGLETON honours the flag uniformly with BY_CLASS; truth-table parity |
+| `MethodLevelShareInjectorIgnoredTest` | Method-level `shareInjector=true` does NOT enable caching |
+| `RoutingPredicateTest` | Every branch of `useCache(...)` incl. uniform-truth-table sanity check |
 | `ResolveDialectTest` | `resolveContainerName(...)` correctness |
 | `SingletonDatasourceKeyingTest` | Two SINGLETON classes w/ different dialects ⇒ distinct fixtures |
 | `SingletonModelLoaderKeyingTest` | Distinct `(modelName, dialect, modelSource)` ⇒ distinct loaders |
 | `ColdPathModelLoaderTest` | Class-level reuses; method-level ignores; empty store ⇒ null |
-| `RackinspectModelClassCachePerformanceTest` | `@Tag("slow")` — 20-method BY_CLASS perf guard |
+| `RackinspectModelClassCachePerformanceTest` *(downstream consumer)* | `@Tag("slow")` — 20-method BY_CLASS perf guard; requires `shareInjector = true` to demonstrate the cache |
 
 ---
 
@@ -465,15 +477,20 @@ asserting count == 1 after one successful completion.
 
 ### `judo-runtime-core-guice-testkit/agent-docs/` (kept in sync with top-level)
 - `README.md` — overview pointer to TEST-CONFIGURATION.md
-- `TEST-CONFIGURATION.md` — new "Caching invariants" section: stateful
+- `TEST-CONFIGURATION.md` — "Behavioural sharing" section: stateful
   interceptors, schema-mutating tests, the `BY_METHOD` escape hatch, the
-  five-row `cacheRuntime` behaviour matrix.
-- `api-reference.md` — `@JudoTest` attributes (incl. `cacheRuntime`),
+  five-row `shareInjector` behaviour matrix, plus a "Per-method overhead
+  under `shareInjector = false`" sub-section with cost breakdown.
+- `api-reference.md` — `@JudoTest` attributes (incl. `shareInjector`),
   `prepareWithCachedRuntime` entry point, `CachedRuntime` lifecycle.
-- `interceptor-testing.md` — stateful-interceptor callout naming
-  `cacheRuntime=false`, `@BeforeEach` reset, and BY_METHOD as alternatives.
-- `troubleshooting.md` — "How do I keep BY_CLASS perf but get a fresh
-  injector per method?" → `cacheRuntime = false`.
+- `interceptor-testing.md` — stateful-interceptor callout: the default
+  (`shareInjector = false`) already gives fresh interceptors per method;
+  `@BeforeEach` reset only needed when `shareInjector = true`.
+- `troubleshooting.md` — entries covering: custom `init(...)` overrides,
+  "Why are my BY_CLASS tests slower after the upgrade?" → add
+  `shareInjector = true`, "Can I use SINGLETON without sharing the
+  injector?" → yes, default, and "How much overhead does
+  `shareInjector = false` add?" with rule-of-thumb numbers.
 
 ---
 
@@ -503,12 +520,20 @@ hardening.
 
 ### `openspec/changes/judo-test-enable-runtime-cache-flag/`
 
-Secondary change covering the `cacheRuntime` flag. The directory contains
-both the original `proposal.md` and the v2 simplification
-`proposal-v2-simplify-cacheRuntime.md`. The spec was reworded in fe8c7f2d
-to remove the contradictory requirement *"`cacheRuntime = false` Bypasses
-Runtime Cache for SINGLETON"* and adopt v2's
-*"`cacheRuntime` is a No-Op for SINGLETON"* (Option A — see §5.3 above).
+Intermediate change covering the original `cacheRuntime` flag. Superseded
+by `share-injector-opt-in` (the rename + invert + uniform-SINGLETON change
+shipped in a7b917c7). Retained as historical record. The directory
+contains both the original `proposal.md` and the v2 simplification
+`proposal-v2-simplify-cacheRuntime.md`.
+
+### `openspec/changes/share-injector-opt-in/`
+
+The final-shape change. Renames `cacheRuntime` → `shareInjector`, flips the
+default to `false`, and unifies SINGLETON with BY_CLASS routing. Spec
+delta uses 5 REMOVED, 3 MODIFIED, and 5 ADDED requirements to refine the
+requirements from the two prior changes into the shipping shape. See
+`design.md` decisions D1–D7 (especially D2 "Default is opt-in for safety"
+and D3 "SINGLETON honours the flag" with the Liquibase re-analysis).
 
 ---
 
@@ -538,7 +563,7 @@ Caveats:
 
 | Surface | Change | Compat impact |
 |---|---|---|
-| `@JudoTest` annotation | `cacheRuntime` element added, default `true` | None — defaults preserve prior behaviour. |
+| `@JudoTest` annotation | `shareInjector` element added, default `false` | None — the default preserves existing test behaviour (fresh Injector per method on BY_CLASS / SINGLETON). |
 | `DataSourceMode` enum | unchanged | None. |
 | `JudoRuntimeFixture` public API | `prepareWithCachedRuntime` added; existing methods unchanged | None. |
 | `JudoTestExtension` | internal routing change; same JUnit5 SPI | None. |
@@ -546,8 +571,11 @@ Caveats:
 | `CountingLiquibaseExecutor` visibility | `final class` → `class` | Strictly relaxing — no caller breaks. |
 | `CloseableDatasourceFixture` visibility | tightened to package-private | Internal testkit type; no public callers. |
 
-No public API removed, no annotation element renamed, no default behaviour
-changed unless the test author explicitly opts out via `cacheRuntime=false`.
+No public API removed, no annotation element from any *released* version
+renamed (`cacheRuntime` was an unreleased intermediate name), no default
+behaviour changed unless the test author explicitly opts in via
+`shareInjector = true`. The intermediate `cacheRuntime` flag never shipped
+in a tagged release; downstream cost of the inversion is zero.
 
 ---
 
@@ -555,20 +583,24 @@ changed unless the test author explicitly opts out via `cacheRuntime=false`.
 
 Documented in `agent-docs/TEST-CONFIGURATION.md` § *Caching invariants*:
 
-1. **Schema-mutating tests** (DDL beyond the changelog) MUST use `BY_METHOD`
-   or `cacheRuntime=false` — a cached runtime keeps the same Liquibase
-   high-water-mark and will not re-apply your in-test schema changes for
-   sibling methods.
-2. **Stateful interceptors** — with caching enabled, interceptor instances
-   are shared across methods. Use `@BeforeEach` to reset, switch to
-   `BY_METHOD`, or set `cacheRuntime=false` (BY_CLASS only).
+1. **Schema-mutating tests** (DDL beyond the changelog) — the default
+   (`shareInjector = false`) is the right choice: Liquibase re-runs each
+   method, idempotently no-op'ing on changesets already applied via
+   `DATABASECHANGELOG`. If you set `shareInjector = true`, your in-test
+   schema changes will not be re-applied for sibling methods.
+2. **Stateful interceptors** — the default already gives fresh interceptor
+   instances per method. Only when `shareInjector = true` do interceptors
+   share state across methods; reset in `@BeforeEach` if you want both
+   sharing (for perf) and clean state.
 3. **Different `@JudoTest` configs on two `SINGLETON` classes** are safe
    *only* because of the new SINGLETON keying (§6). Pre-fe8c7f2d branches
    silently shared the first class's resources — do not back-port without
    the keying fix.
-4. **`@BeforeAll` mutating injector-managed state** runs once per cached
-   runtime, not once per method. Cold-path semantics differ on first vs
-   subsequent methods.
+4. **`@BeforeAll`-captured `Injector` references** under `shareInjector =
+   false` go stale after the first method (each method gets a fresh
+   `Injector`). Resolve via `fixture.getInjector()` inside each `@Test`
+   instead of caching, **or** set `shareInjector = true` if you want a
+   stable reference across methods.
 
 ---
 
@@ -576,13 +608,14 @@ Documented in `agent-docs/TEST-CONFIGURATION.md` § *Caching invariants*:
 
 | Check | Status |
 |---|---|
-| `mvn clean install` (full reactor, excl. Docker-only `JudoDefaultPostgresqlModuleTest`) | green |
-| `mvn test` in `judo-runtime-core-guice-testkit` | 172/172 passing, 25 pre-existing skipped |
+| `mvn test` (full reactor under Java 21, excl. Docker-only `JudoDefaultPostgresqlModuleTest`) | **BUILD SUCCESS** — 282 tests, 0 failures, 0 errors, 25 skipped, 44.7s |
+| `mvn test` in `judo-runtime-core-guice-testkit` alone | 190 tests, 0 failures, 25 pre-existing skipped |
 | `openspec validate cache-byclass-test-runtime` | passes |
 | `openspec validate judo-test-enable-runtime-cache-flag` | passes |
-| Perf guard `RackinspectModelClassCachePerformanceTest -Dgroups=slow` on CI hardware | **pending (task 6.2 / 6.3)** |
-| PR opened + reviewers requested | pending (task 10.3) |
-| Archive after merge | pending (task 10.4) |
+| `openspec validate share-injector-opt-in` | passes |
+| Perf guard `RackinspectModelClassCachePerformanceTest -Dgroups=slow` on CI hardware | **pending** (lives in downstream `rackinspect` consumer; needs `shareInjector = true` to demonstrate the cache) |
+| PR opened + reviewers requested | pending |
+| Archive after merge | pending |
 
 ---
 
@@ -624,54 +657,25 @@ No production code outside `judo-runtime-core-guice-testkit` was modified.
 
 ---
 
-## 17. Pre-ship inversion: `shareInjector`  (change `share-injector-opt-in`)
+## 17. Evolution / Changelog
 
-Before the JNG-6374 branch shipped, a philosophical inversion was applied
-on top of the work documented in §1–16:
+The public API name and default of the sharing flag evolved twice on this
+branch before it shipped. The doc above describes the **final shape**; this
+section records the intermediate steps for archaeology purposes only — no
+tagged release ever exposed the intermediate names.
 
-1. **Rename** `@JudoTest#cacheRuntime` → `@JudoTest#shareInjector`. The new
-   name describes user-facing behaviour ("do two methods share the same
-   Guice graph?") instead of framework-implementation mechanics.
-2. **Invert** the default from `true` to `false`. Tests are now isolated
-   between methods by default; the 5×–10× cached fast path is an explicit
-   opt-in (`shareInjector = true`).
-3. **Unify** `SINGLETON` with `BY_CLASS`. The v2 carve-out that made
-   `SINGLETON` always cache (ignoring the flag) is removed. The routing
-   predicate collapses to:
-   ```java
-   useCache = isClassLevel
-           && mode != BY_METHOD
-           && shareInjector;
-   ```
-   `SINGLETON + shareInjector = false` is now valid and safe: Liquibase
-   is idempotent via `DATABASECHANGELOG`, and concurrent re-entry is
-   serialised via `DATABASECHANGELOGLOCK`. The cost is performance, not
-   correctness.
+| Phase | Element name | Default | SINGLETON behaviour | Status |
+|---|---|---|---|---|
+| v1 (`31c6097a`) | `cacheRuntime` | `true` | flag honoured | abandoned |
+| v2 (resolved in `fe8c7f2d`) | `cacheRuntime` | `true` | flag ignored (always cached) | abandoned |
+| Final (`a7b917c7`, change `share-injector-opt-in`) | **`shareInjector`** | **`false`** | **flag honoured uniformly** | **shipped** |
 
-### Final behaviour matrix
+The v1 → v2 step removed a Liquibase-against-shared-DB concern by making
+SINGLETON ignore the flag. The v2 → final step re-analysed that concern
+(Liquibase is idempotent via `DATABASECHANGELOG` + serialised via
+`DATABASECHANGELOGLOCK`), discarded it, and inverted the default to
+follow the "isolation by default, sharing on opt-in" convention of
+pytest, JUnit 5, and Testcontainers.
 
-| `dataSourceMode` | `shareInjector` | DataSource | Injector / Runtime |
-|---|---|---|---|
-| `BY_METHOD` | *(ignored)* | per method | per method |
-| `BY_CLASS` | `false` *(default)* | per class | per method |
-| `BY_CLASS` | `true` | per class | **cached per class** |
-| `SINGLETON` | `false` *(default)* | JVM-wide | per method |
-| `SINGLETON` | `true` | JVM-wide | **cached JVM-wide** |
-
-### Why this matters
-
-The pre-inversion design conflated **resource lifecycle** (selected by
-`dataSourceMode`) with **behavioural sharing** (implicit in the mode
-choice, partially escapable via `cacheRuntime`). Two orthogonal concerns
-under one selector produced subtle bugs:
-
-- Tests selecting `BY_CLASS` for *datasource* reasons silently inherited
-  shared interceptor state, with mutations leaking between methods.
-- Tests selecting `SINGLETON` because they only cared about JVM-wide DB
-  connection got JVM-wide injector sharing too, with no escape hatch.
-
-Making sharing explicit (and opt-in) eliminates this footgun. The price
-is one keyword (`shareInjector = true`) for users who want the perf win.
-
-See `openspec/changes/share-injector-opt-in/` for the proposal, design,
-spec deltas, and task list backing this section.
+For full rationale, see `openspec/changes/share-injector-opt-in/design.md`
+(decisions D1–D7, especially D2 and D3).
