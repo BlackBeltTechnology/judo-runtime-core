@@ -1,0 +1,6 @@
+schema: spec-driven
+created: 2026-06-01
+supersedes:
+  - judo-test-enable-runtime-cache-flag
+depends-on:
+  - cache-byclass-test-runtime
