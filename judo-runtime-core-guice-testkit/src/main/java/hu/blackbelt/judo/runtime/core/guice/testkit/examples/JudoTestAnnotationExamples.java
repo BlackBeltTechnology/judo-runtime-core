@@ -271,10 +271,10 @@ class JudoTestAnnotationExamples {
     @DisplayName("Configuration Options")
     class ConfigurationExamples {
 
-        @JudoTest(modelName = "rackinspect")
+        @JudoTest(modelName = "example")
         @DisplayName("Should use custom model name")
         void testCustomModel(JudoRuntimeFixture fixture) {
-            // Explicitly specify model name (rackinspect is the default)
+            // Explicitly specify model name (example is the default)
             assertNotNull(fixture.modelHolder);
         }
 

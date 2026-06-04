@@ -179,8 +179,25 @@ class MyTestClass {
 | Mode | Scope | Isolation | Performance | Use Case |
 |------|-------|-----------|-------------|----------|
 | **BY_METHOD** (default) | Per test method | Maximum | Slowest | Each test needs clean DB |
-| **BY_CLASS** | Per test class | Medium | Medium | Tests in class don't conflict |
+| **BY_CLASS** | Per test class | Medium | Medium (>= 5× vs BY_METHOD on real models) | Tests in class don't conflict |
 | **SINGLETON** | Shared across all classes | Minimum | Fastest | Read-only or well-isolated tests |
+
+> **Behavioural sharing note (BY_CLASS / SINGLETON):** Selecting
+> `BY_CLASS` or `SINGLETON` shares the heavy resources (`DataSource`,
+> `JudoModelLoader`) across methods for performance, but every test
+> method still gets its **own** Guice `Injector`, `QueryFactory`,
+> Liquibase executor, and interceptor instances by default. Liquibase
+> re-runs are no-ops via `DATABASECHANGELOG` (idempotent), so this is
+> cheap.
+>
+> **Want the 5×–10× perf win?** Set
+> `@JudoTest(dataSourceMode = BY_CLASS, shareInjector = true)`. Everything
+> is then cached per class — one `Injector`, one Liquibase invocation, one
+> `QueryFactory`. Make sure your test doesn't depend on per-method
+> behavioural isolation (stateful interceptors, schema mutations) before
+> opting in. See
+> [TEST-CONFIGURATION.md » Behavioural sharing](TEST-CONFIGURATION.md#behavioural-sharing)
+> for the full matrix and rationale.
 
 ```java
 // BY_METHOD: New datasource for each test (default)
@@ -220,20 +237,20 @@ class Test4 {
 
 ```java
 // Example 1: Default - Auto-detect (filesystem → classpath fallback)
-@JudoTest(modelName = "rackinspect")
+@JudoTest(modelName = "example")
 void testWithAutoDetect(JudoRuntimeFixture fixture) {
     // Tries filesystem first, falls back to classpath if not found
 }
 
 // Example 2: Force filesystem loading (development)
-@JudoTest(modelName = "rackinspect", modelSource = ModelSource.FILESYSTEM)
+@JudoTest(modelName = "example", modelSource = ModelSource.FILESYSTEM)
 void testFromFilesystem(JudoRuntimeFixture fixture) {
     // Only loads from target/generated-test-sources/model
     // Fails if model not found on filesystem
 }
 
 // Example 3: Force classpath loading (packaged JAR tests)
-@JudoTest(modelName = "rackinspect", modelSource = ModelSource.CLASSPATH)
+@JudoTest(modelName = "example", modelSource = ModelSource.CLASSPATH)
 void testFromClasspath(JudoRuntimeFixture fixture) {
     // Only loads from /model/ directory in JAR or test resources
     // Perfect for testing packaged applications
@@ -445,7 +462,7 @@ void testWithMultipleModules(JudoRuntimeFixture fixture) {
 ```java
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.CreateInstanceCall;
-import hu.blackbelt.rackinspect.interceptors.user.UserCreateInterceptor;
+import com.example.interceptors.user.UserCreateInterceptor;
 
 class UserCreateInterceptorTest {
     
