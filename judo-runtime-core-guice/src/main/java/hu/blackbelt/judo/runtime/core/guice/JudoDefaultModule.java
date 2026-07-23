@@ -47,6 +47,7 @@ import hu.blackbelt.judo.runtime.core.guice.core.ExtendableCoercererProvider;
 import hu.blackbelt.judo.runtime.core.guice.core.UUIDIdentifierProviderProvider;
 import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.*;
 import hu.blackbelt.judo.runtime.core.guice.dispatcher.*;
+import hu.blackbelt.osgi.i18n.api.LocaleProvider;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
@@ -142,6 +143,10 @@ public class JudoDefaultModule extends AbstractModule {
                             Integer rdbmsDaoMaximumRecursionCount,
                             Boolean actorResolverCheckMappedActors,
                             String actorResolverAcceptableClients,
+                            String actorResolverPrincipalLocaleAttribute,
+                            String actorResolverSupportedLanguages,
+                            String actorResolverDefaultLanguage,
+                            Boolean actorResolverBrowserLanguageCheck,
                             Boolean dispatcherMetricsReturned,
                             Boolean dispatcherEnableDefaultValidation,
                             Boolean dispatcherTrimString,
@@ -195,6 +200,10 @@ public class JudoDefaultModule extends AbstractModule {
                     .rdbmsDaoMaximumRecursionCount(rdbmsDaoMaximumRecursionCount)
                     .actorResolverCheckMappedActors(actorResolverCheckMappedActors)
                     .actorResolverAcceptableClients(actorResolverAcceptableClients)
+                    .actorResolverPrincipalLocaleAttribute(actorResolverPrincipalLocaleAttribute)
+                    .actorResolverSupportedLanguages(actorResolverSupportedLanguages)
+                    .actorResolverDefaultLanguage(actorResolverDefaultLanguage)
+                    .actorResolverBrowserLanguageCheck(actorResolverBrowserLanguageCheck)
                     .dispatcherMetricsReturned(dispatcherMetricsReturned)
                     .dispatcherEnableDefaultValidation(dispatcherEnableDefaultValidation)
                     .dispatcherTrimString(dispatcherTrimString)
@@ -274,6 +283,16 @@ public class JudoDefaultModule extends AbstractModule {
         if (configuration.getActorResolverAcceptableClients() != null) {
             bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverAcceptableClients.class).toInstance(configuration.getActorResolverAcceptableClients());
         }
+        if (configuration.getActorResolverPrincipalLocaleAttribute() != null) {
+            bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverPrincipalLocaleAttribute.class).toInstance(configuration.getActorResolverPrincipalLocaleAttribute());
+        }
+        if (configuration.getActorResolverSupportedLanguages() != null) {
+            bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverSupportedLanguages.class).toInstance(configuration.getActorResolverSupportedLanguages());
+        }
+        if (configuration.getActorResolverDefaultLanguage() != null) {
+            bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverDefaultLanguage.class).toInstance(configuration.getActorResolverDefaultLanguage());
+        }
+        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverBrowserLanguageCheck.class).toInstance(configuration.getActorResolverBrowserLanguageCheck() != null ? configuration.getActorResolverBrowserLanguageCheck() : Boolean.TRUE);
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class).toInstance(configuration.getDispatcherTrimString());
@@ -484,6 +503,10 @@ public class JudoDefaultModule extends AbstractModule {
         }
     }
 
+    protected void configureLocaleProvider() {
+        bind(LocaleProvider.class).toProvider(PrincipalLocaleProviderProvider.class).in(Singleton.class);
+    }
+
     protected void configurePlatformTransactionManager() {
         if (configuration.getPlatformTransactionManager() != null) {
             bind(PlatformTransactionManager.class).toInstance(configuration.getPlatformTransactionManager());
@@ -516,6 +539,7 @@ public class JudoDefaultModule extends AbstractModule {
         configureInstanceCollector();
         configureDAO();
         configureActorResolver();
+        configureLocaleProvider();
         configureDispatcherFunctionProvider();
         configureOperationCallInterceptorProvider();
         configureDispatcher();

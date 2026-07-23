@@ -29,6 +29,7 @@ import hu.blackbelt.judo.meta.keycloak.AttributeBinding;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.runtime.core.exception.AuthenticationRequiredException;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import hu.blackbelt.judo.runtime.core.security.RealmExtractor;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import lombok.Builder;
@@ -69,6 +70,7 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
 
     private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER = "Bearer";
+    private static final String ACCEPT_LANGUAGE = "Accept-Language";
 
     RealmExtractor realmExtractor;
 
@@ -93,13 +95,16 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
 
     private Map<String, String> clientToActorMap;
 
+    private boolean browserLanguageCheck;
+
     @Builder
     public KeycloakLoginInterceptor(
             @NonNull RealmExtractor realmExtractor,
             @NonNull AsmModel asmModel,
             @NonNull OpenIdConfigurationProvider openIdConfigurationProvider,
             @NonNull TransformationTraceService transformationTraceService,
-            Map<String, String> clientToActorMap) {
+            Map<String, String> clientToActorMap,
+            Boolean browserLanguageCheck) {
         super(Phase.UNMARSHAL);
         this.realmExtractor = realmExtractor;
         this.asmModel = asmModel;
@@ -107,6 +112,8 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
         this.transformationTraceService = transformationTraceService;
         this.authServerUrl = openIdConfigurationProvider.getServerUrl();
         this.clientToActorMap = clientToActorMap;
+        // Default-on: the browser Accept-Language hint is captured unless explicitly disabled.
+        this.browserLanguageCheck = browserLanguageCheck == null || browserLanguageCheck;
         asmUtils = new AsmUtils(asmModel.getResourceSet());
         keycloakDeploymentMap.clear();
     }
@@ -156,6 +163,10 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
                     }
                     final Map<String, Object> attributes = token.entrySet().stream()
                             .collect(Collectors.toMap(e -> mapping.containsKey(e.getKey()) ? mapping.get(e.getKey()).getName() : e.getKey(), e -> e.getValue()));
+
+                    // Capture the request Accept-Language header (gated) so the login-time locale
+                    // resolver can use it as the top precedence tier.
+                    captureAcceptLanguage(attributes, request, browserLanguageCheck);
 
                     final String resolvedClient = resolveClient(accessToken.getIssuedFor());
 
@@ -213,5 +224,23 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
 
     private static String convertClientToActorName(final String clientName) {
         return clientName != null ? clientName.replaceAll("-", ".").trim() : null;
+    }
+
+    /**
+     * Stash the raw {@code Accept-Language} header into the principal attributes under
+     * {@link PrincipalLocaleResolver#ACCEPT_LANGUAGE_ATTRIBUTE} when the browser-language gate is on
+     * and a non-blank header is present. No-op otherwise (gate off, null request, missing/blank
+     * header). Package-visible for unit testing.
+     */
+    static void captureAcceptLanguage(final Map<String, Object> attributes,
+                                      final HttpServletRequest request,
+                                      final boolean browserLanguageCheck) {
+        if (!browserLanguageCheck || request == null) {
+            return;
+        }
+        final String header = request.getHeader(ACCEPT_LANGUAGE);
+        if (header != null && !header.trim().isEmpty()) {
+            attributes.put(PrincipalLocaleResolver.ACCEPT_LANGUAGE_ATTRIBUTE, header);
+        }
     }
 }

@@ -46,6 +46,14 @@ public final class PrincipalLocaleResolver {
 
     private static final String FALLBACK_DEFAULT = "en-US";
 
+    /**
+     * Principal-attribute key under which the raw request {@code Accept-Language} header is stashed
+     * by the authentication interceptor (when {@code browserLanguageCheck} is enabled) so it can be
+     * consumed by the login-time locale refresh. The double-underscore prefix marks it as a
+     * runtime-internal attribute that never collides with a Keycloak claim attribute name.
+     */
+    public static final String ACCEPT_LANGUAGE_ATTRIBUTE = "__acceptLanguage";
+
     private PrincipalLocaleResolver() {
     }
 
@@ -113,6 +121,20 @@ public final class PrincipalLocaleResolver {
             return defaultLanguage.trim();
         }
         return FALLBACK_DEFAULT;
+    }
+
+    /**
+     * Filter a candidate (a single tag or a quality-ordered {@code Accept-Language} list) against the
+     * supported set using RFC-4647 filtering, returning the best-matching supported tag or
+     * {@code null} when the candidate is blank, unparseable, or matches nothing. This is the browser
+     * tier in isolation (no terminal default) — used for request-scoped anonymous resolution.
+     *
+     * @param candidate          a single BCP-47 tag or a quality-ordered {@code Accept-Language} list
+     * @param supportedLanguages set of offered BCP-47 tags
+     * @return the best-matching supported tag, or {@code null} if none matches
+     */
+    public static String matchSupportedLanguage(final String candidate, final Set<String> supportedLanguages) {
+        return matchAgainstSupported(candidate, supportedLanguages == null ? Collections.emptySet() : supportedLanguages);
     }
 
     /**

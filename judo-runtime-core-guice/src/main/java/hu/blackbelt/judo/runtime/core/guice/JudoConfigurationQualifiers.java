@@ -49,6 +49,30 @@ public class JudoConfigurationQualifiers {
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
     @BindingAnnotation
+    public @interface ActorResolverPrincipalLocaleAttribute {}
+
+    @Qualifier
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
+    public @interface ActorResolverSupportedLanguages {}
+
+    @Qualifier
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
+    public @interface ActorResolverDefaultLanguage {}
+
+    @Qualifier
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
+    public @interface ActorResolverBrowserLanguageCheck {}
+
+    @Qualifier
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface DispatcherMetricsReturned {}
 
     @Qualifier

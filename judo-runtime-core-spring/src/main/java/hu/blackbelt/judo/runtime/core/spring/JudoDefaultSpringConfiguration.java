@@ -58,6 +58,8 @@ import hu.blackbelt.judo.runtime.core.validator.DefaultValidatorProvider;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
+import hu.blackbelt.osgi.i18n.api.LocaleProvider;
+import org.springframework.beans.factory.annotation.Value;
 import hu.blackbelt.judo.tatami.core.TransformationTraceServiceImpl;
 import hu.blackbelt.mapper.api.Coercer;
 import hu.blackbelt.osgi.filestore.security.api.TokenIssuer;
@@ -291,17 +293,34 @@ public class JudoDefaultSpringConfiguration {
     @Bean
     @SuppressWarnings("unchecked")
     public ActorResolver getActorResolver(
-            DAO dao
+            DAO dao,
+            @Value("${judo.platform.checkMappedActors:false}") Boolean checkMappedActors,
+            @Value("${judo.platform.principalLocaleAttribute:}") String principalLocaleAttribute,
+            @Value("${judo.platform.supportedLanguages:}") String supportedLanguages,
+            @Value("${judo.platform.defaultLanguage:}") String defaultLanguage,
+            @Value("${judo.platform.browserLanguageCheck:true}") Boolean browserLanguageCheck
     ) {
-        // TODO: Map parameter
-        Boolean checkMappedActors = false;
         return DefaultActorResolver.builder()
                 .dataTypeManager(dataTypeManager)
                 .dao(dao)
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
                 .authenticationInterceptorProvider(authenticationInterceptorProvider)
+                .identifierProvider(identifierProvider)
+                .principalLocaleAttribute(principalLocaleAttribute)
+                .supportedLanguages(supportedLanguages)
+                .defaultLanguage(defaultLanguage)
+                .browserLanguageCheck(browserLanguageCheck)
                 .build();
+    }
+
+    @Bean
+    public LocaleProvider getLocaleProvider(
+            @Value("${judo.platform.principalLocaleAttribute:}") String principalLocaleAttribute,
+            @Value("${judo.platform.supportedLanguages:}") String supportedLanguages,
+            @Value("${judo.platform.defaultLanguage:}") String defaultLanguage
+    ) {
+        return new PrincipalLocaleProvider(context, principalLocaleAttribute, supportedLanguages, defaultLanguage);
     }
 
     @Autowired(required = false)

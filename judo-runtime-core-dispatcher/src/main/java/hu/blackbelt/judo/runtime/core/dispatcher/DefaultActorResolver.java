@@ -21,6 +21,7 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
  */
 
 import hu.blackbelt.judo.dao.api.DAO;
+import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.dao.api.ValidationResult;
 import hu.blackbelt.judo.dispatcher.api.Dispatcher;
@@ -32,6 +33,7 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationIntercepto
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.QueryCustomizerParameterProcessor;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import lombok.Builder;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +46,7 @@ import java.math.BigInteger;
 import java.security.Principal;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static hu.blackbelt.judo.meta.asm.runtime.AsmUtils.*;
@@ -63,6 +66,18 @@ public class DefaultActorResolver implements ActorResolver {
 
     AuthenticationInterceptorProvider authenticationInterceptorProvider;
 
+    private IdentifierProvider identifierProvider;
+
+    private String principalLocaleAttribute;
+
+    private Set<String> supportedLanguages;
+
+    private String defaultLanguage;
+
+    private boolean browserLanguageCheck;
+
+    /** Actor types already warned about a non-persistable locale attribute (one WARN per type). */
+    private final Set<String> localeRefreshWarned = ConcurrentHashMap.newKeySet();
 
     @Builder
     public DefaultActorResolver(
@@ -70,13 +85,24 @@ public class DefaultActorResolver implements ActorResolver {
             @NonNull DAO dao,
             @NonNull AsmModel asmModel,
             AuthenticationInterceptorProvider authenticationInterceptorProvider,
-            Boolean checkMappedActors) {
+            Boolean checkMappedActors,
+            IdentifierProvider identifierProvider,
+            String principalLocaleAttribute,
+            String supportedLanguages,
+            String defaultLanguage,
+            Boolean browserLanguageCheck) {
         this.dataTypeManager = dataTypeManager;
         this.dao = dao;
         this.asmModel = asmModel;
         this.checkMappedActors = checkMappedActors == null ? false : checkMappedActors;
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.authenticationInterceptorProvider = authenticationInterceptorProvider;
+        this.identifierProvider = identifierProvider;
+        this.principalLocaleAttribute = principalLocaleAttribute;
+        this.supportedLanguages = PrincipalLocaleResolver.parseSupportedLanguages(supportedLanguages);
+        this.defaultLanguage = defaultLanguage;
+        // Default-on: browser Accept-Language hint is the top precedence tier unless disabled.
+        this.browserLanguageCheck = browserLanguageCheck == null || browserLanguageCheck;
     }
 
     @Override
@@ -216,6 +242,100 @@ public class DefaultActorResolver implements ActorResolver {
                 .filter(e -> actorType.getEAllAttributes().stream().anyMatch(a -> Objects.equals(a.getName(), e.getKey()) && annotatedAsTrue(a, "transient")))
                 .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue())));
 
+        // JNG-6415: resolve and persist the principal's effective locale (feature-gated).
+        refreshActorLocale(actorType, result, claims);
+
         return result;
+    }
+
+    /**
+     * Resolve the principal's effective locale and, when it differs from the stored value, persist it
+     * via {@code dao.update}. Feature-gated on a non-blank {@code principalLocaleAttribute}. This is
+     * the thin ASM-model introspection glue: it determines whether the locale attribute is a mapped,
+     * non-transient (persistable) attribute (D3a), extracts the candidate values, then delegates the
+     * pure decision to {@link #computeLocaleRefresh} and the safe write to {@link #applyLocaleRefresh}.
+     */
+    void refreshActorLocale(final EClass actorType, final Payload result, final Map<String, Object> claims) {
+        if (principalLocaleAttribute == null || principalLocaleAttribute.trim().isEmpty()) {
+            return;
+        }
+        if (identifierProvider == null) {
+            return;
+        }
+
+        final Optional<EAttribute> localeAttribute = actorType.getEAllAttributes().stream()
+                .filter(a -> Objects.equals(a.getName(), principalLocaleAttribute))
+                .findAny();
+        final boolean persistable = localeAttribute.isPresent()
+                && asmUtils.getMappedAttribute(localeAttribute.get()).isPresent()
+                && !annotatedAsTrue(localeAttribute.get(), "transient");
+        if (!persistable && localeRefreshWarned.add(getClassifierFQName(actorType))) {
+            log.warn("Principal locale attribute '{}' is not a mapped, persistable attribute on actor '{}' "
+                            + "- locale will not be persisted (falling back to default language)",
+                    principalLocaleAttribute, getClassifierFQName(actorType));
+        }
+
+        final String idKey = identifierProvider.getName();
+        final Object id = result.get(idKey);
+        final String storedLocale = asString(result.get(principalLocaleAttribute));
+        final String claimLocale = asString(claims.get(principalLocaleAttribute));
+        final String browserHint = asString(claims.get(PrincipalLocaleResolver.ACCEPT_LANGUAGE_ATTRIBUTE));
+
+        final Payload update = computeLocaleRefresh(principalLocaleAttribute, persistable, idKey, id,
+                storedLocale, claimLocale, browserHint, defaultLanguage, supportedLanguages, browserLanguageCheck);
+        if (update != null) {
+            // Reflect the resolved value into the in-request actor payload so the LocaleProvider and
+            // getPrincipal() see it immediately, not only after the next login.
+            result.put(principalLocaleAttribute, update.get(principalLocaleAttribute));
+        }
+        applyLocaleRefresh(dao, actorType, update);
+    }
+
+    private static String asString(final Object value) {
+        return value == null ? null : value.toString();
+    }
+
+    /**
+     * Pure decision: resolve the effective locale and return the update payload when it must be
+     * written, or {@code null} when no write is needed. A write is skipped when the attribute is
+     * blank, the attribute is not persistable, or the resolved locale already equals the stored value.
+     * Package-visible for unit testing.
+     */
+    static Payload computeLocaleRefresh(final String principalLocaleAttribute,
+                                        final boolean persistable,
+                                        final String idKey,
+                                        final Object id,
+                                        final String storedLocale,
+                                        final String claimLocale,
+                                        final String browserHint,
+                                        final String defaultLanguage,
+                                        final Set<String> supportedLanguages,
+                                        final boolean browserLanguageCheck) {
+        if (principalLocaleAttribute == null || principalLocaleAttribute.trim().isEmpty() || !persistable) {
+            return null;
+        }
+        final String resolved = PrincipalLocaleResolver.resolve(
+                browserHint, claimLocale, storedLocale, defaultLanguage, supportedLanguages, browserLanguageCheck);
+        if (Objects.equals(resolved, storedLocale)) {
+            return null;
+        }
+        return Payload.map(idKey, id, principalLocaleAttribute, resolved);
+    }
+
+    /**
+     * Safely apply the locale-refresh update. A {@code null} update is a no-op; any failure of
+     * {@code dao.update} is caught and logged at WARN so a failed refresh never breaks authentication.
+     * Package-visible for unit testing.
+     */
+    static void applyLocaleRefresh(final DAO dao, final EClass actorType, final Payload update) {
+        if (update == null) {
+            return;
+        }
+        try {
+            dao.update(actorType, update, null);
+        } catch (final RuntimeException e) {
+            log.warn("Principal locale refresh failed for actor '{}': {}",
+                    actorType.getName(), e.toString());
+        }
     }
 }
