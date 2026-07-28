@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.guice.dispatcher;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.dao.api.DAO;
+import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
@@ -52,6 +53,30 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     @Nullable
     Boolean checkMappedActors = false;
 
+    @Inject(optional = true)
+    @Nullable
+    IdentifierProvider identifierProvider;
+
+    @Inject(optional = true)
+    @JudoConfigurationQualifiers.ActorResolverPrincipalLocaleAttribute
+    @Nullable
+    String principalLocaleAttribute = null;
+
+    @Inject(optional = true)
+    @JudoConfigurationQualifiers.ActorResolverSupportedLanguages
+    @Nullable
+    String supportedLanguages = null;
+
+    @Inject(optional = true)
+    @JudoConfigurationQualifiers.ActorResolverDefaultLanguage
+    @Nullable
+    String defaultLanguage = null;
+
+    @Inject(optional = true)
+    @JudoConfigurationQualifiers.ActorResolverBrowserLanguageCheck
+    @Nullable
+    Boolean browserLanguageCheck = true;
+
     @SuppressWarnings("unchecked")
     @Override
     public ActorResolver get() {
@@ -61,6 +86,11 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
                 .authenticationInterceptorProvider(authenticationInterceptorProvider)
+                .identifierProvider(identifierProvider)
+                .principalLocaleAttribute(principalLocaleAttribute)
+                .supportedLanguages(supportedLanguages)
+                .defaultLanguage(defaultLanguage)
+                .browserLanguageCheck(browserLanguageCheck)
                 .build();
     }
 }
