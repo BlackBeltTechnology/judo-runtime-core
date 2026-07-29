@@ -63,6 +63,14 @@ public class JudoDefaultModuleConfiguration {
     @Builder.Default
     String actorResolverAcceptableClients = null;
     @Builder.Default
+    String actorResolverPrincipalLocaleAttribute = null;
+    @Builder.Default
+    String actorResolverSupportedLanguages = null;
+    @Builder.Default
+    String actorResolverDefaultLanguage = null;
+    @Builder.Default
+    Boolean actorResolverBrowserLanguageCheck = true;
+    @Builder.Default
     Boolean dispatcherMetricsReturned = false;
     @Builder.Default
     Boolean dispatcherEnableDefaultValidation = true;
