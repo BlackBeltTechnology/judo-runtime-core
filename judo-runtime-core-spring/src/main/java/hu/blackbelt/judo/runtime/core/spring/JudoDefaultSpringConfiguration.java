@@ -58,6 +58,7 @@ import hu.blackbelt.judo.runtime.core.validator.DefaultValidatorProvider;
 import hu.blackbelt.judo.runtime.core.validator.ValidatorProvider;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import hu.blackbelt.osgi.i18n.api.LocaleProvider;
 import org.springframework.beans.factory.annotation.Value;
 import hu.blackbelt.judo.tatami.core.TransformationTraceServiceImpl;
@@ -290,23 +291,20 @@ public class JudoDefaultSpringConfiguration {
         return transformationTraceService;
     }
 
+    /**
+     * JNG-6415 locale settings grouped by the {@code consolidate-locale-config-object} change into
+     * a single value object. The four {@code judo.platform.*} property names and defaults are
+     * unchanged; only the internal wiring collapses — both {@code ActorResolver} and
+     * {@code LocaleProvider} take this bean instead of duplicating {@code @Value} parameters.
+     */
     @Bean
-    @SuppressWarnings("unchecked")
-    public ActorResolver getActorResolver(
-            DAO dao,
-            @Value("${judo.platform.checkMappedActors:false}") Boolean checkMappedActors,
+    public PrincipalLocaleConfig getPrincipalLocaleConfig(
             @Value("${judo.platform.principalLocaleAttribute:}") String principalLocaleAttribute,
             @Value("${judo.platform.supportedLanguages:}") String supportedLanguages,
             @Value("${judo.platform.defaultLanguage:}") String defaultLanguage,
             @Value("${judo.platform.browserLanguageCheck:true}") Boolean browserLanguageCheck
     ) {
-        return DefaultActorResolver.builder()
-                .dataTypeManager(dataTypeManager)
-                .dao(dao)
-                .asmModel(asmModel)
-                .checkMappedActors(checkMappedActors)
-                .authenticationInterceptorProvider(authenticationInterceptorProvider)
-                .identifierProvider(identifierProvider)
+        return PrincipalLocaleConfig.builder()
                 .principalLocaleAttribute(principalLocaleAttribute)
                 .supportedLanguages(supportedLanguages)
                 .defaultLanguage(defaultLanguage)
@@ -315,12 +313,26 @@ public class JudoDefaultSpringConfiguration {
     }
 
     @Bean
-    public LocaleProvider getLocaleProvider(
-            @Value("${judo.platform.principalLocaleAttribute:}") String principalLocaleAttribute,
-            @Value("${judo.platform.supportedLanguages:}") String supportedLanguages,
-            @Value("${judo.platform.defaultLanguage:}") String defaultLanguage
+    @SuppressWarnings("unchecked")
+    public ActorResolver getActorResolver(
+            DAO dao,
+            @Value("${judo.platform.checkMappedActors:false}") Boolean checkMappedActors,
+            PrincipalLocaleConfig localeConfig
     ) {
-        return new PrincipalLocaleProvider(context, principalLocaleAttribute, supportedLanguages, defaultLanguage);
+        return DefaultActorResolver.builder()
+                .dataTypeManager(dataTypeManager)
+                .dao(dao)
+                .asmModel(asmModel)
+                .checkMappedActors(checkMappedActors)
+                .authenticationInterceptorProvider(authenticationInterceptorProvider)
+                .identifierProvider(identifierProvider)
+                .localeConfig(localeConfig)
+                .build();
+    }
+
+    @Bean
+    public LocaleProvider getLocaleProvider(PrincipalLocaleConfig localeConfig) {
+        return new PrincipalLocaleProvider(context, localeConfig);
     }
 
     @Autowired(required = false)

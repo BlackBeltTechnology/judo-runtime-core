@@ -33,6 +33,7 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationIntercepto
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.QueryCustomizerParameterProcessor;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import lombok.Builder;
 import lombok.NonNull;
@@ -68,13 +69,15 @@ public class DefaultActorResolver implements ActorResolver {
 
     private IdentifierProvider identifierProvider;
 
-    private String principalLocaleAttribute;
-
-    private Set<String> supportedLanguages;
-
-    private String defaultLanguage;
-
-    private boolean browserLanguageCheck;
+    /**
+     * JNG-6415 locale-configuration bundle ({@code principalLocaleAttribute},
+     * {@code supportedLanguages}, {@code defaultLanguage}, {@code browserLanguageCheck}) — grouped
+     * into a single value object by the {@code consolidate-locale-config-object} change to remove
+     * the four-way scalar duplication across Guice qualifiers, Guice module bindings, and Spring
+     * {@code @Value} sites. Null when the feature is not configured (behaviour identical to
+     * pre-refactor null-attribute).
+     */
+    private PrincipalLocaleConfig localeConfig;
 
     /** Actor types already warned about a non-persistable locale attribute (one WARN per type). */
     private final Set<String> localeRefreshWarned = ConcurrentHashMap.newKeySet();
@@ -87,10 +90,7 @@ public class DefaultActorResolver implements ActorResolver {
             AuthenticationInterceptorProvider authenticationInterceptorProvider,
             Boolean checkMappedActors,
             IdentifierProvider identifierProvider,
-            String principalLocaleAttribute,
-            String supportedLanguages,
-            String defaultLanguage,
-            Boolean browserLanguageCheck) {
+            PrincipalLocaleConfig localeConfig) {
         this.dataTypeManager = dataTypeManager;
         this.dao = dao;
         this.asmModel = asmModel;
@@ -98,11 +98,7 @@ public class DefaultActorResolver implements ActorResolver {
         this.asmUtils = new AsmUtils(asmModel.getResourceSet());
         this.authenticationInterceptorProvider = authenticationInterceptorProvider;
         this.identifierProvider = identifierProvider;
-        this.principalLocaleAttribute = principalLocaleAttribute;
-        this.supportedLanguages = PrincipalLocaleResolver.parseSupportedLanguages(supportedLanguages);
-        this.defaultLanguage = defaultLanguage;
-        // Default-on: browser Accept-Language hint is the top precedence tier unless disabled.
-        this.browserLanguageCheck = browserLanguageCheck == null || browserLanguageCheck;
+        this.localeConfig = localeConfig;
     }
 
     @Override
@@ -256,12 +252,13 @@ public class DefaultActorResolver implements ActorResolver {
      * pure decision to {@link #computeLocaleRefresh} and the safe write to {@link #applyLocaleRefresh}.
      */
     void refreshActorLocale(final EClass actorType, final Payload result, final Map<String, Object> claims) {
-        if (principalLocaleAttribute == null || principalLocaleAttribute.trim().isEmpty()) {
+        if (localeConfig == null || !localeConfig.isEnabled()) {
             return;
         }
         if (identifierProvider == null) {
             return;
         }
+        final String principalLocaleAttribute = localeConfig.getPrincipalLocaleAttribute();
 
         final Optional<EAttribute> localeAttribute = actorType.getEAllAttributes().stream()
                 .filter(a -> Objects.equals(a.getName(), principalLocaleAttribute))
@@ -281,8 +278,8 @@ public class DefaultActorResolver implements ActorResolver {
         final String claimLocale = asString(claims.get(principalLocaleAttribute));
         final String browserHint = asString(claims.get(PrincipalLocaleResolver.ACCEPT_LANGUAGE_ATTRIBUTE));
 
-        final Payload update = computeLocaleRefresh(principalLocaleAttribute, persistable, idKey, id,
-                storedLocale, claimLocale, browserHint, defaultLanguage, supportedLanguages, browserLanguageCheck);
+        final Payload update = computeLocaleRefresh(localeConfig, persistable, idKey, id,
+                storedLocale, claimLocale, browserHint);
         if (update != null) {
             // Reflect the resolved value into the in-request actor payload so the LocaleProvider and
             // getPrincipal() see it immediately, not only after the next login.
@@ -297,29 +294,35 @@ public class DefaultActorResolver implements ActorResolver {
 
     /**
      * Pure decision: resolve the effective locale and return the update payload when it must be
-     * written, or {@code null} when no write is needed. A write is skipped when the attribute is
-     * blank, the attribute is not persistable, or the resolved locale already equals the stored value.
-     * Package-visible for unit testing.
+     * written, or {@code null} when no write is needed. A write is skipped when the config is
+     * absent/disabled, the attribute is not persistable, or the resolved locale already equals the
+     * stored value. Package-visible for unit testing.
+     *
+     * <p>Signature simplified by the {@code consolidate-locale-config-object} change: the four
+     * scalar locale settings that lived on this method as arguments are now delivered as a single
+     * {@link PrincipalLocaleConfig}.
      */
-    static Payload computeLocaleRefresh(final String principalLocaleAttribute,
+    static Payload computeLocaleRefresh(final PrincipalLocaleConfig config,
                                         final boolean persistable,
                                         final String idKey,
                                         final Object id,
                                         final String storedLocale,
                                         final String claimLocale,
-                                        final String browserHint,
-                                        final String defaultLanguage,
-                                        final Set<String> supportedLanguages,
-                                        final boolean browserLanguageCheck) {
-        if (principalLocaleAttribute == null || principalLocaleAttribute.trim().isEmpty() || !persistable) {
+                                        final String browserHint) {
+        if (config == null || !config.isEnabled() || !persistable) {
             return null;
         }
+        // browserLanguageCheck is Boolean via @Builder.Default; treat null as the default-on TRUE
+        // to preserve pre-refactor semantics.
+        final boolean browserLanguageCheck = config.getBrowserLanguageCheck() == null
+                || config.getBrowserLanguageCheck();
         final String resolved = PrincipalLocaleResolver.resolve(
-                browserHint, claimLocale, storedLocale, defaultLanguage, supportedLanguages, browserLanguageCheck);
+                browserHint, claimLocale, storedLocale, config.getDefaultLanguage(),
+                config.getParsedSupportedLanguages(), browserLanguageCheck);
         if (Objects.equals(resolved, storedLocale)) {
             return null;
         }
-        return Payload.map(idKey, id, principalLocaleAttribute, resolved);
+        return Payload.map(idKey, id, config.getPrincipalLocaleAttribute(), resolved);
     }
 
     /**

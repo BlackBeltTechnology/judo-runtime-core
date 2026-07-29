@@ -47,6 +47,7 @@ import hu.blackbelt.judo.runtime.core.guice.core.ExtendableCoercererProvider;
 import hu.blackbelt.judo.runtime.core.guice.core.UUIDIdentifierProviderProvider;
 import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.*;
 import hu.blackbelt.judo.runtime.core.guice.dispatcher.*;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import hu.blackbelt.osgi.i18n.api.LocaleProvider;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
@@ -283,16 +284,16 @@ public class JudoDefaultModule extends AbstractModule {
         if (configuration.getActorResolverAcceptableClients() != null) {
             bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverAcceptableClients.class).toInstance(configuration.getActorResolverAcceptableClients());
         }
-        if (configuration.getActorResolverPrincipalLocaleAttribute() != null) {
-            bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverPrincipalLocaleAttribute.class).toInstance(configuration.getActorResolverPrincipalLocaleAttribute());
-        }
-        if (configuration.getActorResolverSupportedLanguages() != null) {
-            bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverSupportedLanguages.class).toInstance(configuration.getActorResolverSupportedLanguages());
-        }
-        if (configuration.getActorResolverDefaultLanguage() != null) {
-            bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverDefaultLanguage.class).toInstance(configuration.getActorResolverDefaultLanguage());
-        }
-        bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverBrowserLanguageCheck.class).toInstance(configuration.getActorResolverBrowserLanguageCheck() != null ? configuration.getActorResolverBrowserLanguageCheck() : Boolean.TRUE);
+        // JNG-6415 locale settings, grouped into a single value object by the
+        // consolidate-locale-config-object change so the four scalars are wired once (not 4 times)
+        // and reach both DefaultActorResolver and PrincipalLocaleProvider through one binding.
+        bind(PrincipalLocaleConfig.class).toInstance(PrincipalLocaleConfig.builder()
+                .principalLocaleAttribute(configuration.getActorResolverPrincipalLocaleAttribute())
+                .supportedLanguages(configuration.getActorResolverSupportedLanguages())
+                .defaultLanguage(configuration.getActorResolverDefaultLanguage())
+                .browserLanguageCheck(configuration.getActorResolverBrowserLanguageCheck() != null
+                        ? configuration.getActorResolverBrowserLanguageCheck() : Boolean.TRUE)
+                .build());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class).toInstance(configuration.getDispatcherTrimString());

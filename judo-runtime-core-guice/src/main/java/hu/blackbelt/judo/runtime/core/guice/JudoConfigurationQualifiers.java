@@ -45,29 +45,10 @@ public class JudoConfigurationQualifiers {
     @BindingAnnotation
     public @interface ActorResolverAcceptableClients {}
 
-    @Qualifier
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
-    @BindingAnnotation
-    public @interface ActorResolverPrincipalLocaleAttribute {}
-
-    @Qualifier
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
-    @BindingAnnotation
-    public @interface ActorResolverSupportedLanguages {}
-
-    @Qualifier
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
-    @BindingAnnotation
-    public @interface ActorResolverDefaultLanguage {}
-
-    @Qualifier
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
-    @BindingAnnotation
-    public @interface ActorResolverBrowserLanguageCheck {}
+    // JNG-6415 locale qualifiers (ActorResolverPrincipalLocaleAttribute, ActorResolverSupportedLanguages,
+    // ActorResolverDefaultLanguage, ActorResolverBrowserLanguageCheck) were removed by the
+    // consolidate-locale-config-object change — the four settings are now delivered as a single
+    // PrincipalLocaleConfig binding.
 
     @Qualifier
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })

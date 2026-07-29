@@ -24,7 +24,7 @@ import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.dispatcher.api.Context;
 import hu.blackbelt.judo.runtime.core.dispatcher.environment.PrincipalLocaleProvider;
-import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import hu.blackbelt.osgi.i18n.api.LocaleProvider;
 
 import javax.annotation.Nullable;
@@ -34,23 +34,18 @@ public class PrincipalLocaleProviderProvider implements Provider<LocaleProvider>
     @Inject
     Context context;
 
+    /**
+     * JNG-6415 locale settings grouped by the {@code consolidate-locale-config-object} change.
+     * When absent (feature unconfigured), the {@code PrincipalLocaleProvider} ctor substitutes an
+     * empty {@link PrincipalLocaleConfig}, preserving the pre-refactor "attribute null ⇒ feature
+     * off" path.
+     */
     @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverPrincipalLocaleAttribute
     @Nullable
-    String principalLocaleAttribute = null;
-
-    @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverSupportedLanguages
-    @Nullable
-    String supportedLanguages = null;
-
-    @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverDefaultLanguage
-    @Nullable
-    String defaultLanguage = null;
+    PrincipalLocaleConfig localeConfig;
 
     @Override
     public LocaleProvider get() {
-        return new PrincipalLocaleProvider(context, principalLocaleAttribute, supportedLanguages, defaultLanguage);
+        return new PrincipalLocaleProvider(context, localeConfig);
     }
 }

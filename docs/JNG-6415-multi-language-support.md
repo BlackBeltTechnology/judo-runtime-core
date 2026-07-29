@@ -71,9 +71,22 @@ next tier is consulted. The order is fixed — there is no reorder knob (design 
 | Class | Module | Role |
 |---|---|---|
 | `PrincipalLocaleResolver` | security | Pure helper: `parseSupportedLanguages(csv)` + `resolve(browser, claim, stored, default, supported, browserGate)`. RFC-4647 filtering, fixed tier walk. Also defines `ACCEPT_LANGUAGE_ATTRIBUTE = "__acceptLanguage"`. |
+| `PrincipalLocaleConfig` | security | Immutable value object grouping the four locale settings into one bundle carried through the runtime's Guice/Spring wiring. `@Value @Builder`, memoized `getParsedSupportedLanguages()`, `isEnabled()` gate. |
 | `KeycloakLoginInterceptor` | security-keycloak-cxf | Captures the request `Accept-Language` header into `attributes["__acceptLanguage"]` when `browserLanguageCheck=true` (new `captureAcceptLanguage(...)` helper). |
-| `DefaultActorResolver` | dispatcher | `refreshActorLocale(...)` glue in `getActorByClaims`; pure `computeLocaleRefresh(...)` decision; safe `applyLocaleRefresh(...)` write (try/catch WARN). D3a mapped-attribute check with one WARN per actor type. |
-| `PrincipalLocaleProvider` | dispatcher | `implements LocaleProvider`; cheap O(1) read of the resolved locale from the request `Context` (`ACTOR_KEY` then `PRINCIPAL_KEY`), fallback to `defaultLanguage`. Bound in Guice + Spring. |
+| `DefaultActorResolver` | dispatcher | `refreshActorLocale(...)` glue in `getActorByClaims`; pure `computeLocaleRefresh(...)` decision; safe `applyLocaleRefresh(...)` write (try/catch WARN). D3a mapped-attribute check with one WARN per actor type. Takes a `PrincipalLocaleConfig` on the builder. |
+| `PrincipalLocaleProvider` | dispatcher | `implements LocaleProvider`; cheap O(1) read of the resolved locale from the request `Context` (`ACTOR_KEY` then `PRINCIPAL_KEY`), fallback to `defaultLanguage`. Takes a `PrincipalLocaleConfig` on the ctor. Bound in Guice + Spring. |
+
+### 5.a Configuration surface
+
+The four parameters in § 3 are exposed to the app **unchanged** — same env-var names, same
+`judo.platform.*` property names, same defaults, same `JudoDefaultModuleConfiguration.builder()`
+fields. Internally, since the `consolidate-locale-config-object` change, they flow through the
+runtime as a **single value object** (`PrincipalLocaleConfig`) rather than four independent scalar
+bindings. The four Guice `@BindingAnnotation` qualifiers that JNG-6415 originally introduced
+(`ActorResolver{PrincipalLocaleAttribute,SupportedLanguages,DefaultLanguage,BrowserLanguageCheck}`)
+have been **removed** — embedders no longer bind them individually; they configure the settings
+via `JudoDefaultModuleConfiguration` (Guice) or `judo.platform.*` properties (Spring) exactly as
+before, and a single `PrincipalLocaleConfig` binding is derived once per assembly.
 
 ## 6. Behavioural guarantees
 

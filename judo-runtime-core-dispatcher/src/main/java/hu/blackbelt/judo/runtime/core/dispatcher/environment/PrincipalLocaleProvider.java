@@ -26,13 +26,13 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.runtime.core.RequestLocaleHolder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import hu.blackbelt.osgi.i18n.api.LocaleProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Request-scoped {@link LocaleProvider} that surfaces the authenticated principal's effective locale
@@ -55,20 +55,18 @@ public class PrincipalLocaleProvider implements LocaleProvider {
 
     private final Context context;
 
-    private final String principalLocaleAttribute;
+    /**
+     * JNG-6415 locale configuration — grouped into a single value object by the
+     * {@code consolidate-locale-config-object} change. Never null: callers pass an empty
+     * {@code PrincipalLocaleConfig.builder().build()} when the feature is unconfigured (matches the
+     * pre-refactor "all three params null" state). {@link PrincipalLocaleConfig#getParsedSupportedLanguages()}
+     * memoizes the CSV split, so this provider (a singleton) no longer re-parses on every construction.
+     */
+    private final PrincipalLocaleConfig localeConfig;
 
-    private final Set<String> supportedLanguages;
-
-    private final String defaultLanguage;
-
-    public PrincipalLocaleProvider(final Context context,
-                                   final String principalLocaleAttribute,
-                                   final String supportedLanguages,
-                                   final String defaultLanguage) {
+    public PrincipalLocaleProvider(final Context context, final PrincipalLocaleConfig localeConfig) {
         this.context = context;
-        this.principalLocaleAttribute = principalLocaleAttribute;
-        this.supportedLanguages = PrincipalLocaleResolver.parseSupportedLanguages(supportedLanguages);
-        this.defaultLanguage = defaultLanguage;
+        this.localeConfig = localeConfig == null ? PrincipalLocaleConfig.builder().build() : localeConfig;
     }
 
     @Override
@@ -80,7 +78,7 @@ public class PrincipalLocaleProvider implements LocaleProvider {
         }
         // 2. A principal is bound but carries no usable locale -> default (unchanged JNG-6415 path).
         if (isPrincipalBound()) {
-            return Optional.ofNullable(toLocale(defaultLanguage));
+            return Optional.ofNullable(toLocale(localeConfig.getDefaultLanguage()));
         }
         // 3. Anonymous request: prefer an application-set request Locale (survives the dispatcher's
         //    per-operation context reset via the exchange copy), then the captured Accept-Language
@@ -94,7 +92,8 @@ public class PrincipalLocaleProvider implements LocaleProvider {
             }
             final String header = RequestLocaleHolder.getAcceptLanguage();
             if (header != null) {
-                final String match = PrincipalLocaleResolver.matchSupportedLanguage(header, supportedLanguages);
+                final String match = PrincipalLocaleResolver.matchSupportedLanguage(
+                        header, localeConfig.getParsedSupportedLanguages());
                 final Locale browserLocale = toLocale(match);
                 if (browserLocale != null) {
                     return Optional.of(browserLocale);
@@ -103,7 +102,7 @@ public class PrincipalLocaleProvider implements LocaleProvider {
         } catch (final RuntimeException e) {
             log.debug("Could not read anonymous request locale: {}", e.toString());
         }
-        return Optional.ofNullable(toLocale(defaultLanguage));
+        return Optional.ofNullable(toLocale(localeConfig.getDefaultLanguage()));
     }
 
     /**
@@ -129,9 +128,10 @@ public class PrincipalLocaleProvider implements LocaleProvider {
      * off (blank attribute), no principal is in scope, or anything goes wrong.
      */
     private String resolvePrincipalLocaleTag() {
-        if (context == null || principalLocaleAttribute == null || principalLocaleAttribute.trim().isEmpty()) {
+        if (context == null || !localeConfig.isEnabled()) {
             return null;
         }
+        final String principalLocaleAttribute = localeConfig.getPrincipalLocaleAttribute();
         try {
             final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
             if (actor != null) {

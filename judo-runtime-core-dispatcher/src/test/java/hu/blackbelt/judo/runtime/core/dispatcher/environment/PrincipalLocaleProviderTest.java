@@ -26,6 +26,7 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.runtime.core.RequestLocaleHolder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +53,11 @@ class PrincipalLocaleProviderTest {
     private static final String SUPPORTED = "en-US,hu-HU";
 
     private static PrincipalLocaleProvider provider(final Context context, final String attr, final String defaultLanguage) {
-        return new PrincipalLocaleProvider(context, attr, SUPPORTED, defaultLanguage);
+        return new PrincipalLocaleProvider(context, PrincipalLocaleConfig.builder()
+                .principalLocaleAttribute(attr)
+                .supportedLanguages(SUPPORTED)
+                .defaultLanguage(defaultLanguage)
+                .build());
     }
 
     private static Context contextWithActor(final String localeValue) {

@@ -22,13 +22,11 @@ package hu.blackbelt.judo.runtime.core.dispatcher;
 
 import hu.blackbelt.judo.dao.api.DAO;
 import hu.blackbelt.judo.dao.api.Payload;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import org.eclipse.emf.ecore.EClass;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -61,8 +59,14 @@ class DefaultActorResolverLocaleRefreshTest {
     private static final String ATTR = "locale";
     private static final String DEFAULT = "en-US";
 
-    private static Set<String> supported(final String... tags) {
-        return new LinkedHashSet<>(java.util.Arrays.asList(tags));
+    /** Convenience: config with the standard {en-US, hu-HU} supported set and the browser gate at {@code check}. */
+    private static PrincipalLocaleConfig cfg(final String attribute, final boolean browserCheck) {
+        return PrincipalLocaleConfig.builder()
+                .principalLocaleAttribute(attribute)
+                .supportedLanguages("en-US,hu-HU")
+                .defaultLanguage(DEFAULT)
+                .browserLanguageCheck(browserCheck)
+                .build();
     }
 
     @Nested
@@ -72,40 +76,35 @@ class DefaultActorResolverLocaleRefreshTest {
         @Test
         void blankAttributeReturnsNull() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    "  ", true, ID_KEY, "id-1", "en-US", "hu-HU", null,
-                    DEFAULT, supported("en-US", "hu-HU"), false);
+                    cfg("  ", false), true, ID_KEY, "id-1", "en-US", "hu-HU", null);
             assertThat(update, is(nullValue()));
         }
 
         @Test
         void nullAttributeReturnsNull() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    null, true, ID_KEY, "id-1", "en-US", "hu-HU", null,
-                    DEFAULT, supported("en-US", "hu-HU"), false);
+                    cfg(null, false), true, ID_KEY, "id-1", "en-US", "hu-HU", null);
             assertThat(update, is(nullValue()));
         }
 
         @Test
         void notPersistableReturnsNull() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, false, ID_KEY, "id-1", "en-US", "hu-HU", null,
-                    DEFAULT, supported("en-US", "hu-HU"), false);
+                    cfg(ATTR, false), false, ID_KEY, "id-1", "en-US", "hu-HU", null);
             assertThat(update, is(nullValue()));
         }
 
         @Test
         void resolvedEqualsStoredReturnsNull() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, true, ID_KEY, "id-1", "hu-HU", "hu-HU", null,
-                    DEFAULT, supported("en-US", "hu-HU"), false);
+                    cfg(ATTR, false), true, ID_KEY, "id-1", "hu-HU", "hu-HU", null);
             assertThat(update, is(nullValue()));
         }
 
         @Test
         void resolvedDiffersFromStoredReturnsUpdatePayload() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, true, ID_KEY, "id-1", "en-US", "hu-HU", null,
-                    DEFAULT, supported("en-US", "hu-HU"), false);
+                    cfg(ATTR, false), true, ID_KEY, "id-1", "en-US", "hu-HU", null);
             assertThat(update, is(notNullValue()));
             assertThat(update.get(ID_KEY), is(equalTo("id-1")));
             assertThat((String) update.get(ATTR), is(equalTo("hu-HU")));
@@ -114,8 +113,7 @@ class DefaultActorResolverLocaleRefreshTest {
         @Test
         void browserHintWinsWhenGateOn() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, true, ID_KEY, "id-1", "en-US", "en-US", "hu-HU",
-                    DEFAULT, supported("en-US", "hu-HU"), true);
+                    cfg(ATTR, true), true, ID_KEY, "id-1", "en-US", "en-US", "hu-HU");
             assertThat(update, is(notNullValue()));
             assertThat((String) update.get(ATTR), is(equalTo("hu-HU")));
         }
@@ -123,8 +121,7 @@ class DefaultActorResolverLocaleRefreshTest {
         @Test
         void browserHintIgnoredWhenGateOff() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, true, ID_KEY, "id-1", "en-US", "en-US", "hu-HU",
-                    DEFAULT, supported("en-US", "hu-HU"), false);
+                    cfg(ATTR, false), true, ID_KEY, "id-1", "en-US", "en-US", "hu-HU");
             // browser hint ignored, claim==stored==en-US → resolved en-US == stored → no update
             assertThat(update, is(nullValue()));
         }
@@ -133,16 +130,14 @@ class DefaultActorResolverLocaleRefreshTest {
         void storedTierUsedWhenBrowserAndClaimEmpty() {
             // resolved from stored hu-HU == stored → no update
             final Payload none = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, true, ID_KEY, "id-1", "hu-HU", null, null,
-                    DEFAULT, supported("en-US", "hu-HU"), true);
+                    cfg(ATTR, true), true, ID_KEY, "id-1", "hu-HU", null, null);
             assertThat(none, is(nullValue()));
         }
 
         @Test
         void firstLoginEmptyStoredSeedsFromClaim() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, true, ID_KEY, "id-1", null, "hu-HU", null,
-                    DEFAULT, supported("en-US", "hu-HU"), true);
+                    cfg(ATTR, true), true, ID_KEY, "id-1", null, "hu-HU", null);
             assertThat(update, is(notNullValue()));
             assertThat((String) update.get(ATTR), is(equalTo("hu-HU")));
         }
@@ -150,8 +145,7 @@ class DefaultActorResolverLocaleRefreshTest {
         @Test
         void unsupportedClaimFallsBackToDefaultAndSeedsWhenStoredEmpty() {
             final Payload update = DefaultActorResolver.computeLocaleRefresh(
-                    ATTR, true, ID_KEY, "id-1", null, "de-DE", null,
-                    DEFAULT, supported("en-US", "hu-HU"), true);
+                    cfg(ATTR, true), true, ID_KEY, "id-1", null, "de-DE", null);
             assertThat(update, is(notNullValue()));
             assertThat((String) update.get(ATTR), is(equalTo("en-US")));
         }

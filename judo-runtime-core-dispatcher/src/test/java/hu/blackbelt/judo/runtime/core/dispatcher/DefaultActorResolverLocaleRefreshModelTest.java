@@ -143,10 +143,12 @@ class DefaultActorResolverLocaleRefreshModelTest {
                 .dao(dao)
                 .asmModel(asmModel)
                 .identifierProvider(identifierProvider())
-                .principalLocaleAttribute(LOCALE_ATTR)
-                .supportedLanguages("en-US,hu-HU")
-                .defaultLanguage("en-US")
-                .browserLanguageCheck(true)
+                .localeConfig(hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig.builder()
+                        .principalLocaleAttribute(LOCALE_ATTR)
+                        .supportedLanguages("en-US,hu-HU")
+                        .defaultLanguage("en-US")
+                        .browserLanguageCheck(true)
+                        .build())
                 .build();
     }
 

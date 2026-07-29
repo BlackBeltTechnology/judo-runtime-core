@@ -30,6 +30,7 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationIntercepto
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 
 import javax.annotation.Nullable;
 
@@ -57,25 +58,14 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     @Nullable
     IdentifierProvider identifierProvider;
 
+    /**
+     * JNG-6415 locale settings grouped by the {@code consolidate-locale-config-object} change.
+     * Optional — absent binding means the feature is unconfigured, matching pre-refactor
+     * "all four scalars null" behaviour.
+     */
     @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverPrincipalLocaleAttribute
     @Nullable
-    String principalLocaleAttribute = null;
-
-    @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverSupportedLanguages
-    @Nullable
-    String supportedLanguages = null;
-
-    @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverDefaultLanguage
-    @Nullable
-    String defaultLanguage = null;
-
-    @Inject(optional = true)
-    @JudoConfigurationQualifiers.ActorResolverBrowserLanguageCheck
-    @Nullable
-    Boolean browserLanguageCheck = true;
+    PrincipalLocaleConfig localeConfig;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -87,10 +77,7 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
                 .checkMappedActors(checkMappedActors)
                 .authenticationInterceptorProvider(authenticationInterceptorProvider)
                 .identifierProvider(identifierProvider)
-                .principalLocaleAttribute(principalLocaleAttribute)
-                .supportedLanguages(supportedLanguages)
-                .defaultLanguage(defaultLanguage)
-                .browserLanguageCheck(browserLanguageCheck)
+                .localeConfig(localeConfig)
                 .build();
     }
 }
