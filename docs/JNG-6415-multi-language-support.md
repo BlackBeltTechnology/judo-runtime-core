@@ -17,14 +17,14 @@ for the design rationale (decisions D1–D7) see
 
 ## 1. What this feature does
 
-On **every backend message-formatting call**, when an authenticated principal is bound to the
-request, the runtime:
+On **every login**, when the authenticated user is **found in the JUDO database**, the runtime:
 
 1. Resolves the user's effective BCP-47 locale through a fixed precedence
    (**browser → claim → stored → default**), filtered against the deployment's declared
-   supported languages (RFC-4647 filtering) — **purely as a read** over the request-scoped
-   context. Nothing is written.
-2. **Surfaces** the resolved locale to backend message i18n through a runtime-bound
+   supported languages (RFC-4647 filtering).
+2. **Persists** the resolved value back to the user's mapped locale attribute via the existing
+   `DAO.update(...)` — but only when it differs from the stored value.
+3. **Surfaces** the resolved locale to backend message i18n through a runtime-bound
    `LocaleProvider`, closing the long-standing gap where `I18nServiceImpl`'s optional reference
    was unbound and backend messages always fell back to the configured / JVM locale.
 
@@ -34,9 +34,6 @@ no Keycloak write-back) and **off by default** — it activates only when
 
 ## 2. What this feature does NOT do
 
-- It does **not persist** the user's preferred language. There is no `DAO.update` call, no
-  mutation of the in-memory actor payload, and no Keycloak profile update. The stored locale is
-  read only. Persisting a user-selected language is a separate capability, tracked as a follow-up.
 - It does **not** produce translations. The German/Hungarian/etc. message strings come from
   `*_de.properties` / `*_hu.properties` ResourceBundle files on the backend classpath (generated
   per-application by tatami from the model) and from the frontend's own JSON i18n files. This
@@ -73,11 +70,11 @@ next tier is consulted. The order is fixed — there is no reorder knob (design 
 
 | Class | Module | Role |
 |---|---|---|
-| `PrincipalLocaleResolver` | security | Pure helper: `parseSupportedLanguages(csv)`, `resolve(browser, claim, stored, default, supported, browserGate)` (full walk with terminal default), and `matchSupportedLanguage(candidate, supported)` (single-tier RFC-4647 filter). Also defines `ACCEPT_LANGUAGE_ATTRIBUTE = "__acceptLanguage"`. |
+| `PrincipalLocaleResolver` | security | Pure helper: `parseSupportedLanguages(csv)` + `resolve(browser, claim, stored, default, supported, browserGate)`. RFC-4647 filtering, fixed tier walk. Also defines `ACCEPT_LANGUAGE_ATTRIBUTE = "__acceptLanguage"`. |
 | `PrincipalLocaleConfig` | security | Immutable value object grouping the four locale settings into one bundle carried through the runtime's Guice/Spring wiring. `@Value @Builder`, memoized `getParsedSupportedLanguages()`, `isEnabled()` gate. |
 | `KeycloakLoginInterceptor` | security-keycloak-cxf | Captures the request `Accept-Language` header into `attributes["__acceptLanguage"]` when `browserLanguageCheck=true` (new `captureAcceptLanguage(...)` helper). |
-| `DefaultActorResolver` | dispatcher | **Untouched by JNG-6415** — no locale fields, no builder params, no logic. Locale resolution happens at read time inside `PrincipalLocaleProvider`. |
-| `PrincipalLocaleProvider` | dispatcher | `implements LocaleProvider`. On each call, when a principal is bound, walks the tier order over the request-scoped `Context` (browser hint from `JudoPrincipal.attributes[__acceptLanguage]`, claim from `JudoPrincipal.attributes[localeAttr]`, stored value from `Context[ACTOR_KEY][localeAttr]`), falls back to `defaultLanguage`. When no principal is bound, handles the anonymous path (`LOCALE_KEY` → `RequestLocaleHolder` → default). Takes a `PrincipalLocaleConfig` on the ctor. Bound in Guice + Spring. |
+| `DefaultActorResolver` | dispatcher | `refreshActorLocale(...)` glue in `getActorByClaims`; pure `computeLocaleRefresh(...)` decision; safe `applyLocaleRefresh(...)` write (try/catch WARN). D3a mapped-attribute check with one WARN per actor type. Takes a `PrincipalLocaleConfig` on the builder. |
+| `PrincipalLocaleProvider` | dispatcher | `implements LocaleProvider`; cheap O(1) read of the resolved locale from the request `Context` (`ACTOR_KEY` then `PRINCIPAL_KEY`), fallback to `defaultLanguage`. Takes a `PrincipalLocaleConfig` on the ctor. Bound in Guice + Spring. |
 
 ### 5.a Configuration surface
 
@@ -93,26 +90,26 @@ before, and a single `PrincipalLocaleConfig` binding is derived once per assembl
 
 ## 6. Behavioural guarantees
 
-- **Backend is read-only.** No `DAO.update`, no mutation of the in-memory actor payload, no
-  Keycloak write-back. The stored locale is read; nothing is written back.
-- **Feature-off default:** with `principalLocaleAttribute` unset there is no header capture and
-  `PrincipalLocaleProvider` returns the default (identical to an unbound provider).
-- **Resolution never breaks anything:** the tier walk catches `RuntimeException` internally and
-  falls back to `defaultLanguage`; a malformed input at any tier is skipped, not fatal.
+- **Feature-off default:** with `principalLocaleAttribute` unset there is no header capture, no DB
+  refresh, and `PrincipalLocaleProvider` returns the default (identical to an unbound provider).
+- **Mapped-attribute requirement (D3a):** if `principalLocaleAttribute` does not name a mapped,
+  non-`transient` attribute, no write occurs, the effective locale falls back to `defaultLanguage`,
+  and a single WARN is logged per actor type. Authentication is unaffected.
+- **Refresh never breaks auth:** the `dao.update` is wrapped in try/catch(WARN); a failed write
+  returns the actor payload as if no refresh had been attempted.
 - **Browser tier is opt-out:** on by default; set `browserLanguageCheck=false` to disable both the
   header capture and the browser tier.
 
 ## 7. Design note — why `PrincipalLocaleProvider` reads from `Context`
 
-The original OpenSpec task proposed reading the locale via
+The OpenSpec task originally proposed reading the locale via
 `PrincipalVariableProvider.apply(principalLocaleAttribute)`. That call triggers a full
 `GET_PRINCIPAL` operation dispatch, and `I18nServiceImpl` invokes the locale supplier on **every
 message-key lookup** — so that path would be catastrophically expensive and risk recursion during
-error formatting. The implementation instead reads the three candidate inputs directly from the
-request-scoped `Context` (browser hint on principal attributes, OIDC claim on principal attributes,
-stored value on the loaded actor payload) and lets `PrincipalLocaleResolver` pick one against the
-supported set. Every operation is a cheap string op against an in-memory context; there is no DAO
-call, no dispatch, and no state to mutate.
+error formatting. The implementation instead reads the resolved locale directly from the
+request-scoped `Context` (the loaded actor payload, then the principal's token attributes), which is
+O(1) and side-effect-free. `DefaultActorResolver` writes the resolved value into the in-request
+actor payload so the provider (and `getPrincipal()`) reflect it immediately.
 
 ## 8. Configuration examples
 
@@ -137,22 +134,20 @@ JudoDefaultModuleConfiguration.builder()
 
 ## 9. Testing
 
-- `PrincipalLocaleResolverTest` (security) — 38 tests: CSV parsing, RFC-4647 filtering, tier order,
-  browser gate, fall-through, malformed/blank inputs, terminal default, referential transparency,
-  and the single-tier `matchSupportedLanguage` helper.
+- `PrincipalLocaleResolverTest` (security) — 30 tests: CSV parsing, RFC-4647 filtering, tier order,
+  browser gate, fall-through, malformed/blank inputs, terminal default, referential transparency.
 - `KeycloakLoginInterceptorAcceptLanguageTest` (security-keycloak-cxf) — 6 tests: gate on/off,
   header present/absent/blank, null request, raw-not-parsed.
-- `PrincipalLocaleProviderTest` (dispatcher) — 21 tests: authenticated tier walk (browser → claim
-  → stored → default, incl. `browserLanguageCheck=false` skips browser), unsupported stored value
-  falls through, feature-off, blank / malformed / underscored value, principal-only-no-actor,
-  anonymous path (`LOCALE_KEY` → `RequestLocaleHolder` → default), null-context safety, and a
-  regression guard asserting the actor payload is not mutated by resolution.
-- `JudoDefaultHsqldbModuleTest` — exercises full Guice injector creation including the
+- `DefaultActorResolverLocaleRefreshTest` (dispatcher) — 13 tests: decision (`computeLocaleRefresh`)
+  and safe write (`applyLocaleRefresh`), including update-throws-swallowed.
+- `PrincipalLocaleProviderTest` (dispatcher) — 8 tests: actor/principal source, default fallback,
+  malformed value, underscore form, empty-when-no-default, null-context safety.
+- `JudoDefaultHsqldbModuleTest` — exercises full Guice injector creation including the new
   `LocaleProvider` binding.
 
-The login-write test classes (`DefaultActorResolverLocaleRefreshTest`,
-`DefaultActorResolverLocaleRefreshModelTest`) were deleted along with the login-time refresh
-logic they covered.
+The ASM-model introspection glue in `refreshActorLocale` (exists/mapped/transient → `persistable`)
+uses `AsmUtils` instance methods that cannot be mocked; it is left for the real-model e2e / platform
+round.
 
 ## 10. Anonymous requests (OpenSpec change `add-anonymous-request-locale`)
 
@@ -183,9 +178,6 @@ backend message i18n, **with no persistence** (there is no user row to write to)
 
 ## 11. Deferred / follow-up
 
-- **Persistence of the user's preferred language.** A separate capability will handle writing the
-  resolved / user-selected locale back to the DB (or Keycloak), including the frontend surface
-  and read-after-write consistency across sessions. Explicitly out of scope for this change.
 - judo-platform OSGi wiring: `@AttributeDefinition`s for the four `JUDO_PLATFORM_*` env vars, PIDS
   entries in the dispatcher/security activator, and the OSGi `@Component` service registration of
   `PrincipalLocaleProvider` so it binds to `I18nServiceImpl`'s `@Reference` in OSGi runtimes.

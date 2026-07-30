@@ -31,28 +31,24 @@ import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import hu.blackbelt.osgi.i18n.api.LocaleProvider;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Collections;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * Request-scoped {@link LocaleProvider} that resolves the effective BCP-47 locale for backend
- * message i18n. The backend never mutates the user's stored preference — it only <em>reads</em>
- * the candidate inputs from the request-scoped {@link Context} and picks one per RFC-4647.
+ * Request-scoped {@link LocaleProvider} that surfaces the authenticated principal's effective locale
+ * (resolved and persisted at login by {@code DefaultActorResolver}) to backend message i18n.
  *
- * <p>Authenticated principal in scope: walks the tier order <b>browser</b> (Accept-Language
- * captured into principal attributes by the auth interceptor, only when
- * {@code browserLanguageCheck} is on) → <b>claim</b> (OIDC {@code locale} on principal attributes)
- * → <b>stored</b> (locale attribute on the loaded actor payload) → <b>default</b>. The first three
- * tiers are filtered against {@code supportedLanguages}. Reads go directly against {@link Context}
- * (no {@code GET_PRINCIPAL} dispatch) so message-key lookup is cheap and cannot recurse during
- * error formatting.
+ * <p>Reads are O(1): the resolved locale is taken from the request-scoped {@link Context} — first
+ * from the loaded actor payload ({@link Dispatcher#ACTOR_KEY}), then from the principal's token
+ * attributes ({@link Dispatcher#PRINCIPAL_KEY}). This deliberately avoids invoking the {@code
+ * GET_PRINCIPAL} operation (as {@code PrincipalVariableProvider} does), which would trigger a full
+ * dispatch on every message-key lookup and risk recursion during error formatting.
  *
- * <p>Anonymous request: honours an application-set {@link DefaultDispatcher#LOCALE_KEY} in the
- * exchange, then the captured {@code Accept-Language} in {@link RequestLocaleHolder}, then the
- * configured default (or empty when default is blank, letting {@code I18nServiceImpl} apply its
- * own configured default).
+ * <p>Binding this as the {@code LocaleProvider} closes the long-standing gap where {@code
+ * I18nServiceImpl}'s optional reference was unbound, so backend messages fall back to the configured
+ * default / JVM locale regardless of the user. When no principal is in scope, or the attribute is
+ * unset/blank/malformed, it falls back to {@code defaultLanguage} (or empty when that is also blank,
+ * letting {@code I18nServiceImpl} apply its own configured default).
  */
 @Slf4j
 public class PrincipalLocaleProvider implements LocaleProvider {
@@ -75,16 +71,16 @@ public class PrincipalLocaleProvider implements LocaleProvider {
 
     @Override
     public Optional<Locale> getLocale() {
-        // 1. Authenticated principal in scope: walk the browser → claim → stored tiers purely as a
-        //    READ over context. Nothing is written back. Falls through to defaultLanguage below.
+        // 1. Authenticated: the principal's resolved locale (actor payload, then token attributes).
+        final Locale principalLocale = toLocale(resolvePrincipalLocaleTag());
+        if (principalLocale != null) {
+            return Optional.of(principalLocale);
+        }
+        // 2. A principal is bound but carries no usable locale -> default (unchanged JNG-6415 path).
         if (isPrincipalBound()) {
-            final Locale resolved = resolveAuthenticatedLocale();
-            if (resolved != null) {
-                return Optional.of(resolved);
-            }
             return Optional.ofNullable(toLocale(localeConfig.getDefaultLanguage()));
         }
-        // 2. Anonymous request: prefer an application-set request Locale (survives the dispatcher's
+        // 3. Anonymous request: prefer an application-set request Locale (survives the dispatcher's
         //    per-operation context reset via the exchange copy), then the captured Accept-Language
         //    (held in a thread-local that survives that reset), then the default.
         try {
@@ -111,8 +107,8 @@ public class PrincipalLocaleProvider implements LocaleProvider {
 
     /**
      * Whether a principal (authenticated user) is bound to the current request — either via the
-     * loaded actor payload or the principal in context. Distinguishes the authenticated tier walk
-     * from the anonymous "browser Accept-Language" path.
+     * loaded actor payload or the principal in context. Distinguishes the authenticated "no usable
+     * locale -> default" path from the anonymous "browser Accept-Language" path.
      */
     private boolean isPrincipalBound() {
         if (context == null) {
@@ -127,52 +123,34 @@ public class PrincipalLocaleProvider implements LocaleProvider {
     }
 
     /**
-     * Read-only RFC-4647 tier walk for an authenticated request: extract the three candidate inputs
-     * from context (browser hint on principal attributes, OIDC claim on principal attributes,
-     * stored value on the loaded actor payload) and let {@link PrincipalLocaleResolver} pick one
-     * against the supported set. Returns {@code null} when the feature is off, no candidate exists,
-     * or anything goes wrong — caller falls back to {@code defaultLanguage}.
+     * Cheaply read the principal's locale tag from the request-scoped context: prefer the loaded
+     * actor payload, then the principal's token attributes. Returns {@code null} when the feature is
+     * off (blank attribute), no principal is in scope, or anything goes wrong.
      */
-    private Locale resolveAuthenticatedLocale() {
+    private String resolvePrincipalLocaleTag() {
         if (context == null || !localeConfig.isEnabled()) {
             return null;
         }
-        final String attribute = localeConfig.getPrincipalLocaleAttribute();
+        final String principalLocaleAttribute = localeConfig.getPrincipalLocaleAttribute();
         try {
             final Payload actor = context.getAs(Payload.class, Dispatcher.ACTOR_KEY);
-            final JudoPrincipal principal = context.getAs(JudoPrincipal.class, Dispatcher.PRINCIPAL_KEY);
-            final Map<String, Object> claims = principal != null && principal.getAttributes() != null
-                    ? principal.getAttributes() : Collections.emptyMap();
-
-            final String storedLocale = asString(actor != null ? actor.get(attribute) : null);
-            final String claimLocale = asString(claims.get(attribute));
-            final String browserHint = asString(claims.get(PrincipalLocaleResolver.ACCEPT_LANGUAGE_ATTRIBUTE));
-
-            final boolean browserLanguageCheck = localeConfig.getBrowserLanguageCheck() == null
-                    || localeConfig.getBrowserLanguageCheck();
-            final java.util.Set<String> supported = localeConfig.getParsedSupportedLanguages();
-            if (browserLanguageCheck) {
-                final Locale browser = toLocale(
-                        PrincipalLocaleResolver.matchSupportedLanguage(browserHint, supported));
-                if (browser != null) {
-                    return browser;
+            if (actor != null) {
+                final Object value = actor.get(principalLocaleAttribute);
+                if (value != null) {
+                    return value.toString();
                 }
             }
-            final Locale claim = toLocale(
-                    PrincipalLocaleResolver.matchSupportedLanguage(claimLocale, supported));
-            if (claim != null) {
-                return claim;
+            final JudoPrincipal principal = context.getAs(JudoPrincipal.class, Dispatcher.PRINCIPAL_KEY);
+            if (principal != null && principal.getAttributes() != null) {
+                final Object value = principal.getAttributes().get(principalLocaleAttribute);
+                if (value != null) {
+                    return value.toString();
+                }
             }
-            return toLocale(
-                    PrincipalLocaleResolver.matchSupportedLanguage(storedLocale, supported));
         } catch (final RuntimeException e) {
-            log.debug("Could not resolve authenticated principal locale: {}", e.toString());
-            return null;
+            log.debug("Could not read principal locale from context: {}", e.toString());
         }
-    }
-
-    private static String asString(final Object value) {
-        return value == null ? null : value.toString();
+        return null;
     }
 
     /**

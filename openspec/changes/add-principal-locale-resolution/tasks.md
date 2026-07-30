@@ -14,32 +14,34 @@
 - [x] 2.3 In `handleMessage`, when the gate is `true`, read `Accept-Language` from the `HttpServletRequest` (`message.get("HTTP.REQUEST")`) and put it into the attributes map under the key `__acceptLanguage` before `JudoPrincipal` construction
 - [x] 2.4 Confirm the tests in 2.1 pass; `mvn -pl judo-runtime-core-security-keycloak-cxf test` is green
 
-## 3. `DefaultActorResolver` — read-only (no changes)
+## 3. `DefaultActorResolver` refresh
 
-- [x] 3.1 Read-only decision: the backend does not write the user's stored locale in this change. `DefaultActorResolver` is left untouched by JNG-6415 — no fields, no builder params, no ASM-model introspection, no `DAO.update` call. Persistence of the user's preferred language is deferred to a follow-up capability.
-- [x] 3.2 Removed the earlier login-time refresh scaffolding (`refreshActorLocale` / `computeLocaleRefresh` / `applyLocaleRefresh`), the `IdentifierProvider` and `PrincipalLocaleConfig` fields on the resolver, the per-actor-type warned-once set, and the ASM introspection block — all superseded by resolving at read time inside `PrincipalLocaleProvider` (task 6).
-- [x] 3.3 Deleted the login-write test classes (`DefaultActorResolverLocaleRefreshTest`, `DefaultActorResolverLocaleRefreshModelTest`). Coverage of the tier walk lives in `PrincipalLocaleProviderTest` and `PrincipalLocaleResolverTest`.
-- [x] 3.4 Confirmed `mvn -pl judo-runtime-core-dispatcher test` green after the removal.
+- [x] 3.1 Add failing tests to `judo-runtime-core-dispatcher` covering: feature gate off (blank `principalLocaleAttribute`) ⇒ no `PrincipalLocaleResolver` call, no `dao.update`; resolved != stored ⇒ `dao.update` called with `{id, localeAttr}`; resolved == stored ⇒ no update; `dao.update` throws ⇒ WARN + auth continues; `principalLocaleAttribute` names a non-mapped or transient attribute ⇒ no update, one-time WARN
+- [x] 3.2 Add four fields to `DefaultActorResolver` (`principalLocaleAttribute`, `supportedLanguages`, `defaultLanguage`, `browserLanguageCheck`), wired through the `@Builder` constructor
+- [x] 3.3 In `getActorByClaims`, after `dao.search(...)` result is loaded, when `principalLocaleAttribute` is non-blank: read stored value from payload, read claim locale, read `__acceptLanguage` from claims, invoke `PrincipalLocaleResolver`, and if the resolved value differs from stored, call `dao.update(actorType, payloadWithIdAndLocale, null)` inside `try/catch(WARN)`
+- [x] 3.4 Implement the mapped-attribute check (D3a): before the first refresh per actor type, verify the attribute exists on the `EClass` and is not transient; on failure, WARN once and set a per-type flag to skip subsequent refresh attempts
+- [x] 3.5 Confirm tests in 3.1 pass; `mvn -pl judo-runtime-core-dispatcher test` is green
+- [x] 3.6 Added `DefaultActorResolverLocaleRefreshModelTest` — integration test against a **real ASM model** (built with `EcoreBuilders` + `AsmModelResourceSupport`) covering the D3a introspection glue (`isMappedTransferObjectType`, `getMappedAttribute`, `transient` check) with a mocked DAO. 5 scenarios: claim≠stored persists, browser tier wins, resolved==stored no-op, transient attribute not persisted, model-introspection sanity.
 
 ## 4. Guice wiring
 
-- [x] 4.1 Bind the `PrincipalLocaleConfig` value object in `judo-runtime-core-guice` from the four app-facing configuration knobs (`actorResolverPrincipalLocaleAttribute`, `actorResolverSupportedLanguages`, `actorResolverDefaultLanguage`, `actorResolverBrowserLanguageCheck`) on `JudoDefaultModuleConfiguration`.
-- [x] 4.2 Register `PrincipalLocaleProvider` as the `LocaleProvider` binding (via `PrincipalLocaleProviderProvider`). `DefaultActorResolverProvider` does NOT inject the config — the resolver is locale-agnostic.
-- [x] 4.3 Verify `judo-runtime-core-guice` compiles and existing tests pass.
+- [x] 4.1 Add bindings in `judo-runtime-core-guice` for the four `@Named` parameters used by `DefaultActorResolver`
+- [x] 4.2 Follow the existing `checkMappedActors` / `acceptableClients` pattern for optional binding with sensible defaults
+- [x] 4.3 Verify `judo-runtime-core-guice` compiles and existing tests pass
 
 ## 5. Spring wiring
 
-- [x] 5.1 Expose a `PrincipalLocaleConfig` `@Bean` in `judo-runtime-core-spring` populated from `@Value("${judo.platform.principalLocaleAttribute:}")` (and the three siblings).
-- [x] 5.2 Register `PrincipalLocaleProvider` as a `LocaleProvider` bean consuming that config. The `ActorResolver` bean method does NOT take the config — the resolver is locale-agnostic.
-- [x] 5.3 Verify `judo-runtime-core-spring` compiles and existing tests pass.
+- [x] 5.1 Add `@Value("${judo.platform.principalLocaleAttribute:}")` and matching bindings for the other three parameters in the Spring autoconfiguration (`judo-runtime-core-spring`)
+- [x] 5.2 Ensure defaults match the spec (`supportedLanguages` defaults to `{defaultLanguage}`; `defaultLanguage` defaults to JVM default or `en-US`; `browserLanguageCheck` defaults to `true`)
+- [x] 5.3 Verify `judo-runtime-core-spring` compiles and existing tests pass
 
-## 6. `PrincipalLocaleProvider` (backend i18n, read-time tier walk)
+## 6. `PrincipalLocaleProvider` (backend i18n)
 
-- [x] 6.1 Add `hu.blackbelt.osgi.i18n:i18n-api` dependency to `judo-runtime-core-dispatcher`'s pom.
-- [x] 6.2 Tests in `PrincipalLocaleProviderTest` cover: authenticated tier walk (browser hint wins over claim wins over stored), unsupported stored value falls through to default, feature gate off, blank / malformed / underscored stored value, principal-with-attribute-only-set, `browserLanguageCheck=false` disables the browser tier, anonymous path (LOCALE_KEY → `RequestLocaleHolder` → default), null context safety, and a regression guard asserting the actor payload is NOT mutated by resolution.
-- [x] 6.3 Implement `PrincipalLocaleProvider implements LocaleProvider` in `judo-runtime-core-dispatcher`. On each `getLocale()` call it reads the three candidate inputs from `Context` (browser hint from `JudoPrincipal.attributes[__acceptLanguage]`, claim from `JudoPrincipal.attributes[principalLocaleAttribute]`, stored value from `Context[ACTOR_KEY][principalLocaleAttribute]`) and delegates to `PrincipalLocaleResolver.matchSupportedLanguage(...)` per tier. It does NOT go through `PrincipalVariableProvider.apply(...)` (which triggers a `GET_PRINCIPAL` dispatch and would recurse during error formatting).
-- [x] 6.4 Register the provider as `LocaleProvider` in the Guice module (task 4) and as a Spring bean in the autoconfiguration (task 5).
-- [x] 6.5 Confirm the tests in 6.2 pass (21/21 green).
+- [x] 6.1 Add `hu.blackbelt.osgi.i18n:i18n-api` dependency to `judo-runtime-core-dispatcher`'s pom
+- [x] 6.2 Add failing tests for `PrincipalLocaleProvider`: principal-with-locale ⇒ `Locale.forLanguageTag("hu-HU")`; no principal ⇒ default; malformed stored value ⇒ default without throw
+- [x] 6.3 Implement `PrincipalLocaleProvider implements LocaleProvider` in `judo-runtime-core-dispatcher`. NOTE: deviated from `PrincipalVariableProvider.apply(...)` (which triggers a full GET_PRINCIPAL dispatch on every message-key lookup) in favour of a cheap O(1) read from the request-scoped `Context` (ACTOR_KEY then PRINCIPAL_KEY), falling back to `defaultLanguage`
+- [x] 6.4 Register the provider as `LocaleProvider` in the Guice module (task 4) and as a Spring bean in the autoconfiguration (task 5)
+- [x] 6.5 Confirm the tests in 6.2 pass
 
 ## 7. Full build + docs
 
@@ -49,7 +51,6 @@
 
 ## 8. Deferred (out of scope — follow-up change)
 
-- [ ] 8.1 **Persistence of the user's preferred language.** A separate capability will handle writing the resolved / user-selected locale back to the DB (or Keycloak), including the frontend surface (a "change my language" action) and the read-after-write consistency across sessions. Explicitly out of scope for this change per JNG-6415 review feedback.
-- [ ] 8.2 judo-platform OSGi `@AttributeDefinition` mappings for the four `JUDO_PLATFORM_*` env vars and PIDS entries in `DispatcherServiceActivator`.
-- [ ] 8.3 OSGi `@Component` service registration for `PrincipalLocaleProvider` so it is picked up by `I18nServiceImpl`'s `@Reference` in OSGi runtimes.
-- [ ] 8.4 Frontend template changes (out of scope for this change; tracked separately).
+- [ ] 8.1 judo-platform OSGi `@AttributeDefinition` mappings for the four `JUDO_PLATFORM_*` env vars and PIDS entries in `DispatcherServiceActivator` / `DefaultActorResolverComponent`
+- [ ] 8.2 OSGi `@Component` service registration for `PrincipalLocaleProvider` so it is picked up by `I18nServiceImpl`'s `@Reference` in OSGi runtimes
+- [ ] 8.3 Frontend template changes (out of scope for this change; tracked separately)
