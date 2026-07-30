@@ -36,28 +36,28 @@ import static org.hamcrest.Matchers.sameInstance;
 /**
  * Unit tests for {@link PrincipalLocaleConfig} — the immutable value object that groups the four
  * JNG-6415 locale settings ({@code principalLocaleAttribute}, {@code supportedLanguages},
- * {@code defaultLanguage}, {@code browserLanguageCheck}) into a single bundle carried through
+ * {@code defaultLanguage}, {@code localeResolutionLevel}) into a single bundle carried through
  * the runtime's Guice/Spring wiring and its two consumers ({@code DefaultActorResolver},
  * {@code PrincipalLocaleProvider}).
  *
  * <p>These tests pin the contract this refactor promises: identical parsing semantics to the
  * pre-refactor per-scalar wiring (delegating to {@link PrincipalLocaleResolver#parseSupportedLanguages(String)}),
  * a null-tolerant surface, the "blank attribute ⇒ feature off" gate expressed via
- * {@link PrincipalLocaleConfig#isEnabled()}, the {@code browserLanguageCheck = true} default via
+ * {@link PrincipalLocaleConfig#isEnabled()}, the {@code localeResolutionLevel = BROWSER} default via
  * {@code @Builder.Default}, and the parse-once memoization of the supported-set (so
  * {@code PrincipalLocaleProvider} — a singleton — no longer re-parses on every construction).
  */
 class PrincipalLocaleConfigTest {
 
     @Test
-    @DisplayName("builder() with no fields set: all nulls except browserLanguageCheck=true, feature disabled")
-    void defaultBuilder_disabledFeature_defaultsBrowserCheckOn() {
+    @DisplayName("builder() with no fields set: all nulls except localeResolutionLevel=BROWSER, feature disabled")
+    void defaultBuilder_disabledFeature_defaultsBrowserCeilingOn() {
         final PrincipalLocaleConfig cfg = PrincipalLocaleConfig.builder().build();
 
         assertThat(cfg.getPrincipalLocaleAttribute(), is(nullValue()));
         assertThat(cfg.getSupportedLanguages(), is(nullValue()));
         assertThat(cfg.getDefaultLanguage(), is(nullValue()));
-        assertThat(cfg.getBrowserLanguageCheck(), is(Boolean.TRUE));
+        assertThat(cfg.getLocaleResolutionLevel(), is(LocaleResolutionLevel.BROWSER));
         assertThat("blank attribute ⇒ feature off", cfg.isEnabled(), is(false));
         assertThat("null CSV parses to empty set", cfg.getParsedSupportedLanguages(),
                 is(equalTo(Set.of())));
@@ -111,12 +111,22 @@ class PrincipalLocaleConfigTest {
     }
 
     @Test
-    @DisplayName("browserLanguageCheck explicit false is preserved (not overridden by @Builder.Default)")
-    void browserLanguageCheck_explicitFalsePreserved() {
+    @DisplayName("localeResolutionLevel explicit non-default is preserved (not overridden by @Builder.Default)")
+    void localeResolutionLevel_explicitPrincipalPreserved() {
         final PrincipalLocaleConfig cfg = PrincipalLocaleConfig.builder()
-                .browserLanguageCheck(Boolean.FALSE)
+                .localeResolutionLevel(LocaleResolutionLevel.PRINCIPAL)
                 .build();
-        assertThat(cfg.getBrowserLanguageCheck(), is(Boolean.FALSE));
+        assertThat(cfg.getLocaleResolutionLevel(), is(LocaleResolutionLevel.PRINCIPAL));
+    }
+
+    @Test
+    @DisplayName("localeResolutionLevel explicit IDENTITY_PROVIDER (formerly browserLanguageCheck=false) preserved")
+    void localeResolutionLevel_explicitIdentityProviderPreserved() {
+        // Historical mapping: browserLanguageCheck=false → IDENTITY_PROVIDER (browser off, claim on).
+        final PrincipalLocaleConfig cfg = PrincipalLocaleConfig.builder()
+                .localeResolutionLevel(LocaleResolutionLevel.IDENTITY_PROVIDER)
+                .build();
+        assertThat(cfg.getLocaleResolutionLevel(), is(LocaleResolutionLevel.IDENTITY_PROVIDER));
     }
 
     @Test
@@ -126,13 +136,13 @@ class PrincipalLocaleConfigTest {
                 .principalLocaleAttribute("locale")
                 .supportedLanguages("en-US,hu-HU")
                 .defaultLanguage("en-US")
-                .browserLanguageCheck(Boolean.FALSE)
+                .localeResolutionLevel(LocaleResolutionLevel.IDENTITY_PROVIDER)
                 .build();
 
         assertThat(cfg.getPrincipalLocaleAttribute(), is(equalTo("locale")));
         assertThat(cfg.getSupportedLanguages(), is(equalTo("en-US,hu-HU")));
         assertThat(cfg.getDefaultLanguage(), is(equalTo("en-US")));
-        assertThat(cfg.getBrowserLanguageCheck(), is(Boolean.FALSE));
+        assertThat(cfg.getLocaleResolutionLevel(), is(LocaleResolutionLevel.IDENTITY_PROVIDER));
         assertThat(cfg.isEnabled(), is(true));
         assertThat(cfg.getParsedSupportedLanguages(), contains("en-US", "hu-HU"));
     }
@@ -142,10 +152,10 @@ class PrincipalLocaleConfigTest {
     void valueSemantics_equalsAndHashCode() {
         final PrincipalLocaleConfig a = PrincipalLocaleConfig.builder()
                 .principalLocaleAttribute("locale").supportedLanguages("en-US")
-                .defaultLanguage("en-US").browserLanguageCheck(Boolean.TRUE).build();
+                .defaultLanguage("en-US").localeResolutionLevel(LocaleResolutionLevel.BROWSER).build();
         final PrincipalLocaleConfig b = PrincipalLocaleConfig.builder()
                 .principalLocaleAttribute("locale").supportedLanguages("en-US")
-                .defaultLanguage("en-US").browserLanguageCheck(Boolean.TRUE).build();
+                .defaultLanguage("en-US").localeResolutionLevel(LocaleResolutionLevel.BROWSER).build();
 
         assertThat(a, is(equalTo(b)));
         assertThat(a.hashCode(), is(equalTo(b.hashCode())));

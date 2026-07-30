@@ -96,14 +96,14 @@ class PrincipalLocaleResolverTest {
         @Test
         void browserWinsWhenGateOnAndSupported() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "hu-HU,en-US;q=0.7", "en-US", "en-US", "en-US", EN_HU, true);
+                    "hu-HU,en-US;q=0.7", "en-US", "en-US", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void gateOffSkipsBrowserTierEvenWithHeader() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "hu-HU", "en-US", "en-US", "en-US", EN_HU, false);
+                    "hu-HU", "en-US", "en-US", "en-US", EN_HU, LocaleResolutionLevel.IDENTITY_PROVIDER);
             assertThat(resolved, is(equalTo("en-US")));
         }
 
@@ -111,14 +111,14 @@ class PrincipalLocaleResolverTest {
         void languageOnlyRangeMatchesRegionTaggedSupported() {
             // "hu" -> "hu-HU" via RFC-4647 lookup
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "hu", null, null, "en-US", EN_HU, true);
+                    "hu", null, null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void unsupportedBrowserTagFallsThroughToClaim() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "de-DE", "hu-HU", null, "en-US", EN_HU, true);
+                    "de-DE", "hu-HU", null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
@@ -126,7 +126,7 @@ class PrincipalLocaleResolverTest {
         void regionMismatchFallsThrough() {
             // en-GB does not match en-US (lookup narrows, never widens)
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "en-GB", null, null, "en-US", EN_ONLY, true);
+                    "en-GB", null, null, "en-US", EN_ONLY, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US"))); // default terminal
         }
 
@@ -134,28 +134,28 @@ class PrincipalLocaleResolverTest {
         void qualityOrderedBrowserRangesPickHighestSupported() {
             // de-DE unsupported (q=1.0), hu-HU supported (q=0.7) — hu-HU wins
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "de-DE,hu-HU;q=0.7", null, null, "en-US", EN_HU, true);
+                    "de-DE,hu-HU;q=0.7", null, null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void malformedBrowserHeaderIsSkipped() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "!!! not a tag !!!", "hu-HU", null, "en-US", EN_HU, true);
+                    "!!! not a tag !!!", "hu-HU", null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void nullBrowserHeaderIsSkipped() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, "hu-HU", null, "en-US", EN_HU, true);
+                    null, "hu-HU", null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void blankBrowserHeaderIsSkipped() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "   ", "hu-HU", null, "en-US", EN_HU, true);
+                    "   ", "hu-HU", null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
     }
@@ -169,42 +169,42 @@ class PrincipalLocaleResolverTest {
         @Test
         void claimWinsWhenBrowserEmpty() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, "hu-HU", "en-US", "en-US", EN_HU, true);
+                    null, "hu-HU", "en-US", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void claimWinsWhenBrowserGateOff() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "en-US", "hu-HU", "en-US", "en-US", EN_HU, false);
+                    "en-US", "hu-HU", "en-US", "en-US", EN_HU, LocaleResolutionLevel.IDENTITY_PROVIDER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void claimLanguageOnlyMatchesRegionTagged() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, "hu", null, "en-US", EN_HU, true);
+                    null, "hu", null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void unsupportedClaimFallsThroughToStored() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, "de-DE", "hu-HU", "en-US", EN_HU, true);
+                    null, "de-DE", "hu-HU", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void nullClaimFallsThroughToStored() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, "hu-HU", "en-US", EN_HU, true);
+                    null, null, "hu-HU", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void malformedClaimIsSkipped() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, "!!! bad !!!", "hu-HU", "en-US", EN_HU, true);
+                    null, "!!! bad !!!", "hu-HU", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
     }
@@ -218,28 +218,28 @@ class PrincipalLocaleResolverTest {
         @Test
         void storedWinsWhenBrowserAndClaimEmpty() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, "hu-HU", "en-US", EN_HU, true);
+                    null, null, "hu-HU", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("hu-HU")));
         }
 
         @Test
         void unsupportedStoredFallsThroughToDefault() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, "de-DE", "en-US", EN_HU, true);
+                    null, null, "de-DE", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
         }
 
         @Test
         void nullStoredFallsThroughToDefault() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, null, "en-US", EN_HU, true);
+                    null, null, null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
         }
 
         @Test
         void blankStoredFallsThroughToDefault() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, "   ", "en-US", EN_HU, true);
+                    null, null, "   ", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
         }
     }
@@ -253,7 +253,7 @@ class PrincipalLocaleResolverTest {
         @Test
         void defaultAlwaysResolvesWhenAllHigherTiersEmpty() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, null, "en-US", EN_HU, true);
+                    null, null, null, "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
         }
 
@@ -261,21 +261,21 @@ class PrincipalLocaleResolverTest {
         void defaultReturnedEvenIfNotInSupportedSet() {
             // default is terminal — not filtered against supportedLanguages
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, null, "fr-FR", EN_HU, true);
+                    null, null, null, "fr-FR", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("fr-FR")));
         }
 
         @Test
         void nullDefaultFallsBackToEnUs() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, null, null, EN_HU, true);
+                    null, null, null, null, EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
         }
 
         @Test
         void blankDefaultFallsBackToEnUs() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    null, null, null, "  ", EN_HU, true);
+                    null, null, null, "  ", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
         }
     }
@@ -289,15 +289,79 @@ class PrincipalLocaleResolverTest {
         @Test
         void emptySupportedSetOnlyAllowsDefault() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "hu-HU", "hu-HU", "hu-HU", "en-US", Collections.emptySet(), true);
+                    "hu-HU", "hu-HU", "hu-HU", "en-US", Collections.emptySet(), LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
         }
 
         @Test
         void nullSupportedSetTreatedAsEmpty() {
             final String resolved = PrincipalLocaleResolver.resolve(
-                    "hu-HU", null, null, "en-US", null, true);
+                    "hu-HU", null, null, "en-US", null, LocaleResolutionLevel.BROWSER);
             assertThat(resolved, is(equalTo("en-US")));
+        }
+    }
+
+    // -------- resolution level ceiling --------
+
+    /**
+     * The {@link LocaleResolutionLevel} ceiling governs which tiers are consulted. Introduced by
+     * the {@code replace-browser-check-with-resolution-level} change; the previous boolean
+     * {@code browserLanguageCheck} could only express two of the three legitimate deployment
+     * postures (full browser trust and "claim-only + stored") — {@link LocaleResolutionLevel#PRINCIPAL}
+     * gives operators the third ("stored-only, ignore both browser and claim").
+     */
+    @Nested
+    @DisplayName("resolution level ceiling")
+    class ResolutionLevelCeiling {
+
+        @Test
+        void principalCeilingSkipsBrowserAndClaimEvenWhenBothAreSupported() {
+            // browser=hu-HU (supported), claim=hu-HU (supported), stored=en-US (supported) ->
+            // PRINCIPAL ceiling means only stored is consulted; en-US wins.
+            final String resolved = PrincipalLocaleResolver.resolve(
+                    "hu-HU", "hu-HU", "en-US", "fr-FR", EN_HU, LocaleResolutionLevel.PRINCIPAL);
+            assertThat(resolved, is(equalTo("en-US")));
+        }
+
+        @Test
+        void principalCeilingFallsThroughToDefaultWhenStoredAbsent() {
+            // browser=hu-HU (would win under BROWSER), claim=hu-HU (would win under IDENTITY_PROVIDER),
+            // stored=null -> PRINCIPAL ceiling means only stored is consulted; nothing there,
+            // fall through to default.
+            final String resolved = PrincipalLocaleResolver.resolve(
+                    "hu-HU", "hu-HU", null, "en-US", EN_HU, LocaleResolutionLevel.PRINCIPAL);
+            assertThat(resolved, is(equalTo("en-US")));
+        }
+
+        @Test
+        void identityProviderCeilingSkipsBrowserButHonoursClaim() {
+            final String resolved = PrincipalLocaleResolver.resolve(
+                    "en-US", "hu-HU", "en-US", "fr-FR", EN_HU, LocaleResolutionLevel.IDENTITY_PROVIDER);
+            assertThat(resolved, is(equalTo("hu-HU")));
+        }
+
+        @Test
+        void identityProviderCeilingFallsThroughToStoredWhenClaimAbsent() {
+            final String resolved = PrincipalLocaleResolver.resolve(
+                    "hu-HU", null, "en-US", "fr-FR", EN_HU, LocaleResolutionLevel.IDENTITY_PROVIDER);
+            assertThat(resolved, is(equalTo("en-US")));
+        }
+
+        @Test
+        void browserCeilingBehavesAsPreRefactorTrue() {
+            // Sanity: BROWSER ceiling reproduces the pre-refactor "browserLanguageCheck=true"
+            // behaviour — header wins when supported.
+            final String resolved = PrincipalLocaleResolver.resolve(
+                    "hu-HU", "en-US", "en-US", "fr-FR", EN_HU, LocaleResolutionLevel.BROWSER);
+            assertThat(resolved, is(equalTo("hu-HU")));
+        }
+
+        @Test
+        void nullLevelBehavesAsBrowser() {
+            // Null level defensively maps to LocaleResolutionLevel.DEFAULT (BROWSER); header wins.
+            final String resolved = PrincipalLocaleResolver.resolve(
+                    "hu-HU", "en-US", "en-US", "fr-FR", EN_HU, null);
+            assertThat(resolved, is(equalTo("hu-HU")));
         }
     }
 
@@ -310,9 +374,9 @@ class PrincipalLocaleResolverTest {
         @Test
         void sameInputsProduceSameOutput() {
             final String first = PrincipalLocaleResolver.resolve(
-                    "hu", "en-US", "hu-HU", "en-US", EN_HU, true);
+                    "hu", "en-US", "hu-HU", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             final String second = PrincipalLocaleResolver.resolve(
-                    "hu", "en-US", "hu-HU", "en-US", EN_HU, true);
+                    "hu", "en-US", "hu-HU", "en-US", EN_HU, LocaleResolutionLevel.BROWSER);
             assertThat(first, is(equalTo(second)));
         }
     }

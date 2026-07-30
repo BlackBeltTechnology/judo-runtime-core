@@ -59,13 +59,20 @@ class DefaultActorResolverLocaleRefreshTest {
     private static final String ATTR = "locale";
     private static final String DEFAULT = "en-US";
 
-    /** Convenience: config with the standard {en-US, hu-HU} supported set and the browser gate at {@code check}. */
+    /**
+     * Convenience: config with the standard {en-US, hu-HU} supported set. The {@code browserCheck}
+     * boolean maps to the {@link hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel}
+     * ceiling per the historical convention: {@code true → BROWSER}, {@code false →
+     * IDENTITY_PROVIDER}.
+     */
     private static PrincipalLocaleConfig cfg(final String attribute, final boolean browserCheck) {
         return PrincipalLocaleConfig.builder()
                 .principalLocaleAttribute(attribute)
                 .supportedLanguages("en-US,hu-HU")
                 .defaultLanguage(DEFAULT)
-                .browserLanguageCheck(browserCheck)
+                .localeResolutionLevel(browserCheck
+                        ? hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel.BROWSER
+                        : hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel.IDENTITY_PROVIDER)
                 .build();
     }
 
@@ -151,8 +158,14 @@ class DefaultActorResolverLocaleRefreshTest {
         }
     }
 
+    /**
+     * JNG-6415 review feedback: the backend no longer persists the resolved locale. The
+     * {@code dao.update} call in {@link DefaultActorResolver#applyLocaleRefresh} is commented out
+     * (persistence deferred to a follow-up capability). These tests lock in that behaviour so a
+     * future accidental re-enable is caught.
+     */
     @Nested
-    @DisplayName("applyLocaleRefresh (safe write)")
+    @DisplayName("applyLocaleRefresh (persistence deferred)")
     class ApplySafeWrite {
 
         @Test
@@ -164,23 +177,15 @@ class DefaultActorResolverLocaleRefreshTest {
         }
 
         @Test
-        void nonNullUpdateCallsDaoUpdate() {
+        void nonNullUpdateDoesNotPersist() {
+            // Persistence intentionally disabled in this branch (JNG-6415 review feedback —
+            // backend does not write the user's stored locale). Machinery is preserved so a
+            // follow-up capability can re-enable dao.update; until then, no write occurs.
             final DAO dao = mock(DAO.class);
             final EClass actorType = mock(EClass.class);
             final Payload update = Payload.map(ID_KEY, "id-1", ATTR, "hu-HU");
             DefaultActorResolver.applyLocaleRefresh(dao, actorType, update);
-            verify(dao).update(eq(actorType), eq(update), isNull());
-        }
-
-        @Test
-        void daoUpdateThrowingIsSwallowed() {
-            final DAO dao = mock(DAO.class);
-            final EClass actorType = mock(EClass.class);
-            final Payload update = Payload.map(ID_KEY, "id-1", ATTR, "hu-HU");
-            doThrow(new RuntimeException("db down")).when(dao).update(any(), any(), any());
-            // must not throw
-            DefaultActorResolver.applyLocaleRefresh(dao, actorType, update);
-            verify(dao).update(eq(actorType), eq(update), isNull());
+            verify(dao, never()).update(any(), any(), any());
         }
     }
 }

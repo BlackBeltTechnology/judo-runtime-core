@@ -26,6 +26,7 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.runtime.core.RequestLocaleHolder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -194,5 +195,46 @@ class PrincipalLocaleProviderTest {
         RequestLocaleHolder.set("en-US");
         assertThat(provider(context, ATTR, DEFAULT).getLocale(),
                 is(equalTo(Optional.of(Locale.forLanguageTag("hu-HU")))));
+    }
+
+    // -------- anonymous browser tier honours the LocaleResolutionLevel ceiling --------
+
+    /**
+     * Builds a provider with an explicit {@link LocaleResolutionLevel} ceiling for the anonymous
+     * browser-tier tests introduced by {@code replace-browser-check-with-resolution-level} (Task 5.2).
+     */
+    private static PrincipalLocaleProvider anonymousProviderAt(final LocaleResolutionLevel level,
+                                                               final Context context) {
+        return new PrincipalLocaleProvider(context, PrincipalLocaleConfig.builder()
+                .principalLocaleAttribute(ATTR)
+                .supportedLanguages(SUPPORTED)
+                .defaultLanguage(DEFAULT)
+                .localeResolutionLevel(level)
+                .build());
+    }
+
+    @Test
+    void anonymousBrowserTierOnAtBrowserCeilingResolvesHeader() {
+        // Baseline: at BROWSER ceiling, the captured Accept-Language is consulted.
+        assertThat(anonymousProviderAt(LocaleResolutionLevel.BROWSER,
+                        anonymousContextWithAcceptLanguage("hu-HU")).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag("hu-HU")))));
+    }
+
+    @Test
+    void anonymousBrowserTierSkippedAtIdentityProviderCeiling() {
+        // At IDENTITY_PROVIDER, the anonymous browser tier is skipped even when the header would
+        // match. There is no principal / no claim in the anonymous case, so we fall to default.
+        assertThat(anonymousProviderAt(LocaleResolutionLevel.IDENTITY_PROVIDER,
+                        anonymousContextWithAcceptLanguage("hu-HU")).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag(DEFAULT)))));
+    }
+
+    @Test
+    void anonymousBrowserTierSkippedAtPrincipalCeiling() {
+        // Symmetric to the IDENTITY_PROVIDER case: PRINCIPAL also excludes the browser tier.
+        assertThat(anonymousProviderAt(LocaleResolutionLevel.PRINCIPAL,
+                        anonymousContextWithAcceptLanguage("hu-HU")).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag(DEFAULT)))));
     }
 }

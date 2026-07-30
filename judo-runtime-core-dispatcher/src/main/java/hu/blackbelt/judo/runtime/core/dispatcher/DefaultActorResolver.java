@@ -33,6 +33,7 @@ import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationIntercepto
 import hu.blackbelt.judo.runtime.core.dispatcher.behaviours.QueryCustomizerParameterProcessor;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.exception.AccessDeniedException;
+import hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import lombok.Builder;
@@ -71,11 +72,13 @@ public class DefaultActorResolver implements ActorResolver {
 
     /**
      * JNG-6415 locale-configuration bundle ({@code principalLocaleAttribute},
-     * {@code supportedLanguages}, {@code defaultLanguage}, {@code browserLanguageCheck}) — grouped
+     * {@code supportedLanguages}, {@code defaultLanguage}, {@code localeResolutionLevel}) — grouped
      * into a single value object by the {@code consolidate-locale-config-object} change to remove
      * the four-way scalar duplication across Guice qualifiers, Guice module bindings, and Spring
-     * {@code @Value} sites. Null when the feature is not configured (behaviour identical to
-     * pre-refactor null-attribute).
+     * {@code @Value} sites. The former boolean {@code browserLanguageCheck} was replaced by the
+     * {@link hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel} ceiling in
+     * {@code replace-browser-check-with-resolution-level}. Null when the feature is not configured
+     * (behaviour identical to pre-refactor null-attribute).
      */
     private PrincipalLocaleConfig localeConfig;
 
@@ -300,7 +303,9 @@ public class DefaultActorResolver implements ActorResolver {
      *
      * <p>Signature simplified by the {@code consolidate-locale-config-object} change: the four
      * scalar locale settings that lived on this method as arguments are now delivered as a single
-     * {@link PrincipalLocaleConfig}.
+     * {@link PrincipalLocaleConfig}. Subsequently, the browser gate was replaced by a
+     * {@link LocaleResolutionLevel} ceiling in
+     * {@code replace-browser-check-with-resolution-level}.
      */
     static Payload computeLocaleRefresh(final PrincipalLocaleConfig config,
                                         final boolean persistable,
@@ -312,13 +317,9 @@ public class DefaultActorResolver implements ActorResolver {
         if (config == null || !config.isEnabled() || !persistable) {
             return null;
         }
-        // browserLanguageCheck is Boolean via @Builder.Default; treat null as the default-on TRUE
-        // to preserve pre-refactor semantics.
-        final boolean browserLanguageCheck = config.getBrowserLanguageCheck() == null
-                || config.getBrowserLanguageCheck();
         final String resolved = PrincipalLocaleResolver.resolve(
                 browserHint, claimLocale, storedLocale, config.getDefaultLanguage(),
-                config.getParsedSupportedLanguages(), browserLanguageCheck);
+                config.getParsedSupportedLanguages(), config.getLocaleResolutionLevel());
         if (Objects.equals(resolved, storedLocale)) {
             return null;
         }
@@ -326,19 +327,29 @@ public class DefaultActorResolver implements ActorResolver {
     }
 
     /**
-     * Safely apply the locale-refresh update. A {@code null} update is a no-op; any failure of
-     * {@code dao.update} is caught and logged at WARN so a failed refresh never breaks authentication.
-     * Package-visible for unit testing.
+     * Safely apply the locale-refresh update. A {@code null} update is a no-op.
+     *
+     * <p><b>JNG-6415 review feedback (persistence deferred):</b> the {@code dao.update} call is
+     * intentionally disabled in this branch — the backend does not write the user's stored locale
+     * preference. The resolved value is still reflected into the in-request actor payload by the
+     * caller ({@code refreshActorLocale}) so {@code PrincipalLocaleProvider} and
+     * {@code getPrincipal()} see it for the duration of the request. Persisting the preference is a
+     * separate follow-up capability; the machinery is left in place (rather than deleted) so that
+     * capability can turn persistence back on by re-enabling the {@code dao.update} call below.
+     *
+     * <p>Package-visible for unit testing.
      */
     static void applyLocaleRefresh(final DAO dao, final EClass actorType, final Payload update) {
         if (update == null) {
             return;
         }
-        try {
-            dao.update(actorType, update, null);
-        } catch (final RuntimeException e) {
-            log.warn("Principal locale refresh failed for actor '{}': {}",
-                    actorType.getName(), e.toString());
-        }
+        // Persistence deferred to a follow-up capability (JNG-6415 review). Re-enable when the
+        // user-triggered "save my language" story lands:
+        // try {
+        //     dao.update(actorType, update, null);
+        // } catch (final RuntimeException e) {
+        //     log.warn("Principal locale refresh failed for actor '{}': {}",
+        //             actorType.getName(), e.toString());
+        // }
     }
 }

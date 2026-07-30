@@ -20,6 +20,7 @@ import hu.blackbelt.judo.runtime.core.dispatcher.Export;
 import hu.blackbelt.judo.runtime.core.dispatcher.OperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
+import hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel;
 import hu.blackbelt.judo.runtime.core.guice.dispatcher.DefaultPayloadValidatorProvider;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
@@ -69,7 +70,7 @@ public class JudoDefaultModuleConfiguration {
     @Builder.Default
     String actorResolverDefaultLanguage = null;
     @Builder.Default
-    Boolean actorResolverBrowserLanguageCheck = true;
+    LocaleResolutionLevel actorResolverLocaleResolutionLevel = LocaleResolutionLevel.BROWSER;
     @Builder.Default
     Boolean dispatcherMetricsReturned = false;
     @Builder.Default

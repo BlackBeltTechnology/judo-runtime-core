@@ -65,12 +65,16 @@ public class PrincipalLocaleConfig {
     String defaultLanguage;
 
     /**
-     * When {@code true} (the default), the request {@code Accept-Language} header is the top
-     * precedence tier for authenticated logins and drives anonymous request resolution. Explicit
-     * {@code false} disables both.
+     * Precedence ceiling naming the highest tier the runtime is allowed to consult. Defaults to
+     * {@link LocaleResolutionLevel#BROWSER} — the request {@code Accept-Language} header is the
+     * top tier for authenticated logins and drives anonymous request resolution. Setting this to
+     * {@link LocaleResolutionLevel#IDENTITY_PROVIDER} skips the browser tier; setting it to
+     * {@link LocaleResolutionLevel#PRINCIPAL} skips both browser and claim (only the stored value
+     * is consulted). Replaces the boolean {@code browserLanguageCheck} introduced by
+     * {@code add-principal-locale-resolution}.
      */
     @Builder.Default
-    Boolean browserLanguageCheck = Boolean.TRUE;
+    LocaleResolutionLevel localeResolutionLevel = LocaleResolutionLevel.BROWSER;
 
     /**
      * Parse-once view of {@link #supportedLanguages} using

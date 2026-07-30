@@ -26,6 +26,7 @@ import hu.blackbelt.judo.dispatcher.api.Dispatcher;
 import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.runtime.core.RequestLocaleHolder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
+import hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import hu.blackbelt.osgi.i18n.api.LocaleProvider;
@@ -90,7 +91,14 @@ public class PrincipalLocaleProvider implements LocaleProvider {
                     return Optional.of(appLocale);
                 }
             }
-            final String header = RequestLocaleHolder.getAcceptLanguage();
+            // Anonymous browser tier is subject to the same LocaleResolutionLevel ceiling as the
+            // authenticated tier walk. This closes a pre-refactor inconsistency where the
+            // anonymous branch honoured the header unconditionally even when the deployment had
+            // explicitly opted out of browser resolution.
+            final LocaleResolutionLevel level = localeConfig.getLocaleResolutionLevel();
+            final boolean browserTierAllowed = level == null
+                    || level.includes(LocaleResolutionLevel.BROWSER);
+            final String header = browserTierAllowed ? RequestLocaleHolder.getAcceptLanguage() : null;
             if (header != null) {
                 final String match = PrincipalLocaleResolver.matchSupportedLanguage(
                         header, localeConfig.getParsedSupportedLanguages());

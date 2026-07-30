@@ -31,16 +31,20 @@ import java.util.Set;
  * Pure, side-effect-free helper that resolves the effective BCP-47 locale of an authenticated
  * principal from a fixed precedence of candidate sources.
  *
- * <p>Precedence (fixed order): <b>browser</b> (only when {@code browserLanguageCheck} is
- * {@code true}) → <b>claim</b> (OIDC {@code locale}) → <b>stored</b> (DB value) → <b>default</b>.
- * Each of the first three tiers is filtered against {@code supportedLanguages} using RFC-4647
- * <em>filtering</em> semantics (a broad range such as {@code hu} matches a specific supported tag
- * such as {@code hu-HU}); a candidate that does not match any supported tag is skipped so the next
- * tier is consulted. The {@code default} tier is terminal and is returned verbatim (never filtered).
+ * <p>Precedence (fixed order): <b>browser</b> (only when the {@link LocaleResolutionLevel} ceiling
+ * {@link LocaleResolutionLevel#includes(LocaleResolutionLevel) includes} {@link
+ * LocaleResolutionLevel#BROWSER}) → <b>claim</b> (OIDC {@code locale}, only when the ceiling
+ * {@code includes(IDENTITY_PROVIDER)}) → <b>stored</b> (DB value — the floor, always active) →
+ * <b>default</b>. Each of the first three tiers is filtered against {@code supportedLanguages}
+ * using RFC-4647 <em>filtering</em> semantics (a broad range such as {@code hu} matches a
+ * specific supported tag such as {@code hu-HU}); a candidate that does not match any supported
+ * tag is skipped so the next tier is consulted. The {@code default} tier is terminal and is
+ * returned verbatim (never filtered).
  *
- * <p>This class has no dependency on the DAO, the ASM model, or the request context, so it is fully
- * unit-testable in isolation. See
- * {@code openspec/changes/add-principal-locale-resolution/specs/principal-locale-resolution/spec.md}.
+ * <p>This class has no dependency on the DAO, the ASM model, or the request context, so it is
+ * fully unit-testable in isolation. See
+ * {@code openspec/changes/replace-browser-check-with-resolution-level/specs/principal-locale-resolution/spec.md}
+ * (MODIFIED requirement "`PrincipalLocaleResolver` is a pure helper").
  */
 public final class PrincipalLocaleResolver {
 
@@ -48,8 +52,8 @@ public final class PrincipalLocaleResolver {
 
     /**
      * Principal-attribute key under which the raw request {@code Accept-Language} header is stashed
-     * by the authentication interceptor (when {@code browserLanguageCheck} is enabled) so it can be
-     * consumed by the login-time locale refresh. The double-underscore prefix marks it as a
+     * by the authentication interceptor (when the deployment's {@link LocaleResolutionLevel} ceiling
+     * {@code includes(BROWSER)}) so it can be consumed by the login-time locale refresh. The double-underscore prefix marks it as a
      * runtime-internal attribute that never collides with a Keycloak claim attribute name.
      */
     public static final String ACCEPT_LANGUAGE_ATTRIBUTE = "__acceptLanguage";
@@ -82,14 +86,16 @@ public final class PrincipalLocaleResolver {
      * Resolve the effective locale by walking the fixed precedence tiers.
      *
      * @param acceptLanguageHeader raw {@code Accept-Language} header value (quality-ordered ranges);
-     *                             may be {@code null}. Only consulted when {@code browserLanguageCheck}
-     *                             is {@code true}.
+     *                             may be {@code null}. Only consulted when the {@code level}
+     *                             ceiling {@code includes(BROWSER)}.
      * @param claimLocale          OIDC {@code locale} claim value; may be {@code null}
      * @param storedLocale         current DB value of the locale attribute; may be {@code null}
      * @param defaultLanguage      terminal fallback; when {@code null}/blank, {@code en-US} is used
      * @param supportedLanguages   set of offered BCP-47 tags; when {@code null}/empty only the
      *                             {@code default} tier can resolve
-     * @param browserLanguageCheck when {@code true}, the browser tier is the top precedence source
+     * @param level                the {@link LocaleResolutionLevel} ceiling; when {@code null},
+     *                             treated as {@link LocaleResolutionLevel#DEFAULT}
+     *                             ({@link LocaleResolutionLevel#BROWSER})
      * @return the resolved BCP-47 tag (always non-null; the {@code default} tier is terminal)
      */
     public static String resolve(final String acceptLanguageHeader,
@@ -97,19 +103,22 @@ public final class PrincipalLocaleResolver {
                                  final String storedLocale,
                                  final String defaultLanguage,
                                  final Set<String> supportedLanguages,
-                                 final boolean browserLanguageCheck) {
+                                 final LocaleResolutionLevel level) {
         final Set<String> supported = supportedLanguages == null ? Collections.emptySet() : supportedLanguages;
+        final LocaleResolutionLevel effective = level == null ? LocaleResolutionLevel.DEFAULT : level;
 
-        if (browserLanguageCheck) {
+        if (effective.includes(LocaleResolutionLevel.BROWSER)) {
             final String browser = matchAgainstSupported(acceptLanguageHeader, supported);
             if (browser != null) {
                 return browser;
             }
         }
 
-        final String claim = matchAgainstSupported(claimLocale, supported);
-        if (claim != null) {
-            return claim;
+        if (effective.includes(LocaleResolutionLevel.IDENTITY_PROVIDER)) {
+            final String claim = matchAgainstSupported(claimLocale, supported);
+            if (claim != null) {
+                return claim;
+            }
         }
 
         final String stored = matchAgainstSupported(storedLocale, supported);

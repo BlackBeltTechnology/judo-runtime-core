@@ -26,6 +26,7 @@ import hu.blackbelt.judo.dao.api.Payload;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
+import hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
 import org.eclipse.emf.common.util.URI;
@@ -147,28 +148,29 @@ class DefaultActorResolverLocaleRefreshModelTest {
                         .principalLocaleAttribute(LOCALE_ATTR)
                         .supportedLanguages("en-US,hu-HU")
                         .defaultLanguage("en-US")
-                        .browserLanguageCheck(true)
+                        .localeResolutionLevel(LocaleResolutionLevel.BROWSER)
                         .build())
                 .build();
     }
 
     @Test
-    @DisplayName("real model: claim locale differs from stored -> DAO.update persists resolved value")
-    void claimDiffersFromStoredPersists() {
+    @DisplayName("real model: claim locale differs from stored -> resolved value reflected in-request (persistence deferred)")
+    void claimDiffersFromStoredReflectedInRequest() {
         final Payload actor = Payload.map(ID_KEY, "u1", LOCALE_ATTR, "en-US");
         final Map<String, Object> claims = new HashMap<>();
         claims.put(LOCALE_ATTR, "hu-HU"); // OIDC locale claim, mapped to the actor attribute name
 
         resolver.refreshActorLocale(mappedActor, actor, claims);
 
-        final Payload expected = Payload.map(ID_KEY, "u1", LOCALE_ATTR, "hu-HU");
-        verify(dao).update(eq(mappedActor), eq(expected), isNull());
-        // in-request actor payload reflects the resolved value immediately
+        // In-request actor payload reflects the resolved value immediately so LocaleProvider and
+        // getPrincipal() see it for the duration of the request.
         assertThat((String) actor.get(LOCALE_ATTR), is(equalTo("hu-HU")));
+        // Persistence deferred (JNG-6415 review): no dao.update call.
+        verify(dao, never()).update(any(), any(), any());
     }
 
     @Test
-    @DisplayName("real model: browser Accept-Language wins as top tier when enabled")
+    @DisplayName("real model: browser Accept-Language wins as top tier when enabled (reflected in-request)")
     void browserHintWins() {
         final Payload actor = Payload.map(ID_KEY, "u1", LOCALE_ATTR, "en-US");
         final Map<String, Object> claims = new HashMap<>();
@@ -177,7 +179,8 @@ class DefaultActorResolverLocaleRefreshModelTest {
 
         resolver.refreshActorLocale(mappedActor, actor, claims);
 
-        verify(dao).update(eq(mappedActor), eq(Payload.map(ID_KEY, "u1", LOCALE_ATTR, "hu-HU")), isNull());
+        assertThat((String) actor.get(LOCALE_ATTR), is(equalTo("hu-HU")));
+        verify(dao, never()).update(any(), any(), any());
     }
 
     @Test

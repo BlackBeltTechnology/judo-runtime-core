@@ -302,13 +302,13 @@ public class JudoDefaultSpringConfiguration {
             @Value("${judo.platform.principalLocaleAttribute:}") String principalLocaleAttribute,
             @Value("${judo.platform.supportedLanguages:}") String supportedLanguages,
             @Value("${judo.platform.defaultLanguage:}") String defaultLanguage,
-            @Value("${judo.platform.browserLanguageCheck:true}") Boolean browserLanguageCheck
+            @Value("${judo.platform.localeResolutionLevel:BROWSER}") String localeResolutionLevel
     ) {
         return PrincipalLocaleConfig.builder()
                 .principalLocaleAttribute(principalLocaleAttribute)
                 .supportedLanguages(supportedLanguages)
                 .defaultLanguage(defaultLanguage)
-                .browserLanguageCheck(browserLanguageCheck)
+                .localeResolutionLevel(LocaleResolutionLevel.parse(localeResolutionLevel))
                 .build();
     }
 

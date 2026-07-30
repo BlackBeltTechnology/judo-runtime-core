@@ -28,6 +28,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.keycloak.AttributeBinding;
 import hu.blackbelt.judo.meta.keycloak.runtime.KeycloakModel;
 import hu.blackbelt.judo.runtime.core.exception.AuthenticationRequiredException;
+import hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel;
 import hu.blackbelt.judo.runtime.core.security.OpenIdConfigurationProvider;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import hu.blackbelt.judo.runtime.core.security.RealmExtractor;
@@ -95,7 +96,13 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
 
     private Map<String, String> clientToActorMap;
 
-    private boolean browserLanguageCheck;
+    /**
+     * Whether to capture the incoming {@code Accept-Language} header into principal attributes so
+     * the login-time locale resolver can use it as the top precedence tier. Derived once from the
+     * builder's {@link LocaleResolutionLevel} — the enum belongs at the configuration boundary,
+     * but the interceptor's runtime question is still "capture or not?", a boolean.
+     */
+    private boolean captureBrowserLanguage;
 
     @Builder
     public KeycloakLoginInterceptor(
@@ -104,7 +111,7 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
             @NonNull OpenIdConfigurationProvider openIdConfigurationProvider,
             @NonNull TransformationTraceService transformationTraceService,
             Map<String, String> clientToActorMap,
-            Boolean browserLanguageCheck) {
+            LocaleResolutionLevel localeResolutionLevel) {
         super(Phase.UNMARSHAL);
         this.realmExtractor = realmExtractor;
         this.asmModel = asmModel;
@@ -112,8 +119,10 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
         this.transformationTraceService = transformationTraceService;
         this.authServerUrl = openIdConfigurationProvider.getServerUrl();
         this.clientToActorMap = clientToActorMap;
-        // Default-on: the browser Accept-Language hint is captured unless explicitly disabled.
-        this.browserLanguageCheck = browserLanguageCheck == null || browserLanguageCheck;
+        // Default-on: null level means the deployment hasn't configured the ceiling, so honour
+        // the LocaleResolutionLevel.DEFAULT (BROWSER) and capture.
+        this.captureBrowserLanguage = localeResolutionLevel == null
+                || localeResolutionLevel.includes(LocaleResolutionLevel.BROWSER);
         asmUtils = new AsmUtils(asmModel.getResourceSet());
         keycloakDeploymentMap.clear();
     }
@@ -166,7 +175,7 @@ public class KeycloakLoginInterceptor extends AbstractPhaseInterceptor<Message> 
 
                     // Capture the request Accept-Language header (gated) so the login-time locale
                     // resolver can use it as the top precedence tier.
-                    captureAcceptLanguage(attributes, request, browserLanguageCheck);
+                    captureAcceptLanguage(attributes, request, captureBrowserLanguage);
 
                     final String resolvedClient = resolveClient(accessToken.getIssuedFor());
 
