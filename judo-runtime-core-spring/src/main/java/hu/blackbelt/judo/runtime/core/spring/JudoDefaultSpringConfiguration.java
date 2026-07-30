@@ -316,8 +316,7 @@ public class JudoDefaultSpringConfiguration {
     @SuppressWarnings("unchecked")
     public ActorResolver getActorResolver(
             DAO dao,
-            @Value("${judo.platform.checkMappedActors:false}") Boolean checkMappedActors,
-            PrincipalLocaleConfig localeConfig
+            @Value("${judo.platform.checkMappedActors:false}") Boolean checkMappedActors
     ) {
         return DefaultActorResolver.builder()
                 .dataTypeManager(dataTypeManager)
@@ -325,8 +324,6 @@ public class JudoDefaultSpringConfiguration {
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
                 .authenticationInterceptorProvider(authenticationInterceptorProvider)
-                .identifierProvider(identifierProvider)
-                .localeConfig(localeConfig)
                 .build();
     }
 

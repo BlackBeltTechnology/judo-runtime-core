@@ -13,7 +13,7 @@ The system SHALL support four platform parameters that configure principal local
 
 #### Scenario: All parameters unset
 - **WHEN** none of the four parameters are configured
-- **THEN** the runtime SHALL behave identically to the pre-change baseline: no `Accept-Language` capture, no DB refresh, and the `LocaleProvider` reference stays unbound
+- **THEN** the runtime SHALL behave identically to the pre-change baseline: no `Accept-Language` capture and the `LocaleProvider` returns the default (or empty when default is blank)
 
 #### Scenario: Only `principalLocaleAttribute` set
 - **WHEN** `principalLocaleAttribute=locale` and the other three parameters are unset
@@ -21,14 +21,13 @@ The system SHALL support four platform parameters that configure principal local
 
 ### Requirement: Feature gate on `principalLocaleAttribute`
 
-The principal locale refresh, `Accept-Language` capture, and any `LocaleProvider` effect SHALL be disabled entirely when `principalLocaleAttribute` is null, empty, or whitespace-only.
+The `Accept-Language` capture and the authenticated tier walk in `PrincipalLocaleProvider` SHALL be disabled entirely when `principalLocaleAttribute` is null, empty, or whitespace-only.
 
-#### Scenario: Feature disabled — no capture, no refresh
+#### Scenario: Feature disabled — no capture, no tier walk
 - **WHEN** `principalLocaleAttribute` is unset
 - **AND** an authenticated request arrives with an OIDC `locale` claim and `Accept-Language: hu-HU`
 - **THEN** `KeycloakLoginInterceptor` SHALL NOT read the `Accept-Language` header
-- **AND** `DefaultActorResolver.getActorByClaims` SHALL NOT call `DAO.update` for a locale attribute
-- **AND** `PrincipalLocaleProvider.getLocale()` SHALL return the default (identical to unbound `LocaleProvider`)
+- **AND** `PrincipalLocaleProvider.getLocale()` SHALL return the configured `defaultLanguage` (or empty when default is blank)
 
 ### Requirement: Fixed precedence order
 
@@ -87,40 +86,19 @@ When `browserLanguageCheck=true` (the default), the `Accept-Language` header SHA
 - **WHEN** `browserLanguageCheck=true` and the request has no `Accept-Language` header
 - **THEN** the browser tier SHALL be empty and the resolver SHALL fall through to the claim tier
 
-### Requirement: Login-time refresh persists resolved locale
+### Requirement: Backend is read-only
 
-`DefaultActorResolver.getActorByClaims` SHALL, after the actor entity is loaded and before returning, invoke `PrincipalLocaleResolver` with the browser hint (from `__acceptLanguage`), the claim locale (from claims), the stored locale (from the loaded payload), the default, the supported set, and the browser gate. If the resolved value differs from the stored value, the resolver SHALL call `dao.update(actorType, payloadWithId+localeAttr, null)`. Feature-gated on non-blank `principalLocaleAttribute`.
+The runtime SHALL NOT write the user's stored locale preference under any circumstance in this change. In particular, `DefaultActorResolver` SHALL NOT invoke `DAO.update` for a locale attribute, SHALL NOT mutate the in-memory actor payload's locale attribute, and SHALL NOT contact Keycloak to update the user profile. Persisting the user's preferred language is out of scope for this capability and belongs to a follow-up.
 
-#### Scenario: Resolved differs from stored — update called
-- **WHEN** `principalLocaleAttribute=locale`, resolved locale is `hu-HU`, stored locale is `en-US`
-- **THEN** `dao.update` SHALL be called with a payload containing the actor identifier and `{locale: "hu-HU"}`
+#### Scenario: No DAO update on login
+- **WHEN** an authenticated request arrives with a `Accept-Language: hu-HU` header, a stored locale of `en-US`, and `principalLocaleAttribute=locale`
+- **THEN** the resolved locale exposed to messages SHALL be `hu-HU` (browser tier)
+- **AND** `DAO.update` SHALL NOT be called for the locale attribute
+- **AND** the stored value on the actor entity SHALL remain `en-US`
 
-#### Scenario: Resolved equals stored — no update
-- **WHEN** resolved locale is `hu-HU` and stored locale is `hu-HU`
-- **THEN** `dao.update` SHALL NOT be called
-
-#### Scenario: DAO update throws — auth continues
-- **WHEN** `dao.update` throws an exception
-- **THEN** the exception SHALL be caught, a WARN SHALL be logged with the actor id, and `getActorByClaims` SHALL return the actor payload as if the refresh had not been attempted
-
-#### Scenario: `principalLocaleAttribute` unset — refresh skipped
-- **WHEN** `principalLocaleAttribute` is null or blank
-- **THEN** `getActorByClaims` SHALL NOT invoke `PrincipalLocaleResolver` and SHALL NOT call `dao.update` for a locale
-
-### Requirement: `principalLocaleAttribute` must be a mapped attribute
-
-If `principalLocaleAttribute` is set but does not resolve to a mapped attribute on the actor `EClass`, the refresh SHALL be skipped and a one-time WARN SHALL be logged naming the offending attribute. Authentication SHALL NOT fail.
-
-#### Scenario: Attribute not present on actor EClass
-- **WHEN** `principalLocaleAttribute=locale` but the actor `EClass` has no attribute named `locale`
-- **THEN** no `dao.update` call SHALL be made
-- **AND** a WARN SHALL be logged once (per JVM lifetime, per actor type)
-- **AND** the request SHALL proceed with the resolved locale determined via the fallback chain
-
-#### Scenario: Attribute exists but is transient
-- **WHEN** `principalLocaleAttribute=locale` and the actor has a `locale` attribute marked `transient`
-- **THEN** no `dao.update` call SHALL be made
-- **AND** a WARN SHALL be logged once
+#### Scenario: In-memory actor payload not mutated
+- **WHEN** `PrincipalLocaleProvider.getLocale()` runs against a bound principal whose actor payload has `locale=en-US`
+- **THEN** after the call the actor payload SHALL still have `locale=en-US` regardless of what the resolver returned
 
 ### Requirement: `Accept-Language` capture in KeycloakLoginInterceptor
 
@@ -140,15 +118,23 @@ When `browserLanguageCheck=true`, `KeycloakLoginInterceptor.handleMessage` SHALL
 
 ### Requirement: Backend messages follow the resolved locale via `PrincipalLocaleProvider`
 
-The `judo-runtime-core-dispatcher` module SHALL provide a class `PrincipalLocaleProvider` implementing `hu.blackbelt.osgi.i18n.api.LocaleProvider`. Its `getLocale()` method SHALL return a `java.util.Locale` parsed from the principal's resolved locale attribute (read via `PrincipalVariableProvider.apply(principalLocaleAttribute)`). When no principal is bound or the attribute is unset, it SHALL return the configured `defaultLanguage` as a `Locale`.
+The `judo-runtime-core-dispatcher` module SHALL provide a class `PrincipalLocaleProvider` implementing `hu.blackbelt.osgi.i18n.api.LocaleProvider`. On each `getLocale()` invocation, when a principal is bound to the request-scoped `Context`, it SHALL read the three candidate inputs from context — browser hint from `JudoPrincipal.attributes["__acceptLanguage"]`, OIDC `locale` claim from `JudoPrincipal.attributes[principalLocaleAttribute]`, stored value from `Context[ACTOR_KEY][principalLocaleAttribute]` — and delegate to `PrincipalLocaleResolver` to pick the effective tag. When no principal is bound, it SHALL fall back to the anonymous request path (see the sibling `add-anonymous-request-locale` change). Reads SHALL NOT invoke `GET_PRINCIPAL`.
 
-#### Scenario: Principal has a resolved locale
-- **WHEN** a request runs under a principal whose `principalLocaleAttribute` value is `hu-HU`
+#### Scenario: Browser hint wins when supported
+- **WHEN** the request runs under a principal whose attributes contain `__acceptLanguage=hu-HU` and `locale=en-US`, and the actor payload has `locale=en-US`, with `supportedLanguages={en-US, hu-HU}` and `browserLanguageCheck=true`
 - **THEN** `PrincipalLocaleProvider.getLocale()` SHALL return `Locale.forLanguageTag("hu-HU")`
 
-#### Scenario: No principal bound
-- **WHEN** `PrincipalLocaleProvider.getLocale()` is called outside a request scope
-- **THEN** it SHALL return `Locale.forLanguageTag(defaultLanguage)` without throwing
+#### Scenario: Claim wins when browser hint absent
+- **WHEN** attributes contain `locale=hu-HU` but no `__acceptLanguage`, and the actor has `locale=en-US`
+- **THEN** `getLocale()` SHALL return `hu-HU`
+
+#### Scenario: Stored wins when browser hint and claim absent
+- **WHEN** attributes contain neither `__acceptLanguage` nor `locale`, and the actor payload has `locale=hu-HU`
+- **THEN** `getLocale()` SHALL return `hu-HU`
+
+#### Scenario: Principal bound but no usable candidate
+- **WHEN** a principal is bound and all three tiers resolve to null (empty, unsupported, or missing)
+- **THEN** `getLocale()` SHALL return `Locale.forLanguageTag(defaultLanguage)` (or `Optional.empty()` when `defaultLanguage` is blank)
 
 #### Scenario: I18nServiceImpl uses the provider
 - **WHEN** `PrincipalLocaleProvider` is bound as `LocaleProvider` in Guice or Spring
@@ -168,12 +154,14 @@ The `PrincipalLocaleResolver` class SHALL live in `judo-runtime-core-security` a
 
 ### Requirement: Guice and Spring wiring for the four parameters and the LocaleProvider
 
-`judo-runtime-core-guice` and `judo-runtime-core-spring` SHALL each expose bindings for the four parameters and SHALL register `PrincipalLocaleProvider` as the `LocaleProvider` implementation. Spring properties SHALL follow the `judo.platform.*` prefix (e.g. `judo.platform.principalLocaleAttribute`).
+`judo-runtime-core-guice` and `judo-runtime-core-spring` SHALL each expose bindings for the four parameters (grouped into a `PrincipalLocaleConfig` value object) and SHALL register `PrincipalLocaleProvider` as the `LocaleProvider` implementation. Spring properties SHALL follow the `judo.platform.*` prefix (e.g. `judo.platform.principalLocaleAttribute`). `DefaultActorResolver` SHALL NOT be wired with any locale parameter.
 
 #### Scenario: Guice binding
 - **WHEN** a Guice-based application binds the four parameters via the JUDO Guice module
-- **THEN** `DefaultActorResolver` SHALL receive the parameter values through its builder and `LocaleProvider` SHALL resolve to `PrincipalLocaleProvider`
+- **THEN** the `LocaleProvider` binding SHALL resolve to a `PrincipalLocaleProvider` instance carrying a `PrincipalLocaleConfig` populated from those parameters
+- **AND** the `ActorResolver` binding SHALL NOT depend on any locale parameter
 
 #### Scenario: Spring property binding
 - **WHEN** a Spring-based application sets `judo.platform.principalLocaleAttribute=locale` (and the others)
-- **THEN** the autoconfiguration SHALL propagate the values to `DefaultActorResolver` and register `PrincipalLocaleProvider` as a bean of type `LocaleProvider`
+- **THEN** the autoconfiguration SHALL expose a `PrincipalLocaleConfig` bean and register `PrincipalLocaleProvider` as a bean of type `LocaleProvider`
+- **AND** the `ActorResolver` bean method SHALL NOT depend on `PrincipalLocaleConfig`

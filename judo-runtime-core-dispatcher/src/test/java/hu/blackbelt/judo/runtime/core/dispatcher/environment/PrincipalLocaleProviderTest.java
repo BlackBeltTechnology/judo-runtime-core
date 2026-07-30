@@ -27,6 +27,7 @@ import hu.blackbelt.judo.dispatcher.api.JudoPrincipal;
 import hu.blackbelt.judo.runtime.core.RequestLocaleHolder;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultDispatcher;
 import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleResolver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -41,9 +42,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Behavioural spec for {@link PrincipalLocaleProvider}: it surfaces the principal's resolved locale
- * (from the request-scoped {@link Context}) to backend i18n via the {@code LocaleProvider} SPI, with
- * a cheap O(1) read and a safe fallback to the configured default language.
+ * Behavioural spec for {@link PrincipalLocaleProvider}: it resolves the effective locale at read
+ * time by walking the browser → claim → stored → default tiers over the request-scoped
+ * {@link Context}. The backend never mutates the user's stored preference — all resolution is a
+ * pure read.
  * See {@code openspec/changes/add-principal-locale-resolution/specs/principal-locale-resolution/spec.md}.
  */
 class PrincipalLocaleProviderTest {
@@ -103,9 +105,17 @@ class PrincipalLocaleProviderTest {
     }
 
     @Test
-    void principalAttributeUsedWhenNoActor() {
-        assertThat(provider(contextWithPrincipal(Map.of(ATTR, "de-DE")), ATTR, DEFAULT).getLocale(),
-                is(equalTo(Optional.of(Locale.forLanguageTag("de-DE")))));
+    void principalClaimUsedWhenNoActor() {
+        // OIDC 'locale' claim on principal attributes -> matches supported 'hu-HU'.
+        assertThat(provider(contextWithPrincipal(Map.of(ATTR, "hu-HU")), ATTR, DEFAULT).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag("hu-HU")))));
+    }
+
+    @Test
+    void unsupportedStoredLocaleFallsBackToDefault() {
+        // Stored 'de-DE' is not in supported {en-US, hu-HU} -> filtered out -> default wins.
+        assertThat(provider(contextWithActor("de-DE"), ATTR, DEFAULT).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag(DEFAULT)))));
     }
 
     @Test
@@ -187,12 +197,80 @@ class PrincipalLocaleProviderTest {
     }
 
     @Test
-    void authenticatedPrincipalWinsOverBrowser() {
-        // principal bound (actor payload) + an Accept-Language present -> principal wins
+    void authenticatedPrincipalIgnoresRequestHolder() {
+        // Principal bound (actor payload) + an Accept-Language in the anonymous thread-local ->
+        // the authenticated tier walk reads inputs from the principal, NOT the anonymous holder.
         final Context context = mock(Context.class);
         when(context.getAs(Payload.class, Dispatcher.ACTOR_KEY)).thenReturn(Payload.map(ATTR, "hu-HU"));
         RequestLocaleHolder.set("en-US");
         assertThat(provider(context, ATTR, DEFAULT).getLocale(),
                 is(equalTo(Optional.of(Locale.forLanguageTag("hu-HU")))));
+    }
+
+    // -------- authenticated tier walk (browser -> claim -> stored -> default) --------
+
+    private static Context authenticatedContext(final Payload actor, final Map<String, Object> claims) {
+        final Context context = mock(Context.class);
+        when(context.getAs(Payload.class, Dispatcher.ACTOR_KEY)).thenReturn(actor);
+        when(context.getAs(JudoPrincipal.class, Dispatcher.PRINCIPAL_KEY)).thenReturn(
+                JudoPrincipal.builder().name("u").realm("r").client("c").attributes(claims).build());
+        return context;
+    }
+
+    @Test
+    void browserHintOnPrincipalWinsOverClaimAndStored() {
+        // Principal attributes carry the captured Accept-Language + a locale claim; actor has a
+        // stored value. Browser tier wins (all three supported).
+        final Payload actor = Payload.map(ATTR, "en-US");
+        final Map<String, Object> claims = Map.of(
+                PrincipalLocaleResolver.ACCEPT_LANGUAGE_ATTRIBUTE, "hu-HU",
+                ATTR, "en-US");
+        assertThat(provider(authenticatedContext(actor, claims), ATTR, DEFAULT).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag("hu-HU")))));
+    }
+
+    @Test
+    void claimWinsWhenBrowserHintMissing() {
+        final Payload actor = Payload.map(ATTR, "en-US");
+        final Map<String, Object> claims = Map.of(ATTR, "hu-HU");
+        assertThat(provider(authenticatedContext(actor, claims), ATTR, DEFAULT).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag("hu-HU")))));
+    }
+
+    @Test
+    void storedWinsWhenNoBrowserHintAndNoClaim() {
+        final Payload actor = Payload.map(ATTR, "hu-HU");
+        assertThat(provider(authenticatedContext(actor, Map.of()), ATTR, DEFAULT).getLocale(),
+                is(equalTo(Optional.of(Locale.forLanguageTag("hu-HU")))));
+    }
+
+    @Test
+    void browserHintDisabledSkipsBrowserTier() {
+        // browserLanguageCheck = false -> the captured Accept-Language on principal attrs is
+        // ignored; claim tier wins.
+        final Payload actor = Payload.map(ATTR, "en-US");
+        final Map<String, Object> claims = Map.of(
+                PrincipalLocaleResolver.ACCEPT_LANGUAGE_ATTRIBUTE, "hu-HU",
+                ATTR, "en-US");
+        final PrincipalLocaleProvider p = new PrincipalLocaleProvider(
+                authenticatedContext(actor, claims),
+                PrincipalLocaleConfig.builder()
+                        .principalLocaleAttribute(ATTR)
+                        .supportedLanguages(SUPPORTED)
+                        .defaultLanguage(DEFAULT)
+                        .browserLanguageCheck(Boolean.FALSE)
+                        .build());
+        assertThat(p.getLocale(), is(equalTo(Optional.of(Locale.forLanguageTag("en-US")))));
+    }
+
+    @Test
+    void backendNeverWritesToActorPayload() {
+        // Regression guard: resolving must not mutate the actor payload the caller supplied.
+        // (Backend is read-only per the JNG-6415 review feedback.)
+        final Payload actor = Payload.map(ATTR, "en-US");
+        final Map<String, Object> claims = Map.of(
+                PrincipalLocaleResolver.ACCEPT_LANGUAGE_ATTRIBUTE, "hu-HU");
+        provider(authenticatedContext(actor, claims), ATTR, DEFAULT).getLocale();
+        assertThat(actor.get(ATTR), is(equalTo("en-US")));
     }
 }
