@@ -23,12 +23,14 @@ package hu.blackbelt.judo.runtime.core.guice.dispatcher;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import hu.blackbelt.judo.dao.api.DAO;
+import hu.blackbelt.judo.dao.api.IdentifierProvider;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.runtime.core.DataTypeManager;
 import hu.blackbelt.judo.runtime.core.accessmanager.api.AuthenticationInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.dispatcher.DefaultActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
 
 import javax.annotation.Nullable;
 
@@ -52,6 +54,19 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
     @Nullable
     Boolean checkMappedActors = false;
 
+    @Inject(optional = true)
+    @Nullable
+    IdentifierProvider identifierProvider;
+
+    /**
+     * JNG-6415 locale settings grouped by the {@code consolidate-locale-config-object} change.
+     * Optional — absent binding means the feature is unconfigured, matching pre-refactor
+     * "all four scalars null" behaviour.
+     */
+    @Inject(optional = true)
+    @Nullable
+    PrincipalLocaleConfig localeConfig;
+
     @SuppressWarnings("unchecked")
     @Override
     public ActorResolver get() {
@@ -61,6 +76,8 @@ public class DefaultActorResolverProvider implements Provider<ActorResolver> {
                 .asmModel(asmModel)
                 .checkMappedActors(checkMappedActors)
                 .authenticationInterceptorProvider(authenticationInterceptorProvider)
+                .identifierProvider(identifierProvider)
+                .localeConfig(localeConfig)
                 .build();
     }
 }
