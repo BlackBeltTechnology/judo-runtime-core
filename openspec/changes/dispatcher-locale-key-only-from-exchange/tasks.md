@@ -83,11 +83,17 @@
 ## 5. Openspec archival prerequisites
 
 - [x] 5.1 `openspec validate dispatcher-locale-key-only-from-exchange --strict` green.
-- [ ] 5.2 Cross-link this change from `docs/JNG-6415-dispatcher-locale-key-shadowing.md`
-      ("Recommended origin follow-up" section) once merged.
+- [x] 5.2 Cross-linked this change from `docs/JNG-6415-dispatcher-locale-key-shadowing.md`
+      "Related" block (fix change id, fix commit hash, regression-guard test class name).
+      The doc's "Recommended origin follow-up" section is preserved as historical
+      context; the top-of-doc resolution timeline (commit `cb1f64e8`) supersedes it.
 
-## 6. Cross-repo follow-up (informational — not part of merge criteria here)
+## 6. Cross-repo follow-up
 
-- [ ] 6.1 In `judo-runtime-core-esm-itest:feature/JNG-6415_LocaleProviderInjectability`, flip
-      the assertion of `LocaleProviderInjectabilityTest#testBrowserCeilingReturnsHeaderLocale`
-      from JVM-default to the header locale. Coordinate with the itest branch owner.
+- [x] 6.1 In `judo-runtime-core-esm-itest:feature/JNG-6415_LocaleProviderInjectability`,
+      the two guard tests
+      (`LocaleProviderInjectabilityTest#testWithoutExchangeLocaleKeyFallsBackToDispatcherDefault`,
+      `LocaleKeyPrecedenceTest#testDispatchedOpReturnsContextLocaleShadowingHeader`)
+      were flipped from asserting JVM-default (pre-fix) to asserting the header locale
+      (post-fix). Confirmed via the itest full-suite run (894/894 pass after the flip;
+      2 pre-flip red guards were the intended trigger). Pushed by the itest branch owner.

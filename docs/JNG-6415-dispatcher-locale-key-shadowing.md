@@ -26,7 +26,12 @@ Historical detail below.
 `feature/JNG-6415_LocaleProviderInjectability`.
 
 **Related:**
-- Origin change: `judo-runtime-core:openspec/changes/replace-browser-check-with-resolution-level/`
+- Fix change (this repo): `openspec/changes/dispatcher-locale-key-only-from-exchange/` —
+  proposal + design (Position A vs B vs C) + spec deltas for `dispatcher` and
+  `anonymous-request-locale`.
+- Fix commit: `332c8edd` (`JNG-6415: fix DefaultDispatcher LOCALE_KEY shadowing of anonymous browser tier`).
+- Regression guard in this repo: `DefaultDispatcherLocaleKeyTest` (T1–T4).
+- Parent origin change: `judo-runtime-core:openspec/changes/replace-browser-check-with-resolution-level/`
 - Companion handoff: `docs/JNG-6415-task0-handoff-esm-itest.md`
 - Reproducer: `judo-runtime-core-esm-itest` branch
   `feature/JNG-6415_LocaleProviderInjectability`,
