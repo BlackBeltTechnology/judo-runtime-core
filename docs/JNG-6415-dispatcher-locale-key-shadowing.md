@@ -1,9 +1,26 @@
 # JNG-6415: `DefaultDispatcher` shadows the anonymous browser-locale tier
 
-**Status:** finding, not fixed here. Recommendation for the origin repo captured
-below. Discovered while writing the ESM-itest for the "Backend operations may
+**Status:** ✅ **Resolved &mdash; Position A landed in the origin repo during the same
+session this finding was reported.** History preserved below for future reviewers.
+Originally discovered while writing the ESM-itest for the "Backend operations may
 inject `LocaleProvider`" requirement added by the
 `replace-browser-check-with-resolution-level` change.
+
+## Resolution timeline
+
+- Reported here as a finding while writing `LocaleProviderInjectabilityTest` in
+  `judo-runtime-core-esm-itest`.
+- The origin agent adopted **Position A** (see "Recommended origin follow-up" below):
+  `DefaultDispatcher.callOperation` no longer populates `Context[LOCALE_KEY]` from
+  `Locale.getDefault()` when the exchange omits it. `PrincipalLocaleProvider`'s own
+  default-language fallback covers the "no application choice" case.
+- The itest carried two guard tests that intentionally asserted the pre-fix
+  behaviour (JVM default winning through dispatch). Both flipped red during the
+  full-suite regression run once the fix landed, exactly as designed. Their
+  assertions were then flipped to lock in the post-fix behaviour — they are now
+  canaries against future re-introduction of the shadowing.
+
+Historical detail below.
 
 **Reporter:** author of `judo-runtime-core-esm-itest` branch
 `feature/JNG-6415_LocaleProviderInjectability`.
