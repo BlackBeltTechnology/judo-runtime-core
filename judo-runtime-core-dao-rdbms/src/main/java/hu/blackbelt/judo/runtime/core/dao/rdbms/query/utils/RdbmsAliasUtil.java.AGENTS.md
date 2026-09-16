@@ -1,0 +1,6 @@
+# `RdbmsAliasUtil.java`
+
+Static alias-name builder for generated SQL. `getTargetColumnAlias(target, alias)` returns `alias + "_" + target.getIndex()` (targets indexed because reused in different roles), plus `getIdColumnAlias` / `getTypeColumnAlias` / `getVersionColumnAlias` / `getCreateUserIdColumnAlias` / `getUpdateTimestampColumnAlias` etc. which concatenate `node.getAlias() + "_" + StatementExecutor.*_COLUMN_NAME`.
+`getParentIdColumnAlias` prefixes `"__parent_"`; `getOptionalParentIdColumnAlias` returns the aggregate-feature alias instead when the node is a `SubSelectJoin` whose sub-select has no partner.
+Keys/prefixes: `getInstanceIdsKey` (`_ids` suffix), `getParentIdsKey` (`_parents` suffix), `getNavigationSubSelectAlias` (`j_` prefix), `getFilterPrefix` (`filter_` suffix), public `AGGREGATE_PREFIX = "aggr_"`.
+Contract: every `get*ColumnAlias` returns `null` for a `null` node (callers must null-check); the optional-parent variant can also return `null` when no aggregate feature/target resolves.

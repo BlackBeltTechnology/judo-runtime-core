@@ -1,0 +1,5 @@
+# AGENTS.md — `AnnotationBasedTest.java`
+
+| File | Purpose |
+| --- | --- |
+| `AnnotationBasedTest.java` | Demonstrates `@JudoTest` annotation for testing JUDO custom implementations. Exports test methods `simpleTest`, `testInterceptorWithAutoInjection`, `testWithAutoCommit`, `testWithManualTransaction`, `testWithCustomModel`, `testWithPostgreSQL`, `completeUserCreationTest`, `testErrorHandling` with `@DisplayName`, each taking an injected `JudoRuntimeFixture` parameter; bodies show commented `ReferenceInjector.createAndInject(...)` + `CreateInstanceCall.CreateInstanceCallPayload` flows and `Payload.map` fixtures. Contract: modes from `JudoTest.TransactionHandling` — default `AUTO_ROLLBACK` starts and rolls back per test, `AUTO_COMMIT` commits, `NONE` leaves control to `fixture.beginTransaction()`/`commitTransaction()`; `dialect = "postgresql"` requires PostgreSQL on localhost:5432. |

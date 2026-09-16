@@ -1,0 +1,23 @@
+# AGENTS.md — `judo-runtime-core-dispatcher/src/main/java/hu/blackbelt/judo/runtime/core/dispatcher`
+
+Core dispatcher package: `DefaultDispatcher` entry point, request/response conversion, identifier signing and actor resolution, operation-call interceptor machinery.
+
+| File | Purpose |
+| --- | --- |
+| `CallInterceptorUtil.java` | Runs `OperationCallInterceptor`s around an `EOperation` call and decides via `shouldCallOriginal()` whether the original call runs. → see `CallInterceptorUtil.java.AGENTS.md` |
+| `DefaultActorResolver.java` | Resolves `JudoPrincipal` claims to an actor `Payload` via `dao.search` with a JQL filter. → see `DefaultActorResolver.java.AGENTS.md` |
+| `DefaultDispatcher.java` | Central `Dispatcher` implementation: behaviour/script/SDK call wiring, upload/download tokens, data-type registration, metrics, exchange-key and fault constants. → see `DefaultDispatcher.java.AGENTS.md` |
+| `DefaultIdentifierSigner.java` | JWT-signs and verifies entity identifiers; writes `SIGNED_IDENTIFIER_KEY`, checks signing type. → see `DefaultIdentifierSigner.java.AGENTS.md` |
+| `DefaultMetricsCollector.java` | Times operation durations into the request `Context`. Exports `start(String)` → `MetricsCancelToken`, `stop(String)`, `getMetrics()`, `submit()`; stack kept under `FRAMEWORK_METRICS`/`FRAMEWORK_METRICS_STACK`, nested timings subtract from parent delta, `submit()` pushes to `metricsConsumer`. Contract: `stop(key)` must match the last-started key, else `IllegalStateException`. |
+| `DispatcherFunctionProvider.java` | Source of SDK/script implementations for the dispatcher. Exports `getSdkFunctions()` / `getScriptFunctions()` mapping `EOperation` → `Function<Payload, Payload>`; defaults `getMissingScripts()` / `getMissingSdkOperations()` report operations lacking an implementation. |
+| `Export.java` | `ProviderType` interface for exporting payload lists. Exports `exportToOutputStream`/`exportToInputStream` overloads taking `OutputStream`, format `type`, `List<Payload>`, `List<String> attributes`, `Locale` plus either a target `Class` or an `AsmModel` with classifier `fqName`; throws `IOException`. Contract: caller must supply a type to export as either Class or ASM fqName. |
+| `InternalServerException.java` | Runtime wrapper for internal dispatcher failures. Exports `InternalServerException(String)` and `InternalServerException(String, Throwable)`; extends `RuntimeException`. |
+| `OperationCallInterceptor.java` | Extension point decorating operation calls (behaviour, script, SDK): `preCall`/`postCall`, async, ignore-decorated, per-op scoping. → see `OperationCallInterceptor.java.AGENTS.md` |
+| `OperationCallInterceptorProvider.java` | Supplies operation interceptors. `getCallOperationInterceptors()` defaults to empty; `getInterceptorsForOperation(AsmModel, EOperation)` filters to interceptors whose `getOperations` list is empty or contains the operation. |
+| `RequestConverter.java` | Converts and validates inbound request payloads against an `EClass transferObjectType`. → see `RequestConverter.java.AGENTS.md` |
+| `ResponseConverter.java` | Shapes outbound payloads for responses. Exports `convert(Map)` → `Optional<Payload>`: converts enum ints to literals, other values via `Coercer`, byte arrays to filestore download tokens (disposition `attachment`), removes null/unknown entries except `keepProperties`. Contract: input enum values are ordinal integers; only embedded references traversed. |
+| `ScriptsReady.java` | Standalone empty marker interface `ScriptsReady`; declares no members, referenced nowhere else in this module. |
+| `SdkOperationsReady.java` | Standalone empty marker interface `SdkOperationsReady`; declares no members, referenced nowhere else in this module. |
+| `TransactionalOperationCall.java` | `Function<Payload, Payload>` executing a decorated call inside a Spring transaction. Exports `apply(Payload)`: opens `DefaultTransactionDefinition` via `PlatformTransactionManager`; commits only when `isStateful(operation)` and the result lacks `DefaultDispatcher.FAULT`, otherwise rolls back; exceptions roll back and rethrow. |
+| `UnsupportedExportImpl.java` | Fallback `Export` whose `exportToOutputStream`/`exportToInputStream` methods all throw `UnsupportedOperationException("Not implemented")`. |
+| `VariableResolverManager.java` | Registry for expression variables/functions by category. Exports `registerSupplier(String category, String key, Supplier, boolean cacheable)`, `registerFunction(String category, Function, boolean cacheable)`, `unregisterSupplier(String category, String key)`, `unregisterFunction(String category)`. |

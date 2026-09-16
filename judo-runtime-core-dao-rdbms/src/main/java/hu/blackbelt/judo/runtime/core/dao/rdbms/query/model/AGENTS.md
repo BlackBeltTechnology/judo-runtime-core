@@ -1,0 +1,19 @@
+# AGENTS.md — `judo-runtime-core-dao-rdbms/src/main/java/hu/blackbelt/judo/runtime/core/dao/rdbms/query/model`
+
+SQL-fragment object model of the RDBMS query layer. Every node here is an `RdbmsField`
+subtype that renders itself through `toSql(SqlConverterContext)`; the context carries the
+alias prefix, coercer and the `MapSqlParameterSource` that accumulates bind values.
+
+| File | Purpose |
+| --- | --- |
+| `RdbmsColumn.java` | Renders a qualified column reference. `@SuperBuilder` fields `columnName`, `partnerTable`, `partnerTablePrefix`/`Postfix`, `pattern` (default `{0}.{1}`), `skipLastPrefix`; exposes `getSourceDomainConstraints()`. Table prefix comes from `converterContext.getPrefixes().get(partnerTable)` when present, else the context prefix; `skipLastPrefix` strips the leading context prefix via `replaceFirst`. |
+| `RdbmsConstant.java` | Inlines a literal into SQL instead of binding it, branching per `java.sql.Types` code. → see `RdbmsConstant.java.AGENTS.md` |
+| `RdbmsEntityTypeName.java` | Emits the bare SQL table name of an entity type as a select-list field. `@SuperBuilder` over `@NonNull tableName` and `@NonNull @Getter EClass type`. `toSql` ignores the converter context entirely — no alias, no cast, no prefix is applied. |
+| `RdbmsField.java` | Abstract base of every SQL fragment; owns aliasing and domain-constraint casting. → see `RdbmsField.java.AGENTS.md` |
+| `RdbmsFunction.java` | Renders a SQL function/operator from a dialect `pattern` and `@Singular List<RdbmsField> parameters`. `toSql` formats the pattern with `MessageFormat` over each parameter rendered with `includeAlias(false)`, then casts to the target attribute's domain type. Pattern placeholder count must match the parameter list; `pattern` is never defaulted, so a null pattern throws in `MessageFormat.format`. |
+| `RdbmsNamedParameter.java` | Binds a value as JDBC named parameter `:p<index>` and registers it on `converterContext.getSqlParameters()` with SQL type and RDBMS type name. `@SuperBuilder` over `parameter`, `index`. A null `parameter.getValue()` renders literal `NULL` and registers nothing; `index` must be unique per statement or the earlier binding is overwritten. |
+| `RdbmsNavigationFilter.java` | Builds the `SELECT 1 FROM … WHERE` existence subquery backing a `Filter` node. `@Builder RdbmsNavigationFilter(Filter, RdbmsBuilderContext)` eagerly expands joins, feature conditions, ancestor joins and aggregated sub-select joins. → see `RdbmsNavigationFilter.java.AGENTS.md` |
+| `RdbmsOrderBy.java` | Renders one ORDER BY term. `@Builder`/`@Getter` over `@NonNull RdbmsField rdbmsField`, `@NonNull Boolean descending`, `boolean fromSubSelect`. Emits `<field> ASC\|DESC NULLS LAST\|FIRST` — nulls always sort opposite the direction. When `fromSubSelect` is true it prints `rdbmsField.getRdbmsAlias()` instead of re-rendering SQL, so the alias must exist in the enclosing select list. |
+| `RdbmsParameter.java` | Emits a bare `:<parameterName>` reference to a parameter bound elsewhere. `@SuperBuilder` over `@NonNull String parameterName`. Unlike `RdbmsNamedParameter` it registers no value on the `MapSqlParameterSource` — the caller must have bound the name already or execution fails. |
+| `RdbmsResultSet.java` | Assembles a whole `SELECT` statement for a `SubSelect` query node: columns, joins, conditions, group-by, order-by, seek paging, limit/offset. → see `RdbmsResultSet.java.AGENTS.md` |
+| `SqlConverterContext.java` | Threads rendering state through every `toSql` call. `@Builder(toBuilder = true)`/`@Getter`/`@ToString` over `prefix` (default `""`), `includeAlias` (default `false`), `coercer`, `sqlParameters`, `prefixes`. `sqlParameters` and `prefixes` are shared mutable references and `toBuilder()` copies them by reference, so bindings accumulate across nested fragments. |

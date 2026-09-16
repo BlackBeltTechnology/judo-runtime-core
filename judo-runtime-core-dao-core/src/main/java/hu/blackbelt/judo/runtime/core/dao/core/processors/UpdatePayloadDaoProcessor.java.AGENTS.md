@@ -1,0 +1,6 @@
+# `UpdatePayloadDaoProcessor.java`
+
+Recursively diffs `originalPayload` vs. `updatePayload` into `UpdateStatement` plus insert/delete/reference statements via sibling processors `InsertPayloadDaoProcessor`, `DeletePayloadDaoProcessor`, `AddReferencePayloadDaoProcessor`, `RemoveReferencePayloadDaoProcessor`.
+Public entry `update(EClass, Payload, Payload, boolean)` requires matching original/updated identifiers (`"The original identifier does not match with the original"`); with `optimisticLockEnabled`, payload `VERSION` must equal original else `"Outdated instance to update"`, and `UpdateStatement` carries `version(originalVersion)`.
+`collectStatements` keeps only changeable, containment, non-parent, mapped attributes/references present in `updatePayload`; changed attributes emit `InstanceExistsValidationStatement` + `UpdateStatement`, embedded references recurse on the `InstanceGraph`.
+`mergePayloads` enforces embedded-vs-associated contract: new instance without ID requires `isEmbedded` (`"Identifier is mandatory on reference association"`), association payloads must be ID-only (`"On association there can be any attribute / reference inside the payload"`), containment element identifier cannot change, existing containment resolved from parent `InstanceGraph.getContainments()` by `entityReference` + identifier.

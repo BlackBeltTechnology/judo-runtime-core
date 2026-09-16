@@ -1,0 +1,5 @@
+# AGENTS.md — `ExtensionBasedTest.java`
+
+| File | Purpose |
+| --- | --- |
+| `ExtensionBasedTest.java` | Comprehensive tour of JUDO testkit extensions. Nested classes `UsingJudoRuntimeExtension`, `UsingJudoDatasourceByClassExtension`, `UsingJudoDatasourceSingletonExtension`, `CombiningExtensions` field-register `JudoRuntimeExtension`, `JudoDatasourceByClassExtension`, `JudoDatasourceSingletonExtension` under `@RegisterExtension`; `AbstractModule.configure()` override hook adds extra Guice bindings. Exports the manual `JudoRuntimeFixture` wiring pattern `prepare("example", dataSource, dialect)`, `init(new AbstractModule(){}, this)`, `beginTransaction()`/`commitTransaction()`/`rollbackTransaction()` in `@BeforeEach`/`@AfterEach`. Contract: `JudoDatasourceByClassExtension` gives per-class datasource, `JudoDatasourceSingletonExtension` shares one datasource across classes and never tears down. |

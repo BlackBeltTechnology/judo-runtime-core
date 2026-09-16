@@ -1,0 +1,5 @@
+# AGENTS.md — `JudoTestAnnotationExamples.java`
+
+| File | Purpose |
+| --- | --- |
+| `JudoTestAnnotationExamples.java` | Tour of `@JudoTest` annotation options. Nested classes `AutoRollbackExamples`, `AutoCommitExamples`, `ManualTransactionExamples`, `NoTransactionExamples`, `ConfigurationExamples`, `RealWorldExamples` combine `@JudoTest(transaction = TransactionHandling.AUTO_ROLLBACK|AUTO_COMMIT|MANUAL|NONE)`, `truncateTables` boolean, `modelName = "example"`, `dialect = "hsqldb"|"postgresql"`. Exports dual parameter injection of both `JudoRuntimeFixture` and `JudoDatasourceFixture` in `testBothFixtures`, and savepoint usage `fixture.createSavePoint()`/`rollbackToSavePoint()` for partial rollback. Contract: `AUTO_COMMIT` with `truncateTables = false` leaves this test's data visible to the next test. |

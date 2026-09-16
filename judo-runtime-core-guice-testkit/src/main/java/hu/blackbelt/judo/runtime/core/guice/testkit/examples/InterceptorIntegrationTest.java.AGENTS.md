@@ -1,0 +1,5 @@
+# AGENTS.md — `InterceptorIntegrationTest.java`
+
+| File | Purpose |
+| --- | --- |
+| `InterceptorIntegrationTest.java` | Integration tests for custom dispatcher interceptors. Exports `SpyInterceptor` implementing `OperationCallInterceptor` — `AtomicInteger` preCall/postCall counters, `getName()`, empty `getOperations(AsmModel)` (intercept-all), `preCall`/`postCall`, `getPreCallCount()`, `getPostCallCount()`, `getLastOperation()`, `reset()`. Tests `testRegisterInterceptorByClass`, `testRegisterInterceptorByInstance`, `testInterceptorProviderManipulation`, `testInterceptorLogicInIsolation`, `testInjectIntoExistingInstance`, `testWithTransactionManagement`; drives `JudoRuntimeFixture.prepare/init/addInterceptor/getInterceptorProvider`, `ReferenceInjector.createAndInject/injectReferences`, `TestOperationCallInterceptorProvider` add/remove/clear, savepoints via `createSavePoint()`/`rollbackToSavePoint()`. Contract: interceptor must be registered before `init()`; HSQLDB `HikariDataSource` built in `@BeforeEach`, closed in `@AfterEach`. |

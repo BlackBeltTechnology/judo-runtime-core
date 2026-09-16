@@ -1,0 +1,14 @@
+# AGENTS.md — `judo-runtime-core-security/src/main/java/hu/blackbelt/judo/runtime/core/security`
+
+Security-side services: DAO write-through gated on a user store, request→actor realm extraction, and password/OpenID policies.
+
+| File | Purpose |
+| --- | --- |
+| `AcceptableClientsParser.java` | Parses `acceptableClients` config string (`actorFQN=client-a,client-b;…`) into actor→client map; exports `parseAcceptableClients(String)` and reverse `buildClientToActorMap(Map)`. Replaces `-` with `.` in client names; throws `IllegalArgumentException` on malformed entry (missing `=`, empty side) or client mapped to two actors; returns unmodifiable maps. |
+| `NoPasswordPolicy.java` | `PasswordPolicy<ID>` implementation whose `apply(Map)` always returns `Optional.empty()` — accepts every credential payload, never performs checks. Must not be wired where real password validation required. |
+| `OpenIdConfigurationProvider.java` | Interface for OpenID Connect provider metadata keyed by `EClass actorType`. Exports `getOpenIdConfiguration(EClass)`, `getOpenIdConfigurationUrl(EClass)`, `getClientId(EClass)`, `getServerUrl()`, `ping()`. Implementations must serve any actor type; callers must invoke `ping()` to check availability before use. |
+| `PasswordPolicy.java` | `interface PasswordPolicy<ID> extends Function<Map<String,Object>, Optional<ID>>` — maps a credential payload to an optional user id; `Optional.empty()` means no match. Implementers must return non-null `Optional`; callers decide rejection semantics on present id and must handle empty result. |
+| `PathInfoRealmExtractor.java` | `RealmExtractor` implementation selecting actor from request path. `@Builder` constructor takes `@NonNull AsmModel`; `extractActorType(HttpServletRequest)` returns first actor whose FQN (`/`-separated, dots→slashes) prefixes `getPathInfo()`. Null `pathInfo` yields `Optional.empty()`; callers must supply the servlet path. |
+| `RealmExtractor.java` | Interface mapping an HTTP request to its `EClass` actor realm. Exports single `extractActorType(HttpServletRequest)` returning `Optional<EClass>`. Implementations must return `Optional.empty()` on uncertain requests, never throw; callers must handle absence. |
+| `UserManagedWrappedDao.java` | `DAO` decorator gating writes behind `UserManager<String>` write-through; full detail → see `UserManagedWrappedDao.java.AGENTS.md`. |
+| `UserManager.java` | Interface for user-store operations over actors. Exports `getUser(EClass, ID)`, `getAllUsers(EClass)`, `createUser`/`updateUser`/`deleteUser(EClass, …)`, `getManagedActorOfPrincipal(EClass)`, `getPrincipalAttributeMapping(EClass)`, `getUsername(EClass, Map)`. Implementers must map principal↔actor consistently; callers must handle `Optional.empty()` for unknown users. |

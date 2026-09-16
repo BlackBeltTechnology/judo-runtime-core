@@ -1,0 +1,21 @@
+# AGENTS.md — `judo-runtime-core-dao-rdbms/src/main/java/hu/blackbelt/judo/runtime/core/dao/rdbms/query/mappers`
+
+One `RdbmsMapper` per `hu.blackbelt.judo.meta.query` feature kind. Each maps a logical
+feature to a `Stream` of `RdbmsField` (column, constant, named parameter, function, result
+set); `MapperFactory` assembles the dispatch table `RdbmsBuilder` uses.
+
+| File | Purpose |
+| --- | --- |
+| `AttributeMapper.java` | Maps `Attribute` to `RdbmsColumn` via `rdbmsBuilder.getColumnName(sourceAttribute)`; registers inherited-attribute containers in `builderContext.getAncestors()` with `partnerTablePostfix` so the ancestor JOIN emits. → see `AttributeMapper.java.AGENTS.md` |
+
+| `ConstantMapper.java` | Maps `Constant` to `RdbmsConstant` with a parameter from `RdbmsParameterMapper.createParameter` and `index` from `constantCounter.getAndIncrement()`. Caches by `EcoreUtil.getIdentification(constant)` in the builder's `ThreadLocal` constant fields under `synchronized (this)`; constants without an XMI id are re-emitted on every call. |
+| `DefaultMapperFactory.java` | Default `MapperFactory` implementation. `getMappers(RdbmsBuilder)` returns a fresh `HashMap` binding `Attribute`, `Constant`, `Variable`, `IdAttribute`, `TypeAttribute`, `EntityTypeName`, `SubSelect`, `SubSelectFeature`. `Function` is deliberately absent — a dialect module must add its own `FunctionMapper` subclass or `mapFeatureToRdbms` silently yields nothing. |
+| `EntityTypeNameMapper.java` | Maps `EntityTypeName` to a single `RdbmsEntityTypeName` built from `rdbmsBuilder.getTableName(entityTypeName.getType())` plus the `EClass` itself. Emits exactly one field regardless of target mappings, so it ignores `getTargets`. |
+| `FunctionMapper.java` | Abstract dialect base translating `Function` nodes into `RdbmsFunction` SQL patterns. → see `FunctionMapper.java.AGENTS.md` |
+| `IdAttributeMapper.java` | Maps `IdAttribute` to one `RdbmsColumn` on `StatementExecutor.ID_COLUMN_NAME`, aliased `<nodeAlias>_ID`. Registers every `getEAllSuperTypes()` entry of the node type into `builderContext.getAncestors()` as a `UniqueEList` before emitting, so ancestor joins cover the whole supertype chain. |
+| `MapperFactory.java` | Interface supplying the feature-class → mapper dispatch table. Single method `getMappers(RdbmsBuilder)` → `Map<Class<?>, RdbmsMapper<?>>`. Called from the `RdbmsBuilder` constructor with a half-built builder, so implementations must only store the reference, not invoke it. |
+| `RdbmsMapper.java` | Abstract base of every feature mapper. Declares `map(T, RdbmsBuilderContext)`; exports static `getTargets(Feature)`, `getAttributeOrFeatureName(EAttribute, Feature)`, and `@Builder` value class `RdbmsTarget(target, alias, targetAttribute)`. Attribute names over 25 chars truncate to 15 chars plus `hashCode()`; a null attribute falls back to `__f<index>`; both null throws `IllegalArgumentException`. |
+| `SubSelectFeatureMapper.java` | Maps `SubSelectFeature` to an `RdbmsColumn` whose `partnerTable` is the sub-select and whose `columnName` is the inner feature's target alias suffixed with the target index. Wraps `FunctionSignature.COUNT` features in pattern `COALESCE({0}.{1}, 0)` so an empty sub-select counts as 0 instead of NULL. |
+| `SubSelectMapper.java` | Maps `SubSelect` to a single `RdbmsResultSet`. Sets `withoutFeatures` when the container is a `Filter`/`OrderBy` or `subSelect.getSelect().isAggregated()`, which suppresses feature columns in the generated sub-query. |
+| `TypeAttributeMapper.java` | Maps `TypeAttribute` to the record-metadata column block: `ENTITY_TYPE`, `ENTITY_VERSION`, create username/user-id/timestamp and update username/user-id/timestamp columns from `StatementExecutor`, each aliased `<nodeAlias>_<COLUMN>`. Also pushes every `getEAllSuperTypes()` into `builderContext.getAncestors()`. |
+| `VariableMapper.java` | Maps `Variable` to `RdbmsNamedParameter`. Exports `PARAMETER_VARIABLE_KEY = "PARAMETER"`: that category resolves from `builderContext.getQueryParameters()`, others from `VariableResolver.resolve`. Enumerations go through `EEnum.getEEnumLiteral` — by ordinal `Integer` for parameters, by name otherwise — non-enums through `Coercer`. Caches by XMI id like `ConstantMapper`. |

@@ -1,0 +1,7 @@
+# `JudoCxfModule.java`
+
+Guice `AbstractModule` publishing the CXF JAX-RS server: `configure()` opens four `Multibinder.newSetBinder` sets keyed by `CxfQualifiers.Providers`/`InInterceptors`/`OutInterceptors`/`FaultInterceptors`, then each `configure<X>` appends an eager-singleton provider binding — `CxfJaxrsServerProvider`, `ClientExceptionMapperProvider`, `PayloadMessageBodyWriterProvider`, `CrossOriginResourceSharingFilterProvider`, `SetDefaultContentTypePreMatchContainerRequestFilterProvider`, `JacksonJaxbJsonProviderProvider`, `ISO8601DateParamHandlerProvider`, `FaultInterceptorProvider`, `JudoAuthorizingInterceptorProvider`, `ExchangeIdDecoratorProvider`, `ExchangeIdResponseWriterProviderOut`/`Fault`.
+
+**Key exports** `@Builder` public static `JudoCxfModuleBuilder`; `@Getter configuration`; `@Inject @Getter CxfJaxrsServerProvider.ServerHolder serverHolder`; `configureOptions()` binds each option to instance under its `CxfConfigurations.*` annotation; `configureServer()` binds `ServerHolder` to `CxfJaxrsServerProvider` as eager singleton.
+
+**Contracts** null ctor `configuration` assembled per-field from builder args defaulting to `JudoCxfModuleConfiguration.DEFAULT`; `serverHolder` only populated after `configure()` runs; `exchangeIdInterceptors` (default true) gates exchange interceptor bindings; set members land under the `CxfQualifiers` key the module opened.

@@ -1,0 +1,5 @@
+# AGENTS.md — `JudoConfigurationQualifiers.java`
+
+| File | Purpose |
+| --- | --- |
+| `JudoConfigurationQualifiers.java` | Nest of empty Guice qualifier annotations, each `@Qualifier`+`@BindingAnnotation`, FIELD/PARAMETER/METHOD targets, `RUNTIME` retention. Exports 20 annotations mirroring config knobs: `QueryFactoryCustomJoinDefinitions`, `RdbmsDaoOptimisticLockEnabled`, `RdbmsDaoChunkSize`, `RdbmsDaoMaximumRecursionCount`, `ActorResolverCheckMappedActors`, `ActorResolverAcceptableClients`, `DispatcherMetricsReturned`, `DispatcherEnableDefaultValidation`, `DispatcherTrimString`, `DispatcherCaseInsensitiveLike`, `IdentifierSignerSecret`, `MetricsCollectorConsumer`, `MetricsCollectorEnabled`, `MetricsCollectorVerbose`, `PayloadValidatorRequiredStringValidatorOption`, `ThreadContextDebugThreadFork`, `ThreadContextInheritableContext`, `RdbmsSequenceStart`, `RdbmsSequenceIncrement`, `RdbmsSequenceCreateIfNotExists`. Contract: `JudoDefaultModule.configureOptions()` binds config values annotated with these so multiple same-typed bindings (`Boolean`, `String`, `Integer`, `Long`, `Map`, `Consumer`) resolve unambiguously. |
