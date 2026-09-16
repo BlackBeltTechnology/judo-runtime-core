@@ -1,0 +1,16 @@
+# AGENTS.md — `judo-runtime-core-guice/src/main/java/hu/blackbelt/judo/runtime/core/guice/dao/rdbms`
+
+Guice `Provider<T>` factories wiring injected runtime services into RDBMS DAO/executor builders.
+
+| File | Purpose |
+| --- | --- |
+| `ModifyStatementExecutorProvider.java` | Guice `Provider<ModifyStatementExecutor>`. `get()` assembles `ModifyStatementExecutor` via builder from injected `AsmModel`, `RdbmsModel`, `Coercer`, `IdentifierProvider`, `TransformationTraceService`, `RdbmsParameterMapper`, `RdbmsResolver`. Callers must bind all seven in the injector; resolution fails on missing binding. |
+| `PlatformTransactionManagerProvider.java` | Guice `Provider<PlatformTransactionManager>`. `get()` returns `new DataSourceTransactionManager(dataSource)` over injected `DataSource`. One manager per `get()` call, no shared state. |
+| `QueryFactoryProvider.java` | Guice `Provider<QueryFactory>` wiring `JqlExpressionBuilderConfig` + `AsmJqlExtractor` with optional `QueryFactoryCustomJoinDefinitions`; full detail → see `QueryFactoryProvider.java.AGENTS.md` |
+| `RdbmsBuilderProvider.java` | Guice `Provider<RdbmsBuilder>`. `get()` builds `AsmUtils` over asm resource set, seeds `AncestorNameFactory` and `DescendantNameFactory` from `asmUtils.all(EClass.class)`, then wires `RdbmsBuilder` with injected `RdbmsModel`, `RdbmsResolver`, `RdbmsParameterMapper`, `IdentifierProvider`, `Coercer`, `VariableResolver`, `MapperFactory`, `Dialect`. |
+| `RdbmsDAOProvider.java` | Guice `Provider<DAO>`. `get()` builds `RdbmsDAOImpl` from injected `DataSource`, `Context`, `AsmModel`, `IdentifierProvider`, `InstanceCollector`, `MetricsCollector`, select/modify executors, `QueryFactory`. Injects `RdbmsInit` solely to force liquibase schema creation. Optional `@JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled` flag, default `true`. |
+| `RdbmsInstanceCollectorProvider.java` | Guice `Provider<InstanceCollector>`. `get()` builds `RdbmsInstanceCollector` over `NamedParameterJdbcTemplate(dataSource)` with injected `RdbmsResolver`, `AsmModel`, `RdbmsModel`, `Coercer`, `IdentifierProvider`, `RdbmsParameterMapper`. |
+| `RdbmsResolverProvider.java` | Guice `Provider<RdbmsResolver>`. `get()` builds `RdbmsResolver` from injected `AsmModel` and `TransformationTraceService` — no `RdbmsModel` involvement. |
+| `SelectStatementExecutorProvider.java` | Guice `Provider<SelectStatementExecutor>`. `get()` assembles executor from injected `QueryFactory`, `DataTypeManager`, `MetricsCollector`, `RdbmsBuilder`, `RdbmsResolver` et al. Optional `@RdbmsDaoChunkSize` (default 1000) and `@RdbmsDaoMaximumRecursionCount` (default 3) tune fetch behavior when bound. |
+| `SimpleLiquibaseExecutorProvider.java` | Guice `Provider<SimpleLiquibaseExecutor>`. `get()` returns `new SimpleLiquibaseExecutor()`; no injected dependencies, always fresh instance. |
+| `TransformationTraceServiceProvider.java` | Guice `Provider<TransformationTraceService>`. `get()` creates `TransformationTraceServiceImpl` and registers the asm2rdbms transformation from `JudoModelLoader`. Requires `JudoModelLoader` bound. |

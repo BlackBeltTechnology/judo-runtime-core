@@ -1,0 +1,5 @@
+# JudoKeycloakModule.java
+
+| File | Purpose |
+| --- | --- |
+| `JudoKeycloakModule.java` | Guice `AbstractModule` wiring Keycloak security; `@Builder` ctor takes `JudoKeycloakModuleConfiguration` or per-knob fields (server URL, admin credentials, realm-synchronizer and user-manager settings). `configure()` runs: `configureKeycloakLoginInterceptor()` (Multibinder adds `KeycloakLoginInterceptorProvider` to the `CxfQualifiers.InInterceptors` set), `configurePasswordPolicy()` (`PasswordPolicy`→`KeycloakPasswordPolicyProvider`), `configureAdminClient()` (`KeycloakAdminClient`→`KeycloakAdminClientProvider`), `configureKeycloakConnector()` (`KeycloakConnector` and `OpenIdConfigurationProvider`→`KeycloakConnectorOpenIdConfigurationProviderProvider`), `configureKeycloakUserManager()`, `configureRealmSyncornizer()`, `configureRealmExtractor()` (`RealmExtractor`→`PathInfoRealmExtractorProvider`), all `.asEagerSingleton()`; `configureOptions()` binds 22 `KeycloakConfigurationQualifiers` annotations to configuration values; `configureAdditional()` is an open override hook. |

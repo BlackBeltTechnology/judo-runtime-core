@@ -1,0 +1,14 @@
+# AGENTS.md — `judo-runtime-core-guice-keycloak/src/main/java/hu/blackbelt/judo/runtime/core/security/keycloak/guice/providers`
+
+Guice `Provider` bindings for the Keycloak security back-end: each class supplies one runtime object (connector, admin client, realm synchronizer, user manager, login interceptor, password policy) assembled from injected config.
+
+| File | Purpose |
+| --- | --- |
+| `Asm2KeycloakTransformationProvider.java` | Guice `Provider<Asm2KeycloakTransformationTrace>` whose `get()` returns `null` unconditionally; stands in where no asm2keycloak transformation trace is wired, so injectees receive null. Exports `get()`. |
+| `KeycloakAdminClientProvider.java` | Guice `Provider<KeycloakAdminClient>`. `get()` builds the client via builder from the injected `KeycloakConnector`; requiring that connector bound in the graph is the caller's contract. |
+| `KeycloakConnectorOpenIdConfigurationProviderProvider.java` | Guice `Provider<OpenIdConfigurationProvider>`; `get()` returns the injected `KeycloakConnector` itself, exposing connector discovery as the OpenID configuration source. |
+| `KeycloakConnectorProvider.java` | Guice `Provider<KeycloakConnector>`. `get()` builds the connector from injected `AsmModel`, `ObjectMapper` and optional `@KeycloakConfigurationQualifiers` strings (serverUrl, publicUrl, adminUser, adminPassword, clientSecret), each falling back to a default (localhost:8080, admin/admin). |
+| `KeycloakLoginInterceptorProvider.java` | Guice `Provider<KeycloakLoginInterceptor>`. `get()` builds the interceptor from `JudoModelLoader`, `OpenIdConfigurationProvider`, `RealmExtractor`, `TransformationTraceService` and an optional `ActorResolverAcceptableClients` string parsed by `AcceptableClientsParser` into the clientToActorMap. |
+| `KeycloakPasswordPolicyProvider.java` | Guice `Provider<PasswordPolicy>` selecting by optional `KeycloakSecurityPasswordPolicyType` string: `SAME_USERNAME` yields `SameUsernamePasswordPolicy`, `SAME_EMAIL` yields `SameEmailPasswordPolicy`, anything else yields `NoPasswordPolicy`. |
+| `KeycloakRealmSynchronizerProvider.java` | Guice `Provider<KeycloakRealmSynchronizer>`. `get()` builds it from injected `KeycloakAdminClient`, `KeycloakUserManager`, `KeycloakModel`, `TransformationTraceService`, `JudoModelLoader` and `@Named` configs (loginByEmail, access types, CORS, async/retry), registers the `identityManagerIsReady` callback, then calls `synchronizeAllRealms()` — provisioning itself triggers realm sync. |
+| `KeycloakUserManagerProvider.java` | Guice `Provider<KeycloakUserManager>`. `get()` builds the manager from injected `KeycloakAdminClient`, `PasswordPolicy`, `JudoModelLoader`, `TransformationTraceService` and optional `@KeycloakConfigurationQualifiers` configs; null configs fall back via `Objects.requireNonNullElse` (enabled=true, retryMaxAttempts=1000). |

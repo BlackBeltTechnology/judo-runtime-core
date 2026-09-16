@@ -1,0 +1,3 @@
+# `OperationCallInterceptor.java` — promoted sidecar detail
+
+| `OperationCallInterceptor.java` | Extension point decorating operation calls (behaviour, script, SDK). Exports `getName()`, `getOperations(AsmModel)` (empty = intercept all), `async()` (off-thread, no context variables), `terminateOnException()`, `ignoreDecoratedCall()`, `preCall(EOperation, Object)`, `postCall(EOperation, Object, Object)`. Contract: when `ignoreDecoratedCall()` is set, `preCall` must return the decorated call's return-type payload; `async()` calls skip transaction context. |

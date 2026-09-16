@@ -1,0 +1,12 @@
+# AGENTS.md — `judo-runtime-core-query/src/main/java/hu/blackbelt/judo/runtime/core/query`
+
+Builds the logical query graph (`Select`, `SubSelect`, `Join`, `Filter`, `OrderBy`, `Feature` meta objects) that the rdbms DAO layer later translates to SQL: `QueryFactory` materializes queries for mapped transfer object types plus navigation/data subqueries, `JoinFactory` folds expression navigation chains into join/filter/order nodes, `FeatureFactory` converts expression objects into query features via a converter registry, and `Context` carries the mutable build state.
+
+| File | Purpose |
+| --- | --- |
+| `Constants.java` | Query-builder numeric constants for measure handling. Exports `MEASURE_RATE_CALCULATION_SCALE` (30), `MEASURE_CONVERTING_PRECISION` (100), `MEASURE_CONVERTING_SCALE` (15). Doc contract: `MEASURE_RATE_CALCULATION_SCALE` must stay greater than `MEASURE_CONVERTING_SCALE` (recommended 2x) — callers tuning these must keep the invariant. |
+| `Context.java` | `@Builder @Getter` mutable query-build state (`node`, `createdQueryObjects`, `variables` `TreeMap`, `sourceCounter`/`targetCounter`); exports `addFeature(Feature)`, `clone()`, `clone(String, Node)`. → see `Context.java.AGENTS.md` |
+| `CustomJoinDefinition.java` | Immutable `@Builder @Getter` value object describing a custom join: `sourceIdParameterName`, `sourceIdSetParameterName`, `navigationSql`. `navigationSql` is raw SQL injected verbatim into generated queries — callers supply trusted SQL only and bind parameters through the two named parameter names. |
+| `FeatureFactory.java` | Registry mapping expression types to `ExpressionToFeatureConverter`s; exports `convert(Expression, Context, FeatureTargetMapping)`, ~90 converters from `...query.feature.*`, `isAssignableFrom` key resolution. → see `FeatureFactory.java.AGENTS.md` |
+| `JoinFactory.java` | Abstract factory unfolding navigation chains into `Join`/`Filter`/`OrderBy`/`SubSelect` nodes; exports `convertNavigationToJoins(Context, Node, ReferenceExpression, boolean)` → `PathEnds`. → see `JoinFactory.java.AGENTS.md` |
+| `QueryFactory.java` | Builds `Select`/`SubSelect` query graphs for mapped transfer object types; exports `getQuery(EClass)`, `getNavigation(EReference)`, `getDataQuery(EAttribute)`, `dataExpressionToFeature(...)`. → see `QueryFactory.java.AGENTS.md` |

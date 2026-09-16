@@ -1,0 +1,7 @@
+# AGENTS.md — `judo-runtime-core-dispatcher/src/test/java/hu/blackbelt/judo/runtime/core/dispatcher`
+
+| File | Purpose |
+| --- | --- |
+| `DefaultActorResolverAcceptableClientsTest.java` | JUnit 5 tests for `AcceptableClientsParser.parseAcceptableClients(String)`: splits `Actor=clientA,clientB;...` into `Map<String, Set<String>>`; covers valid config, single entry, whitespace trimming, null/empty/blank → empty map, duplicate client across actors → `IllegalArgumentException` mentioning 'Ambiguous'. |
+| `DefaultMetricsCollectorTest.java` | Mockito tests for `DefaultMetricsCollector`. `@Mock Context` exposes the `Stack<StackEntry>` and `TreeMap<String, AtomicLong>` measurements; asserts `start(key)` pushes an entry and closing the returned `MetricsCancelToken` pops it and records the measurement. Builds collector via `.enabled(true).context(context)`. |
+| `JarSkillPackageTest.java` | Asserts Claude skill artifacts ship in the JAR: `/claude/marketplace.json`, `/claude/plugins/judo-dispatcher/.claude-plugin/plugin.json`, and `skills/create-interceptor/SKILL.md` resolvable via classpath; verifies resource filtering substituted `${project.version}` (content contains `judo-runtime-core-dispatcher`, `judo-dispatcher`, no placeholder). |

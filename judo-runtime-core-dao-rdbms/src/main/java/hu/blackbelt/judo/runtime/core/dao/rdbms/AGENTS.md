@@ -1,0 +1,19 @@
+# `hu.blackbelt.judo.runtime.core.dao.rdbms` — agent notes
+
+RDBMS-backed implementation of the `hu.blackbelt.judo.dao.api.DAO` contract:
+metrics-wrapped DAO façade, SQL parameter coercion, instance-graph collection, and
+ASM↔RDBMS element resolution over tatami transformation traces.
+
+| File | Purpose |
+|---|---|
+| `AbstractRdbmsDAO.java` | Implements every `DAO` method as metrics-wrapped delegation. Wraps 30+ `protected abstract` hooks (`readAll`, `searchByFilter`, `insertPayload`, `updatePayload`, `deletePayload`, `readRangeOf`, `getMetricsCollector`) in `MetricsCollector.start("dao-query"\|"dao-count")`. Caches static-feature presence per `EClass`. Subclasses supply persistence only — never re-add timing or result logging. |
+| `DefaultRdbmsParameterMapper.java` | Coerces DAO values into Spring `MapSqlParameterSource` entries. `createParameter` resolves target java type, coerces via `Coercer`, maps `java.sql.Types` through `getSqlType`, renders RDBMS type name from registered `typePredicates`/`sqlTypes` (BigDecimal → `RdbmsDecimalType`). `getSqlType` reads `TypeMappings` from `RdbmsModel`; unmapped ASM type throws `NoSuchElementException`. |
+| `Dialect.java` | SQL dialect seam consumed by query builders. Declares `getName()` and `getDualTable()`; per-database bundles (hsqldb, postgresql, oracle) supply the implementation so no dialect literal is hardcoded in query code. |
+| `PayloadTraverser.java` | Package-private recursive walker over a `Payload` tree along mapped references. Static `traversePayload(Consumer, PayloadTraverser)` calls the consumer on the node, then descends only into references `AsmUtils.getMappedReference` resolves and that are not the parent `container`, so cycles back to the container are never revisited. Lombok `@Builder` only. |
+| `RdbmsDAOImpl.java` | Concrete `AbstractRdbmsDAO` wiring JDBC executors, `QueryFactory` and `Context`. → see `RdbmsDAOImpl.java.AGENTS.md` |
+| `RdbmsInit.java` | Startup hook for schema/data preparation. Declares `execute(DataSource)`; implementations (Liquibase runners, test fixtures) run before any DAO call so the DAO never creates schema itself. |
+| `RdbmsInstanceCollector.java` | Implements `InstanceCollector` over JDBC — collects containment/reference graphs for delete and cascade. → see `RdbmsInstanceCollector.java.AGENTS.md` |
+| `RdbmsParameterMapper.java` | Contract for turning ASM values into JDBC parameters. Declares `getIdClassName`, `getIdSqlType`, `getSqlType(String)`, two `createParameter` overloads, and bulk `mapAttributeParameters` / `mapReferenceParameters`. Nested `Parameter` (`name`, `value`, `javaTypeName`, `sqlType`, `rdbmsTypeName`) is the immutable result; `ValueAndDataType` feeds type predicates. |
+| `RdbmsReference.java` | Immutable link record joining a DAO `Statement` to the RDBMS `Rule` storing it: `identifier`, `oppositeIdentifier`, `reference`, `rule`, `oppositeReference`, `oppositeRule`. Constructible only via `rdbmsReferenceBuilder()`. `isSwapped()` is true when the rule is neither foreign key nor inverse foreign key — the opposite side owns the column. |
+| `RdbmsReferenceUtil.java` | Completes a half-built `RdbmsReference` with RDBMS rules. `buildRdbmsReferenceForStatement(RdbmsReferenceBuilder)` fills `Rules.getRuleFromReference` for the reference and, when an `EOpposite` exists, the opposite rule too. Constructor requires `asmModel`, `rdbmsModel`, `transformationTraceService`; an RDBMS model without `Rules` throws `IllegalArgumentException`. |
+| `RdbmsResolver.java` | Resolves ASM elements to RDBMS elements via `TransformationTraceService` descendant lookups. Exports `rdbmsTable`, `rdbmsJunctionTable`, `rdbmsField`, `rdbmsJunctionField`, `rdbmsJunctionOppositeField`, plus `logAttributeParameters`/`logReferenceParameters` on log topic `dao-rdbms`. Every lookup `checkState`s exactly one mapped target, else fails naming the element. |
