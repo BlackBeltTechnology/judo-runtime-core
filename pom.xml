@@ -74,7 +74,7 @@
         <judo-tatami-base-version>1.1.6.20260312_051148_a45db233_develop</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20260311_104951_75435c87_develop</mapper-version>
-        <osgi-filestore-version>1.3.1.20261005_112210_4e8f8aa2_feature_JNG_XXXX_GcsS3InteropIntegrationTest</osgi-filestore-version>
+        <osgi-filestore-version>1.3.1.20261006_080426_937a4ae9_develop</osgi-filestore-version>
 
         <!-- Code Quality-->
         <sonar-maven-plugin-version>3.9.1.2184</sonar-maven-plugin-version>
