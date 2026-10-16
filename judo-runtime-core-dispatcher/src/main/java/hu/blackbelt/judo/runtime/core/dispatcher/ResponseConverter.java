@@ -37,6 +37,7 @@ import lombok.Singular;
 import org.eclipse.emf.ecore.*;
 
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ResponseConverter {
@@ -73,6 +74,8 @@ public class ResponseConverter {
             return Optional.empty();
         }
 
+        final Map<EClass, Set<String>> allowedNamesByType = new HashMap<>();
+
         return Optional.of(PayloadTraverser.builder()
                 .predicate((reference) -> AsmUtils.isEmbedded(reference))
                 .processor((instance, ctx) -> {
@@ -83,9 +86,7 @@ public class ResponseConverter {
                                     : convertNonEnumerationValue(a, instance.get(a.getName()))));
                     for (final Iterator<Map.Entry<String, Object>> it = instance.entrySet().iterator(); it.hasNext(); ) {
                         final Map.Entry<String, Object> entry = it.next();
-                        if (!ctx.getType().getEAllStructuralFeatures().stream()
-                                .filter(f -> !ctx.getType().getEAllStructuralFeatures().stream().anyMatch(d -> Objects.equals(f.getName(), AsmUtils.getExtensionAnnotationValue(d, "default", false).orElse("-"))))
-                                .anyMatch(f -> Objects.equals(f.getName(), entry.getKey()))
+                        if (!allowedNamesByType.computeIfAbsent(ctx.getType(), ResponseConverter::allowedNames).contains(entry.getKey())
                                 && !keepProperties.contains(entry.getKey())
                                 || entry.getValue() == null) {
                             it.remove();
@@ -94,6 +95,20 @@ public class ResponseConverter {
                 })
                 .build()
                 .traverse(Payload.asPayload(input), transferObjectType));
+    }
+
+    /**
+     * Returnable feature names of a type: all structural features except the ones referenced as the
+     * {@code default} annotation of another feature (the default-value companions).
+     */
+    private static Set<String> allowedNames(final EClass type) {
+        final Set<String> defaultCarriers = type.getEAllStructuralFeatures().stream()
+                .map(d -> AsmUtils.getExtensionAnnotationValue(d, "default", false).orElse("-"))
+                .collect(Collectors.toSet());
+        return type.getEAllStructuralFeatures().stream()
+                .map(ENamedElement::getName)
+                .filter(n -> !defaultCarriers.contains(n))
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     private final Object convertEnumerationValue(final EDataType dataType, final Integer oldValue) {
