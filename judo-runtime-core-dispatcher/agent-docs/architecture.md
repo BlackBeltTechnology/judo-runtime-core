@@ -123,6 +123,16 @@ Key methods:
 - `callOperation()` - Routes to appropriate handler
 - `callInterceptors()` - Manages interceptor chain
 
+### ResponseConverter (response key filtering)
+
+`DefaultDispatcher.processResponse` builds one `ResponseConverter` per call. Its `PayloadTraverser` visits every row, including nested embedded rows, and keeps a key only if both of these hold:
+- the key is an allowed name of the row's type, or a `keepProperty` (identifier, `__updateable`, `__deleteable`, `__entityType`, `__version`, ...)
+- the value is non-null
+
+Allowed names are all structural features of the type, minus the hidden default-value companions. A companion is a feature named by another feature's `default` annotation (`_<field>_default_<container>`).
+
+The allowed-name set is computed once per `EClass` per `convert(...)` call. It lives in a call-local `Map<EClass, Set<String>>`, so each key check is a set lookup and not a feature scan. Nothing is cached across calls (JNG-6420). The behaviour is pinned by `ResponseConverterTest`.
+
 ### Operation Types
 
 ```mermaid
