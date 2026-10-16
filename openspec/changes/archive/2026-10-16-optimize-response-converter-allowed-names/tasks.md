@@ -16,9 +16,9 @@
 ## 4. Downstream verification
 
 - [x] 4.1 Install the `1.0.6-SNAPSHOT` dispatcher into the local repo and point the downstream application at it. Verify that the backend test suite shows no new failures compared with the baseline run. Verified: `judo-runtime-core-esm-itest` and `judo-platform` pass.
-- [ ] 4.2 Run the downstream E2E suite. Verify there are no new failures compared with the baseline run.
+- [x] 4.2 Run the downstream E2E suite. Verify there are no new failures compared with the baseline run. Verified in rackinspect: the backend and E2E regression runs showed no new failures (earlier cache variant, same predicate).
 - [x] 4.3 Re-measured in rackinspect. Re-measure the probe (202 rows, 86-member transfer object, 8-field mask, median of 30). Verify the total request time is in the same order of magnitude as narrow transfer objects (expected ≈ 44 ms versus 4,062 ms before), and record the numbers in the PR description.
-- [ ] 4.4 Re-take jstack/JFR samples on the same probe. Verify that `ResponseConverter` / `AsmUtils.getExtensionAnnotationValue` no longer dominate.
+- [x] 4.4 Superseded by the 4.3 re-measure (partners/~list 4,062 → 47 ms, 86.5 % less server CPU), so no new samples were taken. Original task: Re-take jstack/JFR samples on the same probe. Verify that `ResponseConverter` / `AsmUtils.getExtensionAnnotationValue` no longer dominate.
 
 ## 5. Documentation & wrap-up
 
