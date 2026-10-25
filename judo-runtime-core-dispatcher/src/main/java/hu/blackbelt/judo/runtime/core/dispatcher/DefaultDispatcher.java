@@ -154,8 +154,6 @@ public class DefaultDispatcher implements Dispatcher {
 
     private final Export exporter;
 
-    private final Locale defaultLocale;
-
     @SuppressWarnings("unchecked")
     private void setupBehaviourCalls(DAO dao, IdentifierProvider identifierProvider, AsmModel asmModel) {
         ServiceContext serviceContext = ServiceContext.builder()
@@ -219,8 +217,7 @@ public class DefaultDispatcher implements Dispatcher {
             Boolean metricsReturned,
             Boolean enableValidation,
             Boolean trimString,
-            Boolean caseInsensitiveLike,
-            Locale defaultLocale) {
+            Boolean caseInsensitiveLike) {
         this.asmModel = asmModel;
         this.dao = dao;
         this.identifierProvider = identifierProvider;
@@ -249,8 +246,6 @@ public class DefaultDispatcher implements Dispatcher {
         this.metricsReturned = Objects.requireNonNullElse(metricsReturned, true);
 
         this.trimString = Objects.requireNonNullElse(trimString, false);
-
-        this.defaultLocale = Objects.requireNonNullElse(defaultLocale, Locale.getDefault());
 
         this.caseInsensitiveLike = Objects.requireNonNullElse(caseInsensitiveLike, false);
 
@@ -629,11 +624,17 @@ public class DefaultDispatcher implements Dispatcher {
                 context.putIfAbsent(ACTOR_KEY, exchange.get(ACTOR_KEY));
             }
 
-            Locale locale = defaultLocale;
+            // JNG-6415: propagate LOCALE_KEY only when the exchange carries it. Never synthesise
+            // a JVM-default fallback here — that would shadow the anonymous browser tier read by
+            // PrincipalLocaleProvider (Context[LOCALE_KEY] → RequestLocaleHolder → defaultLanguage).
+            // Mirrors the ACTOR_KEY treatment two lines above.
+            final Locale locale;
             if (exchange.containsKey(LOCALE_KEY)) {
                 locale = (Locale) exchange.get(LOCALE_KEY);
+                context.putIfAbsent(LOCALE_KEY, locale);
+            } else {
+                locale = null;
             }
-            context.putIfAbsent(LOCALE_KEY, locale);
 
             if (exchange.containsKey(REQUEST_PARAMETERS_KEY)) {
                 Map<String, String> requestParameters = (Map<String, String>) exchange.get(REQUEST_PARAMETERS_KEY);

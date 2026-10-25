@@ -28,6 +28,7 @@ import com.google.inject.multibindings.Multibinder;
 import hu.blackbelt.judo.runtime.core.jaxrs.cxf.server.guice.providers.*;
 import lombok.*;
 import org.apache.cxf.interceptor.Interceptor;
+import hu.blackbelt.judo.runtime.core.jaxrs.cxf.interceptors.AcceptLanguageCaptureInterceptor;
 
 public class JudoCxfModule extends AbstractModule {
 
@@ -134,6 +135,7 @@ public class JudoCxfModule extends AbstractModule {
         configureSetDefaultContentTypePreMatchContainerRequestFilter();
         configureFaultInterceptor();
         configureJudoAuthorizingInterceptor();
+        configureAcceptLanguageCaptureInterceptor();
         configureJacksonJaxbJsonProvider();
         configureISO8601DateParamHandler();
     }
@@ -187,6 +189,10 @@ public class JudoCxfModule extends AbstractModule {
 
     protected void configureFaultInterceptor() {
         faultInterceptorsBinder.addBinding().toProvider(FaultInterceptorProvider.class).asEagerSingleton();
+    }
+
+    protected void configureAcceptLanguageCaptureInterceptor() {
+        inInterceptorsBinder.addBinding().to(AcceptLanguageCaptureInterceptor.class).asEagerSingleton();
     }
 
     protected void configureJudoAuthorizingInterceptor() {

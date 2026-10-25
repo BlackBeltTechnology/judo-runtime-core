@@ -47,6 +47,9 @@ import hu.blackbelt.judo.runtime.core.guice.core.ExtendableCoercererProvider;
 import hu.blackbelt.judo.runtime.core.guice.core.UUIDIdentifierProviderProvider;
 import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.*;
 import hu.blackbelt.judo.runtime.core.guice.dispatcher.*;
+import hu.blackbelt.judo.runtime.core.security.LocaleResolutionLevel;
+import hu.blackbelt.judo.runtime.core.security.PrincipalLocaleConfig;
+import hu.blackbelt.osgi.i18n.api.LocaleProvider;
 import hu.blackbelt.judo.runtime.core.dao.core.collectors.InstanceCollector;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsResolver;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.executors.ModifyStatementExecutor;
@@ -142,6 +145,10 @@ public class JudoDefaultModule extends AbstractModule {
                             Integer rdbmsDaoMaximumRecursionCount,
                             Boolean actorResolverCheckMappedActors,
                             String actorResolverAcceptableClients,
+                            String actorResolverPrincipalLocaleAttribute,
+                            String actorResolverSupportedLanguages,
+                            String actorResolverDefaultLanguage,
+                            LocaleResolutionLevel actorResolverLocaleResolutionLevel,
                             Boolean dispatcherMetricsReturned,
                             Boolean dispatcherEnableDefaultValidation,
                             Boolean dispatcherTrimString,
@@ -195,6 +202,10 @@ public class JudoDefaultModule extends AbstractModule {
                     .rdbmsDaoMaximumRecursionCount(rdbmsDaoMaximumRecursionCount)
                     .actorResolverCheckMappedActors(actorResolverCheckMappedActors)
                     .actorResolverAcceptableClients(actorResolverAcceptableClients)
+                    .actorResolverPrincipalLocaleAttribute(actorResolverPrincipalLocaleAttribute)
+                    .actorResolverSupportedLanguages(actorResolverSupportedLanguages)
+                    .actorResolverDefaultLanguage(actorResolverDefaultLanguage)
+                    .actorResolverLocaleResolutionLevel(actorResolverLocaleResolutionLevel)
                     .dispatcherMetricsReturned(dispatcherMetricsReturned)
                     .dispatcherEnableDefaultValidation(dispatcherEnableDefaultValidation)
                     .dispatcherTrimString(dispatcherTrimString)
@@ -274,6 +285,18 @@ public class JudoDefaultModule extends AbstractModule {
         if (configuration.getActorResolverAcceptableClients() != null) {
             bind(String.class).annotatedWith(JudoConfigurationQualifiers.ActorResolverAcceptableClients.class).toInstance(configuration.getActorResolverAcceptableClients());
         }
+        // JNG-6415 locale settings, grouped into a single value object by the
+        // consolidate-locale-config-object change so the four scalars are wired once (not 4 times)
+        // and reach both DefaultActorResolver and PrincipalLocaleProvider through one binding.
+        // The boolean browserLanguageCheck was later replaced by the LocaleResolutionLevel enum
+        // ceiling (replace-browser-check-with-resolution-level); the enum's own @Builder.Default
+        // = BROWSER collapses the previous null-check branch.
+        bind(PrincipalLocaleConfig.class).toInstance(PrincipalLocaleConfig.builder()
+                .principalLocaleAttribute(configuration.getActorResolverPrincipalLocaleAttribute())
+                .supportedLanguages(configuration.getActorResolverSupportedLanguages())
+                .defaultLanguage(configuration.getActorResolverDefaultLanguage())
+                .localeResolutionLevel(configuration.getActorResolverLocaleResolutionLevel())
+                .build());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherMetricsReturned.class).toInstance(configuration.getDispatcherMetricsReturned());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherEnableDefaultValidation.class).toInstance(configuration.getDispatcherEnableDefaultValidation());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.DispatcherTrimString.class).toInstance(configuration.getDispatcherTrimString());
@@ -484,6 +507,10 @@ public class JudoDefaultModule extends AbstractModule {
         }
     }
 
+    protected void configureLocaleProvider() {
+        bind(LocaleProvider.class).toProvider(PrincipalLocaleProviderProvider.class).in(Singleton.class);
+    }
+
     protected void configurePlatformTransactionManager() {
         if (configuration.getPlatformTransactionManager() != null) {
             bind(PlatformTransactionManager.class).toInstance(configuration.getPlatformTransactionManager());
@@ -516,6 +543,7 @@ public class JudoDefaultModule extends AbstractModule {
         configureInstanceCollector();
         configureDAO();
         configureActorResolver();
+        configureLocaleProvider();
         configureDispatcherFunctionProvider();
         configureOperationCallInterceptorProvider();
         configureDispatcher();

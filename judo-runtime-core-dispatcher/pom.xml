@@ -161,6 +161,12 @@
         </dependency>
 
         <dependency>
+            <groupId>hu.blackbelt.osgi.i18n</groupId>
+            <artifactId>i18n-api</artifactId>
+            <version>1.1.0.20250606_064429_c67d97cd_develop</version>
+        </dependency>
+
+        <dependency>
             <groupId>hu.blackbelt.judo</groupId>
             <artifactId>judo-dao-api</artifactId>
         </dependency>
