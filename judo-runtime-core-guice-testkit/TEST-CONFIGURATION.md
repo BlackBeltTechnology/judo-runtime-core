@@ -368,6 +368,47 @@ ignored only when there is no class scope to attach the cache to:
 - `BY_METHOD` — nothing is cached regardless.
 - Method-level `@JudoTest` annotations — those always behave as `BY_METHOD`.
 
+### Sharing the model runtime across classes (`judo.testkit.shareModel`)
+
+On large models most of a class's bootstrap is building the `QueryFactory`
+(~20 s on a real-world model), and it depends only on the model. The opt-in
+system property `judo.testkit.shareModel` (default **`false`**, JNG-6421)
+builds the model loader and the `QueryFactory` (plus its coercer) **once per
+JVM** per `(modelName, dialect, modelSource)` and hands them to every
+`BY_CLASS` test class. Everything stateful stays per class, so data isolation
+between classes is unchanged:
+
+| `dataSourceMode` | `shareInjector` | `shareModel` | DataSource | Liquibase | Injector / TxManager | QueryFactory | JudoModelLoader |
+|---|---|---|---|---|---|---|---|
+| BY_CLASS | `true` | `false` *(default)* | per class | once | per class | per class | per class |
+| **BY_CLASS** | **`true`** | **`true`** | **per class** | **once** | **per class** | **JVM-wide** | **JVM-wide** |
+| BY_CLASS | `false` | `true` | per class | per method (no-op after 1st) | per method | per method | JVM-wide |
+
+Enable it once for the whole suite in the surefire configuration:
+
+```xml
+<plugin>
+  <artifactId>maven-surefire-plugin</artifactId>
+  <configuration>
+    <systemPropertyVariables>
+      <judo.testkit.shareModel>true</judo.testkit.shareModel>
+    </systemPropertyVariables>
+  </configuration>
+</plugin>
+```
+
+Caveats:
+- **Tests that mutate the loaded model** (EMF resources) at runtime must not
+  run with the property on — the change would leak into later classes of the
+  same JVM.
+- The shared model and `QueryFactory` are not thread-safe for concurrent
+  classes; keep in-fork class parallelism off (as for every `BY_CLASS` cache).
+  Surefire forks are separate JVMs and each build their own copy.
+- `BY_METHOD`, method-level `@JudoTest` and `SINGLETON` are unaffected.
+- The shared model runtime lives for the **JVM**: it survives the end of a JUnit
+  launcher session (surefire runs one session per test class in a reused fork),
+  so each fork builds it exactly once. It holds no resources to close.
+
 ### Behavioural sharing
 
 > Renamed and inverted in the `share-injector-opt-in` change. The legacy

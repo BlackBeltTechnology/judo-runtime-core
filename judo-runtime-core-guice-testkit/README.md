@@ -198,6 +198,12 @@ class MyTestClass {
 > opting in. See
 > [TEST-CONFIGURATION.md » Behavioural sharing](TEST-CONFIGURATION.md#behavioural-sharing)
 > for the full matrix and rationale.
+>
+> **Many test classes on a large model?** Add the surefire system property
+> `judo.testkit.shareModel=true` (default `false`) to build the model loader
+> and the `QueryFactory` once per JVM instead of once per `BY_CLASS` class;
+> DataSource, Liquibase and `Injector` stay per class. See
+> [TEST-CONFIGURATION.md » Sharing the model runtime across classes](TEST-CONFIGURATION.md#sharing-the-model-runtime-across-classes-judotestkitsharemodel).
 
 ```java
 // BY_METHOD: New datasource for each test (default)

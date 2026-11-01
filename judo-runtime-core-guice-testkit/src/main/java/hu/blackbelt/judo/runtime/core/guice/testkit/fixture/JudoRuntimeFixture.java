@@ -6,8 +6,6 @@ import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.Module;
 import com.google.inject.util.Modules;
-import hu.blackbelt.judo.meta.expression.builder.jql.JqlExpressionBuilderConfig;
-import hu.blackbelt.judo.meta.expression.builder.jql.asm.AsmJqlExtractor;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.RdbmsInit;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.hsqldb.HsqldbDialect;
@@ -24,14 +22,11 @@ import hu.blackbelt.judo.runtime.core.guice.testkit.util.ReferenceInjector;
 import hu.blackbelt.judo.runtime.core.guice.testkit.util.TestOperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
-import hu.blackbelt.mapper.impl.DefaultCoercer;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
-import org.eclipse.emf.common.util.URI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -89,19 +84,14 @@ public class JudoRuntimeFixture {
     private final List<OperationCallInterceptor> interceptorInstances = new ArrayList<>();
 
     private void initQueryFactory() {
-        coercer = new DefaultCoercer();
+        applyModelRuntime(ModelRuntime.build(modelHolder));
+    }
 
-        JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
-        jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
-
-        final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(
-            modelHolder.getAsmModel().getResourceSet(),
-            modelHolder.getMeasureModel().getResourceSet(),
-            URI.createURI("expr:" + modelHolder.getAsmModel().getName()),
-            jqlExpressionBuilderConfig
-        );
-
-        queryFactory = new QueryFactory(modelHolder.getAsmModel().getResourceSet(), modelHolder.getMeasureModel().getResourceSet(), asmJqlExtractor.extractExpressions(), coercer, new ConcurrentHashMap<>());
+    /** Installs a (possibly JVM-shared) model loader, coercer and QueryFactory on this fixture. */
+    void applyModelRuntime(ModelRuntime modelRuntime) {
+        this.modelHolder = modelRuntime.modelLoader;
+        this.coercer = modelRuntime.coercer;
+        this.queryFactory = modelRuntime.queryFactory;
     }
 
     private void initModules(DataSource datasource, Dialect dialect) {
@@ -206,6 +196,19 @@ public class JudoRuntimeFixture {
         log.debug("Using pre-loaded model: {}", preloadedModel.getAsmModel().getName());
 
         initQueryFactory();
+        initModules(datasource, dialect);
+    }
+
+    /**
+     * Like {@link #prepareWithModel}, but reuses an already built {@link ModelRuntime}
+     * (JNG-6421, {@code judo.testkit.shareModel}): no QueryFactory is built, only the
+     * per-class parts - Liquibase schema on {@code datasource} and the database module.
+     */
+    void prepareWithModelRuntime(ModelRuntime modelRuntime, DataSource datasource, String dialectName) throws Exception {
+        dialect = resolveDialect(dialectName);
+        applyModelRuntime(modelRuntime);
+        log.debug("Using shared model runtime: {}", modelRuntime.modelLoader.getAsmModel().getName());
+
         initModules(datasource, dialect);
     }
 
