@@ -5,6 +5,13 @@ injection and test fixtures for interceptors, operations, and custom components.
 
 ## Recent Changes
 
+- **JNG-6421 (`share-model-runtime-across-classes`)** — opt-in system
+  property `judo.testkit.shareModel` (default `false`). When `true`,
+  `BY_CLASS` classes reuse one model loader and one `QueryFactory` (+ coercer)
+  per JVM and `(modelName, dialect, modelSource)`; DataSource, Liquibase,
+  `Injector` and transaction manager stay per class. Removes the ~20 s
+  `QueryFactory` build from every class after the first in a fork. See
+  [TEST-CONFIGURATION.md » Sharing the model runtime across classes](TEST-CONFIGURATION.md#sharing-the-model-runtime-across-classes-judotestkitsharemodel).
 - **JNG-6374 (`share-injector-opt-in`)** — added
   `@JudoTest#shareInjector` (boolean, default `false`). Selecting
   `dataSourceMode = BY_CLASS` or `SINGLETON` now reuses only the heavy

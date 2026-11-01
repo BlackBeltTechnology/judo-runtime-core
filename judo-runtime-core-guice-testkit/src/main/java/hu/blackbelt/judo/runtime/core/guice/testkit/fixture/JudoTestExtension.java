@@ -54,6 +54,24 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
 
     // JVM-wide map of cached runtimes for SINGLETON mode, keyed by ByClassCacheKey.
     private static final ConcurrentHashMap<ByClassCacheKey, CachedRuntime> singletonRuntimes = new ConcurrentHashMap<>();
+
+    /**
+     * Opt-in system property (JNG-6421, default {@code false}): share the model loader and the
+     * QueryFactory JVM-wide across {@code BY_CLASS} test classes with the same
+     * {@code (modelName, dialect, modelSource)}. DataSource, Liquibase schema, Injector and
+     * transaction manager stay per class.
+     */
+    static final String SHARE_MODEL_PROPERTY = "judo.testkit.shareModel";
+
+    // JVM-lifetime map of shared model runtimes (model loader + coercer + QueryFactory) for
+    // BY_CLASS with judo.testkit.shareModel=true. Not cleared by closeAllSingletonRuntimes().
+    // See SharedModelRuntimeCacheTest.
+    private static final ConcurrentHashMap<SingletonModelKey, ModelRuntime> sharedModelRuntimes = new ConcurrentHashMap<>();
+
+    /** Loads a model for a key; a seam so the shared cache is unit-testable without a real model. */
+    interface ModelLoaderFactory {
+        JudoModelLoader load(SingletonModelKey key) throws Exception;
+    }
     private static volatile boolean singletonShutdownRegistered = false;
 
     @Override
@@ -215,12 +233,14 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
                 log.debug("Using SINGLETON model {} for: {}", modelKey, context.getRequiredTestClass().getSimpleName());
                 break;
             case BY_CLASS:
-                // Load model once per test class
-                JudoModelLoader classModelLoader = JudoRuntimeFixture.loadModel(
-                        annotation.modelName(),
-                        dialect,
-                        annotation.modelSource()
-                );
+                // Load model once per test class - or take the JVM-shared one (JNG-6421)
+                JudoModelLoader classModelLoader = shareModel()
+                        ? sharedModelRuntime(annotation, dialect, context).modelLoader
+                        : JudoRuntimeFixture.loadModel(
+                                annotation.modelName(),
+                                dialect,
+                                annotation.modelSource()
+                        );
                 store.put(MODEL_LOADER_KEY, classModelLoader);
                 log.info("Loaded BY_CLASS model '{}' for: {}", annotation.modelName(), context.getRequiredTestClass().getSimpleName());
                 break;
@@ -538,7 +558,14 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         // Install counting executor BEFORE prepare so initModules() picks it up.
         builder.setLiquibaseExecutor(new CountingLiquibaseExecutor());
         try {
-            if (preloadedModel != null) {
+            ModelRuntime sharedModelRuntime = annotation.dataSourceMode() == JudoTest.DataSourceMode.BY_CLASS && shareModel()
+                    ? sharedModelRuntimes.get(modelKey(annotation))
+                    : null;
+            if (sharedModelRuntime != null) {
+                builder.prepareWithModelRuntime(sharedModelRuntime,
+                        datasourceFixture.getDataSource(),
+                        datasourceFixture.getDialect());
+            } else if (preloadedModel != null) {
                 builder.prepareWithModel(preloadedModel,
                         datasourceFixture.getDataSource(),
                         datasourceFixture.getDialect());
@@ -652,7 +679,65 @@ public class JudoTestExtension implements BeforeAllCallback, AfterAllCallback, B
         }
         singletonDatasources.clear();
 
+        // sharedModelRuntimes is deliberately NOT cleared: surefire runs one launcher session per
+        // test class in a reused fork, and the root store closes at the end of each session. The
+        // shared model runtime holds no resources, so it lives for the JVM (JNG-6421).
         singletonModelLoaders.clear();
+    }
+
+    /** {@code true} when {@value #SHARE_MODEL_PROPERTY} is set to {@code true} (JNG-6421). */
+    static boolean shareModel() {
+        return Boolean.getBoolean(SHARE_MODEL_PROPERTY);
+    }
+
+    private static SingletonModelKey modelKey(JudoTest annotation) {
+        return new SingletonModelKey(annotation.modelName(), resolveDialectName(annotation), annotation.modelSource());
+    }
+
+    private ModelRuntime sharedModelRuntime(JudoTest annotation, String dialect, ExtensionContext context) throws Exception {
+        SingletonModelKey key = new SingletonModelKey(annotation.modelName(), dialect, annotation.modelSource());
+        ModelRuntime modelRuntime = sharedModelRuntime(key,
+                k -> JudoRuntimeFixture.loadModel(annotation.modelName(), dialect, annotation.modelSource()),
+                ModelRuntime::build);
+        registerSingletonShutdownHook(context);
+        return modelRuntime;
+    }
+
+    /**
+     * Returns the JVM-shared {@link ModelRuntime} for {@code key}, building it once. The model
+     * loader is taken from (or stored into) the SINGLETON model loader map, so SINGLETON and
+     * shared BY_CLASS classes with the same key load the model only once.
+     */
+    static ModelRuntime sharedModelRuntime(SingletonModelKey key, ModelLoaderFactory loaderFactory,
+                                           java.util.function.Function<JudoModelLoader, ModelRuntime> runtimeFactory) throws Exception {
+        ModelRuntime modelRuntime = sharedModelRuntimes.get(key);
+        if (modelRuntime != null) {
+            return modelRuntime;
+        }
+        synchronized (JudoTestExtension.class) {
+            modelRuntime = sharedModelRuntimes.get(key);
+            if (modelRuntime == null) {
+                JudoModelLoader loader = singletonModelLoaders.get(key);
+                if (loader == null) {
+                    loader = loaderFactory.load(key);
+                    singletonModelLoaders.put(key, loader);
+                }
+                modelRuntime = runtimeFactory.apply(loader);
+                sharedModelRuntimes.put(key, modelRuntime);
+                log.info("Built shared model runtime for {}", key);
+            }
+        }
+        return modelRuntime;
+    }
+
+    /** Test-only reset of the JVM-lifetime shared model runtime map. */
+    static void clearSharedModelRuntimesForTesting() {
+        sharedModelRuntimes.clear();
+    }
+
+    /** Package-private accessor used by tests to inspect the JVM-wide shared model runtime map. */
+    static java.util.Map<SingletonModelKey, ModelRuntime> sharedModelRuntimesForTesting() {
+        return sharedModelRuntimes;
     }
 
     /**
