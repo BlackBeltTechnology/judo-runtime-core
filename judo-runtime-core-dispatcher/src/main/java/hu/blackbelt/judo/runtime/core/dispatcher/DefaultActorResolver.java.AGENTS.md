@@ -1,0 +1,3 @@
+# `DefaultActorResolver.java` — promoted sidecar detail
+
+| `DefaultActorResolver.java` | `ActorResolver` impl resolving `JudoPrincipal` claims to an actor `Payload` via `dao.search`. Exports `authenticateActor(Map)`, `authenticateByPrincipal(JudoPrincipal)`, `getActorByClaims(EClass, Map)`; picks filter attribute from `claim`-annotated USERNAME/EMAIL or an identifier attribute present in claims. Contract: no match raises `AccessDeniedException` AUTHENTICATED_ENTITY_NOT_FOUND, multiple matches raise `SecurityException`. |

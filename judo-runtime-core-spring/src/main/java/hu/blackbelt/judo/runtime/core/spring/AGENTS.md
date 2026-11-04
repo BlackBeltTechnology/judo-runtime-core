@@ -1,0 +1,17 @@
+# AGENTS.md — `judo-runtime-core-spring/src/main/java/hu/blackbelt/judo/runtime/core/spring`
+
+Spring `@Configuration` glue wiring the judo runtime into a Spring context:
+model loading (ASM/RDBMS/measure/expression/liquibase), base service beans, the
+RDBMS DAO/dispatcher assembly, and the antlr-runtime version guard.
+
+| File | Purpose |
+| --- | --- |
+| `AntlrCheckBeanRegistration.java` | `BeanDefinitionRegistryPostProcessor` failing context startup on incompatible antlr-runtime. `postProcessBeanDefinitionRegistry` probes `Token.class.getDeclaredField("EOF_TOKEN")`; missing field throws `AntlrRuntimeIncompatibilityException("The antlr-runtime version must be < 3.5")`. `postProcessBeanFactory` is a no-op. |
+| `AntlrCheckConfiguration.java` | `@Configuration` declaring `AntlrCheckBeanRegistration` as a `@Bean` with no condition — the `@Conditional(JudoModelCondition.class)` line is commented out, so the antlr probe runs on every context refresh. |
+| `AntlrRuntimeIncompatibilityException.java` | `BeansException` subclass signalling unsupported antlr-runtime; single `AntlrRuntimeIncompatibilityException(String)` ctor. Thrown by `AntlrCheckBeanRegistration`, propagates as Spring context-refresh failure. |
+| `JudoBaseServiceConfiguration.java` | `@Configuration` declaring base service beans: `getExtendableCoercer()`→`DefaultCoercer`, `getIdenfiableProvider()`→`UUIDIdentifierProvider`, `getContext(DataTypeManager)`→`ThreadContext`, `getPasswordPolicy()`→`NoPasswordPolicy`, `getExport()`→`UnsupportedExportImpl`; metrics disabled and interceptor/function providers empty — callers override beans to enable metrics/auth/export. |
+| `JudoDataSourceCondition.java` | `AnyNestedCondition` matching when a `DataSource` bean exists, via nested `@ConditionalOnBean(DataSource.class)`; evaluated in `REGISTER_BEAN` phase. Imports `javax.sql.DataSource`, so a Jakarta-namespaced data source does not satisfy it. |
+| `JudoDefaultSpringConfiguration.java` | `@Configuration` assembling the RDBMS runtime — DAO, dispatcher, query factory, resolvers, validators — from autowired models and `DataSource`/`PlatformTransactionManager`. → see `JudoDefaultSpringConfiguration.java.AGENTS.md` |
+| `JudoModelConfiguration.java` | `@Configuration` exposing loaded models as beans: `getAsmModel()`, `getAsm2RdbmsTrace()`, `getRdbmsModel()`, `getExpressionModel()`, `getMeasureModel()` — each delegating to the autowired `JudoModelLoader`. Pass-through only; model loading happens in `JudoModelLoaderConfiguration`. |
+| `JudoModelLoader.java` | Lombok `@Builder`/`@Getter` holder of models `asmModel`, `rdbmsModel`, `measureModel`, `expressionModel`, `liquibaseModel`, `asm2rdbms`. Factories `loadFromClassloader(modelName, classLoader, dialect, validate)` / `loadFromURL(...)` read sibling `<modelName>-asm.model` plus per-dialect siblings; missing `-asm.model` throws `FileNotFoundException`, null inputs `IllegalArgumentException`. |
+| `JudoModelLoaderConfiguration.java` | `@Configuration` building the `JudoModelLoader` bean. `defaultJudoModelLoader()` uses `judo.modelName` property or scans `classpath*:/model/*.model` for a `*-asm.model` (first match wins, later ones warn); none found throws `IllegalArgumentException`. Loads via `JudoModelLoader.loadFromClassloader(modelName, ..., dialect, validate=true)`; requires a `Dialect` bean. |

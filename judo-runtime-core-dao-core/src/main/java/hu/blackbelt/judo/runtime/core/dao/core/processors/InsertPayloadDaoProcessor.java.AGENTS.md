@@ -1,0 +1,6 @@
+# InsertPayloadDaoProcessor.java
+
+Recursive insert planner over a mapped transfer-object payload, emits `InsertStatement` + `AddReferenceStatement` set.
+`insert(EClass, Payload, boolean checkMandatoryFeatures)` roots `collectStatements`; ids minted by `getIdentifierProvider().get()`, `clientReferenceIdentifier` from payload `REFERENCE_ID`, version 1, user/username/timestamp from `Metadata`.
+`collectStatements` applies `defaultValuesApplier` (plus entity defaults via `defaultRepresentation` annotation DTO when present), maps attributes with `getMappedAttribute`, recursively inserts embedded references, links existing ids through `AddReferencePayloadDaoProcessor.addReference`.
+Contracts: root payload carries no id; null relations and id-carrying relations ignored; `checkState` fails on composition payload holding an identifier ("Existing reference element cannot be set as a composition"); `checkMandatoryFeatures` gates `checkMandatoryAttributes` / `checkMandatoryReferences` / `checkForbiddenReferenceUpdates`.
