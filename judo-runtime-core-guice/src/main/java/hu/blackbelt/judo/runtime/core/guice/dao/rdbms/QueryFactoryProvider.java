@@ -28,6 +28,7 @@ import hu.blackbelt.judo.runtime.core.guice.JudoModelLoader;
 import hu.blackbelt.judo.runtime.core.guice.JudoConfigurationQualifiers;
 import hu.blackbelt.judo.runtime.core.query.CustomJoinDefinition;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
+import hu.blackbelt.judo.runtime.core.query.QueryModelLoadOrBuild;
 import hu.blackbelt.mapper.api.Coercer;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EReference;
@@ -35,6 +36,7 @@ import org.eclipse.emf.ecore.EReference;
 import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNullElse;
 
@@ -51,22 +53,41 @@ public class QueryFactoryProvider implements Provider<QueryFactory> {
     @Nullable
     Map<EReference, CustomJoinDefinition> customJoinDefinitions;
 
+    @Inject(optional = true)
+    @JudoConfigurationQualifiers.QueryModelMode
+    @Nullable
+    String queryModelMode;
+
     @Override
     public QueryFactory get() {
+        // the build path is unchanged: JQL extraction with resolveOnlyCurrentLambdaScope=false
+        final Supplier<QueryFactory> build = () -> {
+            JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
+            jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
 
-        JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
-        jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
+            final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(models.getAsmModel().getResourceSet(),
+                    models.getMeasureModel().getResourceSet(), URI.createURI("expr:" + models.getAsmModel().getName()), jqlExpressionBuilderConfig);
 
-        final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(models.getAsmModel().getResourceSet(),
-                models.getMeasureModel().getResourceSet(), URI.createURI("expr:" + models.getAsmModel().getName()), jqlExpressionBuilderConfig);
+            return new QueryFactory(
+                    models.getAsmModel().getResourceSet(),
+                    models.getMeasureModel().getResourceSet(),
+                    asmJqlExtractor.extractExpressions(),
+                    coercer,
+                    requireNonNullElse(customJoinDefinitions, new ConcurrentHashMap<>()));
+        };
 
-        QueryFactory queryFactory = new QueryFactory(
-                models.getAsmModel().getResourceSet(),
-                models.getMeasureModel().getResourceSet(),
-                asmJqlExtractor.extractExpressions(),
-                coercer,
-                requireNonNullElse(customJoinDefinitions, new ConcurrentHashMap<>()));
-
-        return queryFactory;
+        return QueryModelLoadOrBuild.queryModelLoadOrBuild()
+                .asmModel(models.getAsmModel())
+                .asmDigest(models.getAsmDigest())
+                .measureModel(models.getMeasureModel())
+                .measureDigest(models.getMeasureDigest())
+                .expressionModel(models.getExpressionModel())
+                .expressionDigest(models.getExpressionDigest())
+                .persistedQueryModel(models.getPersistedQueryModel())
+                .customJoinDefinitions(customJoinDefinitions)
+                .mode(queryModelMode)
+                .buildQueryFactory(build)
+                .build()
+                .get();
     }
 }

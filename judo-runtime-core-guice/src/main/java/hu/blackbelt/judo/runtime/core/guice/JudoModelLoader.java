@@ -38,6 +38,8 @@ import hu.blackbelt.judo.meta.rdbmsDataTypes.support.RdbmsDataTypesModelResource
 import hu.blackbelt.judo.meta.rdbmsNameMapping.support.RdbmsNameMappingModelResourceSupport;
 import hu.blackbelt.judo.meta.rdbmsRules.support.RdbmsTableMappingRulesModelResourceSupport;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.Dialect;
+import hu.blackbelt.judo.tatami.asm2query.PersistedQueryModel;
+import hu.blackbelt.judo.tatami.asm2query.QueryModelPersistence;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import hu.blackbelt.judo.tatami.asm2keycloak.Asm2KeycloakTransformationTrace;
 
@@ -51,10 +53,15 @@ import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.util.builder.EPackageBuilder;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilterInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.JarURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -78,6 +85,15 @@ public class JudoModelLoader {
     Asm2KeycloakTransformationTrace asm2keycloak;
     Boolean useKeycloak;
 
+    /** SHA-256 of the complete bytes of the {@code -asm.model} file, {@code null} when not loaded from files. */
+    String asmDigest;
+    /** SHA-256 of the complete bytes of the {@code -measure.model} file, {@code null} when not loaded from files. */
+    String measureDigest;
+    /** SHA-256 of the complete bytes of the {@code -expression.model} file, {@code null} when not loaded from files. */
+    String expressionDigest;
+    /** Locator of {@code <name>-query.model}; {@code null} when no such file exists. Never opened by the loader. */
+    PersistedQueryModel persistedQueryModel;
+
     public static class JudoModelLoaderBuilder {
         AsmModel asmModel;
         RdbmsModel rdbmsModel;
@@ -88,6 +104,10 @@ public class JudoModelLoader {
         Asm2RdbmsTransformationTrace asm2rdbms;
         Asm2KeycloakTransformationTrace asm2keycloak;
         Boolean useKeycloak = true;
+        String asmDigest;
+        String measureDigest;
+        String expressionDigest;
+        PersistedQueryModel persistedQueryModel;
     }
 
     @Builder
@@ -99,7 +119,11 @@ public class JudoModelLoader {
                             KeycloakModel keycloakModel,
                             Asm2RdbmsTransformationTrace asm2rdbms,
                             Asm2KeycloakTransformationTrace asm2keycloak,
-                            Boolean useKeycloak) {
+                            Boolean useKeycloak,
+                            String asmDigest,
+                            String measureDigest,
+                            String expressionDigest,
+                            PersistedQueryModel persistedQueryModel) {
         this.asmModel = asmModel;
         this.rdbmsModel = rdbmsModel;
         this.measureModel = measureModel;
@@ -109,6 +133,10 @@ public class JudoModelLoader {
         this.asm2rdbms = asm2rdbms;
         this.asm2keycloak = asm2keycloak;
         this.useKeycloak = useKeycloak;
+        this.asmDigest = asmDigest;
+        this.measureDigest = measureDigest;
+        this.expressionDigest = expressionDigest;
+        this.persistedQueryModel = persistedQueryModel;
     }
 
     public static JudoModelLoader loadFromClassloader(String modelName, ClassLoader classLoader, Dialect dialect, boolean validate, boolean loadKeycloak) throws Exception {
@@ -173,10 +201,15 @@ public class JudoModelLoader {
             throw new IllegalArgumentException("Dialect name have to be defined");
         }
 
-        AsmModel asmModel = AsmModel.loadAsmModel(asmLoadArgumentsBuilder()
-                .inputStream(calculateRelativeURI(uri, "/" + modelName + "-asm.model").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI(modelName + "-asm.model"))
-                .validateModel(validate));
+        final AsmModel asmModel;
+        final String asmDigest;
+        try (DigestedStream in = DigestedStream.open(calculateRelativeURI(uri, "/" + modelName + "-asm.model"))) {
+            asmModel = AsmModel.loadAsmModel(asmLoadArgumentsBuilder()
+                    .inputStream(in.stream())
+                    .uri(org.eclipse.emf.common.util.URI.createURI(modelName + "-asm.model"))
+                    .validateModel(validate));
+            asmDigest = in.digest();
+        }
 
         if (!asmModel.getName().equals(modelName)) {
             throw new IllegalArgumentException("Model name does not match with ASM Model: " + modelName + " ASM: " + asmModel.getName());
@@ -199,17 +232,27 @@ public class JudoModelLoader {
                 .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-rdbms_" + dialect.getName() + ".model"))
                 .validateModel(validate));
 
-        MeasureModel measureModel = MeasureModel.loadMeasureModel(MeasureModel.LoadArguments.measureLoadArgumentsBuilder()
-                .inputStream(calculateRelativeURI(uri, "/" + modelName + "-measure.model").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-measure.model"))
-                .validateModel(validate)
-                .name(asmModel.getName()));
+        final MeasureModel measureModel;
+        final String measureDigest;
+        try (DigestedStream in = DigestedStream.open(calculateRelativeURI(uri, "/" + modelName + "-measure.model"))) {
+            measureModel = MeasureModel.loadMeasureModel(MeasureModel.LoadArguments.measureLoadArgumentsBuilder()
+                    .inputStream(in.stream())
+                    .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-measure.model"))
+                    .validateModel(validate)
+                    .name(asmModel.getName()));
+            measureDigest = in.digest();
+        }
 
-        ExpressionModel expressionModel = ExpressionModel.loadExpressionModel(ExpressionModel.LoadArguments.expressionLoadArgumentsBuilder()
-                .inputStream(calculateRelativeURI(uri, "/" + modelName + "-expression.model").toURL().openStream())
-                .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-expression.model"))
-                .validateModel(validate)
-                .name(asmModel.getName()));
+        final ExpressionModel expressionModel;
+        final String expressionDigest;
+        try (DigestedStream in = DigestedStream.open(calculateRelativeURI(uri, "/" + modelName + "-expression.model"))) {
+            expressionModel = ExpressionModel.loadExpressionModel(ExpressionModel.LoadArguments.expressionLoadArgumentsBuilder()
+                    .inputStream(in.stream())
+                    .uri(org.eclipse.emf.common.util.URI.createURI(asmModel.getName() + "-expression.model"))
+                    .validateModel(validate)
+                    .name(asmModel.getName()));
+            expressionDigest = in.digest();
+        }
 
         LiquibaseModel liquibaseModel = LiquibaseModel.loadLiquibaseModel(LiquibaseModel.LoadArguments.liquibaseLoadArgumentsBuilder()
                 .inputStream(calculateRelativeURI(uri, "/" + modelName + "-liquibase_" + dialect.getName() + ".changelog.xml").toURL().openStream())
@@ -235,6 +278,12 @@ public class JudoModelLoader {
                     calculateRelativeURI(uri, "/" + modelName + "-asm2keycloak.model").toURL().openStream());
         }
 
+        // the query model is never read here: only a locator is built, the decision opens it when it needs it
+        final URI queryModelUri = calculateRelativeURI(uri, "/" + modelName + QueryModelPersistence.QUERY_SUFFIX);
+        final PersistedQueryModel persistedQueryModel = exists(queryModelUri)
+                ? new PersistedQueryModel(modelName, () -> queryModelUri.toURL().openStream())
+                : null;
+
         return JudoModelLoader.builder()
                 .asmModel(asmModel)
                 .rdbmsModel(rdbmsModel)
@@ -244,7 +293,75 @@ public class JudoModelLoader {
                 .keycloakModel(keycloakModel)
                 .asm2rdbms(asm2rdbms)
                 .asm2keycloak(asm2keycloak)
+                .asmDigest(asmDigest)
+                .measureDigest(measureDigest)
+                .expressionDigest(expressionDigest)
+                .persistedQueryModel(persistedQueryModel)
                 .build();
+    }
+
+    /**
+     * Existence check that does not read the file: file system lookup for {@code file:}, jar entry lookup for
+     * {@code jar:}, an opened-and-closed stream for any other protocol.
+     */
+    static boolean exists(final URI uri) {
+        try {
+            final URL url = uri.toURL();
+            if ("file".equals(url.getProtocol())) {
+                return new File(uri).isFile();
+            }
+            final URLConnection connection = url.openConnection();
+            if (connection instanceof JarURLConnection) {
+                try {
+                    return ((JarURLConnection) connection).getJarEntry() != null;
+                } catch (FileNotFoundException e) {
+                    return false;
+                }
+            }
+            try (InputStream ignored = connection.getInputStream()) {
+                return true;
+            }
+        } catch (IOException | RuntimeException e) {
+            log.debug("No query model at {}: {}", uri, e.toString());
+            return false;
+        }
+    }
+
+    /**
+     * A model file stream that digests every byte. The model loaders may stop reading before EOF, so
+     * {@link #digest()} drains the rest of the file first: the digest always covers the complete file.
+     * The stream handed to the loader ignores {@code close()}; it is closed with this object.
+     */
+    private static final class DigestedStream implements AutoCloseable {
+        private final QueryModelPersistence.DigestInputStream digestStream;
+        private final InputStream shield;
+
+        private DigestedStream(final InputStream in) {
+            this.digestStream = new QueryModelPersistence.DigestInputStream(in);
+            this.shield = new FilterInputStream(digestStream) {
+                @Override
+                public void close() {
+                    // closed by DigestedStream.close(), after the digest was taken
+                }
+            };
+        }
+
+        static DigestedStream open(final URI uri) throws IOException {
+            return new DigestedStream(uri.toURL().openStream());
+        }
+
+        InputStream stream() {
+            return shield;
+        }
+
+        String digest() throws IOException {
+            return digestStream.digest();
+        }
+
+        @Override
+        public void close() throws IOException {
+            digestStream.close();
+        }
     }
 
 

@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Fixture QueryFactory Through the Load-or-Build Decision
-`JudoRuntimeFixture` SHALL obtain its `QueryFactory` through `QueryModelLoadOrBuild`, with a configurable query model mode. In mode `build` it SHALL build as before; in mode `load` it SHALL restore from the generated query artifact of its model and fail when it cannot.
+`JudoRuntimeFixture` SHALL obtain its `QueryFactory` through `QueryModelLoadOrBuild`, with a configurable query model mode: the public field `JudoRuntimeFixture.queryModelMode`, set before `prepare(...)`, whose initial value is the system property `judo.queryModel.mode`, else `auto`. In mode `build` it SHALL build as before; in mode `load` it SHALL restore from the generated query artifact of its model and fail when it cannot.
 
 #### Scenario: Build mode
 - **GIVEN** a `JudoRuntimeFixture` with query model mode `build`

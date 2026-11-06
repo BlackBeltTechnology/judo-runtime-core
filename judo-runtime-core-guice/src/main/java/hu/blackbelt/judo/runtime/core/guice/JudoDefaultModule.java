@@ -84,6 +84,7 @@ public class JudoDefaultModule extends AbstractModule {
         JudoModelLoader judoModelLoader = JudoDefaultModuleConfiguration.DEFAULT.getJudoModelLoader();
         Boolean bindModelHolder = JudoDefaultModuleConfiguration.DEFAULT.getBindModelHolder();
         Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions = JudoDefaultModuleConfiguration.DEFAULT.getQueryFactoryCustomJoinDefinitions();
+        String queryModelMode = JudoDefaultModuleConfiguration.DEFAULT.getQueryModelMode();
         Boolean rdbmsDaoOptimisticLockEnabled = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoOptimisticLockEnabled();
         Integer rdbmsDaoChunkSize = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoChunkSize();
         Integer rdbmsDaoMaximumRecursionCount = JudoDefaultModuleConfiguration.DEFAULT.getRdbmsDaoMaximumRecursionCount();
@@ -137,6 +138,7 @@ public class JudoDefaultModule extends AbstractModule {
                             JudoModelLoader judoModelLoader,
                             Boolean bindModelHolder,
                             Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions,
+                            String queryModelMode,
                             Boolean rdbmsDaoOptimisticLockEnabled,
                             Integer rdbmsDaoChunkSize,
                             Integer rdbmsDaoMaximumRecursionCount,
@@ -190,6 +192,7 @@ public class JudoDefaultModule extends AbstractModule {
                     .judoModelLoader(judoModelLoader)
                     .bindModelHolder(bindModelHolder)
                     .queryFactoryCustomJoinDefinitions(queryFactoryCustomJoinDefinitions)
+                    .queryModelMode(queryModelMode)
                     .rdbmsDaoOptimisticLockEnabled(rdbmsDaoOptimisticLockEnabled)
                     .rdbmsDaoChunkSize(rdbmsDaoChunkSize)
                     .rdbmsDaoMaximumRecursionCount(rdbmsDaoMaximumRecursionCount)
@@ -266,6 +269,7 @@ public class JudoDefaultModule extends AbstractModule {
     }
 
     protected void configureOptions() {
+        bind(String.class).annotatedWith(JudoConfigurationQualifiers.QueryModelMode.class).toInstance(configuration.getQueryModelMode() != null ? configuration.getQueryModelMode() : "auto");
         bind(Map.class).annotatedWith(JudoConfigurationQualifiers.QueryFactoryCustomJoinDefinitions.class).toInstance(configuration.getQueryFactoryCustomJoinDefinitions());
         bind(Boolean.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoOptimisticLockEnabled.class).toInstance(configuration.getRdbmsDaoOptimisticLockEnabled());
         bind(Integer.class).annotatedWith(JudoConfigurationQualifiers.RdbmsDaoChunkSize.class).toInstance(configuration.getRdbmsDaoChunkSize());

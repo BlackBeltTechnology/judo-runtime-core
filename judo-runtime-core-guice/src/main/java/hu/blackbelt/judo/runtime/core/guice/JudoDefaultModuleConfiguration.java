@@ -50,6 +50,12 @@ public class JudoDefaultModuleConfiguration {
     Boolean bindModelHolder = true;
     @Builder.Default
     Map<EReference, CustomJoinDefinition> queryFactoryCustomJoinDefinitions = new ConcurrentHashMap<>();
+    /**
+     * Query model mode: {@code auto} (default, restore the persisted query model when it is usable, build otherwise),
+     * {@code load} (restore or fail) or {@code build} (never open the persisted query model).
+     */
+    @Builder.Default
+    String queryModelMode = "auto";
     @Builder.Default
     Boolean rdbmsDaoOptimisticLockEnabled = true;
     @Builder.Default

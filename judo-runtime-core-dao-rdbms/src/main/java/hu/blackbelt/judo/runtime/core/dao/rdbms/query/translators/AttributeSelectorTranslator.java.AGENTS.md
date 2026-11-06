@@ -37,3 +37,5 @@ entity-side getter expression.
   any other shape throws `IllegalStateException("Unsupported object variable")`.
 - Only variables named `JqlExpressionBuilder.SELF_NAME` bound to an `Instance` count as
   self-references; other references keep their own variable binding.
+
+**Moved types.** `QueryFactory.getEntityTypeExpressionsMap()` is a read-only `Map<EClass, hu.blackbelt.judo.tatami.asm2query.EntityTypeExpressions>`; this translator only reads it (no import needed). A restored factory serves the map from the persisted entries. See change: persisted-query-model

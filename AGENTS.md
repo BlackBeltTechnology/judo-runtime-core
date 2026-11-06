@@ -62,8 +62,7 @@ all 31 modules; `-DskipModules=true` builds the parent alone.
 | `judo-runtime-core-dao-rdbms-hsqldb` | Bundle. HSQLDB dialect — in-memory/embedded target for development and tests, including HSQLDB-specific query mappers. |
 | `judo-runtime-core-dao-rdbms-postgresql` | Bundle. PostgreSQL dialect for production, adding PostgreSQL query mappers, sequence support and Liquibase snippets. |
 | `judo-runtime-core-dao-rdbms-liquibase` | Bundle. Applies the generated Liquibase changelog so the physical schema matches the RDBMS model the DAO assumes. |
-| `judo-runtime-core-expression` | Bundle. Builds JQL expressions against the ASM + measure adapters into the expression model the query layer consumes. |
-| `judo-runtime-core-query` | Bundle. Feature-by-feature translation of expressions into the database-agnostic query model, including aggregated features. Decides *what* to read. |
+| `judo-runtime-core-query` | Bundle. `QueryFactory` (build via `Asm2Query` or restore of a persisted query model), `QueryModelLoadOrBuild` (auto/load/build decision), `CustomJoinDefinition`. The builder moved to `judo-tatami-asm2query` (judo-tatami-base); `judo-runtime-core-expression` was removed. Decides *what* to read. See change: persisted-query-model |
 | `judo-runtime-core-dispatcher` | Bundle. Operation entry point: behaviour binding, query masking, environment/sequence resolution, transaction boundary, security handoff. Carries the ANTLR grammar for query masks. |
 | `judo-runtime-core-accessmanager-api` | Bundle. Zero-dependency permission contract — the interface the dispatcher calls to ask "may this actor run this operation". |
 | `judo-runtime-core-accessmanager` | Bundle. Default decision engine implementing that contract per generated behaviour. |
@@ -75,17 +74,17 @@ all 31 modules; `-DskipModules=true` builds the parent alone.
 | `judo-runtime-core-jaxrs` | Bundle. Container-neutral JAX-RS providers mapping runtime faults and payloads onto HTTP semantics. |
 | `judo-runtime-core-jaxrs-cxf` | Bundle. CXF-specific interceptors layered on those providers. |
 | `judo-runtime-core-export-jxls` | Bundle. Renders dispatcher results into Excel workbooks via JXLS/POI for model-declared export operations. |
-| `judo-runtime-core-guice` | Jar. The Guice assembly of the whole stack — core, DAO/RDBMS, dispatcher, accessmanager and security modules wired into one injector. |
+| `judo-runtime-core-guice` | Jar. The Guice assembly of the whole stack — core, DAO/RDBMS, dispatcher, accessmanager and security modules wired into one injector.`JudoModelLoader` digests the ASM, measure and expression files and locates `<name>-query.model`; `QueryFactoryProvider` restores or builds through `QueryModelLoadOrBuild` (`queryModelMode`). See `docs/persisted-query-model.md`. |
 | `judo-runtime-core-guice-hsqldb` | Jar. Guice datasource wiring for HSQLDB (HikariCP + Atomikos JDBC transactions). |
 | `judo-runtime-core-guice-postgresql` | Jar. Guice datasource wiring for PostgreSQL; tests run against a TestContainers Postgres. |
 | `judo-runtime-core-guice-jetty` | Jar. Embedded Jetty server module so a Guice-assembled runtime serves HTTP standalone. |
 | `judo-runtime-core-guice-cxf` | Jar. Joins Guice, Jetty and CXF: JAX-RS frontend, CORS, logging/metrics features and Jackson providers on the injected runtime. |
 | `judo-runtime-core-guice-keycloak` | Jar. Adds Keycloak-backed security to the Guice+CXF stack; integration-tested against a Keycloak container. |
 | `judo-runtime-core-dependencies` | Pom. Dependency-management BOM pinning every runtime artifact and third-party version, so consumers import one coordinate instead of aligning versions by hand. |
-| `judo-runtime-core-spring` | Jar. Spring Boot autoconfiguration of the runtime — beans for DAO, dispatcher, accessmanager and security, driven by application properties. |
+| `judo-runtime-core-spring` | Jar. Spring Boot autoconfiguration of the runtime — beans for DAO, dispatcher, accessmanager and security, driven by application properties.Same query model restore as Guice, mode from `judo.queryModel.mode`, optional `PersistedQueryModel` bean. |
 | `judo-runtime-core-spring-hsqldb` | Jar. Spring Boot autoconfiguration binding the runtime to an HSQLDB datasource. |
 | `judo-runtime-core-spring-postgresql` | Jar. Spring Boot autoconfiguration binding the runtime to a PostgreSQL datasource. |
-| `judo-runtime-core-guice-testkit` | Jar. Reusable test fixtures and harness for exercising a fully injected runtime — model fixtures, dispatcher/DAO assertions, container and stdout/env stubbing. |
+| `judo-runtime-core-guice-testkit` | Jar. Reusable test fixtures and harness for exercising a fully injected runtime — model fixtures, dispatcher/DAO assertions, container and stdout/env stubbing.The fixture's `QueryFactory` comes from `QueryModelLoadOrBuild` (`queryModelMode`). |
 
 Packaging is not decorative: `bundle` modules are OSGi bundles built by the
 Felix bundle plugin and must keep their exported-package surface sane;

@@ -52,3 +52,10 @@ bean: both are hard requirements, nothing here falls back for them.
   `SYSTEM.current_timestamp`, `SYSTEM.current_date`, `SYSTEM.current_time`
   suppliers and functions `ENVIRONMENT` (multiple=true), `SEQUENCE`, `REQUEST`
   (from `Context`). Those four namespaces are reserved by the default wiring.
+
+## Persisted query model (See change: persisted-query-model)
+
+- `getQueryFactory()` calls `QueryModelLoadOrBuild` with the autowired `AsmModel` / `MeasureModel` / `ExpressionModel`, the digests of the optional `JudoModelLoader`, the optional `PersistedQueryModel` bean, no custom joins and `@Value("${judo.queryModel.mode:auto}")` (`auto`, `load`, `build`). The build supplier is the former body (`AsmJqlExtractor`, `resolveOnlyCurrentLambdaScope=false`) and runs only on fallback.
+- An application defining its own model beans has no `JudoModelLoader` and no `PersistedQueryModel` bean: digests are `null`, no locator, the query model is built.
+- `judo.queryModel.mode=load` without a usable artifact fails the context start (the bean is a singleton created at refresh).
+- Tests: `QueryModelSpringContextTest` (present / absent / corrupt / stale x default / auto / load / build, own model beans, single `ExpressionModel` bean).

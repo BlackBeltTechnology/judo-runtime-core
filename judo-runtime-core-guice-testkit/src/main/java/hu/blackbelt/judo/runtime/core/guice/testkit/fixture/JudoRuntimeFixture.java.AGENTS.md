@@ -36,3 +36,11 @@ the object injected into a `@JudoTest` method parameter.
   otherwise instantiation fails with a `RuntimeException`.
 - An unknown `dialectName` throws `IllegalArgumentException("Unsupported dialect: …")`, and a
   model that resolves to nothing throws `IllegalArgumentException("Could not load model …")`.
+
+## Persisted query model (See change: persisted-query-model)
+
+- `initQueryFactory()` obtains the `QueryFactory` through the production decision `QueryModelLoadOrBuild`, fed by the loaded `JudoModelLoader` (models, digests, `getPersistedQueryModel()`); the build supplier is the former JQL extraction (`resolveOnlyCurrentLambdaScope=false`).
+- `public String queryModelMode` (`auto` | `load` | `build`); initial value is the system property `judo.queryModel.mode`, else `auto`. Set it before `prepare(...)`.
+- `build`: JQL extraction, artifact never opened. `load`: restore the generated `<model>-query.model` or fail ("... missing ..."). `auto`: restore when usable, else build.
+- The fixture still hands the factory to `JudoDefaultModule.queryFactory(...)`, so the module's provider is bypassed.
+- Tests: `FixtureQueryModelModeTest`.

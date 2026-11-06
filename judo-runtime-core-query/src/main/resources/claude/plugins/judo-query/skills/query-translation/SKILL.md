@@ -10,6 +10,8 @@ metadata:
 
 Guide for understanding the JUDO query model translation from expressions to logical queries that can be converted to SQL.
 
+> **Where the code lives.** The builder classes shown below (`TransferObjectTypeBindingsCollector`, `FeatureFactory`, `JoinFactory`, `Context`, `Constants`, `EntityTypeExpressions` and the `feature` converters) are in `judo-tatami-asm2query`, package `hu.blackbelt.judo.tatami.asm2query`; `Asm2Query` drives them. `QueryFactory` of this module delegates its build path to `Asm2Query`, or restores a query model saved at model build time (`<name>-query.model`); `QueryModelLoadOrBuild` decides between the two (modes `auto`, `load`, `build`). A restored factory keeps no collector: static flags and entity getter expressions come from the persisted `QueryModelInfo`.
+
 ## Query Translation Architecture
 
 ```mermaid

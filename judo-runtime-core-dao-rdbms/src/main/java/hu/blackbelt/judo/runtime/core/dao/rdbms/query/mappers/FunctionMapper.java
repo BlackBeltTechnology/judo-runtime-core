@@ -27,7 +27,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilder;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.RdbmsBuilderContext;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.model.*;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.types.RdbmsDecimalType;
-import hu.blackbelt.judo.runtime.core.query.Constants;
+import hu.blackbelt.judo.tatami.asm2query.Constants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

@@ -69,6 +69,7 @@
         <judo-dispatcher-api-version>1.0.3.20260311_104219_ef26bd53_develop</judo-dispatcher-api-version>
         <judo-operation-utils-version>1.1.3.20261103_233649_3a4e2411_feature_JNG_6349_AddZetaValidatiob</judo-operation-utils-version>
 
+        <judo-meta-psm-version>1.3.0.20261103_233608_4a6ea90e_feature_JNG_6349_AddZetaValidatiob</judo-meta-psm-version>
         <judo-tatami-base-version>1.1.6.20261104_004642_efa27143_feature_JNG_6349_AddZetaValidatiob</judo-tatami-base-version>
 
         <mapper-version>1.0.4.20260311_104951_75435c87_develop</mapper-version>
@@ -796,7 +797,6 @@
                 <module>judo-runtime-core-dao-rdbms-hsqldb</module>
                 <module>judo-runtime-core-dao-rdbms-postgresql</module>
                 <module>judo-runtime-core-dao-rdbms-liquibase</module>
-                <module>judo-runtime-core-expression</module>
                 <module>judo-runtime-core-query</module>
                 <module>judo-runtime-core-dispatcher</module>
                 <module>judo-runtime-core-accessmanager-api</module>

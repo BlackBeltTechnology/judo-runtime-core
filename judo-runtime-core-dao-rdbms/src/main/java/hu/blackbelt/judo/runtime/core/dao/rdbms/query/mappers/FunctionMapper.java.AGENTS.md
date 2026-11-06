@@ -48,3 +48,5 @@ decimal entry in a subclass silently changes the integer one too unless it is re
   order.
 - Decimal casts default to `new RdbmsDecimalType().toSql()`, so dialects with a different
   decimal type must override the affected entries.
+
+**Moved types.** `Constants` (`MEASURE_CONVERTING_PRECISION`, `MEASURE_CONVERTING_SCALE`) is imported from `hu.blackbelt.judo.tatami.asm2query`. See change: persisted-query-model
