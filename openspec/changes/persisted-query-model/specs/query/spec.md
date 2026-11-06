@@ -36,6 +36,11 @@ The `QueryFactory` SHALL offer a restore construction path that wraps a `QueryIn
 - **WHEN** `SelectStatementExecutor` creates the filter
 - **THEN** new source and target indexes continue after the restored `nextSourceIndex` and `nextTargetIndex`
 
+#### Scenario: Dynamic filter over a collection getter after restore
+- **GIVEN** a restored `QueryFactory` whose derived entity attribute has a getter with a collection (count) expression, and the saved expression model carries no iterator variables
+- **WHEN** the DAO converts a detached `EcoreUtil.copy` of the getter (self references rebound) with `dataExpressionToFeature`
+- **THEN** the conversion succeeds, because `QueryFactory.restore` created the getter iterators at boot (single-threaded, before the factory is published), and the feature equals the one a built factory produces for the same input, ignoring aliases
+
 ### Requirement: QueryModelLoadOrBuild decides between restore and build
 `QueryModelLoadOrBuild` SHALL be the only place that chooses between restoring a persisted query model and building one. It SHALL take the live ASM, measure and expression models with their file digests, an optional `PersistedQueryModel` locator, the custom joins and the mode.
 

@@ -23,6 +23,7 @@ package hu.blackbelt.judo.runtime.core.query;
 import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.asm.runtime.AsmUtils;
 import hu.blackbelt.judo.meta.expression.DataExpression;
+import hu.blackbelt.judo.meta.expression.Expression;
 import hu.blackbelt.judo.meta.expression.adapters.asm.AsmModelAdapter;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.measure.support.MeasureModelResourceSupport;
@@ -38,6 +39,7 @@ import hu.blackbelt.judo.tatami.asm2query.Context;
 import hu.blackbelt.judo.tatami.asm2query.DataExpressionConverter;
 import hu.blackbelt.judo.tatami.asm2query.EntityTypeExpressions;
 import hu.blackbelt.judo.tatami.asm2query.QueryIndex;
+import hu.blackbelt.judo.tatami.asm2query.feature.ExpressionIterators;
 import hu.blackbelt.mapper.api.Coercer;
 import lombok.Builder;
 import lombok.Getter;
@@ -49,7 +51,9 @@ import org.eclipse.emf.ecore.EPackage;
 import org.eclipse.emf.ecore.EReference;
 import org.eclipse.emf.ecore.resource.ResourceSet;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -203,7 +207,25 @@ public class QueryFactory {
             log.error("Invalid query model: {}", queryModel.getDiagnosticsAsString());
             throw new IllegalStateException("Invalid query model");
         }
-        return new QueryFactory(index, new DataExpressionConverter(asmResourceSet, measureResourceSet), queryModel);
+        final DataExpressionConverter expressionConverter = new DataExpressionConverter(asmResourceSet, measureResourceSet);
+        createGetterIterators(index, expressionConverter.getModelAdapter());
+        return new QueryFactory(index, expressionConverter, queryModel);
+    }
+
+    /**
+     * A build leaves the iterator variables of the getter collection expressions in the expression model; the saved expression
+     * model has none. The DAO converts detached copies of the getters (dynamic filters), and a copy cannot get an iterator
+     * created (it has no resource), so the restore creates them like the build did. Runs at boot, single-threaded, before the
+     * factory is published.
+     */
+    private static void createGetterIterators(final QueryIndex index, final AsmModelAdapter modelAdapter) {
+        final List<Expression> getters = new ArrayList<>();
+        for (EntityTypeExpressions expressions : index.getEntityTypeExpressionsMap().values()) {
+            getters.addAll(expressions.getGetterAttributeExpressions().values());
+            getters.addAll(expressions.getGetterReferenceExpressions().values());
+        }
+        final int created = ExpressionIterators.createMissing(modelAdapter, getters);
+        log.debug("Restored the iterators of the getter expressions: {} created", created);
     }
 
     /**
