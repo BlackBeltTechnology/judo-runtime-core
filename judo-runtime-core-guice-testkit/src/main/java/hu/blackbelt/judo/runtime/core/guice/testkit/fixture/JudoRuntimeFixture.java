@@ -23,6 +23,7 @@ import hu.blackbelt.judo.runtime.core.guice.dao.rdbms.postgresql.JudoPostgresqlM
 import hu.blackbelt.judo.runtime.core.guice.testkit.util.ReferenceInjector;
 import hu.blackbelt.judo.runtime.core.guice.testkit.util.TestOperationCallInterceptorProvider;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
+import hu.blackbelt.judo.runtime.core.query.QueryModelLoadOrBuild;
 import hu.blackbelt.mapper.api.ExtendableCoercer;
 import hu.blackbelt.mapper.impl.DefaultCoercer;
 import java.io.File;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.eclipse.emf.common.util.URI;
 import org.slf4j.Logger;
@@ -61,6 +63,16 @@ public class JudoRuntimeFixture {
 
     public static final String MODEL_SOURCES = "target/generated-test-sources/model";
 
+    /** System property selecting the default {@link #queryModelMode}. */
+    public static final String QUERY_MODEL_MODE_PROPERTY = "judo.queryModel.mode";
+
+    /**
+     * Query model mode of the fixture: {@code auto} (default), {@code load} (restore the generated
+     * {@code <model>-query.model} or fail) or {@code build} (build from JQL, never open the artifact).
+     * Set it before {@code prepare(...)}; the default is the system property {@value #QUERY_MODEL_MODE_PROPERTY}.
+     */
+    public String queryModelMode = System.getProperty(QUERY_MODEL_MODE_PROPERTY, "auto");
+
     public static final String DIALECT_HSQLDB = "hsqldb";
     public static final String DIALECT_POSTGRESQL = "postgresql";
 
@@ -91,17 +103,35 @@ public class JudoRuntimeFixture {
     private void initQueryFactory() {
         coercer = new DefaultCoercer();
 
-        JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
-        jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
+        // the build path is unchanged: JQL extraction with resolveOnlyCurrentLambdaScope=false
+        final Supplier<QueryFactory> build = () -> {
+            JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
+            jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
 
-        final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(
-            modelHolder.getAsmModel().getResourceSet(),
-            modelHolder.getMeasureModel().getResourceSet(),
-            URI.createURI("expr:" + modelHolder.getAsmModel().getName()),
-            jqlExpressionBuilderConfig
-        );
+            final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(
+                modelHolder.getAsmModel().getResourceSet(),
+                modelHolder.getMeasureModel().getResourceSet(),
+                URI.createURI("expr:" + modelHolder.getAsmModel().getName()),
+                jqlExpressionBuilderConfig
+            );
 
-        queryFactory = new QueryFactory(modelHolder.getAsmModel().getResourceSet(), modelHolder.getMeasureModel().getResourceSet(), asmJqlExtractor.extractExpressions(), coercer, new ConcurrentHashMap<>());
+            return new QueryFactory(modelHolder.getAsmModel().getResourceSet(), modelHolder.getMeasureModel().getResourceSet(), asmJqlExtractor.extractExpressions(), coercer, new ConcurrentHashMap<>());
+        };
+
+        // the same decision as in production: restore the persisted query model when usable, build otherwise
+        queryFactory = QueryModelLoadOrBuild.queryModelLoadOrBuild()
+            .asmModel(modelHolder.getAsmModel())
+            .asmDigest(modelHolder.getAsmDigest())
+            .measureModel(modelHolder.getMeasureModel())
+            .measureDigest(modelHolder.getMeasureDigest())
+            .expressionModel(modelHolder.getExpressionModel())
+            .expressionDigest(modelHolder.getExpressionDigest())
+            .persistedQueryModel(modelHolder.getPersistedQueryModel())
+            .customJoinDefinitions(new ConcurrentHashMap<>())
+            .mode(queryModelMode)
+            .buildQueryFactory(build)
+            .build()
+            .get();
     }
 
     private void initModules(DataSource datasource, Dialect dialect) {

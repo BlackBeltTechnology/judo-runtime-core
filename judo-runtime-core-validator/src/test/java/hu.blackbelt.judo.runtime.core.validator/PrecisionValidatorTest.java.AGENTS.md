@@ -1,0 +1,3 @@
+# `PrecisionValidatorTest.java`
+
+Tests `PrecisionValidator.validateValue` against `BigDecimal`, `Double`, and `Float` attributes annotated with precision/scale constraints. Fixture constructs `TestEpackage` and `PrecisionValidatorTestClass` with 6-digit precision and 2-digit scale limits. Verifies valid values, precision overflow (`ERROR_PRECISION_VALIDATION_FAILED`), scale overflow (`ERROR_SCALE_VALIDATION_FAILED`), negative values, and zero edge cases.

@@ -92,8 +92,8 @@
             <artifactId>hu.blackbelt.judo.meta.query.model</artifactId>
         </dependency>
         <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-expression</artifactId>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2query</artifactId>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo</groupId>
@@ -111,6 +111,54 @@
         <dependency>
             <groupId>hu.blackbelt.mapper</groupId>
             <artifactId>mapper-impl</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- test: Northwind models, saved and restored query models -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2asm</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2measure</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2asm-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2measure-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2expression</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
+            <version>${judo-meta-psm-version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

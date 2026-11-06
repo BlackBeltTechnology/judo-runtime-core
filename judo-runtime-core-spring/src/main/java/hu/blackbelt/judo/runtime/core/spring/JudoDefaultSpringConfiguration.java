@@ -52,6 +52,8 @@ import hu.blackbelt.judo.runtime.core.dispatcher.environment.*;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.ActorResolver;
 import hu.blackbelt.judo.runtime.core.dispatcher.security.IdentifierSigner;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
+import hu.blackbelt.judo.runtime.core.query.QueryModelLoadOrBuild;
+import hu.blackbelt.judo.tatami.asm2query.PersistedQueryModel;
 import hu.blackbelt.judo.runtime.core.security.*;
 import hu.blackbelt.judo.runtime.core.validator.DefaultPayloadValidator;
 import hu.blackbelt.judo.runtime.core.validator.DefaultValidatorProvider;
@@ -65,6 +67,7 @@ import hu.blackbelt.osgi.filestore.security.api.TokenValidator;
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EClass;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -72,6 +75,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 
 @Configuration
@@ -91,6 +95,18 @@ public class JudoDefaultSpringConfiguration {
 
     @Autowired
     public MeasureModel measureModel;
+
+    /** Present only with {@link JudoModelLoader}; carries the digests of the loaded model files. */
+    @Autowired(required = false)
+    private JudoModelLoader judoModelLoader;
+
+    /** Locator of {@code <name>-query.model}, present only when the loader located such a file. */
+    @Autowired(required = false)
+    private PersistedQueryModel persistedQueryModel;
+
+    /** Query model mode: {@code auto} (default), {@code load} or {@code build}. */
+    @Value("${judo.queryModel.mode:auto}")
+    private String queryModelMode;
 
 
     @Autowired
@@ -160,22 +176,36 @@ public class JudoDefaultSpringConfiguration {
 
     @Bean
     public QueryFactory getQueryFactory() {
+        // the build path is unchanged: JQL extraction with resolveOnlyCurrentLambdaScope=false
+        final Supplier<QueryFactory> build = () -> {
+            JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
+            jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
 
-        JqlExpressionBuilderConfig jqlExpressionBuilderConfig = new JqlExpressionBuilderConfig();
-        jqlExpressionBuilderConfig.setResolveOnlyCurrentLambdaScope(false);
+            final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(asmModel.getResourceSet(),
+                    measureModel.getResourceSet(), URI.createURI("expr:" + asmModel.getName()), jqlExpressionBuilderConfig);
 
-        final AsmJqlExtractor asmJqlExtractor = new AsmJqlExtractor(asmModel.getResourceSet(),
-                measureModel.getResourceSet(), URI.createURI("expr:" + asmModel.getName()), jqlExpressionBuilderConfig);
+            return new QueryFactory(
+                    asmModel.getResourceSet(),
+                    measureModel.getResourceSet(),
+                    asmJqlExtractor.extractExpressions(),
+                    coercer,
+                    new ConcurrentHashMap<>());
+        };
 
-        QueryFactory queryFactory = new QueryFactory(
-                asmModel.getResourceSet(),
-                measureModel.getResourceSet(),
-                asmJqlExtractor.extractExpressions(),
-                coercer,
-                new ConcurrentHashMap<>());
-                //requireNonNullElse(customJoinDefinitions, ECollections.asEMap(new ConcurrentHashMap<>())));
-
-        return queryFactory;
+        // digests come with the model loader; an application with its own model beans has none (and no locator): build
+        return QueryModelLoadOrBuild.queryModelLoadOrBuild()
+                .asmModel(asmModel)
+                .asmDigest(judoModelLoader != null ? judoModelLoader.getAsmDigest() : null)
+                .measureModel(measureModel)
+                .measureDigest(judoModelLoader != null ? judoModelLoader.getMeasureDigest() : null)
+                .expressionModel(expressionModel)
+                .expressionDigest(judoModelLoader != null ? judoModelLoader.getExpressionDigest() : null)
+                .persistedQueryModel(persistedQueryModel)
+                .customJoinDefinitions(new ConcurrentHashMap<>())
+                .mode(queryModelMode)
+                .buildQueryFactory(build)
+                .build()
+                .get();
     }
 
     @Bean

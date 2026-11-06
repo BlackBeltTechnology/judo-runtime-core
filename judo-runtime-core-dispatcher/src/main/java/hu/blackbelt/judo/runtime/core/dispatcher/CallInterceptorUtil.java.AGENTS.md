@@ -1,0 +1,3 @@
+# `CallInterceptorUtil.java` — promoted sidecar detail
+
+| `CallInterceptorUtil.java` | Fans one `EOperation` call through `OperationCallInterceptor`s from `OperationCallInterceptorProvider`. Exports `shouldCallOriginal()` (false when any interceptor `ignoreDecoratedCall()`), `preCallInterceptors(P)`, `postCallInterceptors(P, R)`; async interceptors run `preCall` off-thread via `CompletableFuture.runAsync`. Sync interceptor returns must be assignable to the configured `parameterType`/`returnType`, else `IllegalArgumentException`. |

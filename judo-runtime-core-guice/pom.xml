@@ -118,6 +118,11 @@
 
         <dependency>
             <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2query</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
             <artifactId>judo-tatami-asm2keycloak</artifactId>
         </dependency>
 
@@ -131,6 +136,105 @@
             <artifactId>hu.blackbelt.judo.meta.keycloak.model</artifactId>
         </dependency>
 
+
+        <!-- test: Northwind model set (all transformations), model loaders, decision tests -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2asm</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2measure</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2asm-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- epsilon brings 3.5.2; the JQL (Xtext) parser of the model generation needs the 3.2 of Xtext -->
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr-runtime</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2measure-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- epsilon brings 3.5.2; the JQL (Xtext) parser of the model generation needs the 3.2 of Xtext -->
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr-runtime</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2expression</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2rdbms-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- epsilon brings 3.5.2; the JQL (Xtext) parser of the model generation needs the 3.2 of Xtext -->
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr-runtime</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-rdbms2liquibase</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-rdbms2liquibase-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <!-- epsilon brings 3.5.2; the JQL (Xtext) parser of the model generation needs the 3.2 of Xtext -->
+                    <groupId>org.antlr</groupId>
+                    <artifactId>antlr-runtime</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
+            <version>${judo-meta-psm-version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

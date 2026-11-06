@@ -84,8 +84,8 @@
             <artifactId>judo-runtime-core-dao-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>hu.blackbelt.judo.runtime</groupId>
-            <artifactId>judo-runtime-core-expression</artifactId>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2query</artifactId>
         </dependency>
         <dependency>
             <groupId>hu.blackbelt.judo</groupId>

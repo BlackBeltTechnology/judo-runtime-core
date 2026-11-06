@@ -1,0 +1,18 @@
+# AGENTS.md — `judo-runtime-core-dao-core/src/main/java/hu/blackbelt/judo/runtime/core/dao/core/statements`
+
+Immutable command objects the DAO core emits while translating a payload graph into
+persistence operations. Every type descends from `Statement`, which pins a single
+`InstanceValue` target; subclasses add the operation-specific payload.
+
+| File | Purpose |
+| --- | --- |
+| `AddReferenceStatement.java` | Records link of `referenceIdentifier` into `reference` of instance `identifier`. Exports `buildAddReferenceStatement()` Lombok builder and `getAlreadyReferencingInstances()` carrying the `Collection<Serializable>` already holding that reference — populated so single-valued opposite ends can be unlinked first. `toString` prints reference FQ name via `AsmUtils.getReferenceFQName`. |
+| `CheckUniqueAttributeStatement.java` | Unique-constraint probe over identifier attributes of one instance. Exports `buildCheckIdentifierStatement()`, static `fromStatement(Statement)` copying every attribute value off the source, and `mergeAttributes(Statement)` dropping own `AsmUtils.isIdentifier` attributes the argument also sets. `mergeAttributes` mutates `this.getInstance()` yet returns a different, attribute-less instance. |
+| `DeleteStatement.java` | Marks an already-resolved `InstanceValue` for removal. Only constructor takes the `InstanceValue` directly — unlike its siblings it has no builder and no `type`/`identifier` pair, so callers must resolve the instance before constructing. |
+| `InsertStatement.java` | Creation command for one instance. Exports `buildInsertStatement()` with `type`, `identifier`, `clientReferenceIdentifier`, `container`, `version`, `userId`, `username`, `timestamp`; `getContainer()` returns `Optional<EReference>` so a root (uncontained) insert is expressed by a null container, never by absence of the statement. |
+| `InstanceExistsValidationStatement.java` | Asserts referenced instance of `type`/`identifier` exists before the batch commits. Extends `ValidationStatement` and exports `buildInstanceExistsValidationStatement()`; adds no state, so it is distinguished from a plain validation only by its runtime class. |
+| `ReferenceStatement.java` | Abstract base of the link/unlink pair. Holds `@NonNull identifier` (the owning side) and `@NonNull reference`, while `super` stores the *other* end as the `InstanceValue` built from `type` + `referenceIdentifier`. Callers must not swap the two identifiers — `getIdentifier()` is the owner, `getInstance().getIdentifier()` is the target. |
+| `RemoveReferenceStatement.java` | Unlink counterpart of `AddReferenceStatement`; exports `buildRemoveReferenceStatement()` over `type`, `reference`, `identifier`, `referenceIdentifier` and stores no extra state — removal never needs the already-referencing set. |
+| `Statement.java` | Root abstraction of the statement hierarchy. `@AllArgsConstructor` over one `@NonNull InstanceValue instance` field exposed by `getInstance()`; every subclass therefore targets exactly one instance and a null instance fails at construction, not at execution. |
+| `UpdateStatement.java` | Mutation command for an existing instance. Exports `buildUpdateStatement()` with `type`, `identifier`, `version`, `userId`, `username`, `timestamp`; `version` carries the optimistic-lock value the store must match, and attribute values are attached to the built `InstanceValue`, not to this object. |
+| `ValidationStatement.java` | Non-mutating assertion over `type`/`identifier`, built by `buildValidationStatement()`. Concrete (not abstract) and also the superclass of `InstanceExistsValidationStatement`, so executors must dispatch on the exact class rather than on `instanceof`. |

@@ -35,8 +35,7 @@ Key facts:
 
 ## Modules — Business Logic & Processing
 
-- [judo-runtime-core-expression/agent-docs/README.md](judo-runtime-core-expression/agent-docs/README.md): Expression evaluation engine for dynamic values and conditions
-- [judo-runtime-core-query/agent-docs/README.md](judo-runtime-core-query/agent-docs/README.md): Query processing and translation layer converting abstract queries to SQL
+- [judo-runtime-core-query/agent-docs/README.md](judo-runtime-core-query/agent-docs/README.md): Query factory (build or restore of the persisted query model) serving the logical queries the DAO layer translates to SQL
 - [judo-runtime-core-dispatcher/agent-docs/README.md](judo-runtime-core-dispatcher/agent-docs/README.md): Request dispatching and operation processing with ANTLR-based parsing
 - [judo-runtime-core-validator/agent-docs/README.md](judo-runtime-core-validator/agent-docs/README.md): Data validation framework for enforcing business rules and constraints
 

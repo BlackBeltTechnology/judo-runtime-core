@@ -129,7 +129,7 @@ import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.TimestampConst
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.Translator;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.translators.UndefinedComparisonTranslator;
 import hu.blackbelt.judo.runtime.core.dao.rdbms.query.utils.RdbmsAliasUtil;
-import hu.blackbelt.judo.runtime.core.query.Context;
+import hu.blackbelt.judo.tatami.asm2query.Context;
 import hu.blackbelt.judo.runtime.core.query.QueryFactory;
 import hu.blackbelt.judo.tatami.core.TransformationTraceService;
 import lombok.Builder;
