@@ -23,7 +23,12 @@ unzip -o "$JAR" "claude/*" "agent-docs/*" -d .
 
 ## Key Classes
 
-- `QueryFactory` - Main entry point for logical query generation
+- `QueryFactory` - Main entry point for logical query lookup (build or restore)
+- `QueryModelLoadOrBuild` - Decides between restoring the persisted query model and building it (`auto` / `load` / `build`)
+- `CustomJoinDefinition` - Custom SQL join of a derived reference
+
+The builder classes live in `judo-tatami-asm2query` (package `hu.blackbelt.judo.tatami.asm2query`):
+
 - `JoinFactory` - Navigation path to JOIN conversion
 - `FeatureFactory` - Expression to SQL feature conversion
 - `Context` - Query building context with variable tracking

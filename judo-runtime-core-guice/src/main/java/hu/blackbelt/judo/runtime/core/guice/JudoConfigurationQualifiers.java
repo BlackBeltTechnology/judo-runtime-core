@@ -19,6 +19,12 @@ public class JudoConfigurationQualifiers {
     @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
     @Retention(RetentionPolicy.RUNTIME)
     @BindingAnnotation
+    public @interface QueryModelMode {}
+
+    @Qualifier
+    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
+    @Retention(RetentionPolicy.RUNTIME)
+    @BindingAnnotation
     public @interface RdbmsDaoOptimisticLockEnabled {}
 
     @Qualifier
