@@ -1,0 +1,3 @@
+# `JarSkillPackageTest.java`
+
+JUnit 5 test verifying Claude skill package ships in the module JAR. Asserts `/claude/marketplace.json` and `/claude/plugins/judo-dao-rdbms/.claude-plugin/plugin.json` reachable via classpath. Verifies per-skill `SKILL.md` files load. Checks marketplace JSON has `${project.version}` substituted and contains module name `judo-runtime-core-dao-rdbms`. Fails when packaged `claude/` resources missing or unsubstituted.

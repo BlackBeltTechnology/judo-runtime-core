@@ -1,0 +1,14 @@
+# AGENTS.md — `judo-runtime-core-guice-postgresql/src/main/java/hu/blackbelt/judo/runtime/core/guice/dao/rdbms/postgresql`
+
+Guice bindings for the PostgreSQL RDBMS DAO stack: one module wires dialect, data source, tx manager, mapper factory, parameter mapper, sequence and Liquibase init from a single configuration object or per-field defaults.
+
+| File | Purpose |
+| --- | --- |
+| `JudoPostgresqlModule.java` | Guice `AbstractModule` wiring the PostgreSQL DAO stack — `Dialect`, tx manager, `DataSource`, `MapperFactory`, `RdbmsParameterMapper`, `Sequence`, `RdbmsInit`; builder takes `JudoPostgresqlModuleConfiguration` or per-field values, each service bound as configured instance or its default `...Provider`. → see `JudoPostgresqlModule.java.AGENTS.md` |
+| `JudoPostgresqlModuleConfiguration.java` | Lombok `@Builder` data holder read by `JudoPostgresqlModule`: static `DEFAULT` instance, fields `host`/`port`/`user`/`password`/`databaseName`/`poolSize` (localhost/5432/judo/judo/judo/10), and six nullable service slots (tx manager, `MapperFactory`, `RdbmsParameterMapper`, `DataSource`, `Sequence`, `RdbmsInit`) that fall back to the module's providers when null. |
+| `PostgresqlConfiguration.java` | Declares five Guice `@BindingAnnotation` `@Qualifier` annotations (`@PostgresqlPort`, `@PostgresqlHost`, `@PostgresqlUser`, `@PostgresqlPassword`, `@PostgresqlDatabaseName`) for field/parameter/method injection; values get bound by `JudoPostgresqlModule.configureOptions()`. |
+| `PostgresqlDataSourceProvider.java` | Guice `Provider<DataSource>`; `get()` assembles `jdbc:postgresql://host:port/databaseName` from `@PostgresqlConfiguration`-injected fields (host/port default localhost/5432) and wraps the `PGSimpleDataSource` in a `HikariDataSource` — pooling flags hard-coded true, no opt-out. |
+| `PostgresqlMapperFactoryProvider.java` | Guice `Provider<MapperFactory>`; `get()` returns a fresh `PostgresqlMapperFactory` each call (`@SuppressWarnings("rawtypes")`). |
+| `PostgresqlRdbmsInitProvider.java` | Guice `Provider<RdbmsInit>`; `get()` builds `PostgresqlRdbmsInit` from injected `SimpleLiquibaseExecutor`, `DataSource` and `JudoModelLoader.getLiquibaseModel()`, then calls `execute(dataSource)` — provision already runs the Liquibase change-set against the DB. |
+| `PostgresqlRdbmsParameterMapperProvider.java` | Guice `Provider<RdbmsParameterMapper>`; `get()` builds `PostgresqlRdbmsParameterMapper` from `DataTypeManager` coercer, `JudoModelLoader.getRdbmsModel()` and `IdentifierProvider`. |
+| `PostgresqlRdbmsSequenceProvider.java` | Guice `Provider<Sequence>`; `get()` builds `PostgresqlRdbmsSequence` from injected `DataSource` plus optional `@Named` config via constants `RDBMS_SEQUENCE_START`, `RDBMS_SEQUENCE_INCREMENT`, `RDBMS_SEQUENCE_CREATE_IF_NOT_EXISTS`; defaults start=1L, increment=1L, createIfNotExists=true. |

@@ -24,6 +24,7 @@ import hu.blackbelt.judo.meta.asm.runtime.AsmModel;
 import hu.blackbelt.judo.meta.expression.runtime.ExpressionModel;
 import hu.blackbelt.judo.meta.measure.runtime.MeasureModel;
 import hu.blackbelt.judo.meta.rdbms.runtime.RdbmsModel;
+import hu.blackbelt.judo.tatami.asm2query.PersistedQueryModel;
 import hu.blackbelt.judo.tatami.asm2rdbms.Asm2RdbmsTransformationTrace;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -58,6 +59,16 @@ public class JudoModelConfiguration {
     @Bean
     public MeasureModel getMeasureModel() {
         return judoModelLoader.getMeasureModel();
+    }
+
+    /**
+     * Locator of the persisted query model ({@code <name>-query.model}). The bean exists only when the loader located
+     * such a file; a {@code null} return registers a {@code NullBean}, so the optional injection stays {@code null} and the {@code QueryFactory} is built.
+     * The file is not opened here.
+     */
+    @Bean
+    public PersistedQueryModel getPersistedQueryModel() {
+        return judoModelLoader.getPersistedQueryModel();
     }
 
 }

@@ -274,6 +274,62 @@
             <version>3.2</version>
         </dependency>
 
+
+        <!-- test: Northwind model set (all transformations) for the fixture query model modes -->
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2asm</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2measure</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2asm-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-psm2measure-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2expression</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-asm2rdbms-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-rdbms2liquibase</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.tatami</groupId>
+            <artifactId>judo-tatami-rdbms2liquibase-etl</artifactId>
+            <version>${judo-tatami-base-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>hu.blackbelt.judo.meta</groupId>
+            <artifactId>hu.blackbelt.judo.meta.psm.model.northwind</artifactId>
+            <version>${judo-meta-psm-version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

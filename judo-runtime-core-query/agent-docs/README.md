@@ -4,7 +4,9 @@ Query processing and translation layer for converting abstract queries to execut
 
 ## Overview
 
-This module provides the query factory and feature conversion system that transforms JUDO expressions into logical query structures. It processes ASM model expressions and creates query objects that can be translated to SQL by the DAO layer.
+This module is the runtime entry point of the logical query model. `QueryFactory` serves the logical queries (`Select`, `SubSelect`) that the DAO layer translates to SQL. The factory has two construction paths: it **builds** the query model from the ASM, measure and expression models (delegating to `Asm2Query` of `judo-tatami-asm2query`), or it **restores** a query model that was built at model build time and saved as `<name>-query.model`. `QueryModelLoadOrBuild` is the one place that decides between the two.
+
+The builder itself (`Asm2Query`, `FeatureFactory`, `JoinFactory`, `Context`, `Constants`, the feature converters and `EntityTypeExpressions`) moved to `judo-tatami-base/judo-tatami-asm2query`, package `hu.blackbelt.judo.tatami.asm2query`.
 
 ## Maven Coordinates
 
@@ -28,7 +30,6 @@ QueryFactory queryFactory = QueryFactory.builder()
     .asmResourceSet(asmResourceSet)
     .measureResourceSet(measureResourceSet)
     .expressionResourceSet(expressionResourceSet)
-    .coercer(coercer)
     .customJoinDefinitions(customJoins)
     .build();
 
@@ -39,39 +40,29 @@ Optional<Select> query = queryFactory.getQuery(transferObjectType);
 Optional<SubSelect> navigation = queryFactory.getNavigation(reference);
 ```
 
-### FeatureFactory
-Converts expressions to query features (columns, computed values).
+Restore a persisted query model instead of building it:
 
-### JoinFactory
-Creates JOIN structures for navigation expressions and relationships.
+```java
+QueryFactory queryFactory = QueryModelLoadOrBuild.queryModelLoadOrBuild()
+    .asmModel(asmModel).asmDigest(asmDigest)
+    .measureModel(measureModel).measureDigest(measureDigest)
+    .expressionModel(expressionModel).expressionDigest(expressionDigest)
+    .persistedQueryModel(locator)            // PersistedQueryModel, null when there is no query file
+    .customJoinDefinitions(customJoins)      // any custom join selects the build path
+    .mode("auto")                            // auto (default) | load | build
+    .buildQueryFactory(() -> QueryFactory.builder()/* ... */.build())
+    .get();
+```
 
-### Context
-Query building context containing variables, counters, and node references.
+Modes: `auto` restores a valid artifact and otherwise builds (WARN with the reason, except when the artifact is absent); `load` fails with the reason instead of building; `build` always builds and never opens the artifact. An artifact is valid only when its format version, generator identity (`judo-tatami-asm2query` version, plus build timestamp for a SNAPSHOT), model name and the SHA-256 digests of the ASM, measure and expression files match the runtime's. The model build and the runtime therefore have to use the same `judo-tatami-asm2query` build; `load` is brittle by design.
+
+The `coercer` argument of `QueryFactory` is deprecated and ignored.
 
 ### CustomJoinDefinition
-Defines custom SQL joins for specific references.
+Defines custom SQL joins for specific references. Joins are read while the query model is built; they are never persisted, so configuring any makes `auto` build and `load` fail.
 
-### Feature Converters
-Located in `feature/` package, convert specific expression types:
-
-| Converter | Purpose |
-|-----------|---------|
-| `AttributeToFeatureConverter` | Entity attribute access |
-| `ConstantToFeatureConverter` | Literal values |
-| `DecimalArithmeticExpressionToFeatureConverter` | Math operations |
-| `StringComparisonToFeatureConverter` | String comparisons |
-| `DateConstructionExpressionToFeatureConverter` | Date building |
-| `TimestampArithmeticExpressionToFeatureConverter` | Timestamp math |
-| `SwitchExpressionToFeatureConverter` | Conditional expressions |
-| `LikeToFeatureConverter` | Pattern matching |
-| `ContainsExpressionToFeatureConverter` | Collection membership |
-
-### Aggregated Feature Converters
-Located in `feature/aggregated/`:
-- `CountExpressionToFeatureConverter` - COUNT aggregation
-- `DecimalAggregatedExpressionToFeatureConverter` - SUM, AVG, etc.
-- `IntegerAggregatedExpressionToFeatureConverter` - Integer aggregations
-- `StringAggregatedExpressionToFeatureConverter` - String aggregations
+### Moved to `judo-tatami-asm2query`
+`FeatureFactory` (expression to feature conversion, with the converters of `feature/` and `feature/aggregated/`), `JoinFactory` (navigation to joins), `Context` (query building state), `Constants` and `EntityTypeExpressions` are in package `hu.blackbelt.judo.tatami.asm2query`. **Breaking:** `QueryFactory.dataExpressionToFeature(..., Context, ...)` and `getEntityTypeExpressionsMap()` use the new types.
 
 ## Query Structure
 
@@ -87,7 +78,11 @@ The module creates a logical query model:
 
 ```java
 // Create query factory
-QueryFactory factory = new QueryFactory(asmResourceSet, expressionResourceSet, coercer);
+QueryFactory factory = QueryFactory.builder()
+    .asmResourceSet(asmResourceSet)
+    .measureResourceSet(measureResourceSet)
+    .expressionResourceSet(expressionResourceSet)
+    .build();
 
 // Get query for mapped transfer object
 EClass orderType = asmUtils.resolve("demo.Order").get();
@@ -101,7 +96,7 @@ List<SubSelect> subSelects = orderQuery.getSubSelects();
 
 ## Related Modules
 
-- `judo-runtime-core-expression` - Expression evaluation
+- `judo-tatami-asm2query` - Query model builder, persistence (`QueryModelPersistence`) and expression binding collector
 - `judo-runtime-core-dao-rdbms` - SQL generation from queries
 - `judo-meta-query` - Query metamodel
 - `judo-meta-expression` - Expression metamodel
