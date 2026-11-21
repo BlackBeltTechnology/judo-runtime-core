@@ -2,7 +2,7 @@ name: Create release tag on master
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   create-release:
@@ -37,14 +37,14 @@ jobs:
           servers: >
             [
                 {
-                    "id": "judong-nexus-mirror",
-                    "username": "${{ secrets.JUDONG_NEXUS_USERNAME }}",
-                    "password": "${{ secrets.JUDONG_NEXUS_PASSWORD }}"
+                    "id": "judong",
+                    "username": "${{ secrets.JUDONG_REPOSITORY_USER }}",
+                    "password": "${{ secrets.JUDONG_REPOSITORY_PASSWORD }}"
                 },
                 {
-                    "id": "judong-nexus-distribution",
-                    "username": "${{ secrets.JUDONG_NEXUS_USERNAME }}",
-                    "password": "${{ secrets.JUDONG_NEXUS_PASSWORD }}"
+                    "id": "judong-distribution",
+                    "username": "${{ secrets.JUDONG_REPOSITORY_USER }}",
+                    "password": "${{ secrets.JUDONG_REPOSITORY_PASSWORD }}"
                 },
                 {
                     "id": "ossrh",
@@ -52,15 +52,6 @@ jobs:
                     "password": "${{ secrets.SONATYPE_PASSWORD }}"
                 }
             ]
-          mirrors: >
-            [
-                {
-                    "id": "judong-nexus-mirror",
-                    "mirrorOf": "*",
-                    "url": "https://nexus.judo.technology/repository/maven-judong/"
-                }
-            ]
-
       - name: 🔢 Calculate version number
         id: version
         run: |-
